@@ -1281,6 +1281,14 @@ fn update_entry_opens_centered_dialog_and_does_not_restart_with_unsaved_accounts
     let output = input_frame(&mut app, &ctx, 0.6, vec![], vec![]);
     position(&output, "请先保存或取消账号修改");
     assert!(app.inline_credentials.contains_key("unsaved"));
+    app.inline_credentials.clear();
+    app.file_operations = 1;
+    let output = input_frame(&mut app, &ctx, 0.7, vec![], vec![]);
+    let at = position(&output, "安装更新并重启") + egui::vec2(5.0, 5.0);
+    input_frame(&mut app, &ctx, 0.8, pointer(at, true), vec![]);
+    input_frame(&mut app, &ctx, 0.83, pointer(at, false), vec![]);
+    let output = input_frame(&mut app, &ctx, 0.9, vec![], vec![]);
+    position(&output, "当前操作完成后即可更新");
 }
 
 #[test]
@@ -1590,4 +1598,35 @@ fn contact_classification_changes_in_detail_survive_rename_clear_and_restart() {
         app.record_labels(TagScope::Contacts, &app.contact_items[0].id)
             .is_empty()
     );
+}
+
+#[test]
+fn file_background_operations_are_counted_until_their_completion_messages() {
+    let directory = tempfile::tempdir().unwrap();
+    let source = directory.path().join("source.txt");
+    fs::write(&source, "keep body").unwrap();
+    let target = directory.path().join("destination");
+    fs::create_dir(&target).unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(directory.path().join("data"));
+    app.start_copy(source.clone(), target.clone());
+    assert_eq!(app.file_operations, 1);
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while app.file_operations > 0 && Instant::now() < deadline {
+        app.poll_background();
+        thread::sleep(Duration::from_millis(10));
+    }
+    assert_eq!(app.file_operations, 0);
+    assert_eq!(
+        fs::read_to_string(target.join("source.txt")).unwrap(),
+        "keep body"
+    );
+    app.start_move(source.clone(), directory.path().join("does-not-exist"));
+    assert_eq!(app.file_operations, 1);
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while app.file_operations > 0 && Instant::now() < deadline {
+        app.poll_background();
+        thread::sleep(Duration::from_millis(10));
+    }
+    assert_eq!(app.file_operations, 0);
+    assert!(source.exists());
 }
