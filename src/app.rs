@@ -93,6 +93,7 @@ pub struct PersonalDeskApp {
     photo_cache: std::collections::HashMap<String, egui::TextureHandle>,
     contact_scroll_id: Option<String>,
     undo: crate::undo::Journal,
+    file_operations: usize,
     updates: update_ui::UpdateState,
     #[cfg(debug_assertions)]
     preview_capture: Option<preview::Capture>,
@@ -265,6 +266,7 @@ impl PersonalDeskApp {
             photo_cache: Default::default(),
             contact_scroll_id: None,
             undo: crate::undo::Journal::open(&base),
+            file_operations: 0,
             #[cfg(debug_assertions)]
             preview_capture: None,
             desktop: crate::native_embed::DesktopDock::default(),
@@ -1152,6 +1154,7 @@ impl PersonalDeskApp {
     }
 
     fn start_copy(&mut self, source: PathBuf, destination: PathBuf) {
+        self.file_operations += 1;
         let tx = self.sender.clone();
         self.notice = "正在复制文件…".into();
         thread::spawn(move || {
@@ -1161,6 +1164,7 @@ impl PersonalDeskApp {
     }
 
     fn start_move(&mut self, source: PathBuf, destination: PathBuf) {
+        self.file_operations += 1;
         let tx = self.sender.clone();
         self.notice = "正在移动文件；跨磁盘时会先复制并校验…".into();
         thread::spawn(move || {
@@ -1171,6 +1175,12 @@ impl PersonalDeskApp {
 
     fn poll_background(&mut self) {
         while let Ok(message) = self.receiver.try_recv() {
+            if matches!(
+                &message,
+                BackgroundMessage::Copied(_) | BackgroundMessage::Moved(_)
+            ) {
+                self.file_operations = self.file_operations.saturating_sub(1);
+            }
             match message {
                 BackgroundMessage::ContactChats(id, result) => {
                     self.contact_import_busy = false;
@@ -3542,6 +3552,35 @@ impl eframe::App for PersonalDeskApp {
         }
         if ctx.input(|input| input.viewport().close_requested()) {
             let mut records_saved = true;
+            if self.file_operations > 0
+                || self.drop_busy
+                || self.export_busy
+                || self.contact_import_busy
+            {
+                records_saved = false;
+                self.notice = "当前文件操作完成后即可退出".into();
+            }
+            let blank_contact = Contact {
+                id: self.contact_draft.id.clone(),
+                ..Default::default()
+            };
+            if self.contact_dialog_open
+                && (self.contact_draft != blank_contact || !self.contact_draft_tags.is_empty())
+            {
+                records_saved &= self.save_contact_draft();
+            }
+            if self.inventory_dialog_open && !self.inventory_draft.name.trim().is_empty() {
+                records_saved &= self.save_inventory_item();
+            }
+            if self.credential_dialog_open && !self.credential_draft.title.trim().is_empty() {
+                records_saved &= self.save_credential_draft();
+            }
+            if self.website_dialog_open
+                && (!self.website_draft.url.trim().is_empty()
+                    || !self.website_draft.title.trim().is_empty())
+            {
+                records_saved &= self.save_website_draft();
+            }
             for id in self.inline_credentials.keys().cloned().collect::<Vec<_>>() {
                 records_saved &= self.save_inline_credential(&id);
             }
