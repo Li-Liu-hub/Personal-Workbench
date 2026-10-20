@@ -1,0 +1,49 @@
+[package]
+name = "personal-desk"
+version = "0.3.0"
+edition = "2024"
+rust-version = "1.95"
+description = "A private Rust desktop office hub"
+license = "MIT"
+
+[dependencies]
+aes-gcm = "0.10"
+calamine = "0.26.1"
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp", "bmp"] }
+chrono = { version = "0.4", features = ["serde"] }
+directories = "6"
+eframe = { version = "0.37", default-features = false, features = ["default_fonts", "glow", "clipboard"] }
+open = "5"
+raw-window-handle = "0.6"
+rfd = "0.17"
+rusqlite = { version = "0.40", features = ["bundled-full", "backup"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+semver = "1"
+sha2 = "0.10"
+thiserror = "2"
+tempfile = "3"
+url = "2"
+uuid = { version = "1", features = ["v4", "serde"] }
+walkdir = "2"
+wry = { version = "0.57", default-features = false, features = ["os-webview"] }
+portable-pty = "0.9"
+vt100 = "0.16"
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_System_Com", "Win32_System_Threading", "Win32_System_Registry", "Win32_UI_HiDpi", "Win32_Graphics_Gdi"] }
+windows = { version = "0.52", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_System_Ole", "Win32_UI_Shell"] }
+zip = { version = "6", default-features = false, features = ["deflate"] }
+zeroize = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+getrandom = "0.3"
+
+[profile.release]
+opt-level = 2
+lto = "thin"
+codegen-units = 1
+strip = true
+
+[package.metadata.bundle]
+name = "个人办公台"
+identifier = "cn.personaldesk.app"
+category = "Productivity"
