@@ -138,6 +138,13 @@ impl Terminal {
     }
 }
 
+impl Drop for Terminal {
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -166,11 +173,5 @@ mod tests {
             output.contains(&root.path().to_string_lossy().to_string()),
             "{output:?}"
         );
-    }
-}
-impl Drop for Terminal {
-    fn drop(&mut self) {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
     }
 }

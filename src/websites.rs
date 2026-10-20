@@ -28,8 +28,3 @@ pub fn prepare(mut website: Website) -> Result<Website> {
     website.category = website.category.trim().to_owned();
     Ok(website)
 }
-
-pub fn open(website: &Website) -> Result<()> {
-    let prepared = prepare(website.clone())?;
-    open::that_detached(prepared.url).map_err(DeskError::from)
-}

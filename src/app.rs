@@ -870,6 +870,17 @@ impl PersonalDeskApp {
                         {
                             self.credential_draft.tags = assignment.selected.clone();
                         }
+                        if assignment.scope == TagScope::Contacts
+                            && self.contact_draft.id == assignment.id
+                        {
+                            self.contact_draft_tags = assignment.selected.clone();
+                        }
+                        if assignment.scope == TagScope::Inventory
+                            && let Some(draft) = self.inline_inventory.get_mut(&assignment.id)
+                        {
+                            draft.tags = assignment.selected.clone();
+                            draft.category = draft.tags.join(" · ");
+                        }
                         self.load_tags();
                         self.load_summaries();
                         self.load_inventory();
@@ -1100,6 +1111,7 @@ impl PersonalDeskApp {
         match result {
             Ok(()) => {
                 self.notice = format!("已保存物品：{}", self.inventory_draft.name.trim());
+                self.inline_inventory.remove(&self.inventory_draft.id);
                 self.selected_inventory = Some(self.inventory_draft.id.clone());
                 self.load_inventory();
                 self.load_tags();
@@ -1455,7 +1467,7 @@ impl PersonalDeskApp {
             .id_salt("navigation-scroll")
             .max_height((ui.available_height() - 56.0).max(160.0))
             .show(ui, |ui| {
-                for (section, title, kind, count) in [
+                let mut navigation = vec![
                     (Section::Folders, "快捷路径", TileKind::Folder, None),
                     (
                         Section::Credentials,
@@ -1489,10 +1501,32 @@ impl PersonalDeskApp {
                     (Section::Codex, "Codex", TileKind::Document, None),
                     (Section::Games, "小游戏", TileKind::Game, Some(1)),
                     (Section::Settings, "设置", TileKind::Setting, None),
-                ] {
-                    if navigation_item(ui, title, kind, self.section == section, count).clicked() {
-                        self.snake.pause();
-                        self.snake_last_time = None;
+                ];
+                navigation.sort_by_key(|(section, _, _, _)| {
+                    !self.is_favorite("modules", views::key(*section))
+                });
+                for (section, title, kind, count) in navigation {
+                    let selected = section == self.section;
+                    let label = if self.is_favorite("modules", views::key(section)) {
+                        format!("★ {title}")
+                    } else {
+                        title.to_string()
+                    };
+                    let response = navigation_item(ui, &label, kind, selected, count);
+                    response.context_menu(|ui| {
+                        if ui
+                            .button(if self.is_favorite("modules", views::key(section)) {
+                                "取消收藏"
+                            } else {
+                                "收藏并置顶"
+                            })
+                            .clicked()
+                        {
+                            self.toggle_favorite("modules", views::key(section));
+                            ui.close();
+                        }
+                    });
+                    if response.clicked() {
                         if self.editor_dirty && !self.save_editor() {
                             continue;
                         }
@@ -1793,6 +1827,7 @@ impl PersonalDeskApp {
             .and_then(|db| db.delete_inventory_item(id));
         match result {
             Ok(()) => {
+                self.inline_inventory.remove(id);
                 if self.selected_inventory.as_deref() == Some(id) {
                     self.inventory_dialog_open = false;
                     self.selected_inventory = None;
@@ -2273,8 +2308,12 @@ impl PersonalDeskApp {
                                 response.rect.intersect(ui.clip_rect()).contains(at)
                                     && if self.view_mode() == ViewMode::Grid {
                                         at.y >= response.rect.top() + 60.0
+                                            && !(at.x > response.rect.right() - 40.0
+                                                && at.y > response.rect.bottom() - 40.0)
                                     } else {
-                                        at.x < response.rect.left() + response.rect.width() * 0.5
+                                        at.x > response.rect.left() + 24.0
+                                            && at.x
+                                                < response.rect.left() + response.rect.width() * 0.5
                                     }
                             })
                     });
@@ -2910,6 +2949,7 @@ impl PersonalDeskApp {
     fn render_detail_windows(&mut self, ctx: &egui::Context) {
         if self.website_dialog_open {
             let mut save = false;
+            let mut browse = false;
             let dialog = centered_dialog(
                 ctx,
                 "website-details",
@@ -2951,11 +2991,7 @@ impl PersonalDeskApp {
                     }
                     ui.horizontal_wrapped(|ui| {
                         save = ui.add(primary_button("保存网站")).clicked();
-                        if ui.button("打开网站").clicked()
-                            && let Err(error) = websites::open(&self.website_draft)
-                        {
-                            self.website_error = error.to_string();
-                        }
+                        browse = ui.button("打开网站").clicked();
                         if ui.button("复制网址").clicked() {
                             ctx.copy_text(self.website_draft.url.clone());
                         }
@@ -2964,6 +3000,15 @@ impl PersonalDeskApp {
             );
             if dialog_closed(&dialog) || (save && self.save_website_draft()) {
                 self.website_dialog_open = false;
+            }
+            if browse {
+                match crate::browser::address(&self.website_draft.url) {
+                    Ok(_) => {
+                        self.website_open_request = Some(self.website_draft.clone());
+                        self.website_dialog_open = false;
+                    }
+                    Err(error) => self.website_error = error,
+                }
             }
         }
         if self.export_dialog_open {
@@ -3085,6 +3130,9 @@ impl PersonalDeskApp {
                 "记下拥有的物品，也记住它们放在哪里。",
                 440.0,
                 |ui| {
+                    if ui.add(primary_button("保存物品")).clicked() {
+                        save = true;
+                    }
                     ui.label("物品名称");
                     ui.text_edit_singleline(&mut self.inventory_draft.name);
                     ui.columns(2, |columns| {
@@ -3102,6 +3150,9 @@ impl PersonalDeskApp {
                                 .range(0..=100_000),
                         );
                     });
+                    if tag_choices(ui, &mut self.inventory_draft.tags, &self.inventory_tags) {
+                        self.open_tag_manager(TagScope::Inventory);
+                    }
                     ui.label("存放位置");
                     ui.text_edit_singleline(&mut self.inventory_draft.location);
                     ui.columns(2, |columns| {
@@ -3135,21 +3186,12 @@ impl PersonalDeskApp {
                         egui::TextEdit::singleline(&mut self.inventory_draft.disposal_date)
                             .hint_text("YYYY-MM-DD"),
                     );
-                    if tag_choices(ui, &mut self.inventory_draft.tags, &self.inventory_tags) {
-                        self.open_tag_manager(TagScope::Inventory);
-                    }
                     ui.label("备注");
                     ui.add(
                         egui::TextEdit::multiline(&mut self.inventory_draft.notes)
                             .desired_width(f32::INFINITY)
                             .desired_rows(3),
                     );
-                    if ui
-                        .add_sized([ui.available_width(), 38.0], primary_button("保存物品"))
-                        .clicked()
-                    {
-                        save = true;
-                    }
                 },
             );
             if dialog_closed(&dialog) {
@@ -3499,9 +3541,16 @@ impl eframe::App for PersonalDeskApp {
             self.save_library_page();
         }
         if ctx.input(|input| input.viewport().close_requested()) {
+            let mut records_saved = true;
+            for id in self.inline_credentials.keys().cloned().collect::<Vec<_>>() {
+                records_saved &= self.save_inline_credential(&id);
+            }
+            for id in self.inline_inventory.keys().cloned().collect::<Vec<_>>() {
+                records_saved &= self.save_inline_inventory(&id);
+            }
             let documents_saved = !self.editor_dirty || self.save_editor();
             let pages_saved = self.save_library_page();
-            if !documents_saved || !pages_saved {
+            if !records_saved || !documents_saved || !pages_saved {
                 ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
             }
         }

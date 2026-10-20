@@ -92,11 +92,11 @@ impl PersonalDeskApp {
                 if let Some(draft) = self.inline_credentials.get_mut(id) {
                     draft.tags = tags.to_vec();
                 }
-                if scope == TagScope::Inventory {
-                    if let Some(draft) = self.inline_inventory.get_mut(id) {
-                        draft.tags = tags.to_vec();
-                        draft.category = tags.join(" · ");
-                    }
+                if scope == TagScope::Inventory
+                    && let Some(draft) = self.inline_inventory.get_mut(id)
+                {
+                    draft.tags = tags.to_vec();
+                    draft.category = tags.join(" · ");
                 }
                 if scope == TagScope::Contacts && self.contact_draft.id == id {
                     self.contact_draft_tags = tags.to_vec();

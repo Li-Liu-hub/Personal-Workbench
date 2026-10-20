@@ -105,8 +105,8 @@ impl PersonalDeskApp {
                 {
                     let area = if self.view_mode() == ViewMode::Grid {
                         egui::Rect::from_center_size(
-                            response.rect.center_top() + egui::vec2(0.0, 86.0),
-                            egui::vec2(78.0, 78.0),
+                            response.rect.min + egui::vec2(38.0, 72.0),
+                            egui::vec2(40.0, 40.0),
                         )
                     } else {
                         egui::Rect::from_center_size(

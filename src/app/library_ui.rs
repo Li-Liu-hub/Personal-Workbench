@@ -274,7 +274,11 @@ impl PersonalDeskApp {
             if let Some(page) = select
                 && self.save_library_page()
             {
-                self.library.page = Some(page);
+                self.library.page = self
+                    .db
+                    .as_ref()
+                    .and_then(|db| db.book_pages(&book.id).ok())
+                    .and_then(|pages| pages.into_iter().find(|saved| saved.id == page.id));
             }
             if let Some(id) = remove
                 && self.save_library_page()

@@ -47,10 +47,7 @@ impl PersonalDeskApp {
                 egui::vec2(24.0, 24.0),
             )
         } else {
-            egui::Rect::from_center_size(
-                egui::pos2(rect.left() - 14.0, rect.center().y),
-                egui::vec2(22.0, 26.0),
-            )
+            egui::Rect::from_min_size(rect.min + egui::vec2(3.0, 3.0), egui::vec2(16.0, 19.0))
         };
         if !area.intersects(ui.clip_rect()) {
             return;
