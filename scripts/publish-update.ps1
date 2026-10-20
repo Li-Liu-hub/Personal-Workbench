@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '修复 PowerShell 与内置浏览器无响应：命令输入栏、后台启动与输入、终端输出限时处理、网页焦点切换和加载错误提示'
+    [string]$Notes = '整理项目目录与 README，完善开机自启动设置、状态读取和已开启时的启动路径更新'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

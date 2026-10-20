@@ -207,7 +207,16 @@ pub struct PersonalDeskApp {
 impl PersonalDeskApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         configure_theme(&cc.egui_ctx);
-        Self::open_data_directory(data_directory())
+        let mut app = Self::open_data_directory(data_directory());
+        // Preview/test construction never changes the user's startup entry.
+        if !cfg!(debug_assertions)
+            && let Err(error) = std::env::current_exe()
+                .map_err(|e| e.to_string())
+                .and_then(|path| crate::autostart::refresh_if_enabled(&path))
+        {
+            app.notice = error;
+        }
+        app
     }
 
     #[cfg(debug_assertions)]
@@ -2765,23 +2774,54 @@ impl PersonalDeskApp {
     }
 
     fn render_settings(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal_wrapped(|ui| {
-            let mut enabled = crate::autostart::enabled();
-            if ui.checkbox(&mut enabled, "开机自启动").changed() {
-                match std::env::current_exe()
-                    .map_err(|e| e.to_string())
-                    .and_then(|path| crate::autostart::set(enabled, &path))
-                {
-                    Ok(()) => {
-                        self.notice = if enabled {
-                            "已开启开机自启动".into()
-                        } else {
-                            "已关闭开机自启动".into()
+        egui::Frame::group(ui.style())
+            .fill(surface())
+            .inner_margin(16.0)
+            .show(ui, |ui| {
+                ui.set_min_width((ui.available_width() - 1.0).max(0.0));
+                ui.strong("启动设置");
+                ui.add_space(8.0);
+                let registered = crate::autostart::registered_command();
+                let mut enabled = registered.as_ref().is_ok_and(|value| value.is_some());
+                ui.horizontal_wrapped(|ui| {
+                    if ui.checkbox(&mut enabled, "开机自启动").changed() {
+                        match std::env::current_exe()
+                            .map_err(|e| e.to_string())
+                            .and_then(|path| crate::autostart::set(enabled, &path))
+                        {
+                            Ok(()) => {
+                                self.notice = if enabled {
+                                    "已开启开机自启动".into()
+                                } else {
+                                    "已关闭开机自启动".into()
+                                }
+                            }
+                            Err(error) => {
+                                enabled = registered.as_ref().is_ok_and(|value| value.is_some());
+                                self.notice = error;
+                            }
                         }
                     }
-                    Err(error) => self.notice = error,
+                    ui.label(
+                        RichText::new(if enabled { "已开启" } else { "已关闭" }).color(muted()),
+                    );
+                    if let Ok(Some(value)) = &registered
+                        && let Ok(path) = std::env::current_exe()
+                        && *value != crate::autostart::command(&path)
+                        && ui.button("更新启动路径").clicked()
+                    {
+                        self.notice = match crate::autostart::set(true, &path) {
+                            Ok(()) => "启动路径已更新".into(),
+                            Err(error) => error,
+                        };
+                    }
+                });
+                if let Err(error) = registered {
+                    ui.colored_label(Color32::from_rgb(185, 65, 71), error);
                 }
-            }
+            });
+        ui.add_space(16.0);
+        ui.horizontal_wrapped(|ui| {
             if ui
                 .add_enabled(self.undo.available(), egui::Button::new("撤回最近删除"))
                 .clicked()
