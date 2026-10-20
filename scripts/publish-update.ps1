@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '内置网页聊天、图书分页、联系人照片与生日、购买记录、可撤回删除和内嵌 PowerShell'
+    [string]$Notes = '内置网页聊天与 PowerShell、图书分页、联系人生日/专业/照片、物品购买及丢弃日期、列表编辑、收藏置顶、固定文件操作栏、删除撤回与开机自启'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

@@ -539,7 +539,11 @@ fn choosing_an_inventory_classification_saves_updates_summary_and_filters_after_
         app.inventory_filter = TagFilter::Named("已买".into());
         output = input_frame(&mut app, &ctx, 3.0 + index as f64, vec![], vec![]);
         position(&output, "测试笔记本电脑");
-        position(&output, "1 件 · 已买");
+        if mode == ViewMode::Grid {
+            position(&output, "1 件 · 已买");
+        } else {
+            position(&output, "已买");
+        }
         assert!(
             !output.shapes.iter().any(
                 |s| matches!(&s.shape,egui::Shape::Text(t) if t.galley.text()=="1 件 · 未分类")
@@ -1131,9 +1135,12 @@ fn visible_search_types_filters_clears_and_automatically_loads_indexed_content()
 }
 
 #[test]
-fn classification_dropdown_saves_from_cards_and_rows_without_opening_details() {
+fn classification_dropdown_saves_from_account_cards_and_editable_rows_without_opening_details() {
     for mode in [ViewMode::Grid, ViewMode::List] {
         for section in [Section::Credentials, Section::Websites, Section::Inventory] {
+            if mode == ViewMode::Grid && section != Section::Credentials {
+                continue;
+            }
             let directory = tempfile::tempdir().unwrap();
             let mut app = PersonalDeskApp::open_data_directory(directory.path().join("data"));
             let (id, scope) = match section {
@@ -1199,6 +1206,9 @@ fn classification_dropdown_saves_from_cards_and_rows_without_opening_details() {
                 .unwrap();
             input_frame(&mut app, &ctx, 0.4, pointer(at, true), vec![]);
             input_frame(&mut app, &ctx, 0.43, pointer(at, false), vec![]);
+            if section == Section::Inventory {
+                assert!(app.save_inline_inventory(&id));
+            }
             assert_eq!(
                 app.record_labels(scope, &id),
                 ["dropdown-choice"],
@@ -1359,19 +1369,6 @@ fn reopening_a_contact_resets_scroll_to_name_and_keeps_new_fields() {
         input_frame(&mut app, &ctx, n as f64 * 0.1, vec![], vec![]);
     }
     let output = input_frame(&mut app, &ctx, 1.2, vec![], vec![]);
-    eprintln!(
-        "open={} scroll={:?} labels={:?}",
-        app.contact_dialog_open,
-        app.contact_scroll_id,
-        output
-            .shapes
-            .iter()
-            .filter_map(|s| match &s.shape {
-                egui::Shape::Text(t) => Some((t.galley.text(), t.pos.y)),
-                _ => None,
-            })
-            .collect::<Vec<_>>()
-    );
     let name = position(&output, "姓名");
     assert!(name.y > 0.0 && name.y < 400.0, "{name:?}");
     assert!(position(&output, "学校").y > name.y);
@@ -1429,5 +1426,168 @@ fn stale_book_draft_recovers_as_a_copy_and_failure_retains_the_original_draft() 
             .unwrap()
             .len(),
         1
+    );
+}
+
+#[test]
+fn favorites_pin_records_in_both_views_survive_restart_and_do_not_open_details() {
+    let directory = tempfile::tempdir().unwrap();
+    let data = directory.path().join("data");
+    let mut app = PersonalDeskApp::open_data_directory(data.clone());
+    app.section = Section::Contacts;
+    let mut first = Contact::new();
+    first.name = "pin-target".into();
+    let mut second = Contact::new();
+    second.name = "ordinary-contact".into();
+    app.db.as_mut().unwrap().save_contact(&first).unwrap();
+    app.db.as_mut().unwrap().save_contact(&second).unwrap();
+    app.load_contacts();
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0.0, vec![], vec![]);
+    let output = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    let stars = output
+        .shapes
+        .iter()
+        .filter_map(|s| match &s.shape {
+            egui::Shape::Text(t) if t.galley.text() == "☆" => Some(t.pos + egui::vec2(4.0, 6.0)),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    let at = *stars.last().unwrap();
+    input_frame(&mut app, &ctx, 0.2, pointer(at, true), vec![]);
+    input_frame(&mut app, &ctx, 0.23, pointer(at, false), vec![]);
+    assert!(app.is_favorite("contacts", &first.id));
+    assert!(!app.contact_dialog_open);
+    for mode in [ViewMode::List, ViewMode::Grid] {
+        app.set_view_mode(mode);
+        let output = input_frame(&mut app, &ctx, 1.0, vec![], vec![]);
+        let first = position(&output, "pin-target");
+        let second = position(&output, "ordinary-contact");
+        assert!(first.y < second.y || (first.y == second.y && first.x < second.x));
+    }
+    drop(app);
+    let app = PersonalDeskApp::open_data_directory(data);
+    assert!(app.is_favorite("contacts", &first.id));
+}
+
+#[test]
+fn file_navigation_toolbar_remains_visible_when_contents_scroll() {
+    let directory = tempfile::tempdir().unwrap();
+    let folder = directory.path().join("files");
+    fs::create_dir(&folder).unwrap();
+    for i in 0..80 {
+        fs::write(folder.join(format!("file-{i:02}.txt")), "fixture").unwrap();
+    }
+    let mut app = PersonalDeskApp::open_data_directory(directory.path().join("data"));
+    app.navigate(folder.clone(), folder);
+    app.set_view_mode(ViewMode::List);
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0.0, vec![], vec![]);
+    let before = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    let at = position(&before, "所有快捷路径");
+    input_frame(
+        &mut app,
+        &ctx,
+        0.2,
+        vec![
+            egui::Event::PointerMoved(egui::pos2(800.0, 600.0)),
+            egui::Event::MouseWheel {
+                unit: egui::MouseWheelUnit::Point,
+                delta: egui::vec2(0.0, -1300.0),
+                phase: egui::TouchPhase::Move,
+                source: egui::MouseWheelSource::Unknown,
+                modifiers: egui::Modifiers::NONE,
+            },
+        ],
+        vec![],
+    );
+    let after = input_frame(&mut app, &ctx, 0.6, vec![], vec![]);
+    assert_eq!(position(&after, "所有快捷路径"), at);
+    let first_after = position(&after, "file-00.txt");
+    assert!(
+        first_after.y < position(&before, "file-00.txt").y - 100.0,
+        "{first_after:?}"
+    );
+}
+
+#[test]
+fn inventory_inline_dates_price_and_classification_save_without_dropping_other_fields() {
+    let directory = tempfile::tempdir().unwrap();
+    let data = directory.path().join("data");
+    let mut app = PersonalDeskApp::open_data_directory(data.clone());
+    let mut item = InventoryItem::new();
+    item.name = "owned item".into();
+    item.notes = "keep notes".into();
+    app.db.as_mut().unwrap().save_inventory_item(&item).unwrap();
+    item.purchase_date = "2026-10-01".into();
+    item.disposal_date = "2026-10-20".into();
+    item.purchase_price_cents = Some(123456);
+    item.tags = vec!["已丢弃".into()];
+    app.inline_inventory.insert(item.id.clone(), item.clone());
+    assert!(app.save_inline_inventory(&item.id));
+    item.disposal_date = "2026-02-30".into();
+    app.inline_inventory.insert(item.id.clone(), item.clone());
+    assert!(!app.save_inline_inventory(&item.id));
+    assert!(app.inline_inventory.contains_key(&item.id));
+    drop(app);
+    let mut app = PersonalDeskApp::open_data_directory(data);
+    app.section = Section::Inventory;
+    app.set_view_mode(ViewMode::List);
+    let saved = &app.inventory_items[0];
+    assert_eq!(saved.disposal_date, "2026-10-20");
+    assert_eq!(saved.purchase_price_cents, Some(123456));
+    assert_eq!(saved.notes, "keep notes");
+    assert_eq!(saved.tags, ["已丢弃"]);
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0.0, vec![], vec![]);
+    let output = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    position(&output, "购买日期");
+    position(&output, "丢弃日期");
+    position(&output, "owned item");
+}
+
+#[test]
+fn contact_classification_changes_in_detail_survive_rename_clear_and_restart() {
+    let directory = tempfile::tempdir().unwrap();
+    let data = directory.path().join("data");
+    let mut app = PersonalDeskApp::open_data_directory(data.clone());
+    app.section = Section::Contacts;
+    let mut contact = Contact::new();
+    contact.name = "classified-contact".into();
+    app.db.as_mut().unwrap().save_contact(&contact).unwrap();
+    app.contact_draft = contact.clone();
+    app.contact_dialog_open = true;
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0.0, vec![], vec![]);
+    app.db
+        .as_mut()
+        .unwrap()
+        .create_tag(TagScope::Contacts, "同学")
+        .unwrap();
+    app.contact_draft_tags = vec!["同学".into()];
+    assert!(app.save_contact_draft());
+    app.db
+        .as_mut()
+        .unwrap()
+        .rename_tag(TagScope::Contacts, "同学", "朋友")
+        .unwrap();
+    app.sync_tag_edit(TagScope::Contacts, "同学", Some("朋友"));
+    assert_eq!(app.contact_draft_tags, ["朋友"]);
+    assert!(app.save_contact_draft());
+    drop(app);
+    let mut app = PersonalDeskApp::open_data_directory(data.clone());
+    assert_eq!(app.record_labels(TagScope::Contacts, &contact.id), ["朋友"]);
+    app.contact_draft = contact;
+    app.contact_draft_tags.clear();
+    assert!(app.save_contact_draft());
+    drop(app);
+    let app = PersonalDeskApp::open_data_directory(data);
+    assert!(
+        app.record_labels(TagScope::Contacts, &app.contact_items[0].id)
+            .is_empty()
     );
 }

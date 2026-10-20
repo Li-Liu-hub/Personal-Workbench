@@ -300,42 +300,22 @@ pub fn tile(
         ),
         egui::StrokeKind::Inside,
     );
-    let illustration = egui::Rect::from_min_size(
-        rect.min + egui::vec2(12.0, 12.0),
-        egui::vec2(side - 24.0, side * 0.53),
-    );
-    if !is_add {
-        painter.rect_filled(illustration, 11, surface().lerp_to_gamma(icon_color, 0.12));
-        painter.circle_filled(
-            illustration.right_top() + egui::vec2(-13.0, 13.0),
-            3.0,
-            icon_color.gamma_multiply(0.35),
-        );
-    }
-    let icon_rect = egui::Rect::from_center_size(illustration.center(), egui::vec2(54.0, 54.0));
+    let icon_rect = if is_add {
+        egui::Rect::from_center_size(
+            rect.center_top() + egui::vec2(0.0, side * 0.36),
+            egui::vec2(40.0, 40.0),
+        )
+    } else {
+        egui::Rect::from_min_size(rect.min + egui::vec2(22.0, 56.0), egui::vec2(32.0, 32.0))
+    };
     if is_add {
         painter.circle_filled(
             icon_rect.center(),
-            31.0,
-            surface().lerp_to_gamma(accent(), 0.16),
+            28.0,
+            surface().lerp_to_gamma(accent(), 0.10),
         );
     }
     paint_icon(&painter, icon_rect, kind, icon_color);
-    if response.hovered() && !is_add {
-        let point = rect.right_bottom() - egui::vec2(22.0, 28.0);
-        painter.line_segment(
-            [point - egui::vec2(7.0, 0.0), point],
-            egui::Stroke::new(1.5, accent()),
-        );
-        painter.line_segment(
-            [point - egui::vec2(4.0, 4.0), point],
-            egui::Stroke::new(1.5, accent()),
-        );
-        painter.line_segment(
-            [point - egui::vec2(4.0, -4.0), point],
-            egui::Stroke::new(1.5, accent()),
-        );
-    }
     let text_origin = rect.left_bottom() + egui::vec2(20.0, -68.0);
     let mut title_job = egui::text::LayoutJob::simple(
         title.replace(['\n', '\r'], " "),

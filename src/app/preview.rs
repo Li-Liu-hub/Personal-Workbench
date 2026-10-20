@@ -157,6 +157,17 @@ impl PersonalDeskApp {
                         crate::browser::Browser::new(self.data_dir.join("browser-profile"));
                     self.browser.open(&format!("{}?read", capture.browser_url));
                 }
+                18 => {
+                    self.section = Section::Inventory;
+                    self.view_modes.set(Section::Inventory, ViewMode::List);
+                    let mut draft = self.inventory_items[0].clone();
+                    draft.disposal_date = "2026-10-20".into();
+                    self.inline_inventory.insert(draft.id.clone(), draft);
+                }
+                19 => {
+                    self.section = Section::Folders;
+                    self.terminal_inline = true;
+                }
                 _ => {
                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                     return;
@@ -194,6 +205,14 @@ impl PersonalDeskApp {
         if capture.frames < 6 {
             return;
         }
+        if capture.step == 15
+            && let Some(terminal) = &self.terminal
+        {
+            let _ = fs::write(
+                capture.output.join("powershell-probe.txt"),
+                terminal.parser.screen().contents(),
+            );
+        }
         let name = [
             "files-list",
             "files-grid",
@@ -213,6 +232,8 @@ impl PersonalDeskApp {
             "powershell",
             "browser",
             "browser-restored",
+            "inventory-list-editing",
+            "files-with-powershell",
         ][capture.step];
         let destination = capture.output.join(format!("{name}.png"));
         let completed = capture.completed.clone();
