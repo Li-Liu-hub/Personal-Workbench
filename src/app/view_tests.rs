@@ -4,6 +4,24 @@ use super::{
 };
 
 #[test]
+fn startup_settings_are_visible_before_other_settings_in_both_views() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(directory.path().join("data"));
+    app.section = Section::Settings;
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    for (index, mode) in [ViewMode::Grid, ViewMode::List].into_iter().enumerate() {
+        app.set_view_mode(mode);
+        input_frame(&mut app, &ctx, index as f64, vec![], vec![]);
+        let output = input_frame(&mut app, &ctx, index as f64 + 0.1, vec![], vec![]);
+        let startup = position(&output, "开机自启动");
+        let theme = position(&output, "编辑主题");
+        assert!(startup.y < theme.y);
+        assert!(startup.y > 0.0 && startup.y < 680.0);
+    }
+}
+
+#[test]
 fn terminal_command_bar_keeps_focus_for_consecutive_commands() {
     let directory = tempfile::tempdir().unwrap();
     let mut app = PersonalDeskApp::open_data_directory(directory.path().join("data"));
