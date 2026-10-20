@@ -1,4 +1,4 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![windows_subsystem = "windows"]
 
 mod app;
 mod autostart;
@@ -40,6 +40,26 @@ use eframe::egui;
 fn main() -> eframe::Result {
     let mut arguments = std::env::args_os().skip(1);
     let action = arguments.next();
+    #[cfg(debug_assertions)]
+    if action.as_ref().is_some_and(|a| a == "--interaction-probe") {
+        let output = std::path::PathBuf::from(arguments.next().expect("probe output"));
+        let base = std::env::temp_dir().join(format!(
+            "personal-desk-interaction-{}",
+            uuid::Uuid::new_v4()
+        ));
+        return eframe::run_native(
+            "个人办公台 · 交互验证",
+            eframe::NativeOptions {
+                viewport: egui::ViewportBuilder::default().with_inner_size([1100.0, 800.0]),
+                ..Default::default()
+            },
+            Box::new(move |cc| {
+                let mut app = PersonalDeskApp::layout_preview(cc, base);
+                app.start_interaction_probe(output);
+                Ok(Box::new(app))
+            }),
+        );
+    }
     if action.as_ref().is_some_and(|a| a == "--apply-update") {
         let result = arguments
             .next()

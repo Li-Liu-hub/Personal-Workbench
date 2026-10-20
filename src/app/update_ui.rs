@@ -115,7 +115,8 @@ impl PersonalDeskApp {
                 self.updates.status = "请先保存或取消账号修改".into();
             } else if !self.inline_inventory.is_empty() {
                 self.updates.status = "请先保存或取消物品修改".into();
-            } else if self.file_operations > 0
+            } else if self.terminal_starting
+                || self.file_operations > 0
                 || self.drop_busy
                 || self.export_busy
                 || self.contact_import_busy

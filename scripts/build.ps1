@@ -51,7 +51,12 @@ $executable = Join-Path $TargetDir 'release\personal-desk.exe'
 $distDir = Join-Path $PSScriptRoot '..\dist'
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 $portableExecutable = Join-Path $distDir $OutputName
-Copy-Item -LiteralPath $executable -Destination $portableExecutable -Force
-Write-Output "Build succeeded: $portableExecutable"
-
 & (Join-Path $PSScriptRoot 'publish-update.ps1') -Executable $executable
+$portableExecutable = [IO.Path]::GetFullPath($portableExecutable)
+$running = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.ExecutablePath -eq $portableExecutable }).Count -gt 0
+if ($running) {
+    Write-Output "Update published. The running app can install it from the Update page: $portableExecutable"
+} else {
+    Copy-Item -LiteralPath $executable -Destination $portableExecutable -Force
+    Write-Output "Build succeeded: $portableExecutable"
+}

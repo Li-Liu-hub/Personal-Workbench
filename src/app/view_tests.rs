@@ -3,6 +3,154 @@ use super::{
     *,
 };
 
+#[test]
+fn terminal_command_bar_keeps_focus_for_consecutive_commands() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(directory.path().join("data"));
+    app.open_terminal(directory.path().to_path_buf());
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while app.terminal_starting && Instant::now() < deadline {
+        app.poll_background();
+        thread::sleep(Duration::from_millis(10));
+    }
+    assert!(app.terminal.is_some(), "{}", app.terminal_error);
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    let mut time = 0.0;
+    // Let the interactive shell initialize while the command bar gains focus.
+    let ready = Instant::now() + Duration::from_secs(3);
+    while Instant::now() < ready {
+        input_frame(&mut app, &ctx, time, vec![], vec![]);
+        time += 0.02;
+        thread::sleep(Duration::from_millis(20));
+    }
+    for marker in ["FIRST_BAR", "SECOND_BAR"] {
+        input_frame(
+            &mut app,
+            &ctx,
+            time,
+            vec![
+                egui::Event::Text(format!("[Console]::WriteLine(('{marker}_'+(40+2)))")),
+                egui::Event::Key {
+                    key: egui::Key::Enter,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ],
+            vec![],
+        );
+        time += 0.02;
+        input_frame(
+            &mut app,
+            &ctx,
+            time,
+            vec![egui::Event::Key {
+                key: egui::Key::Enter,
+                physical_key: None,
+                pressed: false,
+                repeat: false,
+                modifiers: egui::Modifiers::NONE,
+            }],
+            vec![],
+        );
+        time += 0.02;
+        let deadline = Instant::now() + Duration::from_secs(8);
+        loop {
+            input_frame(&mut app, &ctx, time, vec![], vec![]);
+            time += 0.02;
+            let contents = app.terminal.as_ref().unwrap().parser.screen().contents();
+            if contents.contains(&format!("{marker}_42")) {
+                break;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "command did not execute: {contents:?}"
+            );
+            thread::sleep(Duration::from_millis(20));
+        }
+        assert!(app.terminal_command.is_empty());
+    }
+}
+
+#[test]
+fn terminal_canvas_accepts_focus_text_and_enter_through_real_egui_events() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(directory.path().join("data"));
+    app.open_terminal(directory.path().to_path_buf());
+    let startup_deadline = Instant::now() + Duration::from_secs(10);
+    while app.terminal_starting && Instant::now() < startup_deadline {
+        app.poll_background();
+        thread::sleep(Duration::from_millis(10));
+    }
+    assert!(app.terminal.is_some(), "{}", app.terminal_error);
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0.0, vec![], vec![]);
+    input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    input_frame(
+        &mut app,
+        &ctx,
+        0.2,
+        pointer(egui::pos2(700.0, 350.0), true),
+        vec![],
+    );
+    input_frame(
+        &mut app,
+        &ctx,
+        0.23,
+        pointer(egui::pos2(700.0, 350.0), false),
+        vec![],
+    );
+    assert!(app.terminal_focused, "terminal failed to receive focus");
+    let ready = Instant::now() + Duration::from_secs(3);
+    let mut time = 0.3;
+    while Instant::now() < ready {
+        input_frame(&mut app, &ctx, time, vec![], vec![]);
+        time += 0.02;
+        thread::sleep(Duration::from_millis(20));
+    }
+    input_frame(
+        &mut app,
+        &ctx,
+        time,
+        vec![
+            egui::Event::Text("[Console]::WriteLine(('UI_RESULT_'+(40+2)))".into()),
+            egui::Event::Key {
+                key: egui::Key::Enter,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: egui::Modifiers::NONE,
+            },
+        ],
+        vec![],
+    );
+    time += 0.1;
+    let deadline = Instant::now() + Duration::from_secs(8);
+    while Instant::now() < deadline {
+        input_frame(&mut app, &ctx, time, vec![], vec![]);
+        time += 0.02;
+        if app
+            .terminal
+            .as_ref()
+            .unwrap()
+            .parser
+            .screen()
+            .contents()
+            .contains("UI_RESULT_42")
+        {
+            return;
+        }
+        thread::sleep(Duration::from_millis(20));
+    }
+    panic!(
+        "canvas command did not execute: {:?}",
+        app.terminal.as_ref().unwrap().parser.screen().contents()
+    );
+}
+
 fn position(output: &egui::FullOutput, value: &str) -> egui::Pos2 {
     output
         .shapes

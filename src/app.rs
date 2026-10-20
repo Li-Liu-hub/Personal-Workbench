@@ -16,6 +16,8 @@ mod contact_ui;
 mod document_ui;
 mod favorites_ui;
 mod game_ui;
+#[cfg(debug_assertions)]
+mod interaction_probe;
 mod inventory_ui;
 mod library_ui;
 mod module_tags;
@@ -64,6 +66,10 @@ struct RecoveryManifest {
 }
 
 enum BackgroundMessage {
+    Terminal(
+        PathBuf,
+        Box<std::result::Result<crate::terminal::Terminal, String>>,
+    ),
     ContactChats(String, std::result::Result<Vec<ChatRecord>, String>),
     Indexed(std::result::Result<usize, String>),
     Exported(std::result::Result<export::Report, String>),
@@ -89,6 +95,9 @@ pub struct PersonalDeskApp {
     terminal_error: String,
     terminal_focused: bool,
     terminal_inline: bool,
+    terminal_command: String,
+    terminal_command_focus: bool,
+    terminal_starting: bool,
     library: library_ui::LibraryState,
     photo_cache: std::collections::HashMap<String, egui::TextureHandle>,
     contact_scroll_id: Option<String>,
@@ -97,6 +106,8 @@ pub struct PersonalDeskApp {
     updates: update_ui::UpdateState,
     #[cfg(debug_assertions)]
     preview_capture: Option<preview::Capture>,
+    #[cfg(debug_assertions)]
+    interaction_probe: Option<interaction_probe::Probe>,
     desktop: crate::native_embed::DesktopDock,
     codex: crate::codex_client::CodexState,
     theme: crate::theme::ThemeSettings,
@@ -262,6 +273,9 @@ impl PersonalDeskApp {
             terminal_error: String::new(),
             terminal_focused: false,
             terminal_inline: false,
+            terminal_command: String::new(),
+            terminal_command_focus: false,
+            terminal_starting: false,
             library: Default::default(),
             photo_cache: Default::default(),
             contact_scroll_id: None,
@@ -269,6 +283,8 @@ impl PersonalDeskApp {
             file_operations: 0,
             #[cfg(debug_assertions)]
             preview_capture: None,
+            #[cfg(debug_assertions)]
+            interaction_probe: None,
             desktop: crate::native_embed::DesktopDock::default(),
             codex: crate::codex_client::CodexState::load(&base, &settings),
             theme: theme.clone(),
@@ -1182,6 +1198,18 @@ impl PersonalDeskApp {
                 self.file_operations = self.file_operations.saturating_sub(1);
             }
             match message {
+                BackgroundMessage::Terminal(directory, result) => {
+                    self.terminal_starting = false;
+                    match *result {
+                        Ok(terminal) => {
+                            self.terminal = Some(terminal);
+                            self.terminal_directory = directory;
+                            self.terminal_error.clear();
+                            self.terminal_command_focus = true;
+                        }
+                        Err(error) => self.terminal_error = error,
+                    }
+                }
                 BackgroundMessage::ContactChats(id, result) => {
                     self.contact_import_busy = false;
                     if self.contact_dialog_open && self.contact_draft.id == id {
@@ -3509,6 +3537,10 @@ pub fn data_directory() -> PathBuf {
 }
 
 impl eframe::App for PersonalDeskApp {
+    #[cfg(debug_assertions)]
+    fn raw_input_hook(&mut self, _ctx: &egui::Context, input: &mut egui::RawInput) {
+        self.probe_input_events(input);
+    }
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
         if self.editor_dirty && !self.save_editor() {
             self.save_recovery_draft();
@@ -3608,6 +3640,8 @@ impl eframe::App for PersonalDeskApp {
         self.capture_preview(&ctx);
         self.sync_native_codex();
         self.sync_browser(&ctx);
+        #[cfg(debug_assertions)]
+        self.advance_interaction_probe(&ctx);
         if let Some(path) = self.tool_launch_request.take()
             && let Err(error) = crate::launcher::launch(&path)
         {

@@ -279,6 +279,9 @@ impl DesktopDock {
         Ok(())
     }
     pub fn detach(&mut self) -> Result<(), String> {
+        if self.attachment.is_none() {
+            return Ok(());
+        }
         let foreground = unsafe { GetForegroundWindow() };
         if let Some(attachment) = self.attachment.as_mut() {
             attachment.restore()?;

@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '内置网页聊天与 PowerShell、图书分页、联系人生日/专业/照片、物品购买及丢弃日期、列表编辑、收藏置顶、固定文件操作栏、删除撤回与开机自启'
+    [string]$Notes = '修复 PowerShell 与内置浏览器无响应：命令输入栏、后台启动与输入、终端输出限时处理、网页焦点切换和加载错误提示'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

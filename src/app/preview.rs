@@ -261,7 +261,7 @@ impl PersonalDeskApp {
     }
 }
 
-fn start_browser_fixture() -> String {
+pub(super) fn start_browser_fixture() -> String {
     use std::io::{Read, Write};
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     let url = format!("http://{}/", listener.local_addr().unwrap());

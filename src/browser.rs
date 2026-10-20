@@ -2,6 +2,14 @@ use raw_window_handle::{
     HandleError, HasWindowHandle, RawWindowHandle, Win32WindowHandle, WindowHandle,
 };
 use std::{cell::RefCell, num::NonZeroIsize, path::PathBuf, rc::Rc};
+use wry::WebViewExtWindows;
+#[derive(Default)]
+pub struct PageState {
+    pub loading: bool,
+    pub error: String,
+    title: String,
+    address: String,
+}
 pub struct Host(pub usize);
 impl HasWindowHandle for Host {
     fn window_handle(&self) -> Result<WindowHandle<'_>, HandleError> {
@@ -16,6 +24,9 @@ pub struct Tab {
     pub title: String,
     pub address: String,
     pub view: Option<wry::WebView>,
+    state: Rc<RefCell<PageState>>,
+    visible: bool,
+    bounds: Option<(i32, i32, u32, u32)>,
 }
 pub struct Browser {
     pub tabs: Vec<Tab>,
@@ -50,6 +61,12 @@ impl Browser {
                             .unwrap_or_else(|| "网页".into()),
                         address: url.clone(),
                         view: None,
+                        state: Rc::new(RefCell::new(PageState {
+                            loading: true,
+                            ..Default::default()
+                        })),
+                        visible: false,
+                        bounds: None,
                     });
                     self.selected = self.tabs.len() - 1;
                 }
@@ -99,19 +116,72 @@ impl Browser {
             Err(error) => self.error = error,
         }
     }
-    pub fn script(&mut self, script: &str) {
-        if let Some(view) = self.tabs.get(self.selected).and_then(|t| t.view.as_ref())
-            && let Err(e) = view.evaluate_script(script)
+    #[cfg(debug_assertions)]
+    pub fn probe_input(&self, path: PathBuf) {
+        if let Some(view) = self
+            .tabs
+            .get(self.selected)
+            .and_then(|tab| tab.view.as_ref())
         {
-            self.error = e.to_string();
+            let _=view.evaluate_script_with_callback("(()=>{const t=document.querySelector('textarea');if(t && location.hostname==='127.0.0.1'){t.focus();t.value='LOCAL_INPUT_OK';t.dispatchEvent(new Event('input',{bubbles:true}));}return {focused:document.hasFocus(),url:location.href,title:document.title,ready:document.readyState,input:t?.value==='LOCAL_INPUT_OK',active:document.activeElement===t,inputs:document.querySelectorAll('input,textarea,[contenteditable=true]').length,bodyLength:document.body?.innerText.length||0};})()",move|value| {if let Ok(json)=serde_json::from_str::<serde_json::Value>(&value){let _=std::fs::write(&path,serde_json::to_vec_pretty(&json).unwrap());}});
         }
     }
     pub fn close(&mut self, index: usize) {
         if index < self.tabs.len() {
+            if let Some(view) = self.tabs[index].view.as_ref()
+                && self.tabs[index].visible
+            {
+                let _ = view.focus_parent();
+            }
             self.tabs.remove(index);
+            if index < self.selected {
+                self.selected -= 1;
+            }
             self.selected = self.selected.min(self.tabs.len().saturating_sub(1));
             if let Some(tab) = self.tabs.get(self.selected) {
                 self.input = tab.address.clone();
+            }
+        }
+    }
+    pub fn loading(&self) -> bool {
+        self.tabs
+            .get(self.selected)
+            .is_some_and(|tab| tab.state.borrow().loading)
+    }
+    pub fn page_error(&self) -> String {
+        self.tabs
+            .get(self.selected)
+            .map(|tab| tab.state.borrow().error.clone())
+            .unwrap_or_default()
+    }
+    pub fn back(&mut self) {
+        if let Some(view) = self
+            .tabs
+            .get(self.selected)
+            .and_then(|tab| tab.view.as_ref())
+            && let Err(error) = view.go_back()
+        {
+            self.error = error.to_string();
+        }
+    }
+    pub fn forward(&mut self) {
+        if let Some(view) = self
+            .tabs
+            .get(self.selected)
+            .and_then(|tab| tab.view.as_ref())
+            && let Err(error) = view.go_forward()
+        {
+            self.error = error.to_string();
+        }
+    }
+    pub fn reload(&mut self) {
+        if let Some(tab) = self.tabs.get_mut(self.selected) {
+            tab.state.borrow_mut().error.clear();
+            tab.state.borrow_mut().loading = true;
+            if let Some(view) = &tab.view
+                && let Err(error) = view.reload()
+            {
+                self.error = error.to_string();
             }
         }
     }
@@ -126,9 +196,32 @@ impl Browser {
         for url in pending {
             self.open(&url);
         }
+        let mut focus_selected = false;
         for (index, tab) in self.tabs.iter_mut().enumerate() {
-            if let Some(view) = &tab.view {
-                let _ = view.set_visible(visible && index == self.selected);
+            let show = visible && index == self.selected;
+            if let Some(view) = &tab.view
+                && tab.visible != show
+            {
+                if !show {
+                    let _ = view.focus_parent();
+                }
+                if let Err(error) = view.set_visible(show) {
+                    self.error = error.to_string();
+                }
+                if show {
+                    focus_selected = true;
+                }
+                tab.visible = show;
+            }
+            let state = tab.state.borrow();
+            if !state.title.is_empty() {
+                tab.title = state.title.clone();
+            }
+            if !state.address.is_empty() && state.address != tab.address {
+                if index == self.selected && self.input == tab.address {
+                    self.input = state.address.clone();
+                }
+                tab.address = state.address.clone();
             }
         }
         if !visible || parent == 0 {
@@ -137,6 +230,12 @@ impl Browser {
         let Some(area) = area else {
             return;
         };
+        let coordinates = (
+            (area.left() * scale).round() as i32,
+            (area.top() * scale).round() as i32,
+            (area.width() * scale).max(1.0).round() as u32,
+            (area.height() * scale).max(1.0).round() as u32,
+        );
         let bounds = wry::Rect {
             position: wry::dpi::PhysicalPosition::new(
                 (area.left() * scale).round() as i32,
@@ -153,32 +252,110 @@ impl Browser {
             return;
         };
         if tab.view.is_none() {
+            // The OpenGL host must clip native children rather than painting over them.
+            unsafe {
+                use windows_sys::Win32::UI::WindowsAndMessaging::*;
+                let host = parent as windows_sys::Win32::Foundation::HWND;
+                let style = GetWindowLongPtrW(host, GWL_STYLE);
+                SetWindowLongPtrW(host, GWL_STYLE, style | WS_CLIPCHILDREN as isize);
+            }
             let pending = self.pending.clone();
+            let state = tab.state.clone();
+            let title_state = tab.state.clone();
+            let navigation_state = tab.state.clone();
             let result = wry::WebViewBuilder::new_with_web_context(&mut self.context)
                 .with_url(&tab.address)
                 .with_bounds(bounds)
                 .with_visible(true)
+                .with_focused(false)
+                .with_navigation_handler(move |url| {
+                    if url.starts_with("http://") || url.starts_with("https://") {
+                        let mut state = navigation_state.borrow_mut();
+                        state.loading = true;
+                        state.error.clear();
+                        state.address = url;
+                    }
+                    true
+                })
+                .with_document_title_changed_handler(move |title| {
+                    title_state.borrow_mut().title = title
+                })
+                .with_on_page_load_handler(move |event, url| {
+                    if url == "about:blank" {
+                        return;
+                    }
+                    let mut state = state.borrow_mut();
+                    state.address = url;
+                    state.loading = matches!(event, wry::PageLoadEvent::Started);
+                    if state.loading {
+                        state.error.clear();
+                    }
+                })
                 .with_new_window_req_handler(move |url, _| {
                     pending.borrow_mut().push(url);
                     wry::NewWindowResponse::Deny
                 })
                 .build_as_child(&Host(parent));
             match result {
-                Ok(view) => tab.view = Some(view),
+                Ok(view) => {
+                    let state = tab.state.clone();
+                    let mut token = 0;
+                    let handler = webview2_com::NavigationCompletedEventHandler::create(Box::new(
+                        move |webview, args| {
+                            if let Some(webview) = webview {
+                                unsafe {
+                                    let mut uri = Default::default();
+                                    webview.Source(&mut uri)?;
+                                    if webview2_com::take_pwstr(uri) == "about:blank" {
+                                        return Ok(());
+                                    }
+                                }
+                            }
+                            if let Some(args) = args {
+                                unsafe {
+                                    let mut success = Default::default();
+                                    args.IsSuccess(&mut success)?;
+                                    let mut state = state.borrow_mut();
+                                    state.loading = false;
+                                    if !success.as_bool() {
+                                        let mut status = Default::default();
+                                        args.WebErrorStatus(&mut status)?;
+                                        state.error =
+                                            format!("网页加载失败（{}），可刷新重试", status.0);
+                                    }
+                                }
+                            }
+                            Ok(())
+                        },
+                    ));
+                    if let Err(error) =
+                        unsafe { view.webview().add_NavigationCompleted(&handler, &mut token) }
+                    {
+                        self.error = error.to_string();
+                    }
+                    tab.visible = true;
+                    tab.bounds = Some(coordinates);
+                    let _ = view.focus();
+                    tab.view = Some(view);
+                }
                 Err(error) => {
                     self.error = format!("网页无法启动：{error}");
                     return;
                 }
             }
         }
-        if let Some(view) = &tab.view {
-            let _ = view.set_bounds(bounds);
-            if let Ok(url) = view.url() {
-                if self.input == tab.address {
-                    self.input = url.clone();
-                }
-                tab.address = url;
+        if let Some(view) = &tab.view
+            && tab.bounds != Some(coordinates)
+        {
+            if let Err(error) = view.set_bounds(bounds) {
+                self.error = error.to_string();
             }
+            tab.bounds = Some(coordinates);
+        }
+        // Hide every previous view before focusing the selected one. Otherwise a
+        // later tab's focus_parent() would undo this tab's focus in the same frame.
+        if focus_selected && let Some(view) = &tab.view {
+            let _ = view.focus();
         }
     }
 }

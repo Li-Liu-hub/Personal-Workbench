@@ -1,16 +1,23 @@
 use super::*;
 impl PersonalDeskApp {
     pub(super) fn open_terminal(&mut self, directory: PathBuf) {
-        if self.terminal.is_none() {
-            match crate::terminal::Terminal::start(&directory) {
-                Ok(terminal) => {
-                    self.terminal = Some(terminal);
-                    self.terminal_directory = directory;
-                    self.terminal_error.clear();
-                }
-                Err(error) => self.terminal_error = error,
-            }
+        if !self.terminal_starting
+            && !self
+                .terminal
+                .as_mut()
+                .is_some_and(|terminal| terminal.active())
+        {
+            self.terminal = None;
+            self.terminal_starting = true;
+            self.terminal_error.clear();
+            self.terminal_directory = directory.clone();
+            let sender = self.sender.clone();
+            thread::spawn(move || {
+                let result = crate::terminal::Terminal::start(&directory);
+                let _ = sender.send(BackgroundMessage::Terminal(directory, Box::new(result)));
+            });
         }
+        self.terminal_command_focus = true;
         self.section = Section::Terminal;
     }
     pub(super) fn render_terminal(&mut self, ui: &mut egui::Ui) {
@@ -23,9 +30,17 @@ impl PersonalDeskApp {
             );
         });
         let mut close = false;
+        let running = self
+            .terminal
+            .as_mut()
+            .is_some_and(|terminal| terminal.active());
         ui.horizontal(|ui| {
-            if self.terminal.is_none() && ui.button("启动 PowerShell").clicked() {
+            if !running && !self.terminal_starting && ui.button("启动 PowerShell").clicked() {
                 self.open_terminal(self.terminal_directory.clone());
+            }
+            if self.terminal_starting {
+                ui.spinner();
+                ui.label("正在启动 PowerShell…");
             }
             if let Some(terminal) = &mut self.terminal {
                 terminal.poll();
@@ -45,6 +60,37 @@ impl PersonalDeskApp {
         }
         if !self.terminal_error.is_empty() {
             ui.colored_label(Color32::from_rgb(185, 65, 71), &self.terminal_error);
+        }
+        let mut execute = false;
+        ui.horizontal(|ui| {
+            let command = ui.add_sized(
+                [(ui.available_width() - 90.0).max(100.0), 36.0],
+                egui::TextEdit::singleline(&mut self.terminal_command)
+                    .id_salt("powershell-command")
+                    .hint_text("输入 PowerShell 命令，回车执行"),
+            );
+            if self.terminal_command_focus {
+                command.request_focus();
+                self.terminal_command_focus = false;
+            }
+            execute = ui.add_enabled(running, egui::Button::new("执行")).clicked()
+                || ((command.has_focus() || command.lost_focus())
+                    && ui.input(|input| input.key_pressed(egui::Key::Enter)));
+        });
+        if execute
+            && running
+            && let Some(terminal) = self.terminal.as_mut()
+        {
+            let mut bytes = self.terminal_command.as_bytes().to_vec();
+            bytes.push(b'\r');
+            match terminal.write(&bytes) {
+                Ok(()) => {
+                    self.terminal_command.clear();
+                    self.terminal_error.clear();
+                    self.terminal_command_focus = true;
+                }
+                Err(error) => self.terminal_error = error,
+            }
         }
         let (rect, response) = ui.allocate_exact_size(
             ui.available_size().max(egui::vec2(100.0, 100.0)),
