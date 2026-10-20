@@ -41,13 +41,13 @@ impl PersonalDeskApp {
         }
         ui.horizontal(|ui| {
             if ui.button("←").clicked() {
-                self.browser.script("history.back()");
+                self.browser.back();
             }
             if ui.button("→").clicked() {
-                self.browser.script("history.forward()");
+                self.browser.forward();
             }
             if ui.button("刷新").clicked() {
-                self.browser.script("location.reload()");
+                self.browser.reload();
             }
             let input = ui.add_sized(
                 [(ui.available_width() - 165.0).max(100.0), 36.0],
@@ -67,6 +67,36 @@ impl PersonalDeskApp {
         if !self.browser.error.is_empty() {
             ui.colored_label(Color32::from_rgb(185, 65, 71), &self.browser.error);
         }
+        let page_error = self.browser.page_error();
+        if !page_error.is_empty() {
+            ui.colored_label(Color32::from_rgb(185, 65, 71), page_error);
+        }
+        if self.browser.loading() {
+            ui.horizontal(|ui| {
+                ui.spinner();
+                ui.label("正在加载网页…");
+            });
+        }
+        if self.browser.tabs.is_empty() {
+            ui.add_space(60.0);
+            ui.vertical_centered(|ui| {
+                ui.heading("新标签页");
+                ui.add_space(20.0);
+                if ui
+                    .add_sized([220.0, 48.0], primary_button("DeepSeek"))
+                    .clicked()
+                {
+                    self.browser.open("https://chat.deepseek.com/");
+                }
+                if ui
+                    .add_sized([220.0, 48.0], egui::Button::new("ChatGPT"))
+                    .clicked()
+                {
+                    self.browser.open("https://chatgpt.com/");
+                }
+            });
+        }
+        ui.ctx().request_repaint_after(Duration::from_millis(100));
         ui.add_space(6.0);
         let (rect, _) = ui.allocate_exact_size(
             ui.available_size().max(egui::vec2(100.0, 80.0)),

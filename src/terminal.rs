@@ -9,7 +9,7 @@ pub struct Terminal {
     pub parser: vt100::Parser<Responses>,
     master: Box<dyn MasterPty + Send>,
     child: Box<dyn Child + Send + Sync>,
-    writer: Box<dyn Write + Send>,
+    input: mpsc::SyncSender<Vec<u8>>,
     receiver: Receiver<Vec<u8>>,
     size: (u16, u16),
 }
@@ -63,8 +63,9 @@ impl Terminal {
         };
         let mut command = CommandBuilder::new(shell);
         command.arg("-NoLogo");
+        command.arg("-NoProfile");
         if let Some(script) = script {
-            command.args(["-NoProfile", "-NonInteractive", "-Command", script]);
+            command.args(["-NonInteractive", "-Command", script]);
         }
         command.cwd(directory);
         let child = pair
@@ -73,7 +74,19 @@ impl Terminal {
             .map_err(|e| e.to_string())?;
         drop(pair.slave);
         let mut reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
-        let writer = pair.master.take_writer().map_err(|e| e.to_string())?;
+        let mut writer = pair.master.take_writer().map_err(|e| e.to_string())?;
+        let (input, pending) = mpsc::sync_channel::<Vec<u8>>(32);
+        thread::spawn(move || {
+            while let Ok(bytes) = pending.recv() {
+                if writer
+                    .write_all(&bytes)
+                    .and_then(|()| writer.flush())
+                    .is_err()
+                {
+                    break;
+                }
+            }
+        });
         let (sender, receiver) = mpsc::sync_channel(64);
         thread::spawn(move || {
             let mut bytes = [0; 8192];
@@ -92,29 +105,38 @@ impl Terminal {
             parser: vt100::Parser::new_with_callbacks(30, 100, 10000, Responses::default()),
             master: pair.master,
             child,
-            writer,
+            input,
             receiver,
             size: (30, 100),
         })
     }
     pub fn poll(&mut self) {
-        while let Ok(bytes) = self.receiver.try_recv() {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_millis(8);
+        for _ in 0..32 {
+            let Ok(bytes) = self.receiver.try_recv() else {
+                break;
+            };
             self.parser.process(&bytes);
             let responses = std::mem::take(&mut self.parser.callbacks_mut().0);
             if !responses.is_empty() {
-                let _ = self
-                    .writer
-                    .write_all(&responses)
-                    .and_then(|()| self.writer.flush());
+                let _ = self.input.try_send(responses);
+            }
+            if std::time::Instant::now() >= deadline {
+                break;
             }
         }
     }
     pub fn write(&mut self, bytes: &[u8]) -> Result<(), String> {
         self.parser.screen_mut().set_scrollback(0);
-        self.writer
-            .write_all(bytes)
-            .and_then(|()| self.writer.flush())
-            .map_err(|e| e.to_string())
+        if bytes.len() > 1024 * 1024 {
+            return Err("输入内容过长，请分段粘贴".into());
+        }
+        self.input
+            .try_send(bytes.to_vec())
+            .map_err(|error| match error {
+                mpsc::TrySendError::Full(_) => "终端输入繁忙，请稍后重试".into(),
+                mpsc::TrySendError::Disconnected(_) => "PowerShell 已退出，请重新启动终端".into(),
+            })
     }
     pub fn resize(&mut self, rows: u16, cols: u16) {
         let size = (rows.max(5), cols.max(20));
@@ -140,6 +162,8 @@ impl Terminal {
 
 impl Drop for Terminal {
     fn drop(&mut self) {
+        self.receiver = mpsc::channel().1;
+        self.input = mpsc::sync_channel(1).0;
         let _ = self.child.kill();
         let _ = self.child.wait();
     }
@@ -148,6 +172,59 @@ impl Drop for Terminal {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn large_input_and_busy_output_do_not_block_the_ui_or_shutdown() {
+        let (done, result) = mpsc::channel();
+        thread::spawn(move || {
+            let root = tempfile::tempdir().unwrap();
+            let mut terminal = Terminal::start_command(
+                root.path(),
+                "[Console]::Write(('X'*2000000)); Start-Sleep -Seconds 20",
+            )
+            .unwrap();
+            for _ in 0..15 {
+                terminal.poll();
+                thread::sleep(std::time::Duration::from_millis(20));
+            }
+            let start = std::time::Instant::now();
+            terminal.write(&vec![b'a'; 512 * 1024]).unwrap();
+            let duration = start.elapsed();
+            drop(terminal);
+            done.send(duration).unwrap();
+        });
+        let duration = result
+            .recv_timeout(std::time::Duration::from_secs(8))
+            .expect("terminal shutdown blocked on a full pipe");
+        assert!(
+            duration < std::time::Duration::from_millis(100),
+            "{duration:?}"
+        );
+    }
+    #[test]
+    fn interactive_powershell_accepts_typed_commands_and_enter() {
+        let root = tempfile::tempdir().unwrap();
+        let mut terminal = Terminal::start(root.path()).unwrap();
+        let ready = std::time::Instant::now() + std::time::Duration::from_secs(3);
+        while std::time::Instant::now() < ready {
+            terminal.poll();
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        terminal
+            .write(b"[Console]::WriteLine(('PTY_VALUE_'+(40+2)))\r")
+            .unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(12);
+        while std::time::Instant::now() < deadline {
+            terminal.poll();
+            if terminal.parser.screen().contents().contains("PTY_VALUE_42") {
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        panic!(
+            "interactive output: {:?}",
+            terminal.parser.screen().contents()
+        );
+    }
     #[test]
     fn conpty_powershell_produces_real_output_in_the_requested_directory() {
         let root = tempfile::tempdir().unwrap();
