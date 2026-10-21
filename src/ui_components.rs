@@ -4,8 +4,9 @@ mod collection;
 mod credentials;
 pub mod table;
 mod website;
+pub use collection::EntryLayout;
 pub use collection::{collection, entry, tagged_entry, view_switcher};
-pub use credentials::{credential_entry, credential_list_header};
+pub use credentials::{credential_entry, credential_height, credential_list_header};
 pub use website::website_entry;
 
 pub use crate::theme::{
@@ -242,10 +243,16 @@ pub fn gallery(ui: &mut Ui, id: &str, content: impl FnOnce(&mut Ui, f32)) {
     let gap = 16.0;
     let available = ui.available_width();
     let columns = ((available + gap) / 206.0).floor().max(1.0);
-    let side = ((available - gap * (columns - 1.0)) / columns).min(228.0);
+    let side = (available - gap * (columns - 1.0)) / columns;
     ui.push_id(id, |ui| {
         ui.spacing_mut().item_spacing = egui::vec2(gap, gap);
-        ui.horizontal_wrapped(|ui| content(ui, side));
+        ui.with_layout(
+            egui::Layout::left_to_right(egui::Align::Min).with_main_wrap(true),
+            |ui| {
+                ui.set_min_width(available);
+                content(ui, side);
+            },
+        );
     });
 }
 

@@ -27,12 +27,25 @@ impl Database {
         Ok(())
     }
     pub fn contacts(&self) -> Result<Vec<Contact>> {
+        self.read_contacts(None, true)
+    }
+
+    /// Overview retains searchable text and photos, but not binary chat originals.
+    pub fn contact_overviews(&self) -> Result<Vec<Contact>> {
+        self.read_contacts(None, false)
+    }
+
+    pub fn contact(&self, id: &str) -> Result<Option<Contact>> {
+        Ok(self.read_contacts(Some(id), true)?.pop())
+    }
+
+    fn read_contacts(&self, id: Option<&str>, originals: bool) -> Result<Vec<Contact>> {
         let mut statement = self.desk.prepare(
             "SELECT id,name,school,work,phone,national_id,address,gender,hobbies,chat_notes,birthday,major,photo
-             FROM contacts ORDER BY updated_at DESC,rowid DESC",
+             FROM contacts WHERE (?1 IS NULL OR id=?1) ORDER BY updated_at DESC,rowid DESC",
         )?;
         let mut contacts = statement
-            .query_map([], |row| {
+            .query_map([id], |row| {
                 Ok(Contact {
                     id: row.get(0)?,
                     name: row.get(1)?,
@@ -51,9 +64,11 @@ impl Database {
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
-        let mut statement = self.desk.prepare(
-            "SELECT preview_json,original FROM contact_chats WHERE contact_id=?1 ORDER BY position",
-        )?;
+        let mut statement = self.desk.prepare(if originals {
+            "SELECT preview_json,original FROM contact_chats WHERE contact_id=?1 ORDER BY position"
+        } else {
+            "SELECT preview_json,x'' FROM contact_chats WHERE contact_id=?1 ORDER BY position"
+        })?;
         for contact in &mut contacts {
             let records = statement.query_map([&contact.id], |row| {
                 Ok((row.get::<_, String>(0)?, row.get::<_, Vec<u8>>(1)?))

@@ -22,7 +22,7 @@ pub struct Credential {
     pub tags: Vec<String>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Hash)]
 pub struct CredentialSummary {
     pub id: String,
     pub title: String,

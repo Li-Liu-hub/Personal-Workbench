@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '移除 PowerShell 和文件操作，文档与快捷路径改为纯索引，快捷打开所在位置，删除与撤回只操作索引，保留旧文档和草稿'
+    [string]$Notes = '账号宫格铺满内容区并按行对齐；账号列表和宫格只绘制可见条目，缓存筛选布局及标签；联系人聊天原件按需加载，减少常驻内存；保留全部已有数据'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

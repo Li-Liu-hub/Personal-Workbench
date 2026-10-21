@@ -1,6 +1,23 @@
 use super::*;
 
 impl PersonalDeskApp {
+    pub(super) fn open_contact_details(&mut self, id: &str) {
+        match self
+            .db
+            .as_ref()
+            .ok_or(DeskError::UnsupportedFormat)
+            .and_then(|db| db.contact(id))
+        {
+            Ok(Some(contact)) => {
+                self.contact_draft = contact;
+                self.contact_error.clear();
+                self.contact_chat_open = None;
+                self.contact_dialog_open = true;
+            }
+            Ok(None) => self.notice = "联系人已不存在".into(),
+            Err(error) => self.notice = format!("读取联系人失败：{error}"),
+        }
+    }
     fn contact_texture(
         &mut self,
         ctx: &egui::Context,
@@ -32,7 +49,7 @@ impl PersonalDeskApp {
     pub(super) fn load_contacts(&mut self) {
         self.photo_cache.clear();
         if let Some(db) = self.db.as_ref() {
-            match db.contacts() {
+            match db.contact_overviews() {
                 Ok(items) => self.contact_items = items,
                 Err(error) => self.notice = format!("读取联系人失败：{error}"),
             }
@@ -104,7 +121,8 @@ impl PersonalDeskApp {
                 );
                 self.favorite_control(ui, &response, "contacts", &item.id);
                 self.record_classification_dropdown(ui, &response, TagScope::Contacts, &item.id);
-                if !item.photo.is_empty()
+                if response.rect.intersects(ui.clip_rect())
+                    && !item.photo.is_empty()
                     && let Some(texture) = self.contact_texture(ui.ctx(), &item.id, &item.photo)
                 {
                     let area = if self.view_mode() == ViewMode::Grid {
@@ -151,10 +169,7 @@ impl PersonalDeskApp {
             .clicked();
         });
         if let Some(contact) = selected {
-            self.contact_draft = contact;
-            self.contact_error.clear();
-            self.contact_chat_open = None;
-            self.contact_dialog_open = true;
+            self.open_contact_details(&contact.id);
         }
         if let Some(id) = delete {
             match self
@@ -382,6 +397,10 @@ impl PersonalDeskApp {
             if dialog_closed(&dialog) || (save && self.save_contact_draft()) {
                 self.contact_dialog_open = false;
                 self.contact_chat_open = None;
+                if !self.contact_import_busy {
+                    self.contact_draft = Contact::new();
+                    self.contact_draft_tags.clear();
+                }
             }
         }
         if let Some(id) = self.contact_chat_open.as_ref() {
@@ -622,15 +641,7 @@ impl PersonalDeskApp {
                         self.save_inline_contact(&item.id);
                     }
                     if detail && self.save_inline_contact(&item.id) {
-                        self.contact_draft = self
-                            .contact_items
-                            .iter()
-                            .find(|c| c.id == item.id)
-                            .cloned()
-                            .unwrap_or(draft);
-                        self.contact_error.clear();
-                        self.contact_chat_open = None;
-                        self.contact_dialog_open = true;
+                        self.open_contact_details(&item.id);
                     }
                 }
                 if table::add_row(ui, C, "add-contact-row", "添加联系人").clicked() {

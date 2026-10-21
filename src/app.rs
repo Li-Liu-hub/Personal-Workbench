@@ -10,10 +10,13 @@ use eframe::egui::{self, Color32, RichText};
 
 mod browser_ui;
 mod contact_ui;
+mod credential_ui;
 mod document_group_ui;
 mod favorites_ui;
 mod game_ui;
 mod index_ui;
+#[cfg(test)]
+mod performance_tests;
 
 mod inventory_ui;
 mod layout_ui;
@@ -60,6 +63,7 @@ struct TagAssignment {
 }
 
 pub struct PersonalDeskApp {
+    credential_layout: credential_ui::CredentialLayoutCache,
     favorites: std::collections::BTreeSet<(String, String)>,
     inline_inventory: std::collections::HashMap<String, InventoryItem>,
     browser: crate::browser::Browser,
@@ -191,6 +195,7 @@ impl PersonalDeskApp {
             .into_iter()
             .collect();
         let mut app = Self {
+            credential_layout: Default::default(),
             favorites,
             inline_inventory: Default::default(),
             browser: crate::browser::Browser::new(base.join("browser-profile")),
@@ -1006,38 +1011,29 @@ impl PersonalDeskApp {
     }
 
     fn render_credentials(&mut self, ui: &mut egui::Ui) {
-        let query = self.search_query.trim().to_lowercase();
-        let mut visible = self
-            .credentials
-            .iter()
-            .filter(|item| {
-                self.account_filter.matches(&item.tags)
-                    && matches_query(
-                        &query,
-                        &[
-                            &item.title,
-                            &item.username,
-                            &item.website,
-                            &item.password,
-                            &item.notes,
-                            &item.tags.join(" "),
-                        ],
-                    )
-            })
-            .cloned()
-            .collect::<Vec<_>>();
         let mut selected = None;
         let mut delete = None;
         let mut add = false;
-        visible.sort_by_key(|item| !self.is_favorite("credentials", &item.id));
+
         credential_list_header(ui, self.view_mode());
-        collection(ui, "credential-gallery", self.view_mode(), |ui, side| {
-            for item in &visible {
+        let cells = self.credential_cells(ui);
+        for (item, rect, side) in cells {
+            let mut child = ui.new_child(
+                egui::UiBuilder::new()
+                    .id_salt((
+                        "credential-cell",
+                        item.as_ref().map(|v| v.id.as_str()).unwrap_or("add"),
+                    ))
+                    .max_rect(rect)
+                    .layout(egui::Layout::top_down(egui::Align::Min)),
+            );
+            let ui = &mut child;
+            if let Some(item) = item {
                 let editing = self.inline_credentials.contains_key(&item.id);
                 let mut draft = self
                     .inline_credentials
                     .get(&item.id)
-                    .unwrap_or(item)
+                    .unwrap_or(&item)
                     .clone();
                 let response = credential_entry(ui, &mut draft, side, editing, &self.account_tags);
                 self.favorite_control(ui, &response.response, "credentials", &item.id);
@@ -1084,8 +1080,7 @@ impl PersonalDeskApp {
                         ui.close();
                     }
                 });
-            }
-            if entry(
+            } else if entry(
                 ui,
                 "add",
                 "点击添加账号",
@@ -1097,7 +1092,7 @@ impl PersonalDeskApp {
             {
                 add = true;
             }
-        });
+        }
         if let Some(id) = delete {
             self.delete_credential_record(&id);
         } else if let Some(id) = selected {
@@ -1485,6 +1480,7 @@ impl PersonalDeskApp {
                 self.handle_workspace_shortcuts(&ctx);
                 ui.add_space(12.0);
                 egui::ScrollArea::vertical()
+                    .auto_shrink([false, false])
                     .id_salt((
                         "workspace-content",
                         views::key(self.section),
@@ -1976,7 +1972,11 @@ impl eframe::App for PersonalDeskApp {
                 ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
             }
         }
-        ctx.request_repaint_after(Duration::from_secs(1));
+        ctx.request_repaint_after(if self.contact_import_busy || self.export_busy {
+            Duration::from_millis(100)
+        } else {
+            Duration::from_secs(5)
+        });
         self.render_workspace(ui);
         #[cfg(debug_assertions)]
         self.capture_preview(&ctx);
