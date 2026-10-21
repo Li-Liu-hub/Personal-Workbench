@@ -176,9 +176,18 @@ impl PersonalDeskApp {
             .ok_or(DeskError::UnsupportedFormat)
             .and_then(|db| db.group_writing(ids, target))
         {
-            Ok(_) => {
+            Ok(book) => {
                 self.writing.catalog_key = None;
-                true
+                // Follow the dragged document into its destination, with fresh revision data.
+                // Otherwise it vanishes from the old catalog while the editor still points there.
+                if let Some(id) = ids.last()
+                    && self.open_writing(id)
+                {
+                    self.notice = format!("已放入《{}》", book.title);
+                    true
+                } else {
+                    false
+                }
             }
             Err(e) => {
                 self.notice = e.to_string();
@@ -250,6 +259,14 @@ impl PersonalDeskApp {
                 if let Some(payload) = response.dnd_release_payload::<WritingDrag>() {
                     group = Some((vec![payload.0.clone()], Some(book.id.clone())));
                 }
+                if response.dnd_hover_payload::<WritingDrag>().is_some() {
+                    ui.painter().rect_stroke(
+                        response.rect,
+                        12,
+                        egui::Stroke::new(2., accent()),
+                        egui::StrokeKind::Inside,
+                    );
+                }
                 response.context_menu(|ui| {
                     if ui.button("重命名图书").clicked() {
                         self.library.dialog = Some(book.clone());
@@ -289,7 +306,10 @@ impl PersonalDeskApp {
                 if let Some(payload) = drag.dnd_release_payload::<WritingDrag>()
                     && payload.0 != note.id
                 {
-                    group = Some((vec![note.id.clone(), payload.0.clone()], None));
+                    // A page inside a book is a destination in that book, not a new book.
+                    let target =
+                        (note.book_id != crate::db::WRITING_ROOT).then(|| note.book_id.clone());
+                    group = Some((vec![note.id.clone(), payload.0.clone()], target));
                 }
                 if response.clicked() {
                     open = Some(note.id.clone());
@@ -304,6 +324,10 @@ impl PersonalDeskApp {
             }
             add = entry(ui, "add-writing", "新建文档", "", TileKind::Add, layout).clicked();
         });
+        if let Some((ids, target)) = group {
+            self.group_written_documents(&ids, target.as_deref());
+            return;
+        }
         if let Some(book) = book_open {
             let first = self
                 .db
@@ -316,9 +340,6 @@ impl PersonalDeskApp {
             } else {
                 self.new_writing(false);
             }
-        }
-        if let Some((ids, target)) = group {
-            self.group_written_documents(&ids, target.as_deref());
         }
         if let Some(id) = remove
             && let Some(db) = self.db.as_mut()
@@ -343,6 +364,13 @@ impl PersonalDeskApp {
         ui.horizontal(|ui| {
             ui.set_min_height(38.);
             back = ui.button("← 文档").clicked();
+            if let Some(book) = self.library.book.as_ref() {
+                ui.add_sized(
+                    [ui.available_width().min(150.), 24.],
+                    egui::Label::new(RichText::new(&book.title).color(ink())).truncate(),
+                )
+                .on_hover_text(&book.title);
+            }
             let status = if !self.writing.error.is_empty() {
                 "保存失败"
             } else if self.writing.dirty {

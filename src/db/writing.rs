@@ -263,6 +263,15 @@ impl Database {
         Ok(())
     }
     pub fn group_writing(&mut self, ids: &[String], target: Option<&str>) -> Result<Book> {
+        let mut unique = Vec::new();
+        for id in ids {
+            if !unique.contains(id) {
+                unique.push(id.clone());
+            }
+        }
+        if unique.is_empty() || (target.is_none() && unique.len() < 2) {
+            return Err(DeskError::InvalidPath("请选择要归组的文档".into()));
+        }
         let book = if let Some(id) = target {
             self.books()?
                 .into_iter()
@@ -278,7 +287,17 @@ impl Database {
             "INSERT OR IGNORE INTO books(id,title,tags_json) VALUES(?1,?2,?3)",
             params![book.id, book.title, serde_json::to_string(&book.tags)?],
         )?;
-        for id in ids {
+        for id in unique {
+            let current: Option<String> = tx
+                .query_row(
+                    "SELECT book_id FROM book_pages WHERE id=?1 AND deleted=0",
+                    [&id],
+                    |r| r.get(0),
+                )
+                .optional()?;
+            if current.as_deref() == Some(&book.id) {
+                continue;
+            }
             if tx.execute(
                 "UPDATE book_pages SET book_id=?1,revision=revision+1 WHERE id=?2 AND deleted=0",
                 params![book.id, id],
