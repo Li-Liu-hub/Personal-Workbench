@@ -33,7 +33,7 @@ impl Scope {
             Section::Credentials => Self::Credentials,
             Section::Inventory => Self::Inventory,
             Section::Folders => Self::Shortcuts,
-            Section::Documents => Self::Documents,
+            Section::Documents => Self::BookPages,
             Section::Websites => Self::Websites,
             Section::Contacts => Self::Contacts,
             Section::Tools => Self::Tools,
@@ -77,7 +77,7 @@ impl Scope {
     pub fn label(self) -> &'static str {
         match self {
             Self::Books => "图书",
-            Self::BookPages => "页面",
+            Self::BookPages => "文档",
             Self::Credentials => "账号",
             Self::Inventory => "物品",
             Self::Shortcuts => "快捷路径",

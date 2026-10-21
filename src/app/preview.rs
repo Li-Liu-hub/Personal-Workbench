@@ -13,24 +13,12 @@ impl PersonalDeskApp {
             return;
         };
         fs::create_dir_all(&output).unwrap();
-        let source = self.data_dir.join("preview-documents");
-        fs::create_dir_all(&source).unwrap();
-        for name in ["项目资料.md", "工作清单.txt"] {
-            let path = source.join(name);
-            fs::write(&path, "仅用于隔离预览的文档").unwrap();
-            self.add_document_indices(&[path]);
-        }
-        self.add_shortcut(source);
-        for i in 0..45 {
-            let mut account = Credential::new();
-            account.title = format!("示例账号 {:02}", i + 1);
-            account.username = format!("demo{:02}@example.test", i + 1);
-            account.password = "Demo-Value-".repeat(1 + i % 5);
-            self.db.as_mut().unwrap().save_credential(&account).unwrap();
-        }
-        self.load_summaries();
-        self.section = Section::Credentials;
-        self.view_modes.set(Section::Credentials, ViewMode::Grid);
+        self.new_writing(false);
+        self.writing.page.as_mut().unwrap().title = "让写作回到简单".into();
+        self.writing.page.as_mut().unwrap().body="## 今天，写点什么\n\n把想法、工作和生活记录在这里。\n\n- 专注一件重要的事\n- 留下值得记住的瞬间\n\n> 少一点打扰，多一点专注。".into();
+        self.mark_writing_changed(0.);
+        self.flush_writing();
+        self.section = Section::Documents;
         self.notice.clear();
         self.preview_capture = Some(Capture {
             output,
@@ -53,25 +41,24 @@ impl PersonalDeskApp {
                 c.frames = 0;
                 c.waiting = false;
                 match c.step {
-                    1 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
-                        1000., 680.,
-                    ))),
+                    1 => self.writing.preview = true,
                     2 => {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1000., 680.,
+                        )));
+                        self.writing.preview = false;
+                    }
+                    3 => {
                         ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
                             1280., 800.,
                         )));
-                        self.view_modes.set(Section::Credentials, ViewMode::List);
+                        self.writing.page = None;
+                        self.view_modes.set(Section::Documents, ViewMode::List);
                     }
-                    3 => {
-                        self.section = Section::Folders;
-                        self.view_modes.set(Section::Folders, ViewMode::Grid);
-                    }
-                    4 => self.view_modes.set(Section::Folders, ViewMode::List),
-                    5 => {
-                        self.section = Section::Documents;
-                        self.view_modes.set(Section::Documents, ViewMode::Grid);
-                    }
-                    6 => self.view_modes.set(Section::Documents, ViewMode::List),
+                    4 => self.section = Section::Practice,
+                    5 => self.prepare_study_preview(false),
+                    6 => self.section = Section::Words,
+                    7 => self.prepare_study_preview(true),
                     _ => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
                 }
             }
@@ -82,13 +69,14 @@ impl PersonalDeskApp {
             return;
         }
         let name = [
-            "accounts-grid-wide",
-            "accounts-grid-small",
-            "accounts-list",
-            "shortcuts-grid",
-            "shortcuts-list",
-            "documents-grid",
-            "documents-list",
+            "writing-editor",
+            "writing-preview",
+            "writing-small",
+            "writing-library",
+            "engineering-practice",
+            "engineering-notebook",
+            "daily-words",
+            "practice-settings",
         ][c.step];
         let path = c.output.join(format!("{name}.png"));
         let completed = c.completed.clone();

@@ -2,7 +2,10 @@ use std::path::{Path, PathBuf};
 
 mod contacts;
 mod library;
+mod study;
 mod tag_cache;
+mod writing;
+pub(crate) use writing::WRITING_ROOT;
 
 use rusqlite::{Connection, OptionalExtension, params};
 use uuid::Uuid;
@@ -268,11 +271,14 @@ impl Database {
             Ok(report) => report.notice(),
             Err(_) => "旧版账号暂时无法读取，原文件已保留；可以继续添加和使用新账号。".into(),
         };
-        Ok(Self {
+        let mut database = Self {
             desk,
             tag_cache: Default::default(),
             migration_notice,
-        })
+        };
+        database.prepare_writing(data_dir)?;
+        database.prepare_study()?;
+        Ok(database)
     }
 
     pub fn save_shortcut(&mut self, name: &str, path: &Path, is_dir: bool) -> Result<()> {

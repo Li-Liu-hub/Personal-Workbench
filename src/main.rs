@@ -2,7 +2,6 @@
 
 mod app;
 mod autostart;
-mod browser;
 mod contacts;
 mod crypto;
 mod db;
@@ -15,9 +14,11 @@ mod install;
 mod launcher;
 mod legacy_credentials;
 mod library;
+mod local_ai;
 mod model;
 #[cfg(test)]
 mod search;
+mod study;
 mod tags;
 mod theme;
 mod ui_components;

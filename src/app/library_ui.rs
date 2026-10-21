@@ -8,7 +8,7 @@ pub(super) struct LibraryState {
 }
 impl PersonalDeskApp {
     pub(super) fn render_library(&mut self, ui: &mut egui::Ui) {
-        self.render_documents(ui);
+        self.render_writing_documents(ui);
     }
     pub(super) fn render_book_dialog(&mut self, ctx: &egui::Context) {
         let Some(mut book) = self.library.dialog.clone() else {

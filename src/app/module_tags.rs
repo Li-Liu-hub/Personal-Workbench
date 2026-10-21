@@ -89,6 +89,12 @@ impl PersonalDeskApp {
             .and_then(|db| db.set_record_tags(scope, id, tags));
         match result {
             Ok(()) => {
+                if scope == TagScope::BookPages
+                    && let Some(page) = self.writing.page.as_mut()
+                    && page.id == id
+                {
+                    page.tags = tags.to_vec();
+                }
                 if let Some(draft) = self.inline_credentials.get_mut(id) {
                     draft.tags = tags.to_vec();
                 }

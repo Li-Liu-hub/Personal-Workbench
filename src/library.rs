@@ -1,4 +1,13 @@
 use serde::{Deserialize, Serialize};
+#[derive(Clone, Debug)]
+pub struct WritingSummary {
+    pub id: String,
+    pub book_id: String,
+    pub title: String,
+    pub preview: String,
+    pub tags: Vec<String>,
+    pub updated_at: String,
+}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Book {
     pub id: String,
@@ -25,7 +34,6 @@ pub struct Page {
     pub updated_at: String,
 }
 impl Page {
-    #[cfg(test)]
     pub fn new(book_id: String) -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),

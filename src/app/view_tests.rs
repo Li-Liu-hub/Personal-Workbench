@@ -107,7 +107,7 @@ fn position(output: &egui::FullOutput, value: &str) -> egui::Pos2 {
 fn additional_module_label_assignment_saves_and_filters_with_search_in_both_views() {
     for (section, scope) in [
         (Section::Folders, TagScope::Shortcuts),
-        (Section::Documents, TagScope::Documents),
+        (Section::Documents, TagScope::BookPages),
         (Section::Websites, TagScope::Websites),
         (Section::Contacts, TagScope::Contacts),
         (Section::Tools, TagScope::Tools),
@@ -129,10 +129,7 @@ fn additional_module_label_assignment_saves_and_filters_with_search_in_both_view
                         .unwrap()
                         .id
                 }
-                TagScope::Documents => {
-                    db.set_document_title(&path, name).unwrap();
-                    path.canonicalize().unwrap().to_string_lossy().into_owned()
-                }
+                TagScope::BookPages => db.create_writing(name, None, None).unwrap().id,
                 TagScope::Websites => {
                     let mut item = Website::new();
                     item.title = name.into();
