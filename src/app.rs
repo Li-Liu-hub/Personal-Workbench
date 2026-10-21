@@ -55,6 +55,7 @@ use crate::{
 
 enum BackgroundMessage {
     StudyGraded(study_ui::GradedMessage),
+    SqlExecuted(study_ui::SqlMessage),
     ContactChats(String, std::result::Result<Vec<ChatRecord>, String>),
     Exported(std::result::Result<export::Report, String>),
 }
@@ -729,6 +730,7 @@ impl PersonalDeskApp {
         while let Ok(message) = self.receiver.try_recv() {
             match message {
                 BackgroundMessage::StudyGraded(message) => self.accept_study_grade(message),
+                BackgroundMessage::SqlExecuted(message) => self.accept_sql_execution(message),
                 BackgroundMessage::ContactChats(id, result) => {
                     self.contact_import_busy = false;
                     if self.contact_dialog_open && self.contact_draft.id == id {

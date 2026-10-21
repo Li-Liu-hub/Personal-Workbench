@@ -19,12 +19,16 @@ pub(super) struct Session {
     entries: Vec<NotebookEntry>,
     selected: Option<String>,
     history: Vec<Attempt>,
+    sql_preview: Option<std::result::Result<crate::sql_practice::Preview, String>>,
+    sql_run: Option<crate::sql_practice::Report>,
+    sql_answer: String,
 }
 pub(super) struct StudyState {
     practice: Session,
     words: Session,
     pub ai: Arc<LocalAi>,
     pub busy: bool,
+    running_sql: bool,
     settings: bool,
     rules: Rules,
     config: Config,
@@ -37,6 +41,7 @@ impl Default for StudyState {
             words: Default::default(),
             ai: Arc::new(LocalAi::default()),
             busy: false,
+            running_sql: false,
             settings: false,
             rules: Default::default(),
             config: Default::default(),
@@ -50,6 +55,11 @@ pub(super) struct GradedMessage {
     result: std::result::Result<Grade, String>,
     model: String,
     elapsed: u64,
+}
+pub(super) struct SqlMessage {
+    card_id: String,
+    answer: String,
+    report: crate::sql_practice::Report,
 }
 impl StudyState {
     fn session_mut(&mut self, kind: &str) -> &mut Session {
@@ -79,6 +89,23 @@ impl PersonalDeskApp {
     #[cfg(debug_assertions)]
     pub(super) fn close_study_preview(&mut self) {
         self.study.settings = false;
+    }
+    #[cfg(debug_assertions)]
+    pub(super) fn prepare_sql_preview(&mut self) {
+        let card = self
+            .db
+            .as_ref()
+            .unwrap()
+            .study_card("eng:3:05")
+            .unwrap()
+            .unwrap();
+        let answer = card.sql.as_ref().unwrap().reference.clone();
+        self.study.practice = Session {
+            card: Some(card.clone()),
+            pending: Some(pending(&card, &answer)),
+            answer,
+            ..Default::default()
+        };
     }
     #[cfg(debug_assertions)]
     pub(super) fn reset_study_preview(&mut self) {
@@ -170,6 +197,9 @@ impl PersonalDeskApp {
                 s.card = card;
                 s.answer.clear();
                 s.result = None;
+                s.sql_preview = None;
+                s.sql_run = None;
+                s.sql_answer.clear();
                 s.pending = s.card.as_ref().map(|c| pending(c, ""));
                 if let Some(c) = &s.card {
                     s.recent.push(c.id.clone());
@@ -258,6 +288,44 @@ impl PersonalDeskApp {
                 elapsed: started.elapsed().as_millis() as u64,
             }));
         });
+    }
+    fn run_study_sql(&mut self, s: &mut Session) {
+        if self.study.busy || s.answer.trim().is_empty() {
+            return;
+        }
+        let Some(card) = s.card.as_ref() else {
+            return;
+        };
+        let Some(lab) = card.sql.clone().filter(|lab| lab.runnable) else {
+            return;
+        };
+        self.study.busy = true;
+        self.study.running_sql = true;
+        self.study.error.clear();
+        let answer = s.answer.clone();
+        let card_id = card.id.clone();
+        let sender = self.sender.clone();
+        thread::spawn(move || {
+            let report = crate::sql_practice::run(&lab, &answer);
+            let _ = sender.send(BackgroundMessage::SqlExecuted(SqlMessage {
+                card_id,
+                answer,
+                report,
+            }));
+        });
+    }
+    pub(super) fn accept_sql_execution(&mut self, message: SqlMessage) {
+        self.study.busy = false;
+        self.study.running_sql = false;
+        let session = &mut self.study.practice;
+        if session
+            .card
+            .as_ref()
+            .is_some_and(|card| card.id == message.card_id)
+        {
+            session.sql_answer = message.answer;
+            session.sql_run = Some(message.report);
+        }
     }
     fn record_unknown(&mut self, s: &mut Session) {
         let Some(card) = s.card.as_ref() else { return };
@@ -495,6 +563,13 @@ impl PersonalDeskApp {
                         ui.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::Enter));
                     if s.result.is_none() {
                         let enabled = !self.study.busy && !s.answer.trim().is_empty();
+                        if card.sql.as_ref().is_some_and(|lab| lab.runnable)
+                            && ui
+                                .add_enabled(enabled, egui::Button::new("运行 SQL"))
+                                .clicked()
+                        {
+                            self.run_study_sql(s);
+                        }
                         if ui
                             .add_enabled(
                                 enabled,
@@ -532,7 +607,15 @@ impl PersonalDeskApp {
                         }
                         if self.study.busy {
                             ui.spinner();
-                            ui.label(RichText::new("正在批改…").size(13.).color(muted()));
+                            ui.label(
+                                RichText::new(if self.study.running_sql {
+                                    "正在运行 SQL…"
+                                } else {
+                                    "正在批改…"
+                                })
+                                .size(13.)
+                                .color(muted()),
+                            );
                         }
                     });
                 },
@@ -570,9 +653,52 @@ impl PersonalDeskApp {
             ui.add(egui::Label::new(RichText::new(&card.prompt).size(16.)).wrap());
             ui.add_space(24.);
         }
+        if let Some(lab) = &card.sql {
+            if s.sql_preview.is_none() {
+                s.sql_preview = Some(crate::sql_practice::preview(lab));
+            }
+            ui.label(
+                RichText::new(if lab.runnable {
+                    "SQLite · 运行后自动还原样例数据"
+                } else {
+                    "SQLite · 数据库概念题，填写文字解答"
+                })
+                .size(12.)
+                .color(muted()),
+            );
+            egui::CollapsingHeader::new(format!("表结构与样例数据 · {}", lab.tables.join("、")))
+                .id_salt(("sql-materials", &card.id))
+                .default_open(false)
+                .show(ui, |ui| {
+                    ui.collapsing("建表与初始化 SQL", |ui| {
+                        ui.add(egui::Label::new(RichText::new(&lab.setup).monospace()).wrap());
+                        if ui.small_button("复制建表 SQL").clicked() {
+                            ui.ctx().copy_text(lab.setup.clone());
+                        }
+                    });
+                    match s.sql_preview.as_ref().unwrap() {
+                        Ok(preview) => {
+                            for table in &preview.tables {
+                                render_sql_table(ui, table);
+                            }
+                            if lab.runnable {
+                                ui.collapsing("预期结果", |ui| {
+                                    render_sql_table(ui, &preview.expected)
+                                });
+                            }
+                        }
+                        Err(error) => {
+                            ui.colored_label(Color32::from_rgb(184, 65, 71), error);
+                        }
+                    }
+                });
+            ui.add_space(14.);
+        }
         ui.label(
             RichText::new(if kind == "word" {
                 "中文释义"
+            } else if card.sql.as_ref().is_some_and(|lab| lab.runnable) {
+                "你的 SQL"
             } else {
                 "你的解答"
             })
@@ -589,6 +715,16 @@ impl PersonalDeskApp {
                 ui.set_width((width - 92.).max(180.));
                 self.render_study_answer(ui, kind, s, card);
             });
+        if s.result.is_none()
+            && let Some(report) = &s.sql_run
+        {
+            ui.add_space(14.);
+            if s.sql_answer == s.answer {
+                render_sql_report(ui, report);
+            } else {
+                ui.label(RichText::new("SQL 已修改，请重新运行查看最新结果").color(muted()));
+            }
+        }
         if let Some(attempt) = s.result.as_ref() {
             ui.add_space(24.);
             ui.separator();
@@ -645,6 +781,8 @@ impl PersonalDeskApp {
                     .layouter(&mut layouter)
                     .hint_text(if kind == "word" {
                         "回忆中文含义…"
+                    } else if card.sql.as_ref().is_some_and(|lab| lab.runnable) {
+                        "在这里编写 SQL，可用 -- 写注释…"
                     } else {
                         "写下你的思路、命令或代码…"
                     }),
@@ -952,6 +1090,9 @@ impl PersonalDeskApp {
             s.answer = p.as_ref().map(|p| p.answer.clone()).unwrap_or_default();
             s.pending = p.or_else(|| s.card.as_ref().map(|c| pending(c, "")));
             s.result = None;
+            s.sql_preview = None;
+            s.sql_run = None;
+            s.sql_answer.clear();
             s.notebook = false;
         }
     }
@@ -1085,6 +1226,10 @@ impl PersonalDeskApp {
 }
 fn render_feedback(ui: &mut egui::Ui, attempt: &Attempt) {
     use crate::ui_components::chrome;
+    if let Some(report) = &attempt.feedback.sql {
+        render_sql_report(ui, report);
+        ui.add_space(16.);
+    }
     ui.label(RichText::new(&attempt.feedback.summary).size(14.));
     ui.add_space(10.);
     for check in &attempt.feedback.checks {
@@ -1135,6 +1280,131 @@ fn render_feedback(ui: &mut egui::Ui, attempt: &Attempt) {
             .color(muted()),
         );
     }
+    ui.add_space(10.);
+    if ui.button("复制题目、答案与反馈").clicked() {
+        ui.ctx().copy_text(study_clipboard(attempt));
+    }
+}
+fn render_sql_table(ui: &mut egui::Ui, table: &crate::sql_practice::Table) {
+    ui.add_space(8.);
+    ui.label(RichText::new(&table.title).size(12.).strong());
+    egui::ScrollArea::both()
+        .id_salt(("sql-table-scroll", &table.title))
+        .max_height(180.)
+        .show(ui, |ui| {
+            egui::Grid::new(("sql-table", &table.title))
+                .striped(true)
+                .min_col_width(65.)
+                .min_row_height(20.)
+                .max_col_width(220.)
+                .spacing([18., 4.])
+                .show(ui, |ui| {
+                    for column in &table.columns {
+                        ui.label(RichText::new(column).size(12.).strong());
+                    }
+                    ui.end_row();
+                    for row in &table.rows {
+                        for value in row {
+                            let text = match value {
+                                serde_json::Value::String(s) => s.clone(),
+                                serde_json::Value::Null => "NULL".into(),
+                                value => value.to_string(),
+                            };
+                            ui.label(RichText::new(text).monospace().size(12.));
+                        }
+                        ui.end_row();
+                    }
+                });
+        });
+    if table.rows.is_empty() {
+        ui.label(RichText::new("0 行").small().color(muted()));
+    }
+    if table.truncated {
+        ui.label(
+            RichText::new("内容过长，已截断显示；不作通过判定")
+                .small()
+                .color(muted()),
+        );
+    }
+}
+fn render_sql_report(ui: &mut egui::Ui, report: &crate::sql_practice::Report) {
+    use crate::ui_components::chrome;
+    ui.horizontal_wrapped(|ui| {
+        chrome::badge(
+            ui,
+            match report.matches {
+                Some(true) => "样例验证通过",
+                Some(false) => "结果与预期不一致",
+                None => "运行未完成",
+            },
+            if report.matches == Some(true) {
+                Color32::from_rgb(47, 139, 108)
+            } else {
+                muted()
+            },
+        );
+        ui.label(
+            RichText::new(format!(
+                "{} ms · 影响 {} 行",
+                report.elapsed_ms, report.changed_rows
+            ))
+            .small()
+            .color(muted()),
+        );
+        if report.rolled_back {
+            ui.label(RichText::new("样例数据已还原").small().color(muted()));
+        }
+    });
+    if let Some(error) = &report.error {
+        ui.colored_label(Color32::from_rgb(184, 65, 71), error);
+    }
+    for table in &report.results {
+        render_sql_table(ui, table);
+    }
+    if let Some(actual) = &report.actual
+        && actual.title == "执行后的数据"
+    {
+        render_sql_table(ui, actual);
+    }
+    if report.matches == Some(false)
+        && let Some(expected) = &report.expected
+    {
+        render_sql_table(ui, expected);
+    }
+}
+fn study_clipboard(attempt: &Attempt) -> String {
+    let card = &attempt.question;
+    let mut text = format!("# {}\n\n{}\n", card.title, card.prompt);
+    if let Some(lab) = &card.sql {
+        text.push_str(&format!(
+            "\nSQLite 建表与样例数据：\n```sql\n{}\n```\n",
+            lab.setup
+        ));
+    }
+    text.push_str(&format!(
+        "\n我的答案：\n{}\n\nAI 评分：{}%\n{}\n",
+        attempt.answer, attempt.completion, attempt.feedback.summary
+    ));
+    for check in &attempt.feedback.checks {
+        let title = card
+            .rubric
+            .iter()
+            .find(|r| r.id == check.id)
+            .map(|r| r.text.as_str())
+            .unwrap_or(&check.id);
+        text.push_str(&format!(
+            "- {} 分 · {}：{}\n",
+            check.earned, title, check.reason
+        ));
+    }
+    if let Some(report) = &attempt.feedback.sql {
+        text.push_str(&format!(
+            "\nSQLite 实际运行：\n{}\n",
+            serde_json::to_string_pretty(report).unwrap_or_default()
+        ));
+    }
+    text.push_str(&format!("\n参考答案：\n{}\n", card.answer));
+    text
 }
 fn render_trend(ui: &mut egui::Ui, history: &[Attempt]) {
     if history.is_empty() {

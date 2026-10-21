@@ -117,6 +117,13 @@ impl PersonalDeskApp {
                     12 => {
                         self.section = Section::Words;
                     }
+                    13 => {
+                        self.section = Section::Practice;
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1280., 800.,
+                        )));
+                        self.prepare_sql_preview();
+                    }
                     _ => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
                 }
             }
@@ -140,6 +147,7 @@ impl PersonalDeskApp {
             "inventory-list",
             "practice-small",
             "words-small",
+            "sql-practice",
         ][c.step];
         let path = c.output.join(format!("{name}.png"));
         let completed = c.completed.clone();

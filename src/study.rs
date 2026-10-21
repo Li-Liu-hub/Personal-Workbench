@@ -27,9 +27,14 @@ pub struct Card {
     pub source: String,
     #[serde(default)]
     pub phonetic: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sql: Option<crate::sql_practice::Lab>,
 }
 impl Card {
     pub fn validate(&self) -> Result<()> {
+        if let Some(sql) = &self.sql {
+            sql.validate().map_err(DeskError::InvalidPath)?;
+        }
         if !matches!(self.kind.as_str(), "engineering" | "word")
             || self.id.is_empty()
             || self.title.trim().is_empty()
@@ -131,6 +136,8 @@ pub struct Grade {
     pub summary: String,
     #[serde(default)]
     pub weak_points: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sql: Option<crate::sql_practice::Report>,
 }
 impl Grade {
     /// A model cannot invent a final score: validate every rubric result and sum it here.
@@ -179,6 +186,7 @@ impl Grade {
                 .collect(),
             summary: "已记入记录本，下次继续练习。".into(),
             weak_points: vec![],
+            sql: None,
         }
     }
 }
