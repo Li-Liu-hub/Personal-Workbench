@@ -77,25 +77,6 @@ impl Browser {
         }
     }
 
-    #[cfg(debug_assertions)]
-    pub fn debug_probe(&self, path: PathBuf) {
-        let Some(view) = self
-            .tabs
-            .get(self.selected)
-            .and_then(|tab| tab.view.as_ref())
-        else {
-            return;
-        };
-        if !view
-            .url()
-            .is_ok_and(|url| url.starts_with("http://127.0.0.1:"))
-        {
-            return;
-        }
-        let _=view.evaluate_script_with_callback("({ready:document.readyState==='complete',title:document.title,stored:localStorage.getItem('desk-fixture'),cookie:document.cookie.includes('desk-fixture=persisted')})",move|value|{
-            if let Ok(json)=serde_json::from_str::<serde_json::Value>(&value)&& json["ready"]==true&&json["title"]=="PersonalDesk Browser Test"{let _=std::fs::write(&path,serde_json::to_vec(&json).unwrap_or_default());}
-        });
-    }
     pub fn navigate(&mut self) {
         match address(&self.input) {
             Ok(url) => {
@@ -116,16 +97,7 @@ impl Browser {
             Err(error) => self.error = error,
         }
     }
-    #[cfg(debug_assertions)]
-    pub fn probe_input(&self, path: PathBuf) {
-        if let Some(view) = self
-            .tabs
-            .get(self.selected)
-            .and_then(|tab| tab.view.as_ref())
-        {
-            let _=view.evaluate_script_with_callback("(()=>{const t=document.querySelector('textarea');if(t && location.hostname==='127.0.0.1'){t.focus();t.value='LOCAL_INPUT_OK';t.dispatchEvent(new Event('input',{bubbles:true}));}return {focused:document.hasFocus(),url:location.href,title:document.title,ready:document.readyState,input:t?.value==='LOCAL_INPUT_OK',active:document.activeElement===t,inputs:document.querySelectorAll('input,textarea,[contenteditable=true]').length,bodyLength:document.body?.innerText.length||0};})()",move|value| {if let Ok(json)=serde_json::from_str::<serde_json::Value>(&value){let _=std::fs::write(&path,serde_json::to_vec_pretty(&json).unwrap());}});
-        }
-    }
+
     pub fn close(&mut self, index: usize) {
         if index < self.tabs.len() {
             if let Some(view) = self.tabs[index].view.as_ref()

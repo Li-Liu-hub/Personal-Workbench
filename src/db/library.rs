@@ -2,13 +2,12 @@ use super::*;
 use crate::library::{Book, Page};
 impl Database {
     pub fn book_documents(&self, book: &str) -> Result<Vec<crate::model::DocumentRecord>> {
-        let mut statement=self.desk.prepare("SELECT d.path,d.title FROM book_documents b JOIN documents d ON d.path=b.document_path WHERE b.book_id=?1 ORDER BY b.position,b.rowid")?;
+        let mut statement=self.desk.prepare("SELECT d.path,d.title FROM book_documents b JOIN documents d ON d.path=b.document_path WHERE b.book_id=?1 AND d.hidden=0 ORDER BY b.position,b.rowid")?;
         Ok(statement
             .query_map([book], |r| {
-                Ok(crate::model::DocumentRecord {
-                    path: std::path::PathBuf::from(r.get::<_, String>(0)?),
-                    title: r.get(1)?,
-                })
+                let path = std::path::PathBuf::from(r.get::<_, String>(0)?);
+                let title = visible_document_title(&path, r.get(1)?);
+                Ok(crate::model::DocumentRecord { path, title })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?)
     }
@@ -83,12 +82,8 @@ impl Database {
         tx.commit()?;
         Ok(book)
     }
-    pub fn ungroup_document(&mut self, path: &std::path::Path) -> Result<()> {
-        let key = self.document_record_key(path)?;
-        self.desk
-            .execute("DELETE FROM book_documents WHERE document_path=?1", [key])?;
-        Ok(())
-    }
+
+    #[cfg(test)]
     pub fn deleted_library(&self) -> Result<Vec<(String, String, bool)>> {
         let mut result = vec![];
         for (table, page) in [("books", false), ("book_pages", true)] {
@@ -102,19 +97,14 @@ impl Database {
         Ok(result)
     }
 
+    #[cfg(test)]
     pub fn save_book_draft(&mut self, writer: &str, page: &Page) -> Result<()> {
         let key = format!("{writer}:{}", page.id);
         self.desk.execute("INSERT INTO book_page_drafts(id,book_id,writer,page_json) VALUES(?1,?2,?3,?4) ON CONFLICT(id) DO UPDATE SET page_json=excluded.page_json",params![key,page.book_id,writer,serde_json::to_string(page)?])?;
         Ok(())
     }
-    pub fn clear_book_draft(&mut self, writer: &str, page_id: &str) -> Result<()> {
-        self.clear_book_draft_key(&format!("{writer}:{page_id}"))
-    }
-    pub fn clear_book_draft_key(&mut self, key: &str) -> Result<()> {
-        self.desk
-            .execute("DELETE FROM book_page_drafts WHERE id=?1", [key])?;
-        Ok(())
-    }
+
+    #[cfg(test)]
     pub fn book_drafts(&self, book_id: &str, writer: &str) -> Result<Vec<(String, Page)>> {
         let mut stmt = self
             .desk
@@ -168,6 +158,7 @@ impl Database {
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?)
     }
+    #[cfg(test)]
     pub fn save_book_page(&mut self, page: &mut Page) -> Result<()> {
         if page.title.trim().is_empty() {
             return Err(DeskError::InvalidPath("请填写页面名称".into()));

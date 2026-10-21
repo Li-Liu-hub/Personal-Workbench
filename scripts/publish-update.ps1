@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '统一紧凑工具栏、搜索与分类下拉并排，文档独立编辑布局与横向标签页，固定底部状态，精简文件夹与浏览器操作区'
+    [string]$Notes = '移除 PowerShell 和文件操作，文档与快捷路径改为纯索引，快捷打开所在位置，删除与撤回只操作索引，保留旧文档和草稿'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

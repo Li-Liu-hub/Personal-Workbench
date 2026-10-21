@@ -1,30 +1,29 @@
 use std::{
-    fs::{self, OpenOptions},
-    io::Write,
+    fs,
     path::PathBuf,
     sync::mpsc::{self, Receiver, Sender},
     thread,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use eframe::egui::{self, Color32, RichText};
-use serde::{Deserialize, Serialize};
 
 mod browser_ui;
 mod contact_ui;
 mod document_group_ui;
-mod document_ui;
 mod favorites_ui;
 mod game_ui;
-#[cfg(debug_assertions)]
-mod interaction_probe;
+mod index_ui;
+
 mod inventory_ui;
 mod layout_ui;
 mod library_ui;
 mod module_tags;
 #[cfg(debug_assertions)]
 mod preview;
-mod terminal_ui;
+
+#[cfg(test)]
+mod index_tests;
 mod theme_ui;
 mod tool_ui;
 mod update_ui;
@@ -34,48 +33,23 @@ mod view_tests;
 use crate::{
     contacts::{self, ChatRecord, Contact},
     db::Database,
-    documents::{self, DocumentFormatHandler, WordHandler},
     error::DeskError,
     export, files,
-    model::{
-        Credential, CredentialSummary, DocumentRecord, FileItem, InventoryItem, SearchResult,
-        Section, Shortcut, Website,
-    },
-    search,
+    model::{Credential, CredentialSummary, InventoryItem, Section, Website},
     tags::{self, Filter as TagFilter, Scope as TagScope},
     ui_components::{
         TileKind, accent, border, canvas, centered_dialog, collection, content_fill,
-        credential_entry, credential_list_header, dialog_closed, entry, file_entry,
-        file_list_header, ink, muted, navigation_item, primary_button, sidebar, surface,
-        tag_choices, tag_filter_bar, tagged_entry, view_switcher, website_entry,
+        credential_entry, credential_list_header, dialog_closed, entry, ink, muted,
+        navigation_item, primary_button, sidebar, surface, tag_choices, tag_filter_bar,
+        tagged_entry, view_switcher, website_entry,
     },
     views::{self, Preferences, ViewMode},
     websites,
 };
 
-#[derive(Clone)]
-struct RecoveryItem {
-    id: String,
-    original_path: String,
-    draft_path: PathBuf,
-}
-
-#[derive(Serialize, Deserialize)]
-struct RecoveryManifest {
-    original_path: String,
-}
-
 enum BackgroundMessage {
-    Terminal(
-        PathBuf,
-        Box<std::result::Result<crate::terminal::Terminal, String>>,
-    ),
     ContactChats(String, std::result::Result<Vec<ChatRecord>, String>),
-    Indexed(std::result::Result<usize, String>),
     Exported(std::result::Result<export::Report, String>),
-    Dropped(PathBuf, files::DropReport),
-    Copied(std::result::Result<PathBuf, String>),
-    Moved(std::result::Result<PathBuf, String>),
 }
 
 #[derive(Clone)]
@@ -90,23 +64,12 @@ pub struct PersonalDeskApp {
     inline_inventory: std::collections::HashMap<String, InventoryItem>,
     browser: crate::browser::Browser,
     browser_area: Option<egui::Rect>,
-    terminal: Option<crate::terminal::Terminal>,
-    terminal_directory: PathBuf,
-    terminal_error: String,
-    terminal_focused: bool,
-    terminal_inline: bool,
-    terminal_focus_requested: bool,
-    terminal_starting: bool,
     library: library_ui::LibraryState,
     photo_cache: std::collections::HashMap<String, egui::TextureHandle>,
     contact_scroll_id: Option<String>,
-    undo: crate::undo::Journal,
-    file_operations: usize,
     updates: update_ui::UpdateState,
     #[cfg(debug_assertions)]
     preview_capture: Option<preview::Capture>,
-    #[cfg(debug_assertions)]
-    interaction_probe: Option<interaction_probe::Probe>,
     native_host: usize,
     theme: crate::theme::ThemeSettings,
     theme_saved: crate::theme::ThemeSettings,
@@ -138,20 +101,12 @@ pub struct PersonalDeskApp {
     account_filter: TagFilter,
     inventory_filter: TagFilter,
     module_filters: std::collections::BTreeMap<String, TagFilter>,
-    file_filter: files::FileFilter,
     tag_manager: Option<TagScope>,
     tag_assignment: Option<TagAssignment>,
     tag_name: String,
     tag_original: Option<String>,
     tag_error: String,
-    system_open_request: Option<PathBuf>,
-    open_with_request: Option<PathBuf>,
-    copy_file_request: Option<PathBuf>,
-    drag_file_request: Option<PathBuf>,
-    drop_busy: bool,
-    drop_report: Option<files::DropReport>,
-    native_drop_position: Option<egui::Pos2>,
-    folder_drop_targets: Vec<(egui::Rect, PathBuf)>,
+    location_request: Option<PathBuf>,
     data_dir: PathBuf,
     startup_error: String,
     section: Section,
@@ -173,35 +128,14 @@ pub struct PersonalDeskApp {
     selected_credential: Option<String>,
     credential_dialog_open: bool,
     inventory_dialog_open: bool,
-    document_scroll_epoch: u64,
-    editor_visible: bool,
-    editor_title: String,
-    editor_focus_title: bool,
     shortcut_dialog_open: bool,
-    folder_dialog_open: bool,
-    file_dialog_open: bool,
     settings_detail: Option<String>,
-    editor_path: Option<PathBuf>,
-    editor_text: String,
-    editor_dirty: bool,
-    editor_fingerprint: Option<[u8; 32]>,
-    editor_conflict: bool,
-    recovery_id: Option<String>,
-    recovery_items: Vec<RecoveryItem>,
-    dirty_since: Option<Instant>,
     search_query: String,
     search_field: Option<egui::Id>,
-    search_results: Vec<SearchResult>,
     search_pending: Option<f64>,
     inventory_items: Vec<InventoryItem>,
     inventory_draft: InventoryItem,
     selected_inventory: Option<String>,
-    folder_name: String,
-    current_directory: Option<PathBuf>,
-    current_root: Option<PathBuf>,
-    file_items: Vec<FileItem>,
-    selected_file: Option<PathBuf>,
-    rename_text: String,
     sender: Sender<BackgroundMessage>,
     receiver: Receiver<BackgroundMessage>,
 }
@@ -232,25 +166,7 @@ impl PersonalDeskApp {
     #[cfg(debug_assertions)]
     pub fn layout_preview(cc: &eframe::CreationContext<'_>, base: PathBuf) -> Self {
         configure_theme(&cc.egui_ctx);
-        let mut app = Self::open_data_directory(base.clone());
-        let folder = base.join("开发文档");
-        fs::create_dir_all(folder.join("资料")).expect("preview folder");
-        for name in [
-            "项目笔记.md",
-            "开发计划.txt",
-            "需求清单.md",
-            "接口说明.md",
-            "会议记录.txt",
-        ] {
-            fs::write(folder.join(name), "界面预览用示例文档").expect("preview document");
-        }
-        app.db
-            .as_mut()
-            .unwrap()
-            .save_shortcut("开发文档", &folder, true)
-            .unwrap();
-        app.navigate(folder.clone(), folder);
-        app.notice.clear();
+        let mut app = Self::open_data_directory(base);
         app.prepare_preview_capture();
         app
     }
@@ -279,22 +195,11 @@ impl PersonalDeskApp {
             inline_inventory: Default::default(),
             browser: crate::browser::Browser::new(base.join("browser-profile")),
             browser_area: None,
-            terminal: None,
-            terminal_directory: base.clone(),
-            terminal_error: String::new(),
-            terminal_focused: false,
-            terminal_inline: false,
-            terminal_focus_requested: false,
-            terminal_starting: false,
             library: Default::default(),
             photo_cache: Default::default(),
             contact_scroll_id: None,
-            undo: crate::undo::Journal::open(&base),
-            file_operations: 0,
             #[cfg(debug_assertions)]
             preview_capture: None,
-            #[cfg(debug_assertions)]
-            interaction_probe: None,
             native_host: 0,
             theme: theme.clone(),
             theme_saved: theme,
@@ -339,20 +244,12 @@ impl PersonalDeskApp {
             account_filter: TagFilter::All,
             inventory_filter: TagFilter::All,
             module_filters: Default::default(),
-            file_filter: Default::default(),
             tag_manager: None,
             tag_assignment: None,
             tag_name: String::new(),
             tag_original: None,
             tag_error: String::new(),
-            system_open_request: None,
-            open_with_request: None,
-            copy_file_request: None,
-            drag_file_request: None,
-            drop_busy: false,
-            drop_report: None,
-            native_drop_position: None,
-            folder_drop_targets: Vec::new(),
+            location_request: None,
             data_dir: base,
             startup_error,
             section: Section::Folders,
@@ -374,307 +271,25 @@ impl PersonalDeskApp {
             selected_credential: None,
             credential_dialog_open: false,
             inventory_dialog_open: false,
-            document_scroll_epoch: 0,
-            editor_visible: false,
-            editor_title: String::new(),
-            editor_focus_title: false,
             shortcut_dialog_open: false,
-            folder_dialog_open: false,
-            file_dialog_open: false,
             settings_detail: None,
-            editor_path: None,
-            editor_text: String::new(),
-            editor_dirty: false,
-            editor_fingerprint: None,
-            editor_conflict: false,
-            recovery_id: None,
-            recovery_items: Vec::new(),
-            dirty_since: None,
             search_query: String::new(),
             search_field: None,
-            search_results: Vec::new(),
             search_pending: None,
             inventory_items: Vec::new(),
             inventory_draft: InventoryItem::new(),
             selected_inventory: None,
-            folder_name: String::new(),
-            current_directory: None,
-            current_root: None,
-            file_items: Vec::new(),
-            selected_file: None,
-            rename_text: String::new(),
             sender,
             receiver,
         };
         if app.db.is_some() {
-            app.load_recovery_drafts();
             app.load_summaries();
             app.load_inventory();
             app.load_websites();
             app.load_contacts();
             app.load_tags();
-            if app.notice.is_empty() && !app.recovery_items.is_empty() {
-                app.notice = format!("发现 {} 份可恢复草稿", app.recovery_items.len());
-            }
         }
         app
-    }
-
-    fn save_recovery_draft(&mut self) {
-        let Some(original_path) = self.editor_path.clone() else {
-            return;
-        };
-        let id = self
-            .recovery_id
-            .get_or_insert_with(|| uuid::Uuid::new_v4().to_string())
-            .clone();
-        let directory = self.data_dir.join("recovery");
-        let draft_path = directory.join(format!("{id}.recovery.txt"));
-        let manifest_path = directory.join(format!("{id}.json"));
-        if !manifest_path.exists() {
-            let manifest = RecoveryManifest {
-                original_path: original_path.to_string_lossy().into_owned(),
-            };
-            let result = serde_json::to_vec(&manifest)
-                .map_err(DeskError::from)
-                .and_then(|bytes| {
-                    let mut file = OpenOptions::new()
-                        .write(true)
-                        .create_new(true)
-                        .open(&manifest_path)?;
-                    file.write_all(&bytes)?;
-                    file.sync_all()?;
-                    Ok(())
-                });
-            if let Err(error) = result {
-                self.notice = format!("恢复草稿信息写入失败：{error}");
-                return;
-            }
-        }
-        let expected = documents::fingerprint(&draft_path).ok();
-        if let Err(error) =
-            documents::save_text_atomic_checked(&draft_path, &self.editor_text, expected)
-        {
-            self.notice = format!("恢复草稿写入失败：{error}");
-            return;
-        }
-        self.load_recovery_drafts();
-    }
-
-    fn load_recovery_drafts(&mut self) {
-        let directory = self.data_dir.join("recovery");
-        let mut items = Vec::new();
-        if let Ok(entries) = fs::read_dir(&directory) {
-            for entry in entries.flatten() {
-                let manifest_path = entry.path();
-                if manifest_path.extension().and_then(|ext| ext.to_str()) != Some("json") {
-                    continue;
-                }
-                let Some(id) = manifest_path.file_stem().and_then(|stem| stem.to_str()) else {
-                    continue;
-                };
-                if uuid::Uuid::parse_str(id).is_err() {
-                    continue;
-                }
-                let Ok(bytes) = fs::read(&manifest_path) else {
-                    continue;
-                };
-                let Ok(manifest) = serde_json::from_slice::<RecoveryManifest>(&bytes) else {
-                    continue;
-                };
-                let draft_path = directory.join(format!("{id}.recovery.txt"));
-                if draft_path.is_file() {
-                    items.push(RecoveryItem {
-                        id: id.to_owned(),
-                        original_path: manifest.original_path,
-                        draft_path,
-                    });
-                }
-            }
-        }
-        self.recovery_items = items;
-    }
-
-    fn discard_recovery_draft(&mut self, id: &str) {
-        if uuid::Uuid::parse_str(id).is_err() {
-            return;
-        }
-        let directory = self.data_dir.join("recovery");
-        let _ = fs::remove_file(directory.join(format!("{id}.recovery.txt")));
-        let _ = fs::remove_file(directory.join(format!("{id}.json")));
-        self.recovery_items.retain(|item| item.id != id);
-    }
-
-    fn discard_active_recovery_draft(&mut self) {
-        if let Some(id) = self.recovery_id.take() {
-            self.discard_recovery_draft(&id);
-        }
-    }
-
-    fn restore_recovery_draft(&mut self, item: RecoveryItem) {
-        let text = match fs::read_to_string(&item.draft_path) {
-            Ok(text) => text,
-            Err(error) => {
-                self.notice = format!("无法读取恢复草稿：{error}");
-                return;
-            }
-        };
-        let original = PathBuf::from(&item.original_path);
-        let extension = original
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .filter(|ext| matches!(ext.to_ascii_lowercase().as_str(), "md" | "txt"))
-            .unwrap_or("md");
-        let stem = original
-            .file_stem()
-            .map(|name| name.to_string_lossy().into_owned())
-            .filter(|name| !name.is_empty())
-            .unwrap_or_else(|| "恢复文档".into());
-        let short_id = item.id.replace('-', "");
-        let path = self.data_dir.join("documents").join(format!(
-            "{stem} - 恢复-{}.{}",
-            &short_id[..8],
-            extension
-        ));
-        match documents::save_text_new(&path, &text) {
-            Ok(()) => {
-                if let Some(db) = self.db.as_mut() {
-                    let _ = db.touch_document(&path);
-                }
-                self.discard_recovery_draft(&item.id);
-                self.notice = "草稿已恢复为新的文档，原文件未覆盖".into();
-                self.open_editor(path);
-            }
-            Err(error) => self.notice = format!("无法创建恢复文档：{error}"),
-        }
-    }
-
-    fn save_editor(&mut self) -> bool {
-        if !self.editor_dirty {
-            return true;
-        }
-        let Some(path) = self.editor_path.clone() else {
-            return false;
-        };
-        match documents::save_text_atomic_checked(&path, &self.editor_text, self.editor_fingerprint)
-        {
-            Ok(()) => {
-                self.editor_fingerprint =
-                    Some(documents::fingerprint_bytes(self.editor_text.as_bytes()));
-                if let Some(db) = self.db.as_mut()
-                    && let Err(error) = db.set_document_title(&path, &self.editor_title)
-                {
-                    self.notice = format!("正文已保存，标题保存失败：{error}");
-                    self.dirty_since = Some(Instant::now());
-                    self.save_recovery_draft();
-                    return false;
-                }
-                self.editor_dirty = false;
-                self.editor_conflict = false;
-                self.dirty_since = None;
-                if self.editor_title.trim().is_empty() {
-                    self.editor_title = "未命名文档".into();
-                }
-                self.notice = format!("已保存：{}", self.editor_title.trim());
-                self.discard_active_recovery_draft();
-                let managed = documents::default_documents_dir(&self.data_dir)
-                    .canonicalize()
-                    .is_ok_and(|root| path.canonicalize().is_ok_and(|file| file.starts_with(root)));
-                if managed
-                    && let Some(db) = self.db.as_mut()
-                    && let Err(error) = db.index_file(
-                        "managed-documents",
-                        &path,
-                        &self.editor_title,
-                        &self.editor_text,
-                    )
-                {
-                    self.notice = format!("文档已保存，搜索索引更新失败：{error}");
-                }
-                true
-            }
-            Err(error) => {
-                self.notice = format!("保存失败：{error}");
-                self.editor_conflict = matches!(&error, DeskError::ConcurrentModification);
-                self.dirty_since = Some(Instant::now());
-                self.save_recovery_draft();
-                false
-            }
-        }
-    }
-
-    fn open_editor(&mut self, path: PathBuf) {
-        if self.editor_dirty && !self.save_editor() {
-            return;
-        }
-        match documents::read_text_with_fingerprint(&path) {
-            Ok((contents, fingerprint)) => {
-                self.editor_visible = true;
-                self.editor_title = self
-                    .db
-                    .as_ref()
-                    .and_then(|db| db.document_title(&path).ok())
-                    .unwrap_or_else(|| "未命名文档".into());
-                self.editor_path = Some(path.clone());
-                self.editor_text = contents;
-                self.editor_dirty = false;
-                self.editor_fingerprint = Some(fingerprint);
-                self.editor_conflict = false;
-                self.dirty_since = None;
-                self.section = Section::Documents;
-                self.document_scroll_epoch = self.document_scroll_epoch.wrapping_add(1);
-                if let Some(db) = self.db.as_mut() {
-                    let _ = db.touch_document(&path);
-                }
-            }
-            Err(error) => self.notice = format!("无法打开文档：{error}"),
-        }
-    }
-
-    fn reload_editor_from_disk(&mut self) {
-        let Some(path) = self.editor_path.clone() else {
-            return;
-        };
-        match documents::read_text_with_fingerprint(&path) {
-            Ok((contents, fingerprint)) => {
-                self.editor_text = contents;
-                self.editor_fingerprint = Some(fingerprint);
-                self.editor_dirty = false;
-                self.editor_conflict = false;
-                self.dirty_since = None;
-                self.discard_active_recovery_draft();
-                self.notice = "已重新载入磁盘版本".into();
-            }
-            Err(error) => self.notice = format!("无法重新载入：{error}"),
-        }
-    }
-
-    fn save_editor_as(&mut self) {
-        let suggested_name = "文档.md";
-        let Some(path) = rfd::FileDialog::new()
-            .set_title("导出文本副本")
-            .set_file_name(suggested_name)
-            .add_filter("Markdown", &["md"])
-            .add_filter("纯文本", &["txt"])
-            .save_file()
-        else {
-            return;
-        };
-        let extension = path
-            .extension()
-            .and_then(|value| value.to_str())
-            .unwrap_or_default()
-            .to_ascii_lowercase();
-        if !matches!(extension.as_str(), "md" | "txt") {
-            self.notice = "导出文本仅支持 Markdown 或 TXT 文件".into();
-            return;
-        }
-        match documents::save_text_new(&path, &self.editor_text) {
-            Ok(()) => {
-                self.notice = format!("已导出副本：{}；原文档仍保留在办公台内", path.display())
-            }
-            Err(error) => self.notice = format!("导出失败：{error}"),
-        }
     }
 
     fn add_shortcut(&mut self, path: PathBuf) {
@@ -700,36 +315,6 @@ impl PersonalDeskApp {
                 self.notice = format!("已添加：{name}");
             }
             Err(rusqlite_error) => self.notice = format!("添加快捷路径失败：{rusqlite_error}"),
-        }
-    }
-
-    fn navigate(&mut self, root: PathBuf, current: PathBuf) {
-        match (root.canonicalize(), current.canonicalize()) {
-            (Ok(root), Ok(path)) if path.starts_with(&root) && path.is_dir() => {
-                match files::list_directory(&path) {
-                    Ok(items) => {
-                        self.current_root = Some(root);
-                        self.current_directory = Some(path);
-                        self.file_items = items;
-                        self.section = Section::Folders;
-                        self.selected_file = None;
-                        self.search_query.clear();
-                        self.search_results.clear();
-                    }
-                    Err(e) => self.notice = e.to_string(),
-                }
-            }
-            (Err(e), _) | (_, Err(e)) => self.notice = format!("路径已失效：{e}"),
-            _ => self.notice = "该位置不在所选文件夹中".into(),
-        }
-    }
-
-    fn refresh_files(&mut self) {
-        if let Some(path) = self.current_directory.clone() {
-            match files::list_directory(&path) {
-                Ok(items) => self.file_items = items,
-                Err(e) => self.notice = e.to_string(),
-            }
         }
     }
 
@@ -834,16 +419,6 @@ impl PersonalDeskApp {
             }
             if let Some(book) = self.library.dialog.as_mut() {
                 rewrite(&mut book.tags);
-            }
-        }
-        if scope == TagScope::BookPages {
-            if let Some(page) = self.library.page.as_mut() {
-                rewrite(&mut page.tags);
-            }
-            if self.library.page_filter == TagFilter::Named(original.to_owned()) {
-                self.library.page_filter = replacement
-                    .map(|name| TagFilter::Named(name.into()))
-                    .unwrap_or_default();
             }
         }
         self.load_tags();
@@ -1039,31 +614,6 @@ impl PersonalDeskApp {
                 self.tag_manager = None;
             }
         }
-        if self.drop_report.is_some() {
-            let report = self.drop_report.as_ref().expect("drop report");
-            let dialog = centered_dialog(
-                ctx,
-                "drop-results",
-                "拖入结果",
-                "成功复制的项目已保留；以下项目未能复制，源文件均未移动。",
-                520.0,
-                |ui| {
-                    ui.label(format!(
-                        "已复制 {} 项，未成功 {} 项",
-                        report.copied.len(),
-                        report.failures.len()
-                    ));
-                    for (path, reason) in &report.failures {
-                        ui.label(path.display().to_string());
-                        ui.colored_label(Color32::from_rgb(184, 65, 71), reason);
-                        ui.separator();
-                    }
-                },
-            );
-            if dialog_closed(&dialog) {
-                self.drop_report = None;
-            }
-        }
     }
 
     fn save_website_draft(&mut self) -> bool {
@@ -1091,12 +641,6 @@ impl PersonalDeskApp {
 
     fn start_export(&mut self, scope: export::Scope) -> bool {
         if self.export_busy {
-            return false;
-        }
-        if matches!(scope, export::Scope::All | export::Scope::Documents)
-            && self.editor_dirty
-            && !self.save_editor()
-        {
             return false;
         }
         let filename = format!(
@@ -1156,141 +700,34 @@ impl PersonalDeskApp {
         }
     }
 
-    fn run_search(&mut self) {
-        if self.search_query.trim().is_empty() {
-            self.search_results.clear();
-            return;
-        }
-        let Some(db) = self.db.as_ref() else {
-            return;
-        };
-        match search::search(db, &self.search_query) {
-            Ok(rows) => self.search_results = rows,
-            Err(e) => {
-                self.notice = format!("搜索失败：{e}");
-                self.search_results.clear();
-            }
-        }
-    }
-
-    fn start_index(&mut self, id: String, root: PathBuf) {
-        let data = self.data_dir.clone();
-        let tx = self.sender.clone();
-        self.notice = "正在建立文件索引…".into();
-        thread::spawn(move || {
-            let result = search::index_folder_at(&data, &id, &root).map_err(|e| e.to_string());
-            let _ = tx.send(BackgroundMessage::Indexed(result));
-        });
-    }
-
-    fn start_copy(&mut self, source: PathBuf, destination: PathBuf) {
-        self.file_operations += 1;
-        let tx = self.sender.clone();
-        self.notice = "正在复制文件…".into();
-        thread::spawn(move || {
-            let result = files::copy_path(&source, &destination).map_err(|e| e.to_string());
-            let _ = tx.send(BackgroundMessage::Copied(result));
-        });
-    }
-
-    fn start_move(&mut self, source: PathBuf, destination: PathBuf) {
-        self.file_operations += 1;
-        let tx = self.sender.clone();
-        self.notice = "正在移动文件；跨磁盘时会先复制并校验…".into();
-        thread::spawn(move || {
-            let result = files::move_path(&source, &destination).map_err(|e| e.to_string());
-            let _ = tx.send(BackgroundMessage::Moved(result));
-        });
-    }
+    fn run_search(&mut self) {}
 
     fn poll_background(&mut self) {
         while let Ok(message) = self.receiver.try_recv() {
-            if matches!(
-                &message,
-                BackgroundMessage::Copied(_) | BackgroundMessage::Moved(_)
-            ) {
-                self.file_operations = self.file_operations.saturating_sub(1);
-            }
             match message {
-                BackgroundMessage::Terminal(directory, result) => {
-                    self.terminal_starting = false;
-                    match *result {
-                        Ok(terminal) => {
-                            self.terminal = Some(terminal);
-                            self.terminal_directory = directory;
-                            self.terminal_error.clear();
-                            self.terminal_focus_requested = true;
-                        }
-                        Err(error) => self.terminal_error = error,
-                    }
-                }
                 BackgroundMessage::ContactChats(id, result) => {
                     self.contact_import_busy = false;
                     if self.contact_dialog_open && self.contact_draft.id == id {
                         match result.and_then(|chats| {
                             contacts::append_chats(&mut self.contact_draft, chats)
+                                .map(|_| ())
                                 .map_err(|e| e.to_string())
                         }) {
-                            Ok(count) => {
-                                self.contact_error.clear();
-                                self.notice =
-                                    format!("已加入 {count} 份聊天记录，保存联系人后生效");
-                            }
-                            Err(error) => self.contact_error = error,
+                            Ok(()) => self.contact_error.clear(),
+                            Err(e) => self.contact_error = e,
                         }
-                    } else {
-                        self.notice = "联系人已关闭，本次导入未写入；原文件保留".into();
                     }
                 }
-                BackgroundMessage::Dropped(destination, report) => {
-                    self.drop_busy = false;
-                    if self.current_directory.as_ref().is_some_and(|current| {
-                        current.canonicalize().ok() == destination.canonicalize().ok()
-                    }) {
-                        self.refresh_files();
-                    }
-                    self.notice = format!(
-                        "已复制 {} 项，失败 {} 项",
-                        report.copied.len(),
-                        report.failures.len()
-                    );
-                    if !report.failures.is_empty() {
-                        self.drop_report = Some(report);
-                    }
-                }
-
                 BackgroundMessage::Exported(result) => {
                     self.export_busy = false;
                     self.notice = match result {
-                        Ok(report) if report.warnings == 0 => {
-                            format!("导出完成：{}", report.path.display())
-                        }
                         Ok(report) => format!(
-                            "导出完成，有 {} 项说明，请查看压缩包内的导出清单：{}",
-                            report.warnings,
-                            report.path.display()
+                            "已导出：{}，{} 项说明",
+                            report.path.display(),
+                            report.warnings
                         ),
-                        Err(error) => format!("导出失败：{error}"),
+                        Err(e) => e.to_string(),
                     };
-                }
-                BackgroundMessage::Indexed(Ok(count)) => {
-                    self.notice = format!("已索引 {count} 个文件")
-                }
-                BackgroundMessage::Indexed(Err(error)) => {
-                    self.notice = format!("文件索引失败：{error}")
-                }
-                BackgroundMessage::Copied(Ok(path)) => {
-                    self.notice = format!("已复制到 {}", path.display());
-                    self.refresh_files();
-                }
-                BackgroundMessage::Copied(Err(error)) => self.notice = format!("复制失败：{error}"),
-                BackgroundMessage::Moved(Ok(path)) => {
-                    self.notice = format!("已移动到 {}", path.display());
-                    self.refresh_files();
-                }
-                BackgroundMessage::Moved(Err(error)) => {
-                    self.notice = format!("移动失败：{error}");
-                    self.refresh_files();
                 }
             }
         }
@@ -1298,78 +735,44 @@ impl PersonalDeskApp {
 
     fn page_title(&self) -> String {
         match self.section {
-            Section::Folders => self
-                .current_directory
-                .as_ref()
-                .and_then(|path| path.file_name())
-                .map(|name| name.to_string_lossy().into_owned())
-                .unwrap_or_else(|| "快捷路径".into()),
-            Section::Browser => "大模型聊天".into(),
+            Section::Folders => "快捷路径".into(),
+            Section::Documents => "文档索引".into(),
             Section::Books => "图书".into(),
-            Section::Terminal => "PowerShell".into(),
+            Section::Browser => "大模型聊天".into(),
             Section::Credentials => "账号密码".into(),
-            Section::Documents => "文档写作".into(),
             Section::Inventory => "物品清单".into(),
-            Section::Websites => "网站收藏".into(),
             Section::Contacts => "联系人".into(),
+            Section::Websites => "网站收藏".into(),
+            Section::Tools => "小工具".into(),
             Section::Games => "小游戏".into(),
             Section::Settings => "设置".into(),
-            Section::Tools => "小工具".into(),
         }
     }
 
     fn handle_workspace_shortcuts(&mut self, ctx: &egui::Context) {
-        if !self.detail_open()
-            && !ctx.egui_wants_keyboard_input()
-            && !self.terminal_focused
-            && matches!(self.section, Section::Folders | Section::Documents)
-            && ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::C))
-        {
-            self.copy_file_request = self.selected_file.clone();
+        if self.detail_open() {
+            return;
         }
-        let ctrl_k = ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::K));
-        let ctrl_n = ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::N));
-        let ctrl_s = ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::S));
-        if !self.detail_open()
-            && !self.terminal_focused
-            && ctx.input_mut(|i| i.consume_key(egui::Modifiers::ALT, egui::Key::ArrowLeft))
-        {
-            if self.section == Section::Folders {
-                if let Some(parent) = self
-                    .current_directory
-                    .as_ref()
-                    .and_then(|p| p.parent())
-                    .map(PathBuf::from)
-                {
-                    self.navigate(parent.clone(), parent);
-                }
-            } else if self.section == Section::Documents
-                && (!self.editor_dirty || self.save_editor())
-                && self.save_library_page()
-            {
-                self.editor_visible = false;
-                self.library.book = None;
-                self.library.page = None;
-                self.document_scroll_epoch = self.document_scroll_epoch.wrapping_add(1);
-            }
-        }
-        if ctrl_k
-            && !self.detail_open()
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::K))
             && let Some(id) = self.search_field
         {
-            ctx.memory_mut(|memory| memory.request_focus(id));
+            ctx.memory_mut(|m| m.request_focus(id));
         }
-        if ctrl_n && !self.detail_open() {
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::N)) {
             self.add_current_item();
         }
-        if ctrl_s && self.section == Section::Books {
-            self.save_library_page();
-        }
-        if ctrl_s && self.editor_visible {
-            self.save_editor();
-        }
-        if ctrl_s && !self.terminal_focused {
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::S)) {
             self.save_visible_rows();
+        }
+        if !ctx.egui_wants_keyboard_input()
+            && ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::Z))
+        {
+            self.undo_index_removal();
+        }
+        if self.section == Section::Documents
+            && ctx.input_mut(|i| i.consume_key(egui::Modifiers::ALT, egui::Key::ArrowLeft))
+        {
+            self.library.book = None;
         }
     }
 
@@ -1394,51 +797,6 @@ impl PersonalDeskApp {
             _ => {}
         }
         saved
-    }
-    fn create_internal_document(&mut self) {
-        if self.editor_dirty && !self.save_editor() {
-            return;
-        }
-        match documents::create_managed_document(&self.data_dir) {
-            Ok(path) => {
-                let result = self
-                    .db
-                    .as_mut()
-                    .ok_or(DeskError::UnsupportedFormat)
-                    .and_then(|db| db.set_document_title(&path, "未命名文档"));
-                if let Err(error) = result {
-                    self.notice = format!("文档已创建，但记录保存失败：{error}");
-                    return;
-                }
-                if let Some(book) = self.library.book.clone()
-                    && !self.group_document_paths(std::slice::from_ref(&path), Some(&book.id))
-                {
-                    self.library.book = None;
-                }
-                self.open_editor(path);
-                self.editor_focus_title = true;
-                self.search_query.clear();
-                self.search_results.clear();
-                self.notice = "已新建文档".into();
-            }
-            Err(error) => self.notice = format!("创建文档失败：{error}"),
-        }
-    }
-
-    fn export_word_dialog(&mut self) {
-        let handler = WordHandler;
-        let Some(path) = rfd::FileDialog::new()
-            .set_title("导出 Word 副本")
-            .set_file_name("文档.docx")
-            .add_filter(handler.label(), &[handler.extension()])
-            .save_file()
-        else {
-            return;
-        };
-        match handler.export_text(&path, &self.editor_text) {
-            Ok(()) => self.notice = format!("已导出 Word 副本：{}", path.display()),
-            Err(error) => self.notice = format!("导出失败：{error}"),
-        }
     }
 
     fn render_sidebar(&mut self, ui: &mut egui::Ui) {
@@ -1475,7 +833,7 @@ impl PersonalDeskApp {
                         TileKind::Credential,
                         Some(self.credentials.len()),
                     ),
-                    (Section::Documents, "文档写作", TileKind::Document, None),
+                    (Section::Documents, "文档索引", TileKind::Document, None),
                     (Section::Browser, "大模型聊天", TileKind::Website, None),
                     (
                         Section::Contacts,
@@ -1524,31 +882,10 @@ impl PersonalDeskApp {
                         }
                     });
                     if response.clicked() {
-                        if self.editor_dirty && !self.save_editor() {
-                            continue;
-                        }
-                        if !self.save_library_page() {
-                            continue;
-                        }
-                        if self.section == Section::Documents && section != Section::Documents {
-                            self.editor_visible = false;
-                        }
                         self.section = section;
-                        if section == Section::Terminal && self.terminal.is_none() {
-                            self.open_terminal(
-                                self.current_directory
-                                    .clone()
-                                    .unwrap_or_else(|| self.data_dir.clone()),
-                            );
-                        }
                         self.notice.clear();
-                        self.selected_file = None;
                         self.search_query.clear();
-                        self.search_results.clear();
-                        if section == Section::Folders {
-                            self.current_directory = None;
-                            self.current_root = None;
-                        }
+
                         if section == Section::Credentials {
                             self.load_summaries();
                         }
@@ -1574,172 +911,13 @@ impl PersonalDeskApp {
         ui.spacing_mut().item_spacing.y = navigation_spacing;
     }
 
-    fn open_shortcut(&mut self, shortcut: Shortcut) {
-        let path = shortcut.path;
-        if shortcut.is_dir {
-            self.navigate(path.clone(), path);
-        } else {
-            self.request_file_open(path);
-        }
-    }
-
-    fn file_open_menu(&mut self, ui: &mut egui::Ui, path: &std::path::Path) {
-        if ui.button("复制").clicked() {
-            self.copy_file_request = Some(path.to_path_buf());
-            ui.close();
-        }
-        if ui.button("用默认程序打开").clicked() {
-            self.request_file_open(path.to_path_buf());
-            ui.close();
-        }
-        if ui.button("选择程序打开…").clicked() {
-            match files::open_with_target(path) {
-                Ok(path) => self.open_with_request = Some(path),
-                Err(error) => self.notice = error.to_string(),
-            }
-            ui.close();
-        }
-    }
-
-    fn request_file_open(&mut self, path: PathBuf) {
-        match path.canonicalize() {
-            Ok(path) if path.is_file() => self.system_open_request = Some(path),
-            _ => self.notice = "文件不存在或当前无法访问，请刷新后重试".into(),
-        }
-    }
-
-    fn start_drop(&mut self, paths: Vec<PathBuf>, destination: PathBuf) {
-        if self.drop_busy {
-            self.notice = "上一批文件仍在复制，请稍后再拖入".into();
-            return;
-        }
-        if paths.is_empty() {
-            self.notice = "请从资源管理器拖入本机文件或文件夹".into();
-            return;
-        }
-        let sender = self.sender.clone();
-        self.drop_busy = true;
-        self.search_query.clear();
-        self.search_results.clear();
-        self.notice = format!("正在复制 {} 项…", paths.len());
-        thread::spawn(move || {
-            let report = files::copy_dropped(&paths, &destination);
-            let _ = sender.send(BackgroundMessage::Dropped(destination, report));
-        });
-    }
-
-    fn handle_external_drop(&mut self, ctx: &egui::Context, content: egui::Rect) {
-        let (hovered, dropped, fallback_position) = ctx.input_mut(|input| {
-            (
-                !input.raw.hovered_files.is_empty(),
-                std::mem::take(&mut input.raw.dropped_files),
-                input.pointer.latest_pos(),
-            )
-        });
-        if !hovered && dropped.is_empty() {
-            return;
-        }
-        let position = self.native_drop_position.or(fallback_position);
-        let target = if self.section == Section::Folders
-            && !self.detail_open()
-            && position.is_some_and(|position| content.contains(position))
-        {
-            position
-                .and_then(|position| {
-                    self.folder_drop_targets
-                        .iter()
-                        .find(|(rect, _)| rect.contains(position))
-                })
-                .map(|(rect, path)| (*rect, path.clone()))
-                .or_else(|| self.current_directory.clone().map(|path| (content, path)))
-        } else {
-            None
-        };
-        if hovered {
-            // OLE DragOver does not generate normal cursor movement events.
-            ctx.request_repaint_after(Duration::from_millis(16));
-        }
-        if hovered && let Some((target_rect, destination)) = &target {
-            let painter = ctx.layer_painter(egui::LayerId::new(
-                egui::Order::Foreground,
-                egui::Id::unique("external-drop-preview"),
-            ));
-            painter.rect_stroke(
-                target_rect.shrink(3.0),
-                16,
-                egui::Stroke::new(2.0, accent()),
-                egui::StrokeKind::Inside,
-            );
-            let banner = egui::Rect::from_center_size(
-                content.center(),
-                egui::vec2(300.0_f32.min(content.width() - 24.0), 52.0),
-            );
-            painter.rect_filled(banner, 14, Color32::from_rgb(237, 233, 255));
-            let label = if self.drop_busy {
-                "正在复制…".to_owned()
-            } else {
-                format!(
-                    "复制到 {}",
-                    destination
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                )
-            };
-            painter.text(
-                banner.center(),
-                egui::Align2::CENTER_CENTER,
-                label,
-                egui::FontId::proportional(15.0),
-                accent(),
-            );
-        }
-        if dropped.is_empty() {
-            return;
-        }
-        let Some((_, destination)) = target else {
-            if !self.detail_open() {
-                self.notice = "请拖到文件夹上，或先打开目标文件夹".into();
-            }
-            return;
-        };
-        let paths = dropped
-            .into_iter()
-            .map(|file| file.path().to_path_buf())
-            .filter(|path| path.is_absolute())
-            .collect();
-        self.start_drop(paths, destination);
-    }
-
-    fn open_path(&mut self, path: PathBuf) {
-        let canonical = match path.canonicalize() {
-            Ok(p) => p,
-            Err(e) => {
-                self.notice = format!("无法访问文件：{e}");
-                return;
-            }
-        };
-        let path = canonical;
-        let ext = path
-            .extension()
-            .and_then(|v| v.to_str())
-            .unwrap_or_default()
-            .to_ascii_lowercase();
-        if matches!(ext.as_str(), "md" | "txt" | "markdown") {
-            self.open_editor(path);
-        } else if let Err(e) = files::open_in_system(&path) {
-            self.notice = e.to_string();
-        }
-    }
-
     fn add_label(&self) -> &'static str {
         match self.section {
             Section::Books => "新增图书",
-            Section::Browser | Section::Terminal => "",
+            Section::Browser => "",
             Section::Credentials => "添加账号",
-            Section::Folders if self.current_directory.is_some() => "新建文件夹",
             Section::Folders => "添加快捷路径",
-            Section::Documents => "新建文档",
+            Section::Documents => "添加文档索引",
             Section::Inventory => "添加物品",
             Section::Websites => "添加网站",
             Section::Contacts => "添加联系人",
@@ -1753,22 +931,13 @@ impl PersonalDeskApp {
         match self.section {
             Section::Books => self.library.dialog = Some(crate::library::Book::new()),
             Section::Browser => self.browser.open("https://chat.deepseek.com/"),
-            Section::Terminal => self.open_terminal(
-                self.current_directory
-                    .clone()
-                    .unwrap_or_else(|| self.data_dir.clone()),
-            ),
             Section::Credentials => {
                 self.selected_credential = None;
                 self.credential_draft = Credential::new();
                 self.credential_dialog_open = true;
             }
-            Section::Folders if self.current_directory.is_some() => {
-                self.folder_name.clear();
-                self.folder_dialog_open = true;
-            }
             Section::Folders => self.shortcut_dialog_open = true,
-            Section::Documents => self.create_internal_document(),
+            Section::Documents => self.pick_document_indices(),
             Section::Inventory => {
                 self.selected_inventory = None;
                 self.inventory_draft = InventoryItem::new();
@@ -1834,58 +1003,6 @@ impl PersonalDeskApp {
             }
             Err(error) => self.notice = format!("删除失败：{error}"),
         }
-    }
-
-    fn delete_document(&mut self, path: &std::path::Path) {
-        let normalized = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
-        let editing = self.editor_path.as_ref().is_some_and(|current| {
-            current.canonicalize().unwrap_or_else(|_| current.clone()) == normalized
-        });
-        if editing && self.editor_dirty && !self.save_editor() {
-            return;
-        }
-        let aliases = self
-            .db
-            .as_ref()
-            .and_then(|db| db.documents().ok())
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|record| record.canonicalize().unwrap_or_else(|_| record.clone()) == normalized)
-            .collect::<Vec<_>>();
-        if path.exists()
-            && let Err(error) = self.delete_file_reversible(path)
-        {
-            self.notice = format!("文档删除失败：{error}");
-            return;
-        }
-        let result = self
-            .db
-            .as_mut()
-            .ok_or(DeskError::UnsupportedFormat)
-            .and_then(|db| {
-                for alias in aliases {
-                    db.forget_document(&alias)?;
-                }
-                db.forget_document(path)?;
-                db.forget_document(&normalized)
-            });
-        if let Err(error) = result {
-            self.notice = format!("文件已暂存，可撤回；列表更新失败：{error}");
-            return;
-        }
-        if editing {
-            self.discard_active_recovery_draft();
-            self.editor_path = None;
-            self.editor_text.clear();
-            self.editor_dirty = false;
-            self.editor_visible = false;
-        }
-        self.search_results.retain(|result| {
-            result.path.as_deref().is_none_or(|value| {
-                std::path::Path::new(value) != path && std::path::Path::new(value) != normalized
-            })
-        });
-        self.notice = "文档已删除，Ctrl+Z 可恢复".into();
     }
 
     fn render_credentials(&mut self, ui: &mut egui::Ui) {
@@ -2199,554 +1316,6 @@ impl PersonalDeskApp {
         }
     }
 
-    fn render_documents(&mut self, ui: &mut egui::Ui) {
-        if self.library.book.is_some() {
-            self.render_book_documents(ui);
-            return;
-        }
-        if self.editor_visible {
-            self.render_document_editor_inline(ui);
-            return;
-        }
-        let query = self.search_query.trim().to_lowercase();
-        let mut records = self
-            .db
-            .as_ref()
-            .and_then(|db| db.document_records().ok())
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|record| {
-                self.db
-                    .as_ref()
-                    .is_none_or(|db| db.document_book(&record.path).ok().flatten().is_none())
-                    && matches_query(&query, &[&record.title, &record.path.to_string_lossy()])
-            })
-            .collect::<Vec<_>>();
-        let mut seen = std::collections::HashSet::new();
-        records.retain(|record| {
-            seen.insert(
-                record
-                    .path
-                    .canonicalize()
-                    .unwrap_or_else(|_| record.path.clone()),
-            )
-        });
-        for result in self
-            .search_results
-            .iter()
-            .filter(|result| result.category == "已索引文件")
-        {
-            if let Some(path) = result.path.as_ref().map(PathBuf::from)
-                && matches!(
-                    path.extension()
-                        .and_then(|value| value.to_str())
-                        .unwrap_or_default()
-                        .to_ascii_lowercase()
-                        .as_str(),
-                    "md" | "txt" | "markdown" | "docx"
-                )
-                && !records.iter().any(|current| {
-                    current
-                        .path
-                        .canonicalize()
-                        .unwrap_or_else(|_| current.path.clone())
-                        == path.canonicalize().unwrap_or_else(|_| path.clone())
-                })
-            {
-                let title = result.title.clone();
-                records.push(DocumentRecord { path, title });
-            }
-        }
-        let mut selected = None;
-        let mut delete = None;
-        let mut restore = None;
-        let mut discard = None;
-        let mut add = false;
-        records.sort_by_key(|item| !self.is_favorite("documents", &item.path.to_string_lossy()));
-        self.render_document_books(ui);
-        collection(ui, "documents-gallery", self.view_mode(), |ui, side| {
-            for record in &records {
-                let path = &record.path;
-                let id = path.to_string_lossy();
-                if !self.record_matches_filter(TagScope::Documents, &id) {
-                    continue;
-                }
-                let labels = self.record_labels(TagScope::Documents, &id);
-                let preview = std::fs::File::open(path)
-                    .ok()
-                    .and_then(|file| {
-                        use std::io::Read;
-                        let mut bytes = vec![];
-                        file.take(2048).read_to_end(&mut bytes).ok()?;
-                        String::from_utf8(bytes).ok()
-                    })
-                    .unwrap_or_default()
-                    .lines()
-                    .filter(|line| !line.trim().is_empty())
-                    .take(4)
-                    .collect::<Vec<_>>()
-                    .join(" ");
-                let response = crate::ui_components::document_entry(
-                    ui,
-                    &id,
-                    &record.title,
-                    &preview,
-                    &labels,
-                    side.with_file_controls(),
-                );
-                self.favorite_control(ui, &response, "documents", &id);
-                self.record_classification_dropdown(ui, &response, TagScope::Documents, &id);
-                self.document_drag_target(ui, &response, path);
-                let pointer = ui.input(|input| {
-                    (
-                        input.pointer.primary_clicked(),
-                        input.pointer.secondary_clicked(),
-                        input.pointer.interact_pos(),
-                    )
-                });
-                let layer_matches = pointer
-                    .2
-                    .is_some_and(|at| ui.ctx().layer_id_at(at) == Some(response.layer_id));
-                let primary = response.enabled()
-                    && !self.detail_open()
-                    && layer_matches
-                    && ui.input(|input| {
-                        input.pointer.primary_clicked()
-                            && input.pointer.interact_pos().is_some_and(|at| {
-                                response.rect.intersect(ui.clip_rect()).contains(at)
-                                    && if self.view_mode() == ViewMode::Grid {
-                                        at.y >= response.rect.top() + 60.0
-                                            && !(at.x > response.rect.right() - 40.0
-                                                && at.y > response.rect.bottom() - 40.0)
-                                    } else {
-                                        at.x > response.rect.left() + 24.0
-                                            && at.x
-                                                < response.rect.left() + response.rect.width() * 0.5
-                                    }
-                            })
-                    });
-                if response.clicked() || primary {
-                    self.selected_file = Some(path.clone());
-                    selected = Some(path.clone());
-                }
-                let secondary = response.enabled()
-                    && !self.detail_open()
-                    && pointer.1
-                    && layer_matches
-                    && pointer
-                        .2
-                        .is_some_and(|at| response.rect.intersect(ui.clip_rect()).contains(at));
-                egui::Popup::context_menu(&response)
-                    .open_memory(secondary.then_some(egui::SetOpenCommand::Bool(true)))
-                    .show(|ui| {
-                        self.record_tag_menu(ui, TagScope::Documents, &id);
-                        self.file_open_menu(ui, path);
-                        if ui.button("删除文档（可撤回）").clicked() {
-                            delete = Some(path.clone());
-                            ui.close();
-                        }
-                    });
-            }
-            for item in &self.recovery_items {
-                if !matches_query(&query, &[&item.original_path]) {
-                    continue;
-                }
-                let response = entry(
-                    ui,
-                    &item.id,
-                    "恢复未保存的草稿",
-                    &item.original_path,
-                    TileKind::Document,
-                    side,
-                );
-                if response.clicked() {
-                    restore = Some(item.clone());
-                }
-                response.context_menu(|ui| {
-                    if ui.button("删除恢复草稿").clicked() {
-                        discard = Some(item.id.clone());
-                        ui.close();
-                    }
-                });
-            }
-            if entry(
-                ui,
-                "add",
-                "点击添加文档",
-                "直接在程序内开始写作",
-                TileKind::Add,
-                side,
-            )
-            .clicked()
-            {
-                add = true;
-            }
-        });
-        if let Some(path) = delete {
-            self.delete_document(&path);
-        } else if let Some(path) = selected {
-            self.open_path(path);
-        }
-        if let Some(item) = restore {
-            self.restore_recovery_draft(item);
-        }
-        if let Some(id) = discard {
-            self.discard_recovery_draft(&id);
-        }
-        if add {
-            self.add_current_item();
-        }
-    }
-
-    fn render_folder_toolbar(&mut self, ui: &mut egui::Ui) {
-        if let (Some(root), Some(current)) =
-            (self.current_root.clone(), self.current_directory.clone())
-        {
-            ui.add_space(6.0);
-            ui.horizontal(|ui| {
-                if ui.button("重置").clicked() {
-                    self.current_root = None;
-                    self.current_directory = None;
-                    self.file_filter = Default::default();
-                    self.search_query.clear();
-                    self.search_results.clear();
-                }
-                if ui
-                    .add_enabled(current.parent().is_some(), egui::Button::new("上一级"))
-                    .clicked()
-                    && let Some(parent) = current.parent()
-                {
-                    self.navigate(parent.to_path_buf(), parent.to_path_buf());
-                }
-                let location = files::shell_path(&current).display().to_string();
-                ui.add_sized(
-                    [(ui.available_width() - 320.0).max(70.0), 32.0],
-                    egui::Label::new(RichText::new(&location).small().color(muted())).truncate(),
-                )
-                .on_hover_text(&location);
-                if ui.button("添加文件").clicked()
-                    && let Some(paths) = rfd::FileDialog::new().set_title("添加文件").pick_files()
-                {
-                    self.start_drop(paths, current.clone());
-                }
-                if ui.button("刷新").clicked() {
-                    self.refresh_files();
-                }
-                if ui.button("PowerShell").clicked() {
-                    self.open_terminal(current.clone());
-                    self.section = Section::Folders;
-                    self.terminal_inline = true;
-                }
-                ui.menu_button("更多", |ui| {
-                    if ui.button("在资源管理器打开").clicked() {
-                        if let Err(error) = files::open_in_system(&current) {
-                            self.notice = error.to_string();
-                        }
-                        ui.close();
-                    }
-                    if ui.button("更新内容索引").clicked() {
-                        let shortcut = self
-                            .db
-                            .as_ref()
-                            .and_then(|db| db.shortcuts().ok())
-                            .unwrap_or_default()
-                            .into_iter()
-                            .find(|shortcut| {
-                                shortcut.path.canonicalize().is_ok_and(|path| path == root)
-                            });
-                        if let Some(shortcut) = shortcut {
-                            self.start_index(shortcut.id, root.clone());
-                        }
-                        ui.close();
-                    }
-                });
-            });
-        }
-    }
-
-    fn render_folders(&mut self, ui: &mut egui::Ui) {
-        if let (Some(root), Some(current)) =
-            (self.current_root.clone(), self.current_directory.clone())
-        {
-            let query = self.search_query.trim().to_lowercase();
-            let mut items = self
-                .file_items
-                .iter()
-                .filter(|item| matches_query(&query, &[&item.name, &item.path.to_string_lossy()]))
-                .cloned()
-                .collect::<Vec<_>>();
-            for result in self
-                .search_results
-                .iter()
-                .filter(|result| result.category == "已索引文件")
-            {
-                if let Some(path) = result
-                    .path
-                    .as_ref()
-                    .map(PathBuf::from)
-                    .map(|path| path.canonicalize().unwrap_or(path))
-                    && path.starts_with(&current)
-                    && !items.iter().any(|item| item.path == path)
-                {
-                    items.push(FileItem {
-                        name: result.title.clone(),
-                        path,
-                        is_dir: false,
-                        size: 0,
-                        modified: String::new(),
-                    });
-                }
-            }
-            items.retain(|item| self.file_filter.matches(&item.path, item.is_dir));
-            items.sort_by_key(|item| !self.is_favorite("files", &item.path.to_string_lossy()));
-            let mut selected = None;
-            let mut delete = None;
-            let mut add = false;
-            file_list_header(ui, self.view_mode());
-            collection(ui, "folder-contents", self.view_mode(), |ui, side| {
-                for item in &items {
-                    let response = file_entry(ui, item, side);
-                    self.favorite_control(ui, &response, "files", &item.path.to_string_lossy());
-                    self.file_transfer_controls(ui, &response, &item.path);
-                    if item.is_dir {
-                        self.folder_drop_targets
-                            .push((response.rect.intersect(ui.clip_rect()), item.path.clone()));
-                    }
-                    if response.clicked() && !item.is_dir {
-                        self.selected_file = Some(item.path.clone());
-                    }
-                    if (item.is_dir && response.clicked())
-                        || (!item.is_dir && response.double_clicked())
-                    {
-                        selected = Some(item.clone());
-                    }
-                    if self.selected_file.as_ref() == Some(&item.path) {
-                        ui.painter().rect_stroke(
-                            response.rect,
-                            16,
-                            egui::Stroke::new(2.0, accent()),
-                            egui::StrokeKind::Inside,
-                        );
-                    }
-                    response.context_menu(|ui| {
-                        if !item.is_dir {
-                            self.file_open_menu(ui, &item.path);
-                        }
-                        if ui.button("重命名").clicked() {
-                            self.selected_file = Some(item.path.clone());
-                            self.rename_text = item.name.clone();
-                            self.file_dialog_open = true;
-                            ui.close();
-                        }
-                        if ui.button("复制到其他文件夹").clicked()
-                            && let Some(destination) = files::choose_folder()
-                        {
-                            self.start_copy(item.path.clone(), destination);
-                            ui.close();
-                        }
-                        if ui.button("移动到其他文件夹").clicked()
-                            && let Some(destination) = files::choose_folder()
-                        {
-                            self.start_move(item.path.clone(), destination);
-                            ui.close();
-                        }
-                        ui.separator();
-                        if ui.button("删除（可撤回）").clicked() {
-                            delete = Some(item.path.clone());
-                            ui.close();
-                        }
-                    });
-                }
-                if entry(
-                    ui,
-                    "add",
-                    "点击添加文件夹",
-                    "在当前目录新建文件夹",
-                    TileKind::Add,
-                    side,
-                )
-                .clicked()
-                {
-                    add = true;
-                }
-            });
-            if let Some(path) = delete {
-                if path.is_file() {
-                    self.delete_document(&path);
-                    self.refresh_files();
-                } else {
-                    match self.delete_file_reversible(&path) {
-                        Ok(()) => {
-                            self.refresh_files();
-                            self.search_results.clear();
-                            self.notice = "已删除，Ctrl+Z 可恢复".into();
-                        }
-                        Err(error) => self.notice = format!("删除失败：{error}"),
-                    }
-                }
-            } else if let Some(item) = selected {
-                if item.is_dir {
-                    self.navigate(root, item.path);
-                } else {
-                    self.request_file_open(item.path);
-                }
-            }
-            if add {
-                self.add_current_item();
-            }
-        } else {
-            let query = self.search_query.trim().to_lowercase();
-            let mut shortcuts = self
-                .db
-                .as_ref()
-                .and_then(|db| db.shortcuts().ok())
-                .unwrap_or_default()
-                .into_iter()
-                .filter(|item| {
-                    self.record_matches_filter(TagScope::Shortcuts, &item.id)
-                        && matches_query(&query, &[&item.name, &item.path.to_string_lossy()])
-                })
-                .collect::<Vec<_>>();
-            let mut selected = None;
-            let mut delete = None;
-            let mut open_file = None;
-            let mut delete_file = None;
-            let mut add = false;
-            shortcuts.sort_by_key(|item| !self.is_favorite("shortcuts", &item.id));
-            collection(ui, "shortcut-gallery", self.view_mode(), |ui, side| {
-                for shortcut in &shortcuts {
-                    let detail = if shortcut.path.exists() {
-                        files::shell_path(&shortcut.path).display().to_string()
-                    } else {
-                        "路径已失效 · 右键可删除入口".into()
-                    };
-                    let labels = self.record_labels(TagScope::Shortcuts, &shortcut.id);
-                    let response = tagged_entry(
-                        ui,
-                        &shortcut.id,
-                        &shortcut.name,
-                        (&detail, &labels),
-                        if shortcut.is_dir {
-                            TileKind::Folder
-                        } else {
-                            TileKind::Document
-                        },
-                        side.with_file_controls(),
-                    );
-                    self.favorite_control(ui, &response, "shortcuts", &shortcut.id);
-                    self.file_transfer_controls(ui, &response, &shortcut.path);
-                    if shortcut.is_dir {
-                        self.folder_drop_targets.push((
-                            response.rect.intersect(ui.clip_rect()),
-                            shortcut.path.clone(),
-                        ));
-                    }
-                    if response.clicked() && !shortcut.is_dir {
-                        self.selected_file = Some(shortcut.path.clone());
-                    }
-                    if (shortcut.is_dir && response.clicked())
-                        || (!shortcut.is_dir && response.double_clicked())
-                    {
-                        selected = Some(shortcut.clone());
-                    }
-                    response.context_menu(|ui| {
-                        if !shortcut.is_dir {
-                            self.file_open_menu(ui, &shortcut.path);
-                        }
-                        self.record_tag_menu(ui, TagScope::Shortcuts, &shortcut.id);
-                        if shortcut.is_dir && ui.button("复制").clicked() {
-                            self.copy_file_request = Some(shortcut.path.clone());
-                            ui.close();
-                        }
-                        if ui.button("删除快捷入口").clicked() {
-                            delete = Some(shortcut.id.clone());
-                            ui.close();
-                        }
-                    });
-                }
-                for result in self
-                    .search_results
-                    .iter()
-                    .filter(|result| result.category == "已索引文件")
-                    .cloned()
-                    .collect::<Vec<_>>()
-                {
-                    if let Some(path) = &result.path {
-                        if self
-                            .module_filters
-                            .get(TagScope::Shortcuts.key())
-                            .is_some_and(|f| matches!(f, TagFilter::Named(_)))
-                        {
-                            continue;
-                        }
-                        if shortcuts
-                            .iter()
-                            .any(|shortcut| shortcut.path == std::path::Path::new(path))
-                        {
-                            continue;
-                        }
-                        let response = entry(
-                            ui,
-                            path,
-                            &result.title,
-                            &result.detail,
-                            TileKind::Document,
-                            side,
-                        );
-                        self.file_transfer_controls(ui, &response, std::path::Path::new(path));
-                        if response.clicked() {
-                            self.selected_file = Some(PathBuf::from(path));
-                        }
-                        if response.double_clicked() {
-                            open_file = Some(PathBuf::from(path));
-                        }
-                        response.context_menu(|ui| {
-                            self.file_open_menu(ui, std::path::Path::new(path));
-                            if ui.button("删除文件（可撤回）").clicked() {
-                                delete_file = Some(PathBuf::from(path));
-                                ui.close();
-                            }
-                        });
-                    }
-                }
-                if entry(
-                    ui,
-                    "add",
-                    "点击添加快捷路径",
-                    "选择本机文件夹或文件",
-                    TileKind::Add,
-                    side,
-                )
-                .clicked()
-                {
-                    add = true;
-                }
-            });
-            if let Some(id) = delete {
-                let result = self
-                    .db
-                    .as_mut()
-                    .ok_or(DeskError::UnsupportedFormat)
-                    .and_then(|db| db.remove_shortcut(&id));
-                self.notice = match result {
-                    Ok(()) => "快捷入口已删除，原始文件仍保留".into(),
-                    Err(error) => format!("删除失败：{error}"),
-                };
-            } else if let Some(shortcut) = selected {
-                self.open_shortcut(shortcut);
-            }
-            if let Some(path) = open_file {
-                self.request_file_open(path);
-            }
-            if let Some(path) = delete_file {
-                self.delete_document(&path);
-            }
-            if add {
-                self.add_current_item();
-            }
-        }
-    }
-
     fn render_settings(&mut self, ui: &mut egui::Ui) {
         egui::Frame::group(ui.style())
             .fill(surface())
@@ -2794,18 +1363,6 @@ impl PersonalDeskApp {
                     ui.colored_label(Color32::from_rgb(185, 65, 71), error);
                 }
             });
-        ui.add_space(16.0);
-        ui.horizontal_wrapped(|ui| {
-            if ui
-                .add_enabled(self.undo.available(), egui::Button::new("撤回最近删除"))
-                .clicked()
-            {
-                self.undo_last_delete();
-            }
-            if ui.button("系统回收站").clicked() {
-                let _ = open::that_detached("shell:RecycleBinFolder");
-            }
-        });
         ui.add_space(16.0);
         collection(ui, "settings-gallery", self.view_mode(), |ui, side| {
             if entry(
@@ -2877,14 +1434,6 @@ impl PersonalDeskApp {
 
     fn render_workspace(&mut self, ui: &mut egui::Ui) {
         let ctx = ui.ctx().clone();
-        if !self.detail_open()
-            && !self.terminal_focused
-            && !ctx.egui_wants_keyboard_input()
-            && ctx.input_mut(|input| input.consume_key(egui::Modifiers::CTRL, egui::Key::Z))
-        {
-            self.undo_last_delete();
-        }
-        self.folder_drop_targets.clear();
         self.paint_theme_background(ui);
         if self.db.is_some() {
             egui::Panel::left("navigation")
@@ -2916,7 +1465,7 @@ impl PersonalDeskApp {
                     .inner_margin(egui::Margin::symmetric(24, 2)),
             )
             .show(ui, |ui| self.render_status(ui));
-        let content_panel = egui::CentralPanel::default()
+        egui::CentralPanel::default()
             .frame(
                 egui::Frame::default()
                     .fill(content_fill())
@@ -2928,28 +1477,10 @@ impl PersonalDeskApp {
                     self.render_browser(ui);
                     return;
                 }
-                if self.section == Section::Terminal {
-                    self.render_terminal(ui);
-                    return;
-                }
-                if self.section == Section::Folders && self.terminal_inline {
-                    egui::Panel::bottom("folder-terminal")
-                        .resizable(true)
-                        .default_size(260.0)
-                        .min_size(180.0)
-                        .show(ui, |ui| self.render_terminal(ui));
-                }
                 self.search_field = None;
-                let editing = self.section == Section::Documents
-                    && (self.editor_visible || self.library.book.is_some());
-                if editing {
-                    self.render_document_toolbar(ui);
-                    self.render_book_tabs(ui);
-                } else {
-                    self.render_header(ui, &ctx);
-                    if self.section == Section::Folders {
-                        self.render_folder_toolbar(ui);
-                    }
+                self.render_header(ui, &ctx);
+                if self.section == Section::Documents && self.library.book.is_some() {
+                    self.render_index_book_toolbar(ui);
                 }
                 self.handle_workspace_shortcuts(&ctx);
                 ui.add_space(12.0);
@@ -2958,16 +1489,10 @@ impl PersonalDeskApp {
                         "workspace-content",
                         views::key(self.section),
                         self.view_mode().value(),
-                        if self.section == Section::Documents {
-                            self.document_scroll_epoch
-                        } else {
-                            0
-                        },
                     ))
                     .show(ui, |ui| match self.section {
                         Section::Books => self.render_library(ui),
                         Section::Browser => self.render_browser(ui),
-                        Section::Terminal => self.render_terminal(ui),
                         Section::Credentials => self.render_credentials(ui),
                         Section::Folders => self.render_folders(ui),
                         Section::Documents => self.render_documents(ui),
@@ -2979,7 +1504,6 @@ impl PersonalDeskApp {
                         Section::Tools => self.render_tools(ui),
                     });
             });
-        self.handle_external_drop(&ctx, content_panel.response.rect);
         self.render_detail_windows(&ctx);
     }
 
@@ -2988,18 +1512,14 @@ impl PersonalDeskApp {
             || self.tool_draft.is_some()
             || self.credential_dialog_open
             || self.inventory_dialog_open
-            || (self.editor_visible && self.section != Section::Documents)
             || self.library.dialog.is_some()
             || self.shortcut_dialog_open
-            || self.folder_dialog_open
-            || self.file_dialog_open
             || self.settings_detail.is_some()
             || self.updates.open
             || self.website_dialog_open
             || self.export_dialog_open
             || self.tag_manager.is_some()
             || self.tag_assignment.is_some()
-            || self.drop_report.is_some()
             || self.contact_dialog_open
             || self.contact_chat_open.is_some()
     }
@@ -3266,93 +1786,6 @@ impl PersonalDeskApp {
             }
             self.inventory_dialog_open = open;
         }
-        if self.editor_visible && self.section != Section::Documents {
-            let mut open = true;
-            let dialog = centered_dialog(
-                ctx,
-                "document-editor",
-                "文档写作",
-                "在这里专注记录。修改后自动保存，也可使用 Ctrl+S。",
-                820.0,
-                |ui| {
-                    let title = ui.add(
-                        egui::TextEdit::singleline(&mut self.editor_title)
-                            .hint_text("给文档起个名字")
-                            .font(egui::FontId::proportional(24.0))
-                            .frame(egui::Frame::NONE)
-                            .margin(egui::Margin::symmetric(0, 10))
-                            .desired_width(f32::INFINITY),
-                    );
-                    if self.editor_focus_title {
-                        title.request_focus();
-                        self.editor_focus_title = false;
-                    }
-                    if title.changed() {
-                        self.editor_dirty = true;
-                        self.dirty_since = Some(Instant::now());
-                    }
-                    ui.horizontal_wrapped(|ui| {
-                        if ui
-                            .add_enabled(!self.editor_conflict, primary_button("保存文档"))
-                            .clicked()
-                        {
-                            self.save_editor();
-                        }
-                        if ui.button("导出文本副本").clicked() {
-                            self.save_editor_as();
-                        }
-                        if ui.button("导出 Word 副本").clicked() {
-                            self.export_word_dialog();
-                        }
-                        if self.editor_conflict {
-                            ui.colored_label(
-                                Color32::from_rgb(180, 75, 70),
-                                "文件已被外部修改，自动保存已暂停",
-                            );
-                            if ui.button("重新载入磁盘版本").clicked() {
-                                self.reload_editor_from_disk();
-                            }
-                        } else {
-                            ui.label(if self.editor_dirty {
-                                "未保存"
-                            } else {
-                                "已保存"
-                            });
-                        }
-                    });
-                    ui.add_space(4.0);
-                    egui::Frame::new()
-                        .fill(canvas())
-                        .corner_radius(12)
-                        .inner_margin(16)
-                        .show(ui, |ui| {
-                            let response = ui.add(
-                                egui::TextEdit::multiline(&mut self.editor_text)
-                                    .hint_text("在这里开始编写文档……")
-                                    .desired_width(f32::INFINITY)
-                                    .frame(egui::Frame::NONE)
-                                    .font(egui::FontId::proportional(16.0))
-                                    .desired_rows(
-                                        ((ctx.content_rect().height() - 360.0) / 24.0)
-                                            .clamp(8.0, 18.0)
-                                            as usize,
-                                    ),
-                            );
-                            if response.changed() {
-                                self.editor_dirty = true;
-                                self.dirty_since = Some(Instant::now());
-                            }
-                        });
-                },
-            );
-            if dialog_closed(&dialog) {
-                open = false;
-            }
-            if !open && self.editor_dirty && !self.save_editor() {
-                open = true;
-            }
-            self.editor_visible = open;
-        }
         if self.shortcut_dialog_open {
             let mut open = true;
             let mut path = None;
@@ -3381,75 +1814,6 @@ impl PersonalDeskApp {
                 open = false;
             }
             self.shortcut_dialog_open = open;
-        }
-        if self.folder_dialog_open {
-            let mut open = true;
-            let mut create = false;
-            let dialog = centered_dialog(
-                ctx,
-                "new-folder",
-                "新建文件夹",
-                "在当前目录创建一个新的文件夹。",
-                420.0,
-                |ui| {
-                    ui.label("文件夹名称");
-                    ui.text_edit_singleline(&mut self.folder_name);
-                    if ui
-                        .add_sized([ui.available_width(), 38.0], primary_button("创建文件夹"))
-                        .clicked()
-                    {
-                        create = true;
-                    }
-                },
-            );
-            if dialog_closed(&dialog) {
-                open = false;
-            }
-            if create && let Some(parent) = self.current_directory.as_ref() {
-                match files::create_folder(parent, &self.folder_name) {
-                    Ok(_) => {
-                        self.refresh_files();
-                        self.notice = "文件夹已创建".into();
-                        open = false;
-                    }
-                    Err(error) => self.notice = format!("创建失败：{error}"),
-                }
-            }
-            self.folder_dialog_open = open;
-        }
-        if self.file_dialog_open {
-            let mut open = true;
-            let mut rename = false;
-            let dialog = centered_dialog(
-                ctx,
-                "rename-file",
-                "重命名",
-                "为当前文件或文件夹设置新的名称。",
-                420.0,
-                |ui| {
-                    ui.label("新的名称");
-                    ui.text_edit_singleline(&mut self.rename_text);
-                    if ui
-                        .add_sized([ui.available_width(), 38.0], primary_button("保存名称"))
-                        .clicked()
-                    {
-                        rename = true;
-                    }
-                },
-            );
-            if dialog_closed(&dialog) {
-                open = false;
-            }
-            if rename && let Some(path) = self.selected_file.as_ref() {
-                match files::rename_path(path, &self.rename_text) {
-                    Ok(_) => {
-                        self.refresh_files();
-                        open = false;
-                    }
-                    Err(error) => self.notice = format!("重命名失败：{error}"),
-                }
-            }
-            self.file_dialog_open = open;
         }
         if let Some(title) = self.settings_detail.clone() {
             let mut open = true;
@@ -3562,16 +1926,6 @@ pub fn data_directory() -> PathBuf {
 }
 
 impl eframe::App for PersonalDeskApp {
-    #[cfg(debug_assertions)]
-    fn raw_input_hook(&mut self, _ctx: &egui::Context, input: &mut egui::RawInput) {
-        self.probe_input_events(input);
-    }
-    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
-        if self.editor_dirty && !self.save_editor() {
-            self.save_recovery_draft();
-        }
-        self.save_library_page();
-    }
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         use raw_window_handle::{HasWindowHandle, RawWindowHandle};
         if let Ok(window) = frame.window_handle()
@@ -3580,37 +1934,11 @@ impl eframe::App for PersonalDeskApp {
             self.native_host = window.hwnd.get() as usize;
         }
         let ctx = ui.ctx().clone();
-        self.native_drop_position =
-            if ctx.input(|i| !i.raw.hovered_files.is_empty() || !i.raw.dropped_files.is_empty()) {
-                crate::file_drop::client_position(self.native_host, ctx.pixels_per_point())
-            } else {
-                None
-            };
         self.browser_area = None;
-        if self.section != Section::Terminal
-            && !(self.section == Section::Folders && self.terminal_inline)
-        {
-            self.terminal_focused = false;
-        }
         self.poll_background();
-        if let Some(terminal) = self.terminal.as_mut() {
-            terminal.poll();
-        }
-        if self.library.dirty
-            && self
-                .library
-                .dirty_since
-                .is_some_and(|time| time.elapsed() > Duration::from_millis(500))
-        {
-            self.save_library_page();
-        }
         if ctx.input(|input| input.viewport().close_requested()) {
             let mut records_saved = true;
-            if self.file_operations > 0
-                || self.drop_busy
-                || self.export_busy
-                || self.contact_import_busy
-            {
+            if self.export_busy || self.contact_import_busy {
                 records_saved = false;
                 self.notice = "当前文件操作完成后即可退出".into();
             }
@@ -3644,28 +1972,15 @@ impl eframe::App for PersonalDeskApp {
             for id in self.inline_inventory.keys().cloned().collect::<Vec<_>>() {
                 records_saved &= self.save_inline_inventory(&id);
             }
-            let documents_saved = !self.editor_dirty || self.save_editor();
-            let pages_saved = self.save_library_page();
-            if !records_saved || !documents_saved || !pages_saved {
+            if !records_saved {
                 ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
             }
-        }
-        if self.editor_dirty
-            && !self.editor_conflict
-            && self
-                .dirty_since
-                .is_some_and(|t| t.elapsed() >= Duration::from_secs(2))
-        {
-            self.save_editor();
         }
         ctx.request_repaint_after(Duration::from_secs(1));
         self.render_workspace(ui);
         #[cfg(debug_assertions)]
         self.capture_preview(&ctx);
         self.sync_browser(&ctx);
-        self.document_outbound_drag(&ctx);
-        #[cfg(debug_assertions)]
-        self.advance_interaction_probe(&ctx);
         if let Some(path) = self.tool_launch_request.take()
             && let Err(error) = crate::launcher::launch(&path)
         {
@@ -3675,35 +1990,10 @@ impl eframe::App for PersonalDeskApp {
             self.browser.open(&site.url);
             self.section = Section::Browser;
         }
-        if let Some(path) = self.system_open_request.take()
-            && let Err(error) = files::open_in_system(&path)
-        {
-            self.notice = format!("无法打开文件：{error}");
-        }
-        if let Some(path) = self.open_with_request.take()
-            && let Err(error) = files::open_with_dialog(&path)
+        if let Some(path) = self.location_request.take()
+            && let Err(error) = files::open_location(&path)
         {
             self.notice = error.to_string();
-        }
-        if let Some(path) = self.copy_file_request.take() {
-            self.notice = match crate::file_transfer::copy(&path) {
-                Ok(()) => "已复制".into(),
-                Err(error) => error.to_string(),
-            };
-        }
-        if let Some(path) = self.drag_file_request.take() {
-            match crate::file_transfer::drag(&path, self.native_host) {
-                Ok(true) => {
-                    self.notice = "已复制".into();
-                    self.refresh_files();
-                }
-                Ok(false) => {}
-                Err(error) => self.notice = error.to_string(),
-            }
-            // The native OLE loop consumes the release event. Clear egui's drag
-            // state so a cancelled transfer cannot leave the file stuck dragging.
-            ctx.stop_dragging();
-            ctx.input_mut(|input| input.pointer = Default::default());
         }
     }
 }
@@ -3813,6 +2103,7 @@ fn configure_theme(ctx: &egui::Context) {
 #[cfg(test)]
 mod editor_tests {
     use super::*;
+    use std::time::Instant;
 
     #[test]
     fn contact_import_is_persisted_after_save_and_never_applied_to_a_different_contact() {
@@ -3896,192 +2187,6 @@ mod editor_tests {
                 modifiers: egui::Modifiers::NONE,
             },
         ]
-    }
-
-    #[derive(Debug)]
-    struct LocalDrop(PathBuf);
-    impl egui::DroppedFile for LocalDrop {
-        fn path(&self) -> &std::path::Path {
-            &self.0
-        }
-        fn bytes(&self) -> std::result::Result<Vec<u8>, String> {
-            fs::read(&self.0).map_err(|error| error.to_string())
-        }
-    }
-
-    #[test]
-    fn browser_files_only_request_system_open_after_a_double_click() {
-        for mode in [ViewMode::Grid, ViewMode::List] {
-            for filename in ["open-me.txt", "open-me.bin"] {
-                let directory = tempfile::tempdir().unwrap();
-                let folder = directory.path().join("folder");
-                fs::create_dir(&folder).unwrap();
-                let file = folder.join(filename);
-                fs::write(&file, "synthetic").unwrap();
-                let mut app = PersonalDeskApp::open_data_directory(directory.path().join("data"));
-                app.navigate(folder.clone(), folder);
-                app.set_view_mode(mode);
-                let ctx = egui::Context::default();
-                configure_theme(&ctx);
-                let output = input_frame(&mut app, &ctx, 0.0, vec![], vec![]);
-                let position = output
-                    .shapes
-                    .iter()
-                    .find_map(|shape| match &shape.shape {
-                        egui::epaint::Shape::Text(text) if text.galley.text() == filename => {
-                            Some(text.pos + egui::vec2(8.0, 8.0))
-                        }
-                        _ => None,
-                    })
-                    .expect("file tile text");
-                input_frame(&mut app, &ctx, 1.0, pointer(position, true), vec![]);
-                input_frame(&mut app, &ctx, 1.03, pointer(position, false), vec![]);
-                assert!(app.system_open_request.is_none());
-                assert!(!app.editor_visible);
-                input_frame(&mut app, &ctx, 1.12, pointer(position, true), vec![]);
-                input_frame(&mut app, &ctx, 1.15, pointer(position, false), vec![]);
-                assert_eq!(app.system_open_request, Some(file.canonicalize().unwrap()));
-                assert!(!app.editor_visible);
-            }
-        }
-    }
-
-    #[test]
-    fn external_drop_uses_live_position_and_accepts_folder_tiles_in_both_views() {
-        for mode in [ViewMode::Grid, ViewMode::List] {
-            for target in ["current", "child", "shortcut", "sidebar"] {
-                let directory = tempfile::tempdir().unwrap();
-                let folder = directory.path().join("destination");
-                let child = folder.join("child");
-                fs::create_dir_all(&child).unwrap();
-                let source = directory.path().join("拖入.txt");
-                fs::write(&source, "original").unwrap();
-                let mut app = PersonalDeskApp::open_data_directory(directory.path().join("data"));
-                if target == "shortcut" {
-                    app.db
-                        .as_mut()
-                        .unwrap()
-                        .save_shortcut("destination", &folder, true)
-                        .unwrap();
-                } else {
-                    app.navigate(folder.clone(), folder.clone());
-                }
-                app.set_view_mode(mode);
-                let ctx = egui::Context::default();
-                configure_theme(&ctx);
-                for time in [0.0, 0.1, 0.2] {
-                    input_frame(&mut app, &ctx, time, vec![], vec![]);
-                }
-                let at = match target {
-                    "child" | "shortcut" => app.folder_drop_targets[0].0.center(),
-                    "sidebar" => egui::pos2(70.0, 300.0),
-                    _ => egui::pos2(900.0, 650.0),
-                };
-                app.native_drop_position = Some(at);
-                // Mimic Windows OLE: normal pointer still describes the old position.
-                let stale = if target == "sidebar" {
-                    egui::pos2(900.0, 650.0)
-                } else {
-                    egui::pos2(70.0, 300.0)
-                };
-                input_frame(
-                    &mut app,
-                    &ctx,
-                    1.0,
-                    vec![egui::Event::PointerMoved(stale)],
-                    vec![std::sync::Arc::new(LocalDrop(source.clone()))],
-                );
-                if target == "sidebar" {
-                    assert!(!app.drop_busy);
-                    assert!(!folder.join("拖入.txt").exists());
-                } else {
-                    assert!(app.drop_busy, "{target} {mode:?}");
-                    let deadline = Instant::now() + Duration::from_secs(3);
-                    while app.drop_busy && Instant::now() < deadline {
-                        app.poll_background();
-                        thread::sleep(Duration::from_millis(5));
-                    }
-                    assert!(!app.drop_busy);
-                    assert!(app.drop_report.is_none());
-                    let destination = if target == "child" { &child } else { &folder };
-                    assert_eq!(
-                        fs::read_to_string(destination.join("拖入.txt")).unwrap(),
-                        "original"
-                    );
-                    if target == "child" {
-                        assert!(!folder.join("拖入.txt").exists());
-                    }
-                    if target == "current" {
-                        assert!(app.file_items.iter().any(|file| file.name == "拖入.txt"));
-                    }
-                }
-                assert_eq!(fs::read_to_string(&source).unwrap(), "original");
-            }
-        }
-    }
-
-    #[test]
-    fn native_drop_events_only_copy_into_the_open_folder_content_area() {
-        for mode in [ViewMode::Grid, ViewMode::List] {
-            for target in ["folder", "sidebar", "root", "modal", "other-page"] {
-                let directory = tempfile::tempdir().unwrap();
-                let folder = directory.path().join("folder");
-                fs::create_dir(&folder).unwrap();
-                let source = directory.path().join("drop-me.txt");
-                fs::write(&source, "source retained").unwrap();
-                let mut app = PersonalDeskApp::open_data_directory(directory.path().join("data"));
-                if target != "root" {
-                    app.navigate(folder.clone(), folder.clone());
-                }
-                if target == "modal" {
-                    app.folder_dialog_open = true;
-                }
-                if target == "other-page" {
-                    app.section = Section::Inventory;
-                }
-                app.set_view_mode(mode);
-                let ctx = egui::Context::default();
-                configure_theme(&ctx);
-                for time in [0.0, 0.1, 0.2] {
-                    input_frame(&mut app, &ctx, time, vec![], vec![]);
-                }
-                let position = if target == "sidebar" {
-                    egui::pos2(70.0, 300.0)
-                } else {
-                    egui::pos2(700.0, 550.0)
-                };
-                input_frame(
-                    &mut app,
-                    &ctx,
-                    1.0,
-                    vec![egui::Event::PointerMoved(position)],
-                    vec![std::sync::Arc::new(LocalDrop(source.clone()))],
-                );
-                if target == "folder" {
-                    assert!(app.drop_busy);
-                    for _ in 0..200 {
-                        app.poll_background();
-                        if !app.drop_busy {
-                            break;
-                        }
-                        thread::sleep(Duration::from_millis(10));
-                    }
-                    assert!(!app.drop_busy);
-                    assert!(app.drop_report.is_none());
-                    assert_eq!(
-                        fs::read_to_string(folder.join("drop-me.txt")).unwrap(),
-                        "source retained"
-                    );
-                    assert!(app.file_items.iter().any(|item| item.name == "drop-me.txt"));
-                    input_frame(&mut app, &ctx, 2.0, vec![], vec![]);
-                    assert_eq!(fs::read_dir(&folder).unwrap().count(), 1);
-                } else {
-                    assert!(!app.drop_busy);
-                    assert_eq!(fs::read_dir(&folder).unwrap().count(), 0);
-                }
-                assert_eq!(fs::read_to_string(source).unwrap(), "source retained");
-            }
-        }
     }
 
     #[test]
@@ -4196,66 +2301,16 @@ mod editor_tests {
     }
 
     #[test]
-    fn closing_editor_saves_changes_and_keeps_dialog_open_on_conflict() {
-        for external_change in [false, true] {
-            let directory = tempfile::tempdir().expect("isolated data");
-            let mut app = PersonalDeskApp::open_data_directory(directory.path().to_path_buf());
-            app.create_internal_document();
-            app.section = Section::Folders;
-            let path = app.editor_path.clone().expect("new document");
-            app.editor_text = "尚未自动保存的正文".into();
-            app.editor_dirty = true;
-            if external_change {
-                fs::write(&path, "其他程序写入的内容").unwrap();
-            }
-            let ctx = egui::Context::default();
-            for _ in 0..3 {
-                let mut output =
-                    ctx.run_ui(egui::RawInput::default(), |ui| app.render_workspace(ui));
-                output.textures_delta.clear();
-            }
-            let mut output = ctx.run_ui(
-                egui::RawInput {
-                    events: vec![egui::Event::Key {
-                        key: egui::Key::Escape,
-                        physical_key: None,
-                        pressed: true,
-                        repeat: false,
-                        modifiers: egui::Modifiers::NONE,
-                    }],
-                    ..Default::default()
-                },
-                |ui| app.render_workspace(ui),
-            );
-            output.textures_delta.clear();
-            assert_eq!(app.editor_visible, external_change);
-            assert_eq!(app.editor_dirty, external_change);
-            assert_eq!(
-                fs::read_to_string(path).unwrap(),
-                if external_change {
-                    "其他程序写入的内容"
-                } else {
-                    "尚未自动保存的正文"
-                }
-            );
-        }
-    }
-
-    #[test]
     fn every_application_dialog_is_centered_and_fits_after_resizing() {
         for id in [
             "credential-details",
             "inventory-details",
-            "document-editor",
             "shortcut-details",
-            "new-folder",
-            "rename-file",
             "settings-details",
             "website-details",
             "export-details",
             "manage-tags",
             "assign-tags",
-            "drop-results",
             "contact-details",
             "contact-chat",
             "theme-editor",
@@ -4268,13 +2323,7 @@ mod editor_tests {
             match id {
                 "credential-details" => app.credential_dialog_open = true,
                 "inventory-details" => app.inventory_dialog_open = true,
-                "document-editor" => {
-                    app.create_internal_document();
-                    app.section = Section::Folders;
-                }
                 "shortcut-details" => app.shortcut_dialog_open = true,
-                "new-folder" => app.folder_dialog_open = true,
-                "rename-file" => app.file_dialog_open = true,
                 "website-details" => app.website_dialog_open = true,
                 "export-details" => app.export_dialog_open = true,
                 "theme-editor" => app.theme_editor_open = true,
@@ -4301,12 +2350,6 @@ mod editor_tests {
                         selected: vec![],
                     })
                 }
-                "drop-results" => {
-                    app.drop_report = Some(files::DropReport {
-                        copied: vec![],
-                        failures: vec![(PathBuf::from("test.txt"), "无法读取".into())],
-                    })
-                }
                 _ => app.settings_detail = Some("本地数据".into()),
             }
             for size in [
@@ -4329,10 +2372,7 @@ mod editor_tests {
                 let rect = ctx
                     .memory(|memory| memory.area_rect(egui::Id::unique(id)))
                     .expect("dialog exists");
-                if matches!(
-                    id,
-                    "credential-details" | "inventory-details" | "document-editor"
-                ) {
+                if matches!(id, "credential-details" | "inventory-details") {
                     assert!(
                         rect.height() > 400.0,
                         "{id} must not collapse its scrolling content: {rect:?}"
@@ -4348,56 +2388,5 @@ mod editor_tests {
                 );
             }
         }
-    }
-
-    #[test]
-    fn add_document_opens_a_blank_in_app_editor_and_preserves_title_and_body() {
-        let directory = tempfile::tempdir().expect("temporary app data");
-        let mut app = PersonalDeskApp::open_data_directory(directory.path().to_path_buf());
-        app.section = Section::Documents;
-        app.add_current_item();
-        assert!(app.editor_visible);
-        assert!(app.editor_text.is_empty());
-        assert_eq!(app.editor_title, "未命名文档");
-        let first_path = app.editor_path.clone().expect("managed document path");
-        assert!(first_path.starts_with(directory.path().join("documents")));
-
-        app.editor_title = "工作计划 / 2026 <日常>".into();
-        app.editor_text = "直接在办公台里编写的正文。\n第二段内容。".into();
-        app.editor_dirty = true;
-        assert!(app.save_editor());
-        let saved_title = app.editor_title.clone();
-        let saved_body = app.editor_text.clone();
-        app.search_query = "办公台里编写".into();
-        app.run_search();
-        assert!(
-            app.search_results
-                .iter()
-                .any(|result| result.title == saved_title)
-        );
-        app.add_current_item();
-        let second_path = app.editor_path.clone().expect("second managed document");
-        assert_ne!(first_path, second_path);
-        assert!(app.editor_text.is_empty());
-        app.editor_title = saved_title.clone();
-        app.editor_dirty = true;
-        assert!(app.save_editor(), "duplicate titles must be supported");
-        drop(app);
-
-        let mut reopened = PersonalDeskApp::open_data_directory(directory.path().to_path_buf());
-        reopened.open_path(first_path);
-        assert!(reopened.editor_visible);
-        assert_eq!(reopened.editor_title, saved_title);
-        assert_eq!(reopened.editor_text, saved_body);
-        assert_eq!(
-            reopened
-                .db
-                .as_ref()
-                .expect("database")
-                .document_records()
-                .expect("records")
-                .len(),
-            2
-        );
     }
 }

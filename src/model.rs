@@ -33,15 +33,6 @@ pub struct CredentialSummary {
     pub tags: Vec<String>,
 }
 
-#[derive(Clone, Debug)]
-pub struct FileItem {
-    pub name: String,
-    pub path: std::path::PathBuf,
-    pub is_dir: bool,
-    pub size: u64,
-    pub modified: String,
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DocumentRecord {
     pub path: std::path::PathBuf,
@@ -112,6 +103,7 @@ impl Credential {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug)]
 pub struct SearchResult {
     pub category: String,
@@ -124,7 +116,6 @@ pub struct SearchResult {
 pub enum Section {
     Browser,
     Books,
-    Terminal,
     Credentials,
     #[default]
     Folders,

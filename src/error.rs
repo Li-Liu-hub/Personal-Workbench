@@ -15,6 +15,7 @@ pub enum DeskError {
     #[error("此文件格式暂不支持")]
     UnsupportedFormat,
     #[error("文件内容已在其他位置发生变化，未覆盖原文件")]
+    #[cfg(test)]
     ConcurrentModification,
     #[error("已有同名项目，请更换名称")]
     AlreadyExists,

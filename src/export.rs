@@ -34,7 +34,7 @@ impl Scope {
     pub fn for_section(section: Section) -> Self {
         match section {
             Section::Books => Self::Books,
-            Section::Browser | Section::Terminal => Self::All,
+            Section::Browser => Self::All,
             Section::Credentials => Self::Credentials,
             Section::Folders => Self::Folders,
             Section::Documents => Self::Documents,
@@ -306,6 +306,9 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
         if scope == Scope::All {
             let journal = crate::undo::Journal::open(data_dir);
             let entries = journal.sources();
+            if !journal.error.is_empty() {
+                package.warnings.push(journal.error.clone());
+            }
             if data_dir.join("undo-journal.json").is_file() {
                 package.file(
                     &data_dir.join("undo-journal.json"),
@@ -388,28 +391,20 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
             package.json("快捷路径.json", &records)?;
         }
         if scope.includes(Scope::Documents) {
-            let root = canonical(&data_dir.join("documents"));
+            let root = crate::files::shell_path(&canonical(&data_dir.join("documents")));
             let mut records = vec![];
-            for (index, record) in snapshot
+            for record in snapshot
                 .document_records()
                 .map_err(|error| DeskError::InvalidPath(format!("读取文档记录失败：{error}")))?
                 .into_iter()
-                .enumerate()
             {
-                let path = canonical(&record.path);
-                let name = if let Ok(relative) = path.strip_prefix(&root) {
-                    format!("data/documents/{}", zip_path(relative))
+                let path = crate::files::shell_path(&canonical(&record.path));
+                let (archived, name) = if let Ok(relative) = path.strip_prefix(&root) {
+                    let name = format!("data/documents/{}", zip_path(relative));
+                    (package.file(&record.path, &name)?, name)
                 } else {
-                    format!(
-                        "external_documents/{index:05}-{}",
-                        record
-                            .path
-                            .file_name()
-                            .unwrap_or_default()
-                            .to_string_lossy()
-                    )
+                    (false, String::new())
                 };
-                let archived = package.file(&record.path, &name)?;
                 records.push(ExportedDocument {
                     record,
                     archive_path: archived.then_some(name),
@@ -456,7 +451,7 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
         }
         package.bytes("导出说明.txt", "个人办公台数据导出\nJSON 文件为 UTF-8，账号密码和附加信息均按原文导出。\n文档清单中的 archive_path 对应压缩包内的正文文件，恢复草稿位于 data/recovery。\n联系人.json 包含联系人资料、聊天笔记及聊天文本，聊天记录的 archive_path 对应 contact_chats 内的原文件（含 Excel）。\n快捷路径只导出名称和目标地址，不打包其指向的外部文件夹。\n全部导出另含 data/desk.db 一致性快照（含索引及配置）；旧版账号库如存在则保留在 legacy。\n未能读取或导出期间变化的文件记录在导出清单.json。\n".as_bytes())?;
         let warnings = package.warnings.len();
-        package.json("导出清单.json", &serde_json::json!({ "format": "PersonalDeskExport", "version": 1, "scope": scope.label(), "exported_at": chrono::Utc::now().to_rfc3339(), "counts": counts, "warnings": package.warnings, "shortcut_targets_included": false }))?;
+        package.json("导出清单.json", &serde_json::json!({ "format": "PersonalDeskExport", "version": 1, "scope": scope.label(), "exported_at": chrono::Utc::now().to_rfc3339(), "counts": counts, "warnings": package.warnings, "shortcut_targets_included": false, "external_document_targets_included": false }))?;
         let Package { zip, .. } = package;
         zip.finish()?.sync_all()?;
         warnings

@@ -25,6 +25,7 @@ pub struct Page {
     pub updated_at: String,
 }
 impl Page {
+    #[cfg(test)]
     pub fn new(book_id: String) -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
