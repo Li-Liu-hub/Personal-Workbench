@@ -43,6 +43,7 @@ impl PersonalDeskApp {
         use crate::ui_components::table;
         let options = self.inventory_tags.clone();
         const C: &[f32] = &[135., 80., 105., 50., 90., 108., 90., 108., 95., 140.];
+        ui.spacing_mut().scroll.floating = false;
         egui::ScrollArea::horizontal()
             .id_salt("inventory-columns")
             .show(ui, |ui| {
@@ -150,10 +151,7 @@ impl PersonalDeskApp {
                         }
                     }
                 }
-                if ui
-                    .add_sized([table::width(C), 40.], egui::Button::new("+ 添加物品"))
-                    .clicked()
-                {
+                if table::add_row(ui, C, "add-inventory-row", "添加物品").clicked() {
                     self.add_current_item();
                 }
             });

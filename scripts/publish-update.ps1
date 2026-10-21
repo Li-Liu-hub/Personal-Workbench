@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '苹果风格界面与交互改造，移除 Codex 和独立终端入口，文档拖拽组成图书，联系人与物品列表编辑、品牌型号和返回导航修复'
+    [string]$Notes = '统一紧凑工具栏、搜索与分类下拉并排，文档独立编辑布局与横向标签页，固定底部状态，精简文件夹与浏览器操作区'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

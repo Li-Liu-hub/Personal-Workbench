@@ -203,26 +203,31 @@ impl PersonalDeskApp {
             .unwrap_or_default();
         let mut selected = None;
         let mut remove = None;
-        ui.horizontal_wrapped(|ui| {
-            for doc in docs {
-                let response = ui.selectable_label(
-                    self.editor_visible && self.editor_path.as_ref() == Some(&doc.path),
-                    &doc.title,
-                );
-                if response.clicked() {
-                    selected = Some(doc.path.clone());
-                }
-                response.context_menu(|ui| {
-                    if ui.button("移出图书").clicked() {
-                        remove = Some(doc.path.clone());
-                        ui.close();
+        egui::ScrollArea::horizontal()
+            .id_salt("book-document-tabs")
+            .max_height(36.0)
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    for doc in docs {
+                        let response = ui.selectable_label(
+                            self.editor_visible && self.editor_path.as_ref() == Some(&doc.path),
+                            RichText::new(&doc.title).size(13.0),
+                        );
+                        if response.clicked() {
+                            selected = Some(doc.path.clone());
+                        }
+                        response.context_menu(|ui| {
+                            if ui.button("移出图书").clicked() {
+                                remove = Some(doc.path.clone());
+                                ui.close();
+                            }
+                        });
+                    }
+                    if ui.button("+").on_hover_text("新增文档").clicked() {
+                        self.create_internal_document();
                     }
                 });
-            }
-            if ui.button("+").on_hover_text("新增文档").clicked() {
-                self.create_internal_document();
-            }
-        });
+            });
         if let Some(path) = selected {
             self.open_editor(path);
         }

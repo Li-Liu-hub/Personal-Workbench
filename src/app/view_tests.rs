@@ -4,6 +4,120 @@ use super::{
 };
 
 #[test]
+fn page_filters_and_search_share_one_fixed_row_even_with_many_categories() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().join("data"));
+    for scope in [
+        TagScope::Credentials,
+        TagScope::Inventory,
+        TagScope::Contacts,
+        TagScope::Documents,
+        TagScope::Websites,
+        TagScope::Shortcuts,
+        TagScope::Tools,
+    ] {
+        for n in 0..24 {
+            app.db
+                .as_mut()
+                .unwrap()
+                .create_tag(scope, &format!("很长的自定义分类标签 {n}"))
+                .unwrap();
+        }
+    }
+    app.load_tags();
+    for size in [[1000., 680.], [1280., 800.], [1920., 1080.]] {
+        for section in [
+            Section::Folders,
+            Section::Credentials,
+            Section::Contacts,
+            Section::Inventory,
+            Section::Documents,
+            Section::Websites,
+            Section::Tools,
+        ] {
+            app.section = section;
+            app.notice = "操作结果".into();
+            let ctx = egui::Context::default();
+            configure_theme(&ctx);
+            let mut out = egui::FullOutput::default();
+            for _ in 0..3 {
+                out = ctx.run_ui(
+                    egui::RawInput {
+                        screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, size.into())),
+                        ..Default::default()
+                    },
+                    |ui| app.render_workspace(ui),
+                );
+                out.textures_delta.clear();
+            }
+            let search = position(&out, "搜索");
+            let filter = position(&out, "全部分类");
+            let title = app.page_title();
+            let heading = out
+                .shapes
+                .iter()
+                .find_map(|s| match &s.shape {
+                    egui::Shape::Text(t) if t.galley.text() == title && t.pos.x > 200. => {
+                        Some(t.pos)
+                    }
+                    _ => None,
+                })
+                .unwrap();
+            assert!(
+                (heading.x - 208.).abs() < 2.,
+                "title not aligned: {section:?} {size:?} {heading:?}"
+            );
+            assert!((search.y - filter.y).abs() < 8., "{section:?} {size:?}");
+            assert!(search.y < 100. && filter.x < size[0] - 20.);
+            assert!(position(&out, "操作结果").y > size[1] - 40.);
+        }
+    }
+}
+
+#[test]
+fn document_workspace_keeps_body_near_top_and_many_tabs_do_not_wrap() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().join("data"));
+    let mut paths = vec![];
+    for i in 0..16 {
+        app.create_internal_document();
+        app.editor_title = format!("长标题文档第{i}章");
+        app.editor_text = "开始书写正文".into();
+        app.editor_dirty = true;
+        assert!(app.save_editor());
+        paths.push(app.editor_path.clone().unwrap());
+    }
+    let book = app
+        .db
+        .as_mut()
+        .unwrap()
+        .group_documents(&paths, None)
+        .unwrap();
+    app.open_document_book(book);
+    for size in [[1000., 680.], [1280., 800.], [1920., 1080.]] {
+        let ctx = egui::Context::default();
+        configure_theme(&ctx);
+        let mut out = egui::FullOutput::default();
+        for _ in 0..3 {
+            out = ctx.run_ui(
+                egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, size.into())),
+                    ..Default::default()
+                },
+                |ui| app.render_workspace(ui),
+            );
+            out.textures_delta.clear();
+        }
+        assert!(
+            position(&out, "开始书写正文").y < 190.,
+            "body pushed down at {size:?}"
+        );
+        assert!(position(&out, "← 全部文档").y < 55.);
+        assert!(!out.shapes.iter().any(|s|matches!(&s.shape,egui::Shape::Text(t) if matches!(t.galley.text(),"搜索"|"清空"|"全部分类"|"管理文档标签"))));
+    }
+}
+
+#[test]
 fn startup_settings_are_visible_before_other_settings_in_both_views() {
     let directory = tempfile::tempdir().unwrap();
     let mut app = PersonalDeskApp::open_data_directory(directory.path().join("data"));
