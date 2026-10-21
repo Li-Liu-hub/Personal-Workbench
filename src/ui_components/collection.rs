@@ -6,6 +6,7 @@ pub struct EntryLayout {
     pub(super) mode: ViewMode,
     pub(super) width: f32,
     actions: bool,
+    pub(super) min_height: f32,
 }
 impl EntryLayout {
     pub fn new(mode: ViewMode, width: f32) -> Self {
@@ -13,7 +14,12 @@ impl EntryLayout {
             mode,
             width,
             actions: false,
+            min_height: 0.0,
         }
+    }
+    pub fn with_min_height(mut self, height: f32) -> Self {
+        self.min_height = height;
+        self
     }
 }
 struct RowLayout {

@@ -119,13 +119,13 @@ impl PersonalDeskApp {
     pub(super) fn names_for_scope(&self, scope: TagScope) -> Vec<String> {
         self.db
             .as_ref()
-            .and_then(|db| db.tags(scope).ok())
+            .and_then(|db| db.cached_tag_names(scope).ok())
             .unwrap_or_default()
     }
     pub(super) fn record_labels(&self, scope: TagScope, id: &str) -> Vec<String> {
         self.db
             .as_ref()
-            .and_then(|db| db.record_tags(scope, id).ok())
+            .and_then(|db| db.cached_record_tags(scope, id).ok())
             .unwrap_or_default()
     }
     pub(super) fn record_matches_filter(&self, scope: TagScope, id: &str) -> bool {

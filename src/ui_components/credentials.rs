@@ -111,6 +111,42 @@ fn readonly_value(ui: &mut Ui, value: &str, rect: egui::Rect, size: f32) -> Resp
     )
 }
 
+fn credential_metrics(ui: &Ui, item: &CredentialSummary, entry: EntryLayout) -> (f32, f32, f32) {
+    let grid = entry.mode == ViewMode::Grid;
+    let inner = (entry.width - if grid { 40.0 } else { 108.0 }).max(1.0);
+    let username = layout(
+        ui,
+        &item.username,
+        if grid { inner } else { inner * 0.27 - 62.0 },
+        14.0,
+    )
+    .size()
+    .y;
+    let password = layout(
+        ui,
+        &item.password,
+        if grid { inner } else { inner * 0.34 - 62.0 },
+        15.0,
+    )
+    .size()
+    .y;
+    let body = if grid {
+        entry.width.max(182.0 + username + password)
+    } else {
+        56.0_f32.max(username.max(password) + 24.0)
+    };
+    (username, password, body)
+}
+
+pub fn credential_height(
+    ui: &Ui,
+    item: &CredentialSummary,
+    entry: EntryLayout,
+    editing: bool,
+) -> f32 {
+    credential_metrics(ui, item, entry).2 + if editing { 40.0 } else { 0.0 }
+}
+
 pub fn credential_entry(
     ui: &mut Ui,
     item: &mut CredentialSummary,
@@ -120,28 +156,8 @@ pub fn credential_entry(
 ) -> CredentialEntryResponse {
     let grid = entry.mode == ViewMode::Grid;
     let inner = (entry.width - if grid { 40.0 } else { 108.0 }).max(1.0);
-    let username_height = layout(
-        ui,
-        &item.username,
-        if grid { inner } else { inner * 0.27 - 62.0 },
-        14.0,
-    )
-    .size()
-    .y;
-    let password_height = layout(
-        ui,
-        &item.password,
-        if grid { inner } else { inner * 0.34 - 62.0 },
-        15.0,
-    )
-    .size()
-    .y;
-    let body_height = if grid {
-        entry.width.max(182.0 + username_height + password_height)
-    } else {
-        56.0_f32.max(username_height.max(password_height) + 24.0)
-    };
-    let height = body_height + if editing { 40.0 } else { 0.0 };
+    let (username_height, password_height, body_height) = credential_metrics(ui, item, entry);
+    let height = (body_height + if editing { 40.0 } else { 0.0 }).max(entry.min_height);
     let (_, rect) = ui.allocate_space(egui::vec2(entry.width, height));
     let response = ui.interact(rect, ui.scope_id().with(&item.id), egui::Sense::click());
     let painter = ui.painter().with_clip_rect(rect.intersect(ui.clip_rect()));

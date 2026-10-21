@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 mod contacts;
 mod library;
+mod tag_cache;
 
 use rusqlite::{Connection, OptionalExtension, params};
 use uuid::Uuid;
@@ -15,6 +16,7 @@ use crate::{
 
 pub struct Database {
     desk: Connection,
+    tag_cache: std::cell::RefCell<tag_cache::Cache>,
     pub migration_notice: String,
 }
 
@@ -268,6 +270,7 @@ impl Database {
         };
         Ok(Self {
             desk,
+            tag_cache: Default::default(),
             migration_notice,
         })
     }
@@ -469,6 +472,7 @@ impl Database {
         Ok(())
     }
 
+    #[cfg(test)]
     pub fn record_tags(&self, scope: TagScope, id: &str) -> Result<Vec<String>> {
         Ok(self
             .desk

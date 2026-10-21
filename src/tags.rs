@@ -102,7 +102,7 @@ pub struct RecordTags {
     pub tags: Vec<String>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub enum Filter {
     #[default]
     All,
