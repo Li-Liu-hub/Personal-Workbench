@@ -36,6 +36,8 @@ impl PersonalDeskApp {
         item.name = "笔记本电脑".into();
         item.quantity = 1;
         item.location = "书桌".into();
+        item.brand = "Apple".into();
+        item.model = "MacBook Pro".into();
         item.tags = vec!["数码".into()];
         item.purchase_date = "2026-10-20".into();
         item.purchase_price_cents = Some(599900);
@@ -168,6 +170,45 @@ impl PersonalDeskApp {
                     self.section = Section::Folders;
                     self.terminal_inline = true;
                 }
+                20 => {
+                    self.section = Section::Contacts;
+                    self.view_modes.set(Section::Contacts, ViewMode::List);
+                }
+                21 => {
+                    self.section = Section::Documents;
+                    self.editor_visible = false;
+                    self.library.book = None;
+                    self.library.page = None;
+                    let records = self.db.as_ref().unwrap().document_records().unwrap();
+                    let paths = records
+                        .iter()
+                        .take(2)
+                        .map(|d| d.path.clone())
+                        .collect::<Vec<_>>();
+                    if paths.len() == 2 {
+                        let mut book = self
+                            .db
+                            .as_mut()
+                            .unwrap()
+                            .group_documents(&paths, None)
+                            .unwrap();
+                        book.title = "项目手记".into();
+                        self.db.as_mut().unwrap().save_book(&book).unwrap();
+                    }
+                }
+                22 => {
+                    let book = self
+                        .db
+                        .as_ref()
+                        .unwrap()
+                        .books()
+                        .unwrap()
+                        .into_iter()
+                        .find(|b| b.title == "项目手记");
+                    if let Some(book) = book {
+                        self.open_document_book(book);
+                    }
+                }
                 _ => {
                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                     return;
@@ -234,6 +275,9 @@ impl PersonalDeskApp {
             "browser-restored",
             "inventory-list-editing",
             "files-with-powershell",
+            "contacts-list",
+            "documents-with-books",
+            "book-document-tabs",
         ][capture.step];
         let destination = capture.output.join(format!("{name}.png"));
         let completed = capture.completed.clone();

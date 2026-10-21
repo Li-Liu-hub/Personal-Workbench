@@ -40,16 +40,16 @@ pub struct ThemeSettings {
 impl Default for ThemeSettings {
     fn default() -> Self {
         Self {
-            accent: [101, 88, 211],
-            text: [32, 40, 59],
-            muted: [126, 135, 154],
-            canvas: [247, 248, 252],
-            sidebar: [247, 248, 252],
+            accent: [0, 122, 255],
+            text: [29, 29, 31],
+            muted: [112, 112, 119],
+            canvas: [250, 250, 252],
+            sidebar: [240, 240, 244],
             surface: [255, 255, 255],
-            input: [249, 250, 253],
-            border: [229, 233, 242],
+            input: [245, 245, 247],
+            border: [224, 225, 230],
             button_text: [255, 255, 255],
-            sidebar_text: [90, 99, 119],
+            sidebar_text: [88, 88, 96],
             surface_opacity: 1.0,
             sidebar_opacity: 1.0,
             image_opacity: 0.7,
@@ -62,11 +62,27 @@ impl Default for ThemeSettings {
 }
 impl ThemeSettings {
     pub fn load(settings: &BTreeMap<String, String>) -> Self {
-        settings
+        let mut theme: Self = settings
             .get("appearance.theme")
             .and_then(|s| serde_json::from_str(s).ok())
             .filter(|theme: &Self| theme.validate().is_ok())
-            .unwrap_or_default()
+            .unwrap_or_default();
+        // Migrate only the old stock palette, retaining custom images and sizing.
+        if theme.accent == [101, 88, 211]
+            && theme.text == [32, 40, 59]
+            && theme.canvas == [247, 248, 252]
+        {
+            let fresh = Self::default();
+            theme.accent = fresh.accent;
+            theme.text = fresh.text;
+            theme.muted = fresh.muted;
+            theme.canvas = fresh.canvas;
+            theme.sidebar = fresh.sidebar;
+            theme.input = fresh.input;
+            theme.border = fresh.border;
+            theme.sidebar_text = fresh.sidebar_text;
+        }
+        theme
     }
     pub fn validate(&self) -> Result<()> {
         if ![
@@ -117,6 +133,10 @@ impl ThemeSettings {
             }
             v.widgets.noninteractive.bg_fill = border();
             v.widgets.inactive.weak_bg_fill = input();
+            v.widgets.hovered.bg_fill = input();
+            v.widgets.hovered.weak_bg_fill = input();
+            v.widgets.active.bg_fill = surface().lerp_to_gamma(accent(), 0.08);
+            v.widgets.active.weak_bg_fill = v.widgets.active.bg_fill;
             v.widgets.hovered.bg_stroke = egui::Stroke::new(1.0, accent());
             v.widgets.active.bg_stroke = egui::Stroke::new(1.0, accent());
         });

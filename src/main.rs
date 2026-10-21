@@ -3,7 +3,6 @@
 mod app;
 mod autostart;
 mod browser;
-mod codex_client;
 mod contacts;
 mod crypto;
 mod db;
@@ -20,7 +19,6 @@ mod launcher;
 mod legacy_credentials;
 mod library;
 mod model;
-mod native_embed;
 mod search;
 mod tags;
 mod terminal;

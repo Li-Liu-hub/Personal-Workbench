@@ -1,6 +1,94 @@
 use super::*;
 use crate::library::{Book, Page};
 impl Database {
+    pub fn book_documents(&self, book: &str) -> Result<Vec<crate::model::DocumentRecord>> {
+        let mut statement=self.desk.prepare("SELECT d.path,d.title FROM book_documents b JOIN documents d ON d.path=b.document_path WHERE b.book_id=?1 ORDER BY b.position,b.rowid")?;
+        Ok(statement
+            .query_map([book], |r| {
+                Ok(crate::model::DocumentRecord {
+                    path: std::path::PathBuf::from(r.get::<_, String>(0)?),
+                    title: r.get(1)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?)
+    }
+    pub fn document_book(&self, path: &std::path::Path) -> Result<Option<String>> {
+        use rusqlite::OptionalExtension;
+        let normalized = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+        let display = crate::files::shell_path(&normalized);
+        Ok(self.desk.query_row("SELECT bd.book_id FROM book_documents bd JOIN books b ON b.id=bd.book_id WHERE bd.document_path IN (?1,?2,?3) AND b.deleted=0",params![path.to_string_lossy().as_ref(),normalized.to_string_lossy().as_ref(),display.to_string_lossy().as_ref()],|r|r.get(0)).optional()?)
+    }
+    /// Group by reference, never move or rewrite the document files.
+    pub fn group_documents(
+        &mut self,
+        paths: &[std::path::PathBuf],
+        target: Option<&str>,
+    ) -> Result<Book> {
+        let mut keys = vec![];
+        for path in paths {
+            if !path.is_file() {
+                return Err(DeskError::InvalidPath("文档已不存在".into()));
+            }
+            use rusqlite::OptionalExtension;
+            let normalized = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+            let display = crate::files::shell_path(&normalized);
+            let key: String = self
+                .desk
+                .query_row(
+                    "SELECT path FROM documents WHERE path IN (?1,?2,?3) LIMIT 1",
+                    params![
+                        path.to_string_lossy().as_ref(),
+                        normalized.to_string_lossy().as_ref(),
+                        display.to_string_lossy().as_ref()
+                    ],
+                    |r| r.get(0),
+                )
+                .optional()?
+                .ok_or_else(|| DeskError::InvalidPath("请先将文档加入文档列表".into()))?;
+            if !keys.contains(&key) {
+                keys.push(key);
+            }
+        }
+        let book = if let Some(id) = target {
+            self.books()?
+                .into_iter()
+                .find(|b| b.id == id)
+                .ok_or_else(|| DeskError::InvalidPath("图书已不存在".into()))?
+        } else {
+            if keys.len() < 2 {
+                return Err(DeskError::InvalidPath(
+                    "拖动一份文档到另一份文档上即可组成图书".into(),
+                ));
+            }
+            let mut book = Book::new();
+            book.title = "新建图书".into();
+            book
+        };
+        let tx = self.desk.transaction()?;
+        tx.execute(
+            "INSERT OR IGNORE INTO books(id,title,tags_json) VALUES(?1,?2,?3)",
+            params![book.id, book.title, serde_json::to_string(&book.tags)?],
+        )?;
+        for key in keys {
+            let exists: bool = tx.query_row(
+                "SELECT EXISTS(SELECT 1 FROM documents WHERE path=?1)",
+                [&key],
+                |r| r.get(0),
+            )?;
+            if !exists {
+                return Err(DeskError::InvalidPath("文档记录已不存在".into()));
+            }
+            tx.execute("INSERT INTO book_documents(book_id,document_path,position) VALUES(?1,?2,(SELECT COALESCE(MAX(position),0)+1 FROM book_documents WHERE book_id=?1)) ON CONFLICT(document_path) DO UPDATE SET book_id=excluded.book_id,position=excluded.position",params![book.id,key])?;
+        }
+        tx.commit()?;
+        Ok(book)
+    }
+    pub fn ungroup_document(&mut self, path: &std::path::Path) -> Result<()> {
+        let key = self.document_record_key(path)?;
+        self.desk
+            .execute("DELETE FROM book_documents WHERE document_path=?1", [key])?;
+        Ok(())
+    }
     pub fn deleted_library(&self) -> Result<Vec<(String, String, bool)>> {
         let mut result = vec![];
         for (table, page) in [("books", false), ("book_pages", true)] {

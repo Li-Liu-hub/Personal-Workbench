@@ -22,7 +22,7 @@ fn startup_settings_are_visible_before_other_settings_in_both_views() {
 }
 
 #[test]
-fn terminal_command_bar_keeps_focus_for_consecutive_commands() {
+fn terminal_surface_keeps_focus_for_consecutive_commands() {
     let directory = tempfile::tempdir().unwrap();
     let mut app = PersonalDeskApp::open_data_directory(directory.path().join("data"));
     app.open_terminal(directory.path().to_path_buf());
@@ -35,30 +35,43 @@ fn terminal_command_bar_keeps_focus_for_consecutive_commands() {
     let ctx = egui::Context::default();
     configure_theme(&ctx);
     let mut time = 0.0;
-    // Let the interactive shell initialize while the command bar gains focus.
+    // Let the interactive shell initialize while the terminal surface gains focus.
     let ready = Instant::now() + Duration::from_secs(3);
     while Instant::now() < ready {
         input_frame(&mut app, &ctx, time, vec![], vec![]);
         time += 0.02;
         thread::sleep(Duration::from_millis(20));
     }
-    for marker in ["FIRST_BAR", "SECOND_BAR"] {
-        input_frame(
-            &mut app,
-            &ctx,
-            time,
+    for marker in ["FIRST_BAR", "SECOND_BAR", "中文终端"] {
+        let mut events = if marker == "SECOND_BAR" {
             vec![
-                egui::Event::Text(format!("[Console]::WriteLine(('{marker}_'+(40+2)))")),
+                egui::Event::Text("[Console]::WriteLine(('SECOND_BAR_'+(40+3".into()),
                 egui::Event::Key {
-                    key: egui::Key::Enter,
+                    key: egui::Key::Backspace,
                     physical_key: None,
                     pressed: true,
                     repeat: false,
                     modifiers: egui::Modifiers::NONE,
                 },
-            ],
-            vec![],
-        );
+                egui::Event::Text("2)))".into()),
+            ]
+        } else if marker == "中文终端" {
+            vec![egui::Event::Ime(egui::ImeEvent::Commit(format!(
+                "[Console]::WriteLine(('{marker}_'+(40+2)))"
+            )))]
+        } else {
+            vec![egui::Event::Text(format!(
+                "[Console]::WriteLine(('{marker}_'+(40+2)))"
+            ))]
+        };
+        events.push(egui::Event::Key {
+            key: egui::Key::Enter,
+            physical_key: None,
+            pressed: true,
+            repeat: false,
+            modifiers: egui::Modifiers::NONE,
+        });
+        input_frame(&mut app, &ctx, time, events, vec![]);
         time += 0.02;
         input_frame(
             &mut app,
@@ -88,7 +101,6 @@ fn terminal_command_bar_keeps_focus_for_consecutive_commands() {
             );
             thread::sleep(Duration::from_millis(20));
         }
-        assert!(app.terminal_command.is_empty());
     }
 }
 
@@ -342,6 +354,14 @@ fn file_copy_buttons_and_outbound_drag_work_in_grid_and_list_without_opening_the
                 vec![egui::Event::PointerMoved(at + egui::vec2(36.0, 8.0))],
                 vec![],
             );
+            if source == "document" {
+                assert!(
+                    egui::DragAndDrop::payload::<super::document_group_ui::DocumentDrag>(&ctx)
+                        .is_some()
+                );
+                input_frame(&mut app, &ctx, 2.3, vec![egui::Event::PointerGone], vec![]);
+                app.document_outbound_drag(&ctx);
+            }
             assert_eq!(
                 app.drag_file_request
                     .take()
@@ -526,12 +546,10 @@ fn every_module_switches_between_grid_and_rows_without_losing_search_or_tags() {
     let ctx = egui::Context::default();
     configure_theme(&ctx);
     let mut time = 0.0;
-    for section in views::SECTIONS.into_iter().filter(|s| {
-        !matches!(
-            s,
-            Section::Games | Section::Codex | Section::Browser | Section::Terminal
-        )
-    }) {
+    for section in views::SECTIONS
+        .into_iter()
+        .filter(|s| !matches!(s, Section::Games | Section::Browser | Section::Terminal))
+    {
         app.section = section;
         if section == Section::Folders {
             app.navigate(folder.clone(), folder.clone());
@@ -597,12 +615,10 @@ fn every_module_switches_between_grid_and_rows_without_losing_search_or_tags() {
         }
     }
     let restored = PersonalDeskApp::open_data_directory(directory.path().join("data"));
-    for section in views::SECTIONS.into_iter().filter(|s| {
-        !matches!(
-            s,
-            Section::Games | Section::Codex | Section::Browser | Section::Terminal
-        )
-    }) {
+    for section in views::SECTIONS
+        .into_iter()
+        .filter(|s| !matches!(s, Section::Games | Section::Browser | Section::Terminal))
+    {
         assert_eq!(restored.view_modes.mode(section), ViewMode::List);
     }
 }
@@ -661,6 +677,8 @@ fn choosing_an_inventory_classification_saves_updates_summary_and_filters_after_
     app.section = Section::Inventory;
     let mut item = InventoryItem::new();
     item.name = "测试笔记本电脑".into();
+    item.brand = "示例品牌".into();
+    item.model = "示例型号".into();
     app.db.as_mut().unwrap().save_inventory_item(&item).unwrap();
     app.db
         .as_mut()
@@ -706,7 +724,15 @@ fn choosing_an_inventory_classification_saves_updates_summary_and_filters_after_
         output = input_frame(&mut app, &ctx, 3.0 + index as f64, vec![], vec![]);
         position(&output, "测试笔记本电脑");
         if mode == ViewMode::Grid {
-            position(&output, "1 件 · 已买");
+            position(&output, "示例品牌 示例型号 · 1 件");
+            assert!(
+                output
+                    .shapes
+                    .iter()
+                    .filter(|s| matches!(&s.shape,egui::Shape::Text(t) if t.galley.text()=="已买"))
+                    .count()
+                    >= 2
+            );
         } else {
             position(&output, "已买");
         }
@@ -958,15 +984,8 @@ fn theme_image_is_copied_persists_after_source_removal_and_exports_with_chats_an
         .unwrap()
         .save_app_tool(&crate::launcher::AppTool::new(executable.clone()))
         .unwrap();
-    app.codex
-        .current
-        .messages
-        .push(crate::codex_client::Message {
-            role: "user".into(),
-            text: "Synthetic chat".into(),
-            item_id: String::new(),
-        });
-    app.codex.save();
+    fs::create_dir_all(base.join("codex")).unwrap();
+    fs::write(base.join("codex/legacy.json"), br#"{"legacy":true}"#).unwrap();
     let zip = dir.path().join("all.zip");
     crate::export::write(&base, &zip, export::Scope::All).unwrap();
     let mut archive = zip::ZipArchive::new(fs::File::open(zip).unwrap()).unwrap();
@@ -984,41 +1003,19 @@ fn theme_image_is_copied_persists_after_source_removal_and_exports_with_chats_an
             .any(|name| name.ends_with("Tool.exe") || name.contains("auth.json"))
     );
     drop(app);
-    let restored = PersonalDeskApp::open_data_directory(base);
+    let restored = PersonalDeskApp::open_data_directory(base.clone());
     assert_eq!(restored.theme.accent, [20, 160, 140]);
     assert_eq!(restored.theme.fit, crate::theme::ImageFit::Contain);
     assert_eq!(restored.db.as_ref().unwrap().app_tools().unwrap().len(), 1);
-    assert_eq!(restored.codex.history.len(), 1);
+    assert!(base.join("codex/legacy.json").exists());
 }
 
 #[test]
-fn codex_composer_stays_visible_in_small_windows_and_theme_cancel_restores_saved_state() {
+fn theme_cancel_restores_saved_state() {
     let directory = tempfile::tempdir().unwrap();
     let mut app = PersonalDeskApp::open_data_directory(directory.path().into());
     let ctx = egui::Context::default();
     configure_theme(&ctx);
-    app.section = Section::Codex;
-    app.desktop.basic_chat = true;
-    for size in [[1280.0, 800.0], [1000.0, 680.0]] {
-        for frame in 0..4 {
-            let mut output = ctx.run_ui(
-                egui::RawInput {
-                    screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, size.into())),
-                    time: Some(frame as f64),
-                    ..Default::default()
-                },
-                |ui| app.render_workspace(ui),
-            );
-            if frame == 3 {
-                let pos = position(&output, "发送消息");
-                assert!(
-                    pos.y + 20.0 < size[1] - 24.0,
-                    "Composer is clipped at {size:?}: {pos:?}"
-                );
-            }
-            output.textures_delta.clear();
-        }
-    }
     app.section = Section::Settings;
     app.theme_editor_open = true;
     app.theme.accent = [200, 50, 70];
@@ -1042,32 +1039,6 @@ fn codex_composer_stays_visible_in_small_windows_and_theme_cancel_restores_saved
     assert!(app.theme_background.is_none());
     assert!(app.theme.background.is_none());
 }
-#[test]
-fn codex_page_defaults_to_the_original_desktop_view_and_keeps_basic_chat_as_an_explicit_fallback() {
-    let directory = tempfile::tempdir().unwrap();
-    let mut app = PersonalDeskApp::open_data_directory(directory.path().into());
-    assert!(!app.desktop.basic_chat);
-    app.section = Section::Codex;
-    let ctx = egui::Context::default();
-    configure_theme(&ctx);
-    input_frame(&mut app, &ctx, 1.0, vec![], vec![]);
-    let output = input_frame(&mut app, &ctx, 1.1, vec![], vec![]);
-    position(&output, "Codex / ChatGPT 原版界面");
-    position(&output, "嵌入现有窗口");
-    let area = app.desktop.area.unwrap();
-    assert!(area[2] > 900 && area[3] > 650);
-    assert!(app.desktop.attach_request.is_none());
-    let at = position(&output, "基础聊天") + egui::vec2(8.0, 7.0);
-    input_frame(&mut app, &ctx, 1.2, pointer(at, true), vec![]);
-    input_frame(&mut app, &ctx, 1.22, pointer(at, false), vec![]);
-    assert!(app.desktop.basic_chat);
-    let output = input_frame(&mut app, &ctx, 1.4, vec![], vec![]);
-    let at = position(&output, "返回原版应用界面") + egui::vec2(8.0, 7.0);
-    input_frame(&mut app, &ctx, 1.5, pointer(at, true), vec![]);
-    input_frame(&mut app, &ctx, 1.52, pointer(at, false), vec![]);
-    assert!(!app.desktop.basic_chat);
-}
-
 fn replace_focused_text(value: &str) -> Vec<egui::Event> {
     vec![
         egui::Event::Key {
@@ -1087,7 +1058,8 @@ fn replace_focused_text(value: &str) -> Vec<egui::Event> {
 
 #[test]
 fn inline_account_edits_save_cancel_copy_and_open_details_in_both_views() {
-    for mode in [ViewMode::Grid, ViewMode::List] {
+    {
+        let mode = ViewMode::List;
         let directory = tempfile::tempdir().unwrap();
         let mut app = PersonalDeskApp::open_data_directory(directory.path().join("data"));
         let mut original = Credential::new();
@@ -1304,7 +1276,7 @@ fn visible_search_types_filters_clears_and_automatically_loads_indexed_content()
 fn classification_dropdown_saves_from_account_cards_and_editable_rows_without_opening_details() {
     for mode in [ViewMode::Grid, ViewMode::List] {
         for section in [Section::Credentials, Section::Websites, Section::Inventory] {
-            if mode == ViewMode::Grid && section != Section::Credentials {
+            if mode == ViewMode::Grid {
                 continue;
             }
             let directory = tempfile::tempdir().unwrap();
@@ -1660,7 +1632,7 @@ fn file_navigation_toolbar_remains_visible_when_contents_scroll() {
     configure_theme(&ctx);
     input_frame(&mut app, &ctx, 0.0, vec![], vec![]);
     let before = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
-    let at = position(&before, "所有快捷路径");
+    let at = position(&before, "重置");
     input_frame(
         &mut app,
         &ctx,
@@ -1678,7 +1650,7 @@ fn file_navigation_toolbar_remains_visible_when_contents_scroll() {
         vec![],
     );
     let after = input_frame(&mut app, &ctx, 0.6, vec![], vec![]);
-    assert_eq!(position(&after, "所有快捷路径"), at);
+    assert_eq!(position(&after, "重置"), at);
     let first_after = position(&after, "file-00.txt");
     assert!(
         first_after.y < position(&before, "file-00.txt").y - 100.0,
@@ -1795,4 +1767,303 @@ fn file_background_operations_are_counted_until_their_completion_messages() {
     }
     assert_eq!(app.file_operations, 0);
     assert!(source.exists());
+}
+
+#[test]
+fn contact_list_edits_preserve_photos_chat_files_and_notes() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().join("data"));
+    let mut contact = Contact::new();
+    contact.name = "List Contact".into();
+    contact.school = "Before school".into();
+    contact.chat_notes = "keep notes".into();
+    let photo = dir.path().join("photo.png");
+    image::RgbaImage::from_pixel(8, 8, image::Rgba([10, 20, 30, 255]))
+        .save(&photo)
+        .unwrap();
+    contact.photo = contacts::import_photo(&photo).unwrap();
+    let chat = dir.path().join("chat.txt");
+    fs::write(&chat, "Keep imported chat").unwrap();
+    contact.chats.push(contacts::import_chat(&chat).unwrap());
+    app.db.as_mut().unwrap().save_contact(&contact).unwrap();
+    app.load_contacts();
+    app.section = Section::Contacts;
+    app.set_view_mode(ViewMode::List);
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0., vec![], vec![]);
+    input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    ctx.memory_mut(|m| m.request_focus(egui::Id::unique(("contact-field", &contact.id, 3usize))));
+    input_frame(
+        &mut app,
+        &ctx,
+        0.2,
+        replace_focused_text("Edited School"),
+        vec![],
+    );
+    assert!(app.inline_contacts.contains_key(&contact.id));
+    // A newer attachment must survive a stale list draft.
+    let mut latest = contact.clone();
+    latest.chat_notes = "newer note".into();
+    app.db.as_mut().unwrap().save_contact(&latest).unwrap();
+    assert!(app.save_inline_contact(&contact.id));
+    let saved = app.db.as_ref().unwrap().contacts().unwrap().remove(0);
+    assert_eq!(saved.school, "Edited School");
+    assert_eq!(saved.photo, contact.photo);
+    assert_eq!(saved.chats[0].original, contact.chats[0].original);
+    assert_eq!(saved.chat_notes, "newer note");
+}
+
+#[test]
+fn inventory_table_headers_align_and_brand_model_location_price_persist() {
+    let dir = tempfile::tempdir().unwrap();
+    let data = dir.path().join("data");
+    let mut app = PersonalDeskApp::open_data_directory(data.clone());
+    let mut item = InventoryItem::new();
+    item.name = "Laptop".into();
+    item.notes = "Keep note".into();
+    app.db.as_mut().unwrap().save_inventory_item(&item).unwrap();
+    app.load_inventory();
+    app.section = Section::Inventory;
+    app.set_view_mode(ViewMode::List);
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0., vec![], vec![]);
+    let output = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    for (index, label) in [
+        (0, "名称"),
+        (1, "品牌"),
+        (2, "型号"),
+        (4, "存放位置"),
+        (5, "购买日期"),
+    ] {
+        let header = position(&output, label);
+        let field = ctx
+            .read_response(egui::Id::unique((&item.id, index)))
+            .unwrap();
+        assert!(
+            (header.x - field.rect.left()).abs() < 2.,
+            "{label}: {header:?} {:?}",
+            field.rect
+        );
+    }
+    item.brand = "Brand".into();
+    item.model = "Model".into();
+    item.location = "Desk".into();
+    app.inline_inventory.insert(item.id.clone(), item.clone());
+    app.inventory_prices
+        .insert(item.id.clone(), "bad-price".into());
+    assert!(!app.save_inline_inventory(&item.id));
+    assert!(app.inline_inventory.contains_key(&item.id));
+    app.inventory_prices
+        .insert(item.id.clone(), "123.45".into());
+    assert!(app.save_inline_inventory(&item.id));
+    let restored = PersonalDeskApp::open_data_directory(data);
+    let saved = &restored.inventory_items[0];
+    assert_eq!(saved.brand, "Brand");
+    assert_eq!(saved.model, "Model");
+    assert_eq!(saved.location, "Desk");
+    assert_eq!(saved.purchase_price_cents, Some(12345));
+    assert_eq!(saved.notes, "Keep note");
+}
+
+#[test]
+fn dragging_documents_creates_one_book_and_tabs_edit_the_original_documents() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().join("data"));
+    let paths = [dir.path().join("a.md"), dir.path().join("b.md")];
+    for (i, path) in paths.iter().enumerate() {
+        fs::write(path, format!("body-{i}")).unwrap();
+        app.db
+            .as_mut()
+            .unwrap()
+            .set_document_title(path, &format!("Document-{i}"))
+            .unwrap();
+    }
+    app.section = Section::Documents;
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0., vec![], vec![]);
+    let output = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    let at = position(&output, "Document-0") + egui::vec2(12., 8.);
+    let source = position(&output, "Document-1") + egui::vec2(12., 8.);
+    input_frame(&mut app, &ctx, 0.2, pointer(source, true), vec![]);
+    input_frame(
+        &mut app,
+        &ctx,
+        0.25,
+        vec![egui::Event::PointerMoved(source + egui::vec2(30., 0.))],
+        vec![],
+    );
+    assert!(egui::DragAndDrop::payload::<super::document_group_ui::DocumentDrag>(&ctx).is_some());
+    input_frame(
+        &mut app,
+        &ctx,
+        0.28,
+        vec![egui::Event::PointerMoved(at)],
+        vec![],
+    );
+    input_frame(&mut app, &ctx, 0.3, pointer(at, false), vec![]);
+    let book = app.db.as_ref().unwrap().books().unwrap().remove(0);
+    assert_eq!(
+        app.db
+            .as_ref()
+            .unwrap()
+            .book_documents(&book.id)
+            .unwrap()
+            .len(),
+        2
+    );
+    for (i, path) in paths.iter().enumerate() {
+        assert_eq!(fs::read_to_string(path).unwrap(), format!("body-{i}"));
+    }
+    app.search_query = "Document-1".into();
+    let result = input_frame(&mut app, &ctx, 0.35, vec![], vec![]);
+    position(&result, &book.title);
+    app.search_query.clear();
+    app.open_document_book(book.clone());
+    let output = input_frame(&mut app, &ctx, 0.4, vec![], vec![]);
+    position(&output, "Document-0");
+    let at = position(&output, "Document-1") + egui::vec2(4., 5.);
+    input_frame(&mut app, &ctx, 0.5, pointer(at, true), vec![]);
+    input_frame(&mut app, &ctx, 0.6, pointer(at, false), vec![]);
+    app.editor_text = "Updated original".into();
+    app.editor_dirty = true;
+    assert!(app.save_editor());
+    assert_eq!(fs::read_to_string(&paths[1]).unwrap(), "Updated original");
+    app.editor_title = "Renamed original".into();
+    app.editor_dirty = true;
+    assert!(app.save_editor());
+    let output = input_frame(&mut app, &ctx, 0.7, vec![], vec![]);
+    position(&output, "Renamed original");
+    let back = position(&output, "← 全部文档") + egui::vec2(5., 5.);
+    input_frame(&mut app, &ctx, 0.8, pointer(back, true), vec![]);
+    input_frame(&mut app, &ctx, 0.9, pointer(back, false), vec![]);
+    assert!(!app.editor_visible);
+    assert!(app.library.book.is_none());
+    let zip = dir.path().join("documents.zip");
+    export::write(&app.data_dir, &zip, export::Scope::Documents).unwrap();
+    let mut archive = zip::ZipArchive::new(fs::File::open(zip).unwrap()).unwrap();
+    assert!(archive.by_name("图书文档.json").is_ok());
+    let db = Database::open(&app.data_dir).unwrap();
+    assert_eq!(
+        db.book_documents(&book.id).unwrap()[1].title,
+        "Renamed original"
+    );
+}
+
+#[test]
+fn new_document_return_is_fixed_after_scrolling_and_folder_parent_and_reset_work() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().join("data"));
+    app.create_internal_document();
+    app.editor_text = "long document\n".repeat(120);
+    app.editor_dirty = true;
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0., vec![], vec![]);
+    let first = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    let back = position(&first, "← 全部文档");
+    input_frame(
+        &mut app,
+        &ctx,
+        0.2,
+        vec![
+            egui::Event::PointerMoved(egui::pos2(750., 600.)),
+            egui::Event::MouseWheel {
+                unit: egui::MouseWheelUnit::Point,
+                delta: egui::vec2(0., -1500.),
+                phase: egui::TouchPhase::Move,
+                source: egui::MouseWheelSource::Unknown,
+                modifiers: egui::Modifiers::NONE,
+            },
+        ],
+        vec![],
+    );
+    let output = input_frame(&mut app, &ctx, 0.3, vec![], vec![]);
+    assert!((position(&output, "← 全部文档").y - back.y).abs() < 1.);
+    let at = back + egui::vec2(5., 5.);
+    input_frame(&mut app, &ctx, 0.4, pointer(at, true), vec![]);
+    input_frame(&mut app, &ctx, 0.5, pointer(at, false), vec![]);
+    assert!(!app.editor_visible);
+    let child = dir.path().join("folder/child");
+    fs::create_dir_all(&child).unwrap();
+    app.navigate(child.clone(), child);
+    let output = input_frame(&mut app, &ctx, 1., vec![], vec![]);
+    let at = position(&output, "上一级") + egui::vec2(5., 5.);
+    input_frame(&mut app, &ctx, 1.1, pointer(at, true), vec![]);
+    input_frame(&mut app, &ctx, 1.2, pointer(at, false), vec![]);
+    assert_eq!(
+        app.current_directory,
+        Some(dir.path().join("folder").canonicalize().unwrap())
+    );
+    let output = input_frame(&mut app, &ctx, 1.3, vec![], vec![]);
+    let at = position(&output, "重置") + egui::vec2(5., 5.);
+    input_frame(&mut app, &ctx, 1.4, pointer(at, true), vec![]);
+    input_frame(&mut app, &ctx, 1.5, pointer(at, false), vec![]);
+    assert!(app.current_directory.is_none());
+}
+
+#[test]
+fn grid_accounts_are_read_only_and_removed_features_are_absent_from_navigation() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().join("data"));
+    let mut item = Credential::new();
+    item.title = "Read only card".into();
+    item.username = "readonly-user".into();
+    item.password = "readonly-password".into();
+    app.db.as_mut().unwrap().save_credential(&item).unwrap();
+    app.load_summaries();
+    app.section = Section::Credentials;
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0., vec![], vec![]);
+    let output = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    for name in ["Codex", "PowerShell", "图书"] {
+        assert!(!output.shapes.iter().any(|shape|matches!(&shape.shape,egui::Shape::Text(t) if t.pos.x<200. && t.galley.text()==name)));
+    }
+    ctx.memory_mut(|m| {
+        m.request_focus(egui::Id::unique((
+            "credential-inline",
+            &item.id,
+            "username",
+        )))
+    });
+    input_frame(
+        &mut app,
+        &ctx,
+        0.2,
+        replace_focused_text("Do not edit"),
+        vec![],
+    );
+    assert!(app.inline_credentials.is_empty());
+    assert_eq!(
+        app.db
+            .as_ref()
+            .unwrap()
+            .credential(&item.id)
+            .unwrap()
+            .unwrap()
+            .username,
+        "readonly-user"
+    );
+    let at = position(&output, "Read only card") + egui::vec2(4., 5.);
+    input_frame(&mut app, &ctx, 0.3, pointer(at, true), vec![]);
+    input_frame(&mut app, &ctx, 0.4, pointer(at, false), vec![]);
+    assert!(app.credential_dialog_open);
+}
+
+#[test]
+fn grouping_failure_has_no_partial_book_links_or_document_changes() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut db = Database::open(&dir.path().join("data")).unwrap();
+    let a = dir.path().join("a.md");
+    let b = dir.path().join("unregistered.md");
+    fs::write(&a, "Original").unwrap();
+    fs::write(&b, "Keep source").unwrap();
+    db.set_document_title(&a, "A").unwrap();
+    assert!(db.group_documents(&[a.clone(), b.clone()], None).is_err());
+    assert!(db.books().unwrap().is_empty());
+    assert_eq!(db.document_records().unwrap().len(), 1);
+    assert_eq!(fs::read_to_string(&a).unwrap(), "Original");
 }

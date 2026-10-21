@@ -11,8 +11,8 @@ use eframe::egui::{self, Color32, RichText};
 use serde::{Deserialize, Serialize};
 
 mod browser_ui;
-mod codex_ui;
 mod contact_ui;
+mod document_group_ui;
 mod document_ui;
 mod favorites_ui;
 mod game_ui;
@@ -21,7 +21,6 @@ mod interaction_probe;
 mod inventory_ui;
 mod library_ui;
 mod module_tags;
-mod native_codex_ui;
 #[cfg(debug_assertions)]
 mod preview;
 mod terminal_ui;
@@ -95,8 +94,7 @@ pub struct PersonalDeskApp {
     terminal_error: String,
     terminal_focused: bool,
     terminal_inline: bool,
-    terminal_command: String,
-    terminal_command_focus: bool,
+    terminal_focus_requested: bool,
     terminal_starting: bool,
     library: library_ui::LibraryState,
     photo_cache: std::collections::HashMap<String, egui::TextureHandle>,
@@ -108,8 +106,7 @@ pub struct PersonalDeskApp {
     preview_capture: Option<preview::Capture>,
     #[cfg(debug_assertions)]
     interaction_probe: Option<interaction_probe::Probe>,
-    desktop: crate::native_embed::DesktopDock,
-    codex: crate::codex_client::CodexState,
+    native_host: usize,
     theme: crate::theme::ThemeSettings,
     theme_saved: crate::theme::ThemeSettings,
     theme_applied: Option<crate::theme::ThemeSettings>,
@@ -168,10 +165,14 @@ pub struct PersonalDeskApp {
     notice: String,
     credential_draft: Credential,
     credentials: Vec<CredentialSummary>,
+    inventory_prices: std::collections::BTreeMap<String, String>,
+    inline_contacts: std::collections::BTreeMap<String, Contact>,
+    inline_contact_tags: std::collections::BTreeMap<String, Vec<String>>,
     inline_credentials: std::collections::BTreeMap<String, CredentialSummary>,
     selected_credential: Option<String>,
     credential_dialog_open: bool,
     inventory_dialog_open: bool,
+    document_scroll_epoch: u64,
     editor_visible: bool,
     editor_title: String,
     editor_focus_title: bool,
@@ -223,7 +224,7 @@ impl PersonalDeskApp {
     pub fn desktop_visual_preview(cc: &eframe::CreationContext<'_>, base: PathBuf) -> Self {
         configure_theme(&cc.egui_ctx);
         let mut app = Self::open_data_directory(base);
-        app.section = Section::Codex;
+        app.section = Section::Folders;
         app
     }
 
@@ -282,8 +283,7 @@ impl PersonalDeskApp {
             terminal_error: String::new(),
             terminal_focused: false,
             terminal_inline: false,
-            terminal_command: String::new(),
-            terminal_command_focus: false,
+            terminal_focus_requested: false,
             terminal_starting: false,
             library: Default::default(),
             photo_cache: Default::default(),
@@ -294,8 +294,7 @@ impl PersonalDeskApp {
             preview_capture: None,
             #[cfg(debug_assertions)]
             interaction_probe: None,
-            desktop: crate::native_embed::DesktopDock::default(),
-            codex: crate::codex_client::CodexState::load(&base, &settings),
+            native_host: 0,
             theme: theme.clone(),
             theme_saved: theme,
             theme_applied: None,
@@ -367,10 +366,14 @@ impl PersonalDeskApp {
             notice: migration_notice,
             credential_draft: Credential::new(),
             credentials: Vec::new(),
+            inventory_prices: Default::default(),
+            inline_contacts: Default::default(),
+            inline_contact_tags: Default::default(),
             inline_credentials: Default::default(),
             selected_credential: None,
             credential_dialog_open: false,
             inventory_dialog_open: false,
+            document_scroll_epoch: 0,
             editor_visible: false,
             editor_title: String::new(),
             editor_focus_title: false,
@@ -618,6 +621,7 @@ impl PersonalDeskApp {
                 self.editor_conflict = false;
                 self.dirty_since = None;
                 self.section = Section::Documents;
+                self.document_scroll_epoch = self.document_scroll_epoch.wrapping_add(1);
                 if let Some(db) = self.db.as_mut() {
                     let _ = db.touch_document(&path);
                 }
@@ -1214,7 +1218,7 @@ impl PersonalDeskApp {
                             self.terminal = Some(terminal);
                             self.terminal_directory = directory;
                             self.terminal_error.clear();
-                            self.terminal_command_focus = true;
+                            self.terminal_focus_requested = true;
                         }
                         Err(error) => self.terminal_error = error,
                     }
@@ -1310,7 +1314,6 @@ impl PersonalDeskApp {
             Section::Games => "小游戏".into(),
             Section::Settings => "设置".into(),
             Section::Tools => "小工具".into(),
-            Section::Codex => "Codex".into(),
         }
     }
 
@@ -1348,6 +1351,15 @@ impl PersonalDeskApp {
                 {
                     self.undo_last_delete();
                 }
+                if (match self.section {
+                    Section::Contacts => !self.inline_contacts.is_empty(),
+                    Section::Credentials => !self.inline_credentials.is_empty(),
+                    Section::Inventory => !self.inline_inventory.is_empty(),
+                    _ => false,
+                }) && ui.button("保存修改").clicked()
+                {
+                    self.save_visible_rows();
+                }
                 if ui
                     .add_enabled(
                         !self.export_busy,
@@ -1363,13 +1375,13 @@ impl PersonalDeskApp {
                 }
                 if !matches!(
                     self.section,
-                    Section::Codex | Section::Games | Section::Terminal | Section::Browser
+                    Section::Games | Section::Terminal | Section::Browser
                 ) {
                     self.render_view_switcher(ui);
                 }
             });
         });
-        if self.section != Section::Codex {
+        {
             ui.add_space(10.0);
             ui.horizontal(|ui| {
                 let hint = match self.section {
@@ -1430,6 +1442,29 @@ impl PersonalDeskApp {
         let ctrl_k = ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::K));
         let ctrl_n = ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::N));
         let ctrl_s = ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::S));
+        if !self.detail_open()
+            && !self.terminal_focused
+            && ctx.input_mut(|i| i.consume_key(egui::Modifiers::ALT, egui::Key::ArrowLeft))
+        {
+            if self.section == Section::Folders {
+                if let Some(parent) = self
+                    .current_directory
+                    .as_ref()
+                    .and_then(|p| p.parent())
+                    .map(PathBuf::from)
+                {
+                    self.navigate(parent.clone(), parent);
+                }
+            } else if self.section == Section::Documents
+                && (!self.editor_dirty || self.save_editor())
+                && self.save_library_page()
+            {
+                self.editor_visible = false;
+                self.library.book = None;
+                self.library.page = None;
+                self.document_scroll_epoch = self.document_scroll_epoch.wrapping_add(1);
+            }
+        }
         if ctrl_k
             && !self.detail_open()
             && let Some(id) = search_id
@@ -1445,8 +1480,33 @@ impl PersonalDeskApp {
         if ctrl_s && self.editor_visible {
             self.save_editor();
         }
+        if ctrl_s && !self.terminal_focused {
+            self.save_visible_rows();
+        }
     }
 
+    fn save_visible_rows(&mut self) -> bool {
+        let mut saved = true;
+        match self.section {
+            Section::Contacts => {
+                for id in self.inline_contacts.keys().cloned().collect::<Vec<_>>() {
+                    saved &= self.save_inline_contact(&id);
+                }
+            }
+            Section::Inventory => {
+                for id in self.inline_inventory.keys().cloned().collect::<Vec<_>>() {
+                    saved &= self.save_inline_inventory(&id);
+                }
+            }
+            Section::Credentials => {
+                for id in self.inline_credentials.keys().cloned().collect::<Vec<_>>() {
+                    saved &= self.save_inline_credential(&id);
+                }
+            }
+            _ => {}
+        }
+        saved
+    }
     fn create_internal_document(&mut self) {
         if self.editor_dirty && !self.save_editor() {
             return;
@@ -1462,11 +1522,16 @@ impl PersonalDeskApp {
                     self.notice = format!("文档已创建，但记录保存失败：{error}");
                     return;
                 }
+                if let Some(book) = self.library.book.clone()
+                    && !self.group_document_paths(std::slice::from_ref(&path), Some(&book.id))
+                {
+                    self.library.book = None;
+                }
                 self.open_editor(path);
                 self.editor_focus_title = true;
                 self.search_query.clear();
                 self.search_results.clear();
-                self.notice = "可以直接填写标题和正文，修改后会自动保存".into();
+                self.notice = "已新建文档".into();
             }
             Err(error) => self.notice = format!("创建文档失败：{error}"),
         }
@@ -1507,9 +1572,9 @@ impl PersonalDeskApp {
                     .color(crate::theme::sidebar_text()),
             );
         });
-        ui.add_space(28.0);
+        ui.add_space(24.0);
         let navigation_spacing = ui.spacing().item_spacing.y;
-        ui.spacing_mut().item_spacing.y = 6.0;
+        ui.spacing_mut().item_spacing.y = 4.0;
         egui::ScrollArea::vertical()
             .id_salt("navigation-scroll")
             .max_height((ui.available_height() - 56.0).max(160.0))
@@ -1523,9 +1588,7 @@ impl PersonalDeskApp {
                         Some(self.credentials.len()),
                     ),
                     (Section::Documents, "文档写作", TileKind::Document, None),
-                    (Section::Books, "图书", TileKind::Document, None),
                     (Section::Browser, "大模型聊天", TileKind::Website, None),
-                    (Section::Terminal, "PowerShell", TileKind::Setting, None),
                     (
                         Section::Contacts,
                         "联系人",
@@ -1545,7 +1608,6 @@ impl PersonalDeskApp {
                         Some(self.website_items.len()),
                     ),
                     (Section::Tools, "小工具", TileKind::Setting, None),
-                    (Section::Codex, "Codex", TileKind::Document, None),
                     (Section::Games, "小游戏", TileKind::Game, Some(1)),
                     (Section::Settings, "设置", TileKind::Setting, None),
                 ];
@@ -1794,7 +1856,6 @@ impl PersonalDeskApp {
             Section::Websites => "添加网站",
             Section::Contacts => "添加联系人",
             Section::Tools => "添加工具",
-            Section::Codex => "",
             Section::Settings => "",
             Section::Games => "",
         }
@@ -1833,7 +1894,6 @@ impl PersonalDeskApp {
                 self.website_dialog_open = true;
             }
             Section::Tools => self.add_tool(),
-            Section::Codex => {}
             Section::Settings => {}
             Section::Games => {}
             Section::Contacts => {
@@ -1875,6 +1935,7 @@ impl PersonalDeskApp {
         match result {
             Ok(()) => {
                 self.inline_inventory.remove(id);
+                self.inventory_prices.remove(id);
                 if self.selected_inventory.as_deref() == Some(id) {
                     self.inventory_dialog_open = false;
                     self.selected_inventory = None;
@@ -1989,7 +2050,9 @@ impl PersonalDeskApp {
                 } else if response.save {
                     self.save_inline_credential(&item.id);
                 }
-                if response.details {
+                if response.details
+                    || (self.view_mode() == ViewMode::Grid && response.response.clicked())
+                {
                     selected = Some(item.id.clone());
                 }
                 response.response.context_menu(|ui| {
@@ -2162,6 +2225,8 @@ impl PersonalDeskApp {
                         &[
                             &item.name,
                             &item.category,
+                            &item.brand,
+                            &item.model,
                             &item.location,
                             &item.notes,
                             &item.tags.join(" "),
@@ -2186,15 +2251,21 @@ impl PersonalDeskApp {
                     &item.id,
                     &item.name,
                     (
-                        &format!(
-                            "{} 件 · {}",
+                        format!(
+                            "{} · {} 件{}",
+                            [item.brand.as_str(), item.model.as_str()]
+                                .into_iter()
+                                .filter(|v| !v.is_empty())
+                                .collect::<Vec<_>>()
+                                .join(" "),
                             item.quantity,
-                            if item.tags.is_empty() {
-                                "未分类".into()
+                            if item.location.is_empty() {
+                                String::new()
                             } else {
-                                item.tags.join(" · ")
+                                format!(" · {}", item.location)
                             }
-                        ),
+                        )
+                        .trim_start_matches(" · "),
                         &item.tags,
                     ),
                     TileKind::Item,
@@ -2247,6 +2318,10 @@ impl PersonalDeskApp {
     }
 
     fn render_documents(&mut self, ui: &mut egui::Ui) {
+        if self.library.book.is_some() {
+            self.render_book_documents(ui);
+            return;
+        }
         if self.editor_visible {
             self.render_document_editor_inline(ui);
             return;
@@ -2259,7 +2334,10 @@ impl PersonalDeskApp {
             .unwrap_or_default()
             .into_iter()
             .filter(|record| {
-                matches_query(&query, &[&record.title, &record.path.to_string_lossy()])
+                self.db
+                    .as_ref()
+                    .is_none_or(|db| db.document_book(&record.path).ok().flatten().is_none())
+                    && matches_query(&query, &[&record.title, &record.path.to_string_lossy()])
             })
             .collect::<Vec<_>>();
         let mut seen = std::collections::HashSet::new();
@@ -2303,6 +2381,7 @@ impl PersonalDeskApp {
         let mut discard = None;
         let mut add = false;
         records.sort_by_key(|item| !self.is_favorite("documents", &item.path.to_string_lossy()));
+        self.render_document_books(ui);
         collection(ui, "documents-gallery", self.view_mode(), |ui, side| {
             for record in &records {
                 let path = &record.path;
@@ -2335,7 +2414,7 @@ impl PersonalDeskApp {
                 );
                 self.favorite_control(ui, &response, "documents", &id);
                 self.record_classification_dropdown(ui, &response, TagScope::Documents, &id);
-                self.file_transfer_controls(ui, &response, path);
+                self.document_drag_target(ui, &response, path);
                 let pointer = ui.input(|input| {
                     (
                         input.pointer.primary_clicked(),
@@ -2442,18 +2521,19 @@ impl PersonalDeskApp {
             (self.current_root.clone(), self.current_directory.clone())
         {
             ui.horizontal_wrapped(|ui| {
-                if ui.button("所有快捷路径").clicked() {
+                if ui.button("重置").clicked() {
                     self.current_root = None;
                     self.current_directory = None;
+                    self.file_filter = Default::default();
                     self.search_query.clear();
                     self.search_results.clear();
                 }
                 if ui
-                    .add_enabled(current != root, egui::Button::new("上一级"))
+                    .add_enabled(current.parent().is_some(), egui::Button::new("上一级"))
                     .clicked()
                     && let Some(parent) = current.parent()
                 {
-                    self.navigate(root.clone(), parent.to_path_buf());
+                    self.navigate(parent.to_path_buf(), parent.to_path_buf());
                 }
                 if ui.button("添加文件").clicked()
                     && let Some(paths) = rfd::FileDialog::new().set_title("添加文件").pick_files()
@@ -2879,6 +2959,10 @@ impl PersonalDeskApp {
     }
 
     fn set_view_mode(&mut self, mode: ViewMode) {
+        if self.view_mode() == ViewMode::List && mode == ViewMode::Grid && !self.save_visible_rows()
+        {
+            return;
+        }
         match self
             .db
             .as_mut()
@@ -2912,7 +2996,7 @@ impl PersonalDeskApp {
             egui::Panel::left("navigation")
                 .resizable(false)
                 .show_separator_line(false)
-                .exact_size(204.0)
+                .exact_size(200.0)
                 .frame(
                     egui::Frame::default()
                         .fill(sidebar())
@@ -2921,13 +3005,7 @@ impl PersonalDeskApp {
                 )
                 .show(ui, |ui| self.render_sidebar(ui));
         }
-        if self.db.is_some() && self.section == Section::Codex && !self.desktop.basic_chat {
-            egui::CentralPanel::default()
-                .frame(egui::Frame::default().fill(content_fill()).inner_margin(8))
-                .show(ui, |ui| self.render_codex(ui));
-            self.render_detail_windows(&ctx);
-            return;
-        }
+
         if self.db.is_none() {
             egui::CentralPanel::default().show(ui, |ui| {
                 ui.heading("无法打开本地数据");
@@ -2943,10 +3021,6 @@ impl PersonalDeskApp {
                     .inner_margin(egui::Margin::symmetric(28, 24)),
             )
             .show(ui, |ui| {
-                if self.section == Section::Codex {
-                    self.render_codex(ui);
-                    return;
-                }
                 if self.section == Section::Browser {
                     self.render_browser(ui);
                     return;
@@ -2963,7 +3037,7 @@ impl PersonalDeskApp {
                         .show(ui, |ui| self.render_terminal(ui));
                 }
                 self.render_header(ui, &ctx);
-                ui.add_space(20.0);
+                ui.add_space(12.0);
                 self.render_module_filters(ui);
                 if !self.notice.is_empty() {
                     ui.add(
@@ -2976,11 +3050,22 @@ impl PersonalDeskApp {
                 if self.section == Section::Folders {
                     self.render_folder_toolbar(ui);
                 }
+                if self.section == Section::Documents
+                    && (self.editor_visible || self.library.book.is_some())
+                {
+                    self.render_document_toolbar(ui);
+                    self.render_book_tabs(ui);
+                }
                 egui::ScrollArea::vertical()
                     .id_salt((
                         "workspace-content",
                         views::key(self.section),
                         self.view_mode().value(),
+                        if self.section == Section::Documents {
+                            self.document_scroll_epoch
+                        } else {
+                            0
+                        },
                     ))
                     .show(ui, |ui| match self.section {
                         Section::Books => self.render_library(ui),
@@ -2995,7 +3080,6 @@ impl PersonalDeskApp {
                         Section::Games => self.render_games(ui),
                         Section::Settings => self.render_settings(ui),
                         Section::Tools => self.render_tools(ui),
-                        Section::Codex => self.render_codex(ui),
                     });
             });
         self.handle_external_drop(&ctx, content_panel.response.rect);
@@ -3005,7 +3089,6 @@ impl PersonalDeskApp {
     fn detail_open(&self) -> bool {
         self.theme_editor_open
             || self.tool_draft.is_some()
-            || (self.codex.has_request() || self.codex.settings_open)
             || self.credential_dialog_open
             || self.inventory_dialog_open
             || (self.editor_visible && self.section != Section::Documents)
@@ -3146,7 +3229,7 @@ impl PersonalDeskApp {
                     ui.style_mut()
                         .text_styles
                         .insert(egui::TextStyle::Button, egui::FontId::proportional(16.0));
-                    ui.spacing_mut().item_spacing.y = 6.0;
+                    ui.spacing_mut().item_spacing.y = 4.0;
                     ui.label("名称");
                     ui.text_edit_singleline(&mut self.credential_draft.title);
                     ui.horizontal(|ui| {
@@ -3233,6 +3316,12 @@ impl PersonalDeskApp {
                     }
                     ui.label("存放位置");
                     ui.text_edit_singleline(&mut self.inventory_draft.location);
+                    ui.columns(2, |columns| {
+                        columns[0].label("品牌");
+                        columns[0].text_edit_singleline(&mut self.inventory_draft.brand);
+                        columns[1].label("型号");
+                        columns[1].text_edit_singleline(&mut self.inventory_draft.model);
+                    });
                     ui.columns(2, |columns| {
                         columns[0].label("购买日期");
                         columns[0].add(
@@ -3495,7 +3584,6 @@ impl PersonalDeskApp {
         self.render_contact_dialogs(ctx);
         self.render_tool_dialog(ctx);
         self.render_theme_dialog(ctx);
-        self.render_codex_requests(ctx);
         self.render_update_dialog(ctx);
         self.render_book_dialog(ctx);
     }
@@ -3586,21 +3674,18 @@ impl eframe::App for PersonalDeskApp {
             self.save_recovery_draft();
         }
         self.save_library_page();
-        if let Err(error) = self.desktop.detach() {
-            self.notice = error;
-        }
     }
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         use raw_window_handle::{HasWindowHandle, RawWindowHandle};
         if let Ok(window) = frame.window_handle()
             && let RawWindowHandle::Win32(window) = window.as_raw()
         {
-            self.desktop.bind_parent(window.hwnd.get() as usize);
+            self.native_host = window.hwnd.get() as usize;
         }
         let ctx = ui.ctx().clone();
         self.native_drop_position =
             if ctx.input(|i| !i.raw.hovered_files.is_empty() || !i.raw.dropped_files.is_empty()) {
-                crate::file_drop::client_position(self.desktop.parent, ctx.pixels_per_point())
+                crate::file_drop::client_position(self.native_host, ctx.pixels_per_point())
             } else {
                 None
             };
@@ -3653,6 +3738,9 @@ impl eframe::App for PersonalDeskApp {
             {
                 records_saved &= self.save_website_draft();
             }
+            for id in self.inline_contacts.keys().cloned().collect::<Vec<_>>() {
+                records_saved &= self.save_inline_contact(&id);
+            }
             for id in self.inline_credentials.keys().cloned().collect::<Vec<_>>() {
                 records_saved &= self.save_inline_credential(&id);
             }
@@ -3665,7 +3753,6 @@ impl eframe::App for PersonalDeskApp {
                 ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
             }
         }
-        self.codex.poll();
         if self.editor_dirty
             && !self.editor_conflict
             && self
@@ -3678,8 +3765,8 @@ impl eframe::App for PersonalDeskApp {
         self.render_workspace(ui);
         #[cfg(debug_assertions)]
         self.capture_preview(&ctx);
-        self.sync_native_codex();
         self.sync_browser(&ctx);
+        self.document_outbound_drag(&ctx);
         #[cfg(debug_assertions)]
         self.advance_interaction_probe(&ctx);
         if let Some(path) = self.tool_launch_request.take()
@@ -3708,7 +3795,7 @@ impl eframe::App for PersonalDeskApp {
             };
         }
         if let Some(path) = self.drag_file_request.take() {
-            match crate::file_transfer::drag(&path, self.desktop.parent) {
+            match crate::file_transfer::drag(&path, self.native_host) {
                 Ok(true) => {
                     self.notice = "已复制".into();
                     self.refresh_files();
@@ -3748,7 +3835,8 @@ fn configure_theme(ctx: &egui::Context) {
             .text_styles
             .insert(egui::TextStyle::Heading, egui::FontId::proportional(24.0));
         style.spacing.item_spacing = egui::vec2(10.0, 10.0);
-        style.spacing.button_padding = egui::vec2(14.0, 9.0);
+        style.spacing.button_padding = egui::vec2(12.0, 7.0);
+        style.animation_time = 0.12;
         style.spacing.interact_size.y = 36.0;
         style.visuals.panel_fill = canvas();
         style.visuals.window_fill = surface();
@@ -3760,7 +3848,7 @@ fn configure_theme(ctx: &egui::Context) {
         style.visuals.faint_bg_color = canvas();
         style.visuals.weak_text_color = Some(muted());
         style.visuals.hyperlink_color = accent();
-        style.visuals.selection.bg_fill = Color32::from_rgb(223, 218, 250);
+        style.visuals.selection.bg_fill = Color32::from_rgb(210, 230, 255);
         style.visuals.selection.stroke = egui::Stroke::new(1.0, accent());
         style.visuals.widgets.noninteractive.fg_stroke = egui::Stroke::new(1.0, ink());
         style.visuals.widgets.noninteractive.bg_fill = surface();
@@ -3769,12 +3857,12 @@ fn configure_theme(ctx: &egui::Context) {
         style.visuals.widgets.inactive.weak_bg_fill = surface();
         style.visuals.widgets.inactive.fg_stroke = egui::Stroke::new(1.0, ink());
         style.visuals.widgets.inactive.bg_stroke = egui::Stroke::new(1.0, border());
-        style.visuals.widgets.hovered.bg_fill = Color32::from_rgb(244, 241, 255);
-        style.visuals.widgets.hovered.weak_bg_fill = Color32::from_rgb(244, 241, 255);
+        style.visuals.widgets.hovered.bg_fill = Color32::from_rgb(243, 244, 247);
+        style.visuals.widgets.hovered.weak_bg_fill = Color32::from_rgb(243, 244, 247);
         style.visuals.widgets.hovered.fg_stroke = egui::Stroke::new(1.0, accent());
         style.visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0, accent());
-        style.visuals.widgets.active.bg_fill = Color32::from_rgb(232, 226, 252);
-        style.visuals.widgets.active.weak_bg_fill = Color32::from_rgb(232, 226, 252);
+        style.visuals.widgets.active.bg_fill = Color32::from_rgb(225, 235, 250);
+        style.visuals.widgets.active.weak_bg_fill = Color32::from_rgb(225, 235, 250);
         style.visuals.widgets.active.fg_stroke = egui::Stroke::new(1.0, accent());
         style.visuals.widgets.active.bg_stroke = egui::Stroke::new(1.0, accent());
         style.visuals.widgets.inactive.corner_radius = egui::CornerRadius::same(9);
@@ -3810,7 +3898,17 @@ fn configure_theme(ctx: &egui::Context) {
             .families
             .entry(egui::FontFamily::Monospace)
             .or_default()
-            .insert(0, "chinese".into());
+            .push("chinese".into());
+        if let Ok(bytes) = std::fs::read(r"C:\Windows\Fonts\segoeui.ttf") {
+            fonts
+                .font_data
+                .insert("system-ui".into(), egui::FontData::from_owned(bytes).into());
+            fonts
+                .families
+                .entry(egui::FontFamily::Proportional)
+                .or_default()
+                .insert(0, "system-ui".into());
+        }
         ctx.set_fonts(fonts);
     }
 }
@@ -4265,8 +4363,6 @@ mod editor_tests {
             "contact-chat",
             "theme-editor",
             "tool-details",
-            "codex-request",
-            "codex-settings",
         ] {
             let directory = tempfile::tempdir().expect("isolated data");
             let mut app = PersonalDeskApp::open_data_directory(directory.path().to_path_buf());
@@ -4284,23 +4380,13 @@ mod editor_tests {
                 "rename-file" => app.file_dialog_open = true,
                 "website-details" => app.website_dialog_open = true,
                 "export-details" => app.export_dialog_open = true,
-                "codex-settings" => app.codex.settings_open = true,
                 "theme-editor" => app.theme_editor_open = true,
                 "tool-details" => {
                     app.tool_draft = Some(crate::launcher::AppTool::new(
                         directory.path().join("test.exe"),
                     ))
                 }
-                "codex-request" => {
-                    app.codex
-                        .requests
-                        .push_back(crate::codex_client::ServerRequest {
-                            id: serde_json::json!(1),
-                            method: "item/commandExecution/requestApproval".into(),
-                            params: serde_json::json!({"command":"test"}),
-                            answers: Default::default(),
-                        })
-                }
+
                 "contact-details" => app.contact_dialog_open = true,
                 "contact-chat" => {
                     let path = directory.path().join("chat.xlsx");

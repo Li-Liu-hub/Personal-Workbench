@@ -55,6 +55,10 @@ pub struct InventoryItem {
     pub category: String,
     pub quantity: i64,
     pub location: String,
+    #[serde(default)]
+    pub brand: String,
+    #[serde(default)]
+    pub model: String,
     pub notes: String,
     #[serde(default)]
     pub tags: Vec<String>,
@@ -130,7 +134,6 @@ pub enum Section {
     Contacts,
     Games,
     Tools,
-    Codex,
     Settings,
 }
 

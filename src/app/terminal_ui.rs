@@ -17,7 +17,7 @@ impl PersonalDeskApp {
                 let _ = sender.send(BackgroundMessage::Terminal(directory, Box::new(result)));
             });
         }
-        self.terminal_command_focus = true;
+        self.terminal_focus_requested = true;
         self.section = Section::Terminal;
     }
     pub(super) fn render_terminal(&mut self, ui: &mut egui::Ui) {
@@ -61,45 +61,15 @@ impl PersonalDeskApp {
         if !self.terminal_error.is_empty() {
             ui.colored_label(Color32::from_rgb(185, 65, 71), &self.terminal_error);
         }
-        let mut execute = false;
-        ui.horizontal(|ui| {
-            let command = ui.add_sized(
-                [(ui.available_width() - 90.0).max(100.0), 36.0],
-                egui::TextEdit::singleline(&mut self.terminal_command)
-                    .id_salt("powershell-command")
-                    .hint_text("输入 PowerShell 命令，回车执行"),
-            );
-            if self.terminal_command_focus {
-                command.request_focus();
-                self.terminal_command_focus = false;
-            }
-            execute = ui.add_enabled(running, egui::Button::new("执行")).clicked()
-                || ((command.has_focus() || command.lost_focus())
-                    && ui.input(|input| input.key_pressed(egui::Key::Enter)));
-        });
-        if execute
-            && running
-            && let Some(terminal) = self.terminal.as_mut()
-        {
-            let mut bytes = self.terminal_command.as_bytes().to_vec();
-            bytes.push(b'\r');
-            match terminal.write(&bytes) {
-                Ok(()) => {
-                    self.terminal_command.clear();
-                    self.terminal_error.clear();
-                    self.terminal_command_focus = true;
-                }
-                Err(error) => self.terminal_error = error,
-            }
-        }
         let (rect, response) = ui.allocate_exact_size(
             ui.available_size().max(egui::vec2(100.0, 100.0)),
             egui::Sense::click(),
         );
         ui.painter()
             .rect_filled(rect, 12, Color32::from_rgb(21, 25, 36));
-        if response.clicked() {
+        if response.clicked() || self.terminal_focus_requested {
             response.request_focus();
+            self.terminal_focus_requested = false;
         }
         self.terminal_focused = response.has_focus();
         let Some(terminal) = &mut self.terminal else {
@@ -127,14 +97,22 @@ impl PersonalDeskApp {
             }
         }
         let painter = ui.painter().with_clip_rect(area);
-        for (index, line) in terminal.parser.screen().rows(0, cols).enumerate() {
-            painter.text(
-                area.min + egui::vec2(0.0, index as f32 * row_height),
-                egui::Align2::LEFT_TOP,
-                line,
-                font.clone(),
-                Color32::from_rgb(224, 231, 244),
-            );
+        for row in 0..rows {
+            for col in 0..cols {
+                if let Some(value) = terminal.parser.screen().cell(row, col) {
+                    if value.is_wide_continuation() || value.contents().is_empty() {
+                        continue;
+                    }
+                    let at = area.min + egui::vec2(col as f32 * cell, row as f32 * row_height);
+                    painter.text(
+                        at,
+                        egui::Align2::LEFT_TOP,
+                        value.contents(),
+                        font.clone(),
+                        terminal_color(value.fgcolor()),
+                    );
+                }
+            }
         }
         if self.terminal_focused {
             let (row, col) = terminal.parser.screen().cursor_position();
@@ -142,6 +120,14 @@ impl PersonalDeskApp {
                 area.min + egui::vec2(col as f32 * cell, row as f32 * row_height),
                 egui::vec2(cell, row_height),
             );
+            ui.ctx().output_mut(|output| {
+                output.ime = Some(egui::output::IMEOutput {
+                    purpose: egui::IMEPurpose::Normal,
+                    rect: area,
+                    cursor_rect: cursor,
+                    should_interrupt_composition: false,
+                })
+            });
             painter.rect_stroke(
                 cursor,
                 0,
@@ -151,7 +137,9 @@ impl PersonalDeskApp {
             let events = ui.input_mut(|input| std::mem::take(&mut input.events));
             for event in events {
                 let bytes = match event {
-                    egui::Event::Text(value) | egui::Event::Paste(value) => value.into_bytes(),
+                    egui::Event::Text(value)
+                    | egui::Event::Paste(value)
+                    | egui::Event::Ime(egui::ImeEvent::Commit(value)) => value.into_bytes(),
                     egui::Event::Key {
                         key,
                         pressed: true,
@@ -196,5 +184,42 @@ impl PersonalDeskApp {
             }
         }
         ui.ctx().request_repaint_after(Duration::from_millis(40));
+    }
+}
+
+fn terminal_color(color: vt100::Color) -> Color32 {
+    match color {
+        vt100::Color::Default => Color32::from_rgb(235, 235, 240),
+        vt100::Color::Rgb(r, g, b) => Color32::from_rgb(r, g, b),
+        vt100::Color::Idx(index) => {
+            const BASIC: [[u8; 3]; 16] = [
+                [35, 35, 40],
+                [255, 105, 97],
+                [93, 211, 145],
+                [255, 214, 100],
+                [97, 175, 255],
+                [202, 143, 246],
+                [91, 215, 223],
+                [225, 225, 230],
+                [128, 128, 137],
+                [255, 140, 132],
+                [140, 236, 170],
+                [255, 230, 145],
+                [150, 201, 255],
+                [222, 180, 255],
+                [151, 232, 236],
+                [255, 255, 255],
+            ];
+            let c = if index < 16 {
+                BASIC[index as usize]
+            } else if index < 232 {
+                let n = index - 16;
+                let component = |v| if v == 0 { 0 } else { 55 + 40 * v };
+                [component(n / 36), component(n / 6 % 6), component(n % 6)]
+            } else {
+                [8 + 10 * (index - 232); 3]
+            };
+            Color32::from_rgb(c[0], c[1], c[2])
+        }
     }
 }

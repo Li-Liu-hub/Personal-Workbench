@@ -106,7 +106,7 @@ impl PersonalDeskApp {
     }
     pub(super) fn sync_browser(&mut self, ctx: &egui::Context) {
         self.browser.sync(
-            self.desktop.parent,
+            self.native_host,
             self.browser_area,
             ctx.pixels_per_point(),
             self.section == Section::Browser && !self.detail_open(),

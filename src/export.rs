@@ -25,7 +25,7 @@ pub enum Scope {
     Contacts,
     Games,
     Tools,
-    Codex,
+    LegacyChats,
     Theme,
     Books,
 }
@@ -43,7 +43,6 @@ impl Scope {
             Section::Contacts => Self::Contacts,
             Section::Games => Self::Games,
             Section::Tools => Self::Tools,
-            Section::Codex => Self::Codex,
             Section::Settings => Self::All,
         }
     }
@@ -60,13 +59,13 @@ impl Scope {
             Self::Contacts => "联系人",
             Self::Games => "小游戏",
             Self::Tools => "小工具",
-            Self::Codex => "Codex",
+            Self::LegacyChats => "历史聊天",
             Self::Theme => "主题",
         }
     }
 
     fn includes(self, other: Self) -> bool {
-        self == Self::All || self == other
+        self == Self::All || self == other || (self == Self::Documents && other == Self::Books)
     }
 
     fn includes_tags(self, scope: crate::tags::Scope) -> bool {
@@ -259,7 +258,7 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
             counts.insert("小工具", records.len());
             package.json("小工具.json", &records)?;
         }
-        if scope.includes(Scope::Codex) {
+        if scope.includes(Scope::LegacyChats) {
             let settings = snapshot
                 .settings()?
                 .into_iter()
@@ -335,6 +334,8 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
                     pages.push(page);
                 }
             }
+            let references=books.iter().map(|book|Ok(serde_json::json!({"book_id":book.id,"documents":snapshot.book_documents(&book.id)?}))).collect::<Result<Vec<_>>>()?;
+            package.json("图书文档.json", &references)?;
             package.json("图书.json", &books)?;
             package.json("图书页面.json", &pages)?;
             counts.insert("图书", books.len());

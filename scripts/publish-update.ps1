@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '整理项目目录与 README，完善开机自启动设置、状态读取和已开启时的启动路径更新'
+    [string]$Notes = '苹果风格界面与交互改造，移除 Codex 和独立终端入口，文档拖拽组成图书，联系人与物品列表编辑、品牌型号和返回导航修复'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
