@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = 'SQL练习提供完整表结构与样例数据，支持直接运行、结果验证及自动回滚；4B结合执行结果评分并简短讲解；可复制完整题目与反馈；保留个人数据和历史作答'
+    [string]$Notes = '刷题与英语新增讲解追问侧栏、一键启动模型和真实速度统计；单词增加造句、双向翻译、语法及混合训练；新增Java项目修Bug与实际测试；修复联系人视图切换，统一联系人和物品列表；保留个人数据及历史记录'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

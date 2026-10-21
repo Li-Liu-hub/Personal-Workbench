@@ -908,8 +908,8 @@ impl Database {
     }
 
     pub fn save_inventory_item(&mut self, item: &InventoryItem) -> Result<()> {
-        crate::model::validate_date(&item.purchase_date)?;
-        crate::model::validate_date(&item.disposal_date)?;
+        let purchase_date = crate::model::normalize_date(&item.purchase_date)?;
+        let disposal_date = crate::model::normalize_date(&item.disposal_date)?;
         if item.purchase_price_cents.is_some_and(|price| price < 0) {
             return Err(DeskError::InvalidPath("购买价格不能小于零".into()));
         }
@@ -930,7 +930,7 @@ impl Database {
                 item.quantity.max(0),
                 item.location.trim(),
                 item.notes.trim(),
-                serde_json::to_string(&values)?,item.purchase_date,item.purchase_price_cents,item.disposal_date,item.brand.trim(),item.model.trim()
+                serde_json::to_string(&values)?,purchase_date,item.purchase_price_cents,disposal_date,item.brand.trim(),item.model.trim()
             ],
         )?;
         tx.commit()?;

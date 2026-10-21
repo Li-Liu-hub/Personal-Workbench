@@ -2,9 +2,11 @@
 
 mod app;
 mod autostart;
+mod challenges;
 mod contacts;
 mod crypto;
 mod db;
+mod english;
 mod error;
 mod export;
 mod files;

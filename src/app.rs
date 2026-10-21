@@ -54,10 +54,16 @@ use crate::{
 };
 
 enum BackgroundMessage {
-    StudyGraded(study_ui::GradedMessage),
+    StudyGraded(Box<study_ui::GradedMessage>),
     SqlExecuted(study_ui::SqlMessage),
+    Learning(study_ui::LearningMessage),
     ContactChats(String, std::result::Result<Vec<ChatRecord>, String>),
     Exported(std::result::Result<export::Report, String>),
+}
+impl BackgroundMessage {
+    fn graded(message: study_ui::GradedMessage) -> Self {
+        Self::StudyGraded(Box::new(message))
+    }
 }
 
 #[derive(Clone)]
@@ -72,6 +78,8 @@ pub struct PersonalDeskApp {
     credential_layout: credential_ui::CredentialLayoutCache,
     favorites: std::collections::BTreeSet<(String, String)>,
     inline_inventory: std::collections::HashMap<String, InventoryItem>,
+    contact_extra_columns: bool,
+    inventory_quantities: std::collections::HashMap<String, String>,
     writing: writing_ui::WritingState,
     library: library_ui::LibraryState,
     photo_cache: std::collections::HashMap<String, egui::TextureHandle>,
@@ -210,6 +218,10 @@ impl PersonalDeskApp {
             credential_layout: Default::default(),
             favorites,
             inline_inventory: Default::default(),
+            inventory_quantities: Default::default(),
+            contact_extra_columns: settings
+                .get("view.contacts.extra")
+                .is_some_and(|v| v == "true"),
             writing: Default::default(),
             library: Default::default(),
             photo_cache: Default::default(),
@@ -729,8 +741,9 @@ impl PersonalDeskApp {
     fn poll_background(&mut self) {
         while let Ok(message) = self.receiver.try_recv() {
             match message {
-                BackgroundMessage::StudyGraded(message) => self.accept_study_grade(message),
+                BackgroundMessage::StudyGraded(message) => self.accept_study_grade(*message),
                 BackgroundMessage::SqlExecuted(message) => self.accept_sql_execution(message),
+                BackgroundMessage::Learning(message) => self.accept_learning(message),
                 BackgroundMessage::ContactChats(id, result) => {
                     self.contact_import_busy = false;
                     if self.contact_dialog_open && self.contact_draft.id == id {
@@ -1454,9 +1467,17 @@ impl PersonalDeskApp {
     }
 
     fn set_view_mode(&mut self, mode: ViewMode) {
-        if self.view_mode() == ViewMode::List && mode == ViewMode::Grid && !self.save_visible_rows()
-        {
+        if self.section == Section::Documents && !self.flush_writing() {
             return;
+        }
+        // Browsing is independent from editing. Invalid/incomplete row drafts stay in memory.
+        if self.view_mode() == ViewMode::List
+            && mode == ViewMode::Grid
+            && (!self.inline_contacts.is_empty()
+                || !self.inline_inventory.is_empty()
+                || !self.inline_credentials.is_empty())
+        {
+            self.notice = "编辑草稿已保留，切回列表可继续修改".into();
         }
         match self
             .db

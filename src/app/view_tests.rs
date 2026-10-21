@@ -1202,6 +1202,69 @@ fn inventory_table_headers_align_and_brand_model_location_price_persist() {
 }
 
 #[test]
+fn invalid_contact_and_inventory_drafts_do_not_block_view_switching_or_overwrite_saved_data() {
+    let dir = tempfile::tempdir().unwrap();
+    let data = dir.path().join("data");
+    let mut app = PersonalDeskApp::open_data_directory(data.clone());
+    let mut contact = Contact::new();
+    contact.name = "Draft contact".into();
+    contact.birthday = "2005-07-06".into();
+    app.db.as_mut().unwrap().save_contact(&contact).unwrap();
+    app.load_contacts();
+    let mut draft = contact.clone();
+    draft.birthday = "2005-".into();
+    draft.school = "Unsaved School".into();
+    app.inline_contacts
+        .insert(contact.id.clone(), draft.clone());
+    app.section = Section::Contacts;
+    app.set_view_mode(ViewMode::List);
+    app.set_view_mode(ViewMode::Grid);
+    assert_eq!(app.view_mode(), ViewMode::Grid);
+    assert_eq!(app.inline_contacts[&contact.id].birthday, "2005-");
+    app.set_view_mode(ViewMode::List);
+    assert!(!app.save_inline_contact(&contact.id));
+    assert!(!app.notice.contains("路径不可用"));
+    assert_eq!(
+        app.db
+            .as_ref()
+            .unwrap()
+            .contact(&contact.id)
+            .unwrap()
+            .unwrap()
+            .birthday,
+        "2005-07-06"
+    );
+    draft.birthday = " 2005/7/6 ".into();
+    app.inline_contacts.insert(contact.id.clone(), draft);
+    assert!(app.save_inline_contact(&contact.id));
+    assert_eq!(
+        app.db
+            .as_ref()
+            .unwrap()
+            .contact(&contact.id)
+            .unwrap()
+            .unwrap()
+            .birthday,
+        "2005-07-06"
+    );
+    let mut item = InventoryItem::new();
+    item.name = "Draft inventory".into();
+    app.db.as_mut().unwrap().save_inventory_item(&item).unwrap();
+    item.purchase_date = "2026-".into();
+    app.inline_inventory.insert(item.id.clone(), item.clone());
+    app.section = Section::Inventory;
+    app.set_view_mode(ViewMode::List);
+    app.set_view_mode(ViewMode::Grid);
+    assert_eq!(app.view_mode(), ViewMode::Grid);
+    assert_eq!(app.inline_inventory[&item.id].purchase_date, "2026-");
+    assert!(
+        app.db.as_ref().unwrap().inventory_items().unwrap()[0]
+            .purchase_date
+            .is_empty()
+    );
+}
+
+#[test]
 fn grid_accounts_are_read_only_and_removed_features_are_absent_from_navigation() {
     let dir = tempfile::tempdir().unwrap();
     let mut app = PersonalDeskApp::open_data_directory(dir.path().join("data"));

@@ -130,12 +130,19 @@ pub enum Section {
 }
 
 pub fn validate_date(value: &str) -> crate::error::Result<()> {
-    if !value.trim().is_empty()
-        && (value.len() != 10 || chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d").is_err())
-    {
-        return Err(crate::error::DeskError::InvalidPath(
-            "日期请填写 YYYY-MM-DD，例如 2026-10-20".into(),
-        ));
+    normalize_date(value).map(|_| ())
+}
+pub fn normalize_date(value: &str) -> crate::error::Result<String> {
+    let value = value.trim();
+    if value.is_empty() {
+        return Ok(String::new());
     }
-    Ok(())
+    for format in ["%Y-%m-%d", "%Y/%m/%d", "%Y.%m.%d", "%Y%m%d", "%Y年%m月%d日"] {
+        if let Ok(date) = chrono::NaiveDate::parse_from_str(value, format) {
+            return Ok(date.format("%Y-%m-%d").to_string());
+        }
+    }
+    Err(crate::error::DeskError::InvalidDate(
+        "日期无效，请填写 YYYY-MM-DD，例如 2026-10-20；也可留空".into(),
+    ))
 }

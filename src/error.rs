@@ -2,6 +2,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum DeskError {
+    #[error("{0}")]
+    InvalidDate(String),
     #[error("本地数据库操作失败: {0}")]
     Database(#[from] rusqlite::Error),
     #[error("文件操作失败: {0}")]

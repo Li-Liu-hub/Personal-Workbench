@@ -76,12 +76,16 @@ fn editable_field(
             size,
         )
     };
-    ui.painter().rect_stroke(
-        rect.expand(2.0),
-        4,
-        egui::Stroke::new(1.0, border()),
-        egui::StrokeKind::Inside,
-    );
+    if ui.rect_contains_pointer(rect) || ui.ctx().memory(|m| m.has_focus(id)) {
+        ui.painter()
+            .rect_filled(rect.expand(2.), 5, crate::theme::input());
+        ui.painter().rect_stroke(
+            rect.expand(2.),
+            5,
+            egui::Stroke::new(1., border()),
+            egui::StrokeKind::Inside,
+        );
+    }
     ui.place(
         rect,
         field

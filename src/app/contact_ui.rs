@@ -539,7 +539,45 @@ impl PersonalDeskApp {
     fn render_contact_rows(&mut self, ui: &mut egui::Ui, items: &[Contact]) {
         use crate::ui_components::table;
         const C: &[f32] = &[
-            115., 65., 120., 150., 115., 100., 135., 180., 180., 140., 130., 160.,
+            130., 60., 115., 140., 90., 90., 125., 180., 180., 140., 110., 140.,
+        ];
+        if ui
+            .checkbox(&mut self.contact_extra_columns, "显示证件号、地址和爱好")
+            .changed()
+            && let Some(db) = self.db.as_mut()
+            && let Err(error) = db.set_setting(
+                "view.contacts.extra",
+                if self.contact_extra_columns {
+                    "true"
+                } else {
+                    "false"
+                },
+            )
+        {
+            self.notice = error.to_string();
+        }
+        let indices: Vec<usize> = if self.contact_extra_columns {
+            (0..12).collect()
+        } else {
+            vec![0, 1, 2, 3, 4, 5, 6, 10, 11]
+        };
+        let widths = table::fit(
+            &indices.iter().map(|i| C[*i]).collect::<Vec<_>>(),
+            ui.available_width(),
+        );
+        let labels = [
+            "姓名",
+            "性别",
+            "生日",
+            "学校",
+            "专业",
+            "工作",
+            "手机号",
+            "身份证号",
+            "地址",
+            "爱好",
+            "分类",
+            "操作",
         ];
         let options = self.names_for_scope(TagScope::Contacts);
         ui.spacing_mut().scroll.floating = false;
@@ -549,21 +587,8 @@ impl PersonalDeskApp {
                 ui.spacing_mut().item_spacing.y = 0.;
                 table::header(
                     ui,
-                    C,
-                    &[
-                        "姓名",
-                        "性别",
-                        "生日",
-                        "学校",
-                        "专业",
-                        "工作",
-                        "手机号",
-                        "身份证号",
-                        "地址",
-                        "爱好",
-                        "分类",
-                        "操作",
-                    ],
+                    &widths,
+                    &indices.iter().map(|i| labels[*i]).collect::<Vec<_>>(),
                 );
                 for item in items {
                     let mut draft = self.inline_contacts.get(&item.id).unwrap_or(item).clone();
@@ -573,7 +598,12 @@ impl PersonalDeskApp {
                         .cloned()
                         .unwrap_or_else(|| self.record_labels(TagScope::Contacts, &item.id));
                     let mut changed = false;
-                    let (response, cells) = table::row(ui, ("contact-row", &item.id), C);
+                    let (response, visible_cells) =
+                        table::row(ui, ("contact-row", &item.id), &widths);
+                    let mut cells = [egui::Rect::NOTHING; 12];
+                    for (index, cell) in indices.iter().zip(visible_cells) {
+                        cells[*index] = cell;
+                    }
                     for (index, value) in [
                         (0, &mut draft.name),
                         (1, &mut draft.gender),
@@ -586,12 +616,18 @@ impl PersonalDeskApp {
                         (8, &mut draft.address),
                         (9, &mut draft.hobbies),
                     ] {
+                        if !cells[index].is_positive() {
+                            continue;
+                        }
                         changed |= table::text(
                             ui,
                             cells[index],
                             ("contact-field", &item.id, index),
                             value,
                         );
+                        if index == 2 {
+                            table::date_hint(ui, cells[index], value);
+                        }
                     }
                     table::cell_ui(ui, cells[10], |ui| {
                         changed |= crate::ui_components::classification_dropdown(
@@ -644,7 +680,7 @@ impl PersonalDeskApp {
                         self.open_contact_details(&item.id);
                     }
                 }
-                if table::add_row(ui, C, "add-contact-row", "添加联系人").clicked() {
+                if table::add_row(ui, &widths, "add-contact-row", "添加联系人").clicked() {
                     self.add_current_item();
                 }
             });
