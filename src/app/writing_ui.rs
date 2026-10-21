@@ -363,8 +363,11 @@ impl PersonalDeskApp {
                 if ui.button("生成日志").clicked() {
                     self.new_writing(true);
                 }
-                ui.selectable_value(&mut self.writing.preview, false, "写作");
-                ui.selectable_value(&mut self.writing.preview, true, "预览");
+                crate::ui_components::chrome::segmented(
+                    ui,
+                    &mut self.writing.preview,
+                    &[(false, "写作"), (true, "预览")],
+                );
                 ui.menu_button("更多", |ui| {
                     save = ui.button("保存 · Ctrl+S").clicked();
                     export = ui.button("导出 Markdown").clicked();

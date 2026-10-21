@@ -846,7 +846,7 @@ impl PersonalDeskApp {
                     .color(crate::theme::sidebar_text()),
             );
         });
-        ui.add_space(24.0);
+        ui.add_space(16.0);
         let navigation_spacing = ui.spacing().item_spacing.y;
         ui.spacing_mut().item_spacing.y = 4.0;
         egui::ScrollArea::vertical()
@@ -880,16 +880,36 @@ impl PersonalDeskApp {
                         TileKind::Website,
                         Some(self.website_items.len()),
                     ),
+                    (Section::Practice, "刷题王", TileKind::Practice, None),
+                    (Section::Words, "每日单词", TileKind::Word, None),
                     (Section::Tools, "小工具", TileKind::Setting, None),
-                    (Section::Practice, "刷题王", TileKind::Document, None),
-                    (Section::Words, "每日单词", TileKind::Document, None),
                     (Section::Games, "小游戏", TileKind::Game, Some(1)),
                     (Section::Settings, "设置", TileKind::Setting, None),
                 ];
                 navigation.sort_by_key(|(section, _, _, _)| {
                     !self.is_favorite("modules", views::key(*section))
                 });
+                let mut last_group = "";
                 for (section, title, kind, count) in navigation {
+                    let group = if self.is_favorite("modules", views::key(section)) {
+                        "置顶"
+                    } else {
+                        match section {
+                            Section::Practice | Section::Words => "学习",
+                            Section::Tools | Section::Games | Section::Settings => "工具",
+                            _ => "日常",
+                        }
+                    };
+                    if group != last_group {
+                        ui.add_space(if last_group.is_empty() { 0. } else { 10. });
+                        ui.horizontal(|ui| {
+                            ui.add_space(12.);
+                            ui.label(RichText::new(group).size(11.).color(muted()));
+                        });
+                        ui.add_space(3.);
+                        last_group = group;
+                    }
+
                     let selected = section == self.section;
                     let label = if self.is_favorite("modules", views::key(section)) {
                         format!("★ {title}")
@@ -2073,7 +2093,8 @@ fn configure_theme(ctx: &egui::Context) {
         style.visuals.widgets.hovered.bg_fill = Color32::from_rgb(243, 244, 247);
         style.visuals.widgets.hovered.weak_bg_fill = Color32::from_rgb(243, 244, 247);
         style.visuals.widgets.hovered.fg_stroke = egui::Stroke::new(1.0, accent());
-        style.visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0, accent());
+        style.visuals.widgets.hovered.bg_stroke =
+            egui::Stroke::new(1.0, border().lerp_to_gamma(accent(), 0.3));
         style.visuals.widgets.active.bg_fill = Color32::from_rgb(225, 235, 250);
         style.visuals.widgets.active.weak_bg_fill = Color32::from_rgb(225, 235, 250);
         style.visuals.widgets.active.fg_stroke = egui::Stroke::new(1.0, accent());

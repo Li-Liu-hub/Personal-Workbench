@@ -77,6 +77,16 @@ fn pending(card: &Card, answer: &str) -> Pending {
 
 impl PersonalDeskApp {
     #[cfg(debug_assertions)]
+    pub(super) fn close_study_preview(&mut self) {
+        self.study.settings = false;
+    }
+    #[cfg(debug_assertions)]
+    pub(super) fn reset_study_preview(&mut self) {
+        self.study.practice.notebook = false;
+        self.study.practice.result = None;
+    }
+
+    #[cfg(debug_assertions)]
     pub(super) fn prepare_study_preview(&mut self, settings: bool) {
         if settings {
             self.study.settings = true;
@@ -294,6 +304,7 @@ impl PersonalDeskApp {
                 self.next_study(kind, &mut s);
             }
         }
+        use crate::ui_components::chrome;
         ui.horizontal(|ui| {
             crate::ui_components::toolbar_title(
                 ui,
@@ -302,8 +313,8 @@ impl PersonalDeskApp {
                 } else {
                     "刷题王"
                 },
-                170.,
-                23.,
+                155.,
+                24.,
             );
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button("练习设置").clicked() {
@@ -315,11 +326,10 @@ impl PersonalDeskApp {
                 if ui.button("导入题库").clicked() {
                     self.import_study_bank();
                 }
-                ui.selectable_value(&mut s.notebook, true, "记录本");
-                ui.selectable_value(&mut s.notebook, false, "练习");
+                chrome::segmented(ui, &mut s.notebook, &[(false, "练习"), (true, "记录本")]);
             });
         });
-        ui.add_space(10.);
+        ui.add_space(14.);
         ui.horizontal(|ui| {
             if kind == "engineering" {
                 let before = s.topic.clone();
@@ -352,20 +362,51 @@ impl PersonalDeskApp {
                 .as_ref()
                 .and_then(|db| db.study_today(kind).ok())
                 .unwrap_or(0);
+            chrome::badge(
+                ui,
+                &if kind == "word" {
+                    format!("今日 {today} / {}", self.study.rules.daily_words)
+                } else {
+                    format!("今日已练 {today} 题")
+                },
+                accent(),
+            );
+            if kind == "word" {
+                ui.add(
+                    egui::ProgressBar::new(
+                        (today as f32 / self.study.rules.daily_words.max(1) as f32).min(1.),
+                    )
+                    .desired_width(76.)
+                    .desired_height(4.)
+                    .fill(accent()),
+                );
+            }
             ui.label(
                 RichText::new(if kind == "word" {
-                    format!(
-                        "IELTS · {count} 词   今日 {today}/{}",
-                        self.study.rules.daily_words
-                    )
+                    format!("IELTS · {count} 词")
                 } else {
-                    format!("{count} 道工程题   今日已练 {today} 题")
+                    format!("{count} 道工程题")
                 })
-                .small()
+                .size(12.)
                 .color(muted()),
             );
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                ui.label(RichText::new(self.study.ai.status()).small().color(muted()));
+                let status = self.study.ai.status();
+                ui.add(
+                    egui::Label::new(RichText::new(status.clone()).size(12.).color(muted()))
+                        .truncate(),
+                )
+                .on_hover_text(status);
+                let (rect, _) = ui.allocate_exact_size(egui::vec2(7., 7.), egui::Sense::hover());
+                ui.painter().circle_filled(
+                    rect.center(),
+                    2.5,
+                    if self.study.busy {
+                        accent()
+                    } else {
+                        muted().gamma_multiply(0.5)
+                    },
+                );
             });
         });
         if !self.study.error.is_empty() {
@@ -381,147 +422,246 @@ impl PersonalDeskApp {
         self.render_study_settings(ui.ctx());
     }
     fn render_study_question(&mut self, ui: &mut egui::Ui, kind: &str, s: &mut Session) {
+        use crate::ui_components::chrome;
         let Some(card) = s.card.clone() else {
-            ui.centered_and_justified(|ui| {
-                ui.label(if self.study.busy {
-                    "正在完成本次批改…"
+            chrome::empty_state(
+                ui,
+                if self.study.busy {
+                    "正在完成批改"
                 } else {
-                    "当前范围已全部掌握，可在记录本中选择复习，或在设置里启用低频抽取。"
-                });
-            });
+                    "这一组已全部掌握"
+                },
+                "可以在记录本中选择题目复习",
+                if kind == "word" {
+                    TileKind::Word
+                } else {
+                    TileKind::Practice
+                },
+            );
             return;
         };
-        egui::ScrollArea::vertical()
-            .id_salt(("study-question", kind, &card.id))
-            .auto_shrink([false, false])
-            .show(ui, |ui| {
-                let width = ui.available_width().min(900.);
-                let left = ((ui.available_width() - width) / 2.).max(0.);
-                ui.horizontal_top(|ui| {
-                    ui.add_space(left);
-                    egui::Frame::new()
-                        .fill(surface())
-                        .corner_radius(14)
-                        .inner_margin(26)
-                        .show(ui, |ui| {
-                            ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
-                                ui.set_width((width - 52.).max(240.));
-                                if kind == "word" {
-                                    ui.label(RichText::new(&card.title).size(40.).strong());
-                                    if !card.phonetic.is_empty() {
-                                        ui.label(
-                                            RichText::new(&card.phonetic).size(18.).color(muted()),
-                                        );
-                                    }
-                                } else {
-                                    ui.label(RichText::new(&card.title).size(24.).strong());
-                                    ui.label(RichText::new(&card.topic).small().color(muted()));
-                                }
-                                ui.add_space(14.);
-                                ui.label(&card.prompt);
-                                ui.add_space(16.);
-                                ui.add_enabled_ui(s.result.is_none() && !self.study.busy, |ui| {
-                                    let response = ui.add(
-                                        egui::TextEdit::multiline(&mut s.answer)
-                                            .id_salt(("study-answer", kind, &card.id))
-                                            .desired_width(f32::INFINITY)
-                                            .desired_rows(if kind == "word" { 3 } else { 8 })
-                                            .font(
-                                                if matches!(
-                                                    card.topic.as_str(),
-                                                    "SQL 命令" | "Linux 命令"
-                                                ) {
-                                                    egui::FontId::monospace(15.)
-                                                } else {
-                                                    egui::FontId::proportional(16.)
-                                                },
-                                            )
-                                            .hint_text(if kind == "word" {
-                                                "回忆中文含义…"
-                                            } else {
-                                                "写下你的思路、命令或代码…"
-                                            }),
+        let viewport_height = (ui.available_height() - 66.).max(140.);
+        ui.allocate_ui_with_layout(
+            egui::vec2(ui.available_width(), viewport_height),
+            egui::Layout::top_down(egui::Align::Min),
+            |ui| {
+                egui::ScrollArea::vertical()
+                    .id_salt(("study-question", kind, &card.id))
+                    .max_height(viewport_height)
+                    .min_scrolled_height(viewport_height)
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        let width = ui.available_width().min(960.);
+                        let left = ((ui.available_width() - width) / 2.).max(0.);
+                        ui.horizontal_top(|ui| {
+                            ui.add_space(left);
+                            chrome::paper().show(ui, |ui| {
+                                ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+                                    self.render_study_card(
+                                        ui,
+                                        kind,
+                                        s,
+                                        &card,
+                                        width,
+                                        viewport_height,
                                     );
-                                    if response.changed() {
-                                        let p = s.pending.get_or_insert_with(|| pending(&card, ""));
-                                        p.answer = s.answer.clone();
-                                        if let Some(db) = self.db.as_mut()
-                                            && let Err(e) = db.save_study_pending(p)
-                                        {
-                                            self.study.error = e.to_string();
-                                        }
-                                    }
                                 });
-                                ui.add_space(14.);
-                                ui.horizontal(|ui| {
-                                    if s.result.is_none() {
-                                        if ui
-                                            .add_enabled(
-                                                !self.study.busy && !s.answer.trim().is_empty(),
-                                                primary_button("提交 · AI 批改"),
-                                            )
-                                            .clicked()
-                                        {
-                                            self.submit_study(kind, s);
-                                        }
-                                        if ui
-                                            .add_enabled(
-                                                !self.study.busy,
-                                                egui::Button::new("不会，查看答案"),
-                                            )
-                                            .clicked()
-                                        {
-                                            self.record_unknown(s);
-                                        }
-                                    }
-                                    if ui
-                                        .add_enabled(
-                                            !self.study.busy,
-                                            egui::Button::new(if s.result.is_some() {
-                                                "下一题"
-                                            } else {
-                                                "换一道"
-                                            }),
-                                        )
-                                        .clicked()
-                                    {
-                                        self.next_study(kind, s);
-                                    }
-                                    if self.study.busy {
-                                        ui.spinner();
-                                        ui.label("正在批改…");
-                                    }
-                                });
-                                if let Some(attempt) = s.result.as_ref() {
-                                    ui.add_space(18.);
-                                    ui.separator();
-                                    ui.label(
-                                        RichText::new(format!(
-                                            "完成度 {}% · 第 {} 次",
-                                            attempt.completion, attempt.number
-                                        ))
-                                        .size(21.)
-                                        .strong()
-                                        .color(accent()),
-                                    );
-                                    render_feedback(ui, attempt);
-                                    ui.add_space(12.);
-                                    ui.collapsing("参考答案与评分点", |ui| {
-                                        ui.label(&card.answer);
-                                        ui.hyperlink_to("参考资料", &card.source);
-                                    });
-                                }
                             });
                         });
+                        ui.add_space(8.);
+                    });
+            },
+        );
+        ui.add_space(10.);
+        // Actions belong to the viewport, so long answers and feedback never hide them.
+        let width = ui.available_width().min(960.);
+        let left = ((ui.available_width() - width) / 2.).max(0.);
+        ui.horizontal(|ui| {
+            ui.add_space(left);
+            ui.allocate_ui_with_layout(
+                egui::vec2(width, 42.),
+                egui::Layout::left_to_right(egui::Align::Center),
+                |ui| {
+                    let bar = egui::Rect::from_min_size(ui.cursor().min, egui::vec2(width, 46.));
+                    ui.painter().rect_filled(bar, 12, surface());
+                    ui.painter().rect_stroke(
+                        bar,
+                        12,
+                        egui::Stroke::new(1., border().gamma_multiply(0.7)),
+                        egui::StrokeKind::Inside,
+                    );
+                    ui.add_space(10.);
+                    let shortcut =
+                        ui.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::Enter));
+                    if s.result.is_none() {
+                        let enabled = !self.study.busy && !s.answer.trim().is_empty();
+                        if ui
+                            .add_enabled(
+                                enabled,
+                                primary_button("提交 · AI 批改").min_size(egui::vec2(140., 38.)),
+                            )
+                            .on_hover_text("Ctrl+Enter")
+                            .clicked()
+                            || (shortcut && enabled)
+                        {
+                            self.submit_study(kind, s);
+                        }
+                        if ui
+                            .add_enabled(
+                                !self.study.busy,
+                                egui::Button::new("不会，查看答案").frame(false),
+                            )
+                            .clicked()
+                        {
+                            self.record_unknown(s);
+                        }
+                    }
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui
+                            .add_enabled(
+                                !self.study.busy,
+                                if s.result.is_some() {
+                                    primary_button("下一题")
+                                } else {
+                                    egui::Button::new("换一道")
+                                },
+                            )
+                            .clicked()
+                        {
+                            self.next_study(kind, s);
+                        }
+                        if self.study.busy {
+                            ui.spinner();
+                            ui.label(RichText::new("正在批改…").size(13.).color(muted()));
+                        }
+                    });
+                },
+            );
+        });
+    }
+    fn render_study_card(
+        &mut self,
+        ui: &mut egui::Ui,
+        kind: &str,
+        s: &mut Session,
+        card: &Card,
+        width: f32,
+        height: f32,
+    ) {
+        use crate::ui_components::chrome;
+        ui.set_width((width - 58.).max(220.));
+        ui.set_min_height((height - 58.).max(200.));
+        if kind == "word" {
+            ui.add_space(8.);
+            ui.vertical_centered(|ui| {
+                ui.label(RichText::new("IELTS").size(12.).color(accent()));
+                ui.add_space(16.);
+                ui.label(RichText::new(&card.title).size(46.).strong());
+                if !card.phonetic.is_empty() {
+                    ui.label(RichText::new(&card.phonetic).size(17.).color(muted()));
+                }
+            });
+            ui.add_space(28.);
+        } else {
+            ui.horizontal(|ui| chrome::badge(ui, &card.topic, accent()));
+            ui.add_space(16.);
+            ui.label(RichText::new(&card.title).size(25.).strong());
+            ui.add_space(12.);
+            ui.add(egui::Label::new(RichText::new(&card.prompt).size(16.)).wrap());
+            ui.add_space(24.);
+        }
+        ui.label(
+            RichText::new(if kind == "word" {
+                "中文释义"
+            } else {
+                "你的解答"
+            })
+            .size(12.)
+            .color(muted()),
+        );
+        ui.add_space(7.);
+        egui::Frame::new()
+            .fill(crate::theme::input())
+            .stroke(egui::Stroke::new(1., border().gamma_multiply(0.7)))
+            .corner_radius(11)
+            .inner_margin(16)
+            .show(ui, |ui| {
+                ui.set_width((width - 92.).max(180.));
+                self.render_study_answer(ui, kind, s, card);
+            });
+        if let Some(attempt) = s.result.as_ref() {
+            ui.add_space(24.);
+            ui.separator();
+            ui.add_space(18.);
+            ui.horizontal(|ui| {
+                ui.label(
+                    RichText::new(format!("{}%", attempt.completion))
+                        .size(34.)
+                        .strong()
+                        .color(accent()),
+                );
+                ui.vertical(|ui| {
+                    ui.label(RichText::new("本次完成度").size(13.));
+                    ui.label(
+                        RichText::new(format!("第 {} 次练习", attempt.number))
+                            .size(12.)
+                            .color(muted()),
+                    );
                 });
             });
+            ui.add_space(14.);
+            render_feedback(ui, attempt);
+            ui.add_space(16.);
+            ui.collapsing("参考答案与评分点", |ui| {
+                ui.label(&card.answer);
+                ui.hyperlink_to("参考资料", &card.source);
+            });
+        }
+        ui.add_space(8.);
+    }
+    fn render_study_answer(&mut self, ui: &mut egui::Ui, kind: &str, s: &mut Session, card: &Card) {
+        ui.add_enabled_ui(s.result.is_none() && !self.study.busy, |ui| {
+            let font = if matches!(card.topic.as_str(), "SQL 命令" | "Linux 命令") {
+                egui::FontId::monospace(15.)
+            } else {
+                egui::FontId::proportional(16.)
+            };
+            let mut layouter = |ui: &egui::Ui, text: &dyn egui::TextBuffer, width: f32| {
+                let mut job =
+                    egui::text::LayoutJob::simple(text.as_str().into(), font.clone(), ink(), width);
+                for part in &mut job.sections {
+                    part.format.line_height = Some(25.);
+                }
+                ui.painter().layout_job(job)
+            };
+            let response = ui.add(
+                egui::TextEdit::multiline(&mut s.answer)
+                    .id_salt(("study-answer", kind, &card.id))
+                    .desired_width(f32::INFINITY)
+                    .desired_rows(if kind == "word" { 3 } else { 6 })
+                    .frame(egui::Frame::NONE)
+                    .margin(0)
+                    .font(font.clone())
+                    .layouter(&mut layouter)
+                    .hint_text(if kind == "word" {
+                        "回忆中文含义…"
+                    } else {
+                        "写下你的思路、命令或代码…"
+                    }),
+            );
+            if response.changed() {
+                let p = s.pending.get_or_insert_with(|| pending(card, ""));
+                p.answer = s.answer.clone();
+                if let Some(db) = self.db.as_mut()
+                    && let Err(e) = db.save_study_pending(p)
+                {
+                    self.study.error = e.to_string();
+                }
+            }
+        });
     }
     fn render_study_notebook(&mut self, ui: &mut egui::Ui, kind: &str, s: &mut Session) {
-        ui.add(
-            egui::TextEdit::singleline(&mut s.query)
-                .hint_text("搜索记录本")
-                .desired_width(280.),
-        );
+        use crate::ui_components::chrome;
         let key = (
             self.db.as_ref().map(|d| d.change_count()).unwrap_or(0),
             s.query.clone(),
@@ -532,95 +672,162 @@ impl PersonalDeskApp {
                 .as_ref()
                 .and_then(|db| db.study_notebook(kind, &s.query).ok())
                 .unwrap_or_default();
-            s.notebook_key = Some(key);
-            if let Some(id) = s.selected.as_ref() {
-                s.history = self
-                    .db
-                    .as_ref()
-                    .and_then(|db| db.study_attempts(id).ok())
-                    .unwrap_or_default();
+            if !s
+                .entries
+                .iter()
+                .any(|e| s.selected.as_ref() == Some(&e.card.id))
+            {
+                s.selected = s.entries.first().map(|e| e.card.id.clone());
             }
+            s.history = s
+                .selected
+                .as_ref()
+                .and_then(|id| self.db.as_ref().and_then(|db| db.study_attempts(id).ok()))
+                .unwrap_or_default();
+            s.notebook_key = Some(key);
         }
         let mut select = None;
         let mut retry = None;
         let height = ui.available_height();
-        let left_width = (ui.available_width() * 0.31).clamp(190., 300.);
+        let left_width = (ui.available_width() * 0.31).clamp(220., 300.);
+        ui.spacing_mut().item_spacing.x = 16.;
         ui.horizontal_top(|ui| {
             ui.allocate_ui_with_layout(
                 egui::vec2(left_width, height),
                 egui::Layout::top_down(egui::Align::Min),
                 |ui| {
-                    egui::ScrollArea::vertical()
-                        .id_salt(("notebook-list", kind))
-                        .auto_shrink([false, false])
+                    egui::Frame::new()
+                        .fill(surface())
+                        .stroke(egui::Stroke::new(1., border().gamma_multiply(0.7)))
+                        .corner_radius(13)
+                        .inner_margin(14)
                         .show(ui, |ui| {
-                            let pending = self
-                                .db
-                                .as_ref()
-                                .and_then(|db| db.study_pending(kind).ok())
-                                .unwrap_or_default();
-                            if !pending.is_empty() {
-                                ui.collapsing(format!("待完成 · {}", pending.len()), |ui| {
-                                    for p in pending.iter().filter(|p| !p.answer.trim().is_empty())
-                                    {
-                                        let title = self
-                                            .db
-                                            .as_ref()
-                                            .and_then(|db| db.study_card(&p.card_id).ok().flatten())
-                                            .map(|c| c.title)
-                                            .unwrap_or_default();
-                                        if ui
-                                            .add_enabled(!self.study.busy, egui::Button::new(title))
-                                            .clicked()
-                                        {
-                                            retry = Some((p.card_id.clone(), Some(p.clone())));
-                                        }
+                            ui.set_width(left_width - 30.);
+                            ui.add(
+                                egui::TextEdit::singleline(&mut s.query)
+                                    .hint_text("搜索记录本")
+                                    .desired_width(f32::INFINITY),
+                            );
+                            ui.add_space(12.);
+                            egui::ScrollArea::vertical()
+                                .id_salt(("notebook-list", kind))
+                                .max_height((height - 72.).max(100.))
+                                .min_scrolled_height((height - 72.).max(100.))
+                                .auto_shrink([false, false])
+                                .show(ui, |ui| {
+                                    let drafts = self
+                                        .db
+                                        .as_ref()
+                                        .and_then(|db| db.study_pending(kind).ok())
+                                        .unwrap_or_default()
+                                        .into_iter()
+                                        .filter(|p| !p.answer.trim().is_empty())
+                                        .collect::<Vec<_>>();
+                                    if !drafts.is_empty() {
+                                        ui.collapsing(
+                                            format!("待完成 · {}", drafts.len()),
+                                            |ui| {
+                                                for p in drafts {
+                                                    let title = self
+                                                        .db
+                                                        .as_ref()
+                                                        .and_then(|db| {
+                                                            db.study_card(&p.card_id).ok().flatten()
+                                                        })
+                                                        .map(|c| c.title)
+                                                        .unwrap_or_default();
+                                                    if ui
+                                                        .add_enabled(
+                                                            !self.study.busy,
+                                                            egui::Button::new(title),
+                                                        )
+                                                        .clicked()
+                                                    {
+                                                        retry = Some((p.card_id.clone(), Some(p)));
+                                                    }
+                                                }
+                                            },
+                                        );
                                     }
-                                });
-                            }
-                            for entry in &s.entries {
-                                let selected = s.selected.as_ref() == Some(&entry.card.id);
-                                egui::Frame::new()
-                                    .fill(if selected {
-                                        surface().lerp_to_gamma(accent(), 0.10)
-                                    } else {
-                                        surface()
-                                    })
-                                    .corner_radius(9)
-                                    .inner_margin(10)
-                                    .show(ui, |ui| {
-                                        ui.set_width((left_width - 20.).max(120.));
-                                        if ui
-                                            .add(egui::Button::new(&entry.card.title).frame(false))
-                                            .clicked()
-                                        {
+                                    for entry in &s.entries {
+                                        let chosen = s.selected.as_ref() == Some(&entry.card.id);
+                                        let frame = egui::Frame::new()
+                                            .fill(if chosen {
+                                                surface().lerp_to_gamma(accent(), 0.08)
+                                            } else {
+                                                surface()
+                                            })
+                                            .corner_radius(9)
+                                            .inner_margin(11)
+                                            .show(ui, |ui| {
+                                                ui.set_width((left_width - 54.).max(140.));
+                                                ui.add(
+                                                    egui::Label::new(
+                                                        RichText::new(&entry.card.title)
+                                                            .size(14.)
+                                                            .color(if chosen {
+                                                                accent()
+                                                            } else {
+                                                                ink()
+                                                            }),
+                                                    )
+                                                    .truncate(),
+                                                );
+                                                ui.add_space(4.);
+                                                ui.label(
+                                                    RichText::new(format!(
+                                                        "{} 次练习 · 最近 {}%",
+                                                        entry.progress.attempts,
+                                                        entry.progress.latest
+                                                    ))
+                                                    .size(12.)
+                                                    .color(muted()),
+                                                );
+                                                ui.add_space(3.);
+                                                ui.label(
+                                                    RichText::new(if entry.progress.mastered {
+                                                        "已掌握".into()
+                                                    } else {
+                                                        format!(
+                                                            "连续达标 {} / {}",
+                                                            entry
+                                                                .progress
+                                                                .streak
+                                                                .min(self.study.rules.consecutive),
+                                                            self.study.rules.consecutive
+                                                        )
+                                                    })
+                                                    .size(11.)
+                                                    .color(muted()),
+                                                );
+                                            });
+                                        let response = ui.interact(
+                                            frame.response.rect,
+                                            ui.scope_id().with(("notebook-entry", &entry.card.id)),
+                                            egui::Sense::click(),
+                                        );
+                                        if response.clicked() {
                                             select = Some(entry.card.id.clone());
                                         }
+                                        if response.hovered() && !chosen {
+                                            ui.painter().rect_stroke(
+                                                frame.response.rect,
+                                                9,
+                                                egui::Stroke::new(1., border()),
+                                                egui::StrokeKind::Inside,
+                                            );
+                                        }
+                                        response
+                                            .on_hover_cursor(egui::CursorIcon::PointingHand)
+                                            .on_hover_text(&entry.card.title);
+                                        ui.add_space(4.);
+                                    }
+                                    if s.entries.is_empty() {
                                         ui.label(
-                                            RichText::new(format!(
-                                                "{} 次 · 最近 {}% · 连续 {}/{}{}",
-                                                entry.progress.attempts,
-                                                entry.progress.latest,
-                                                entry
-                                                    .progress
-                                                    .streak
-                                                    .min(self.study.rules.consecutive),
-                                                self.study.rules.consecutive,
-                                                if entry.progress.mastered {
-                                                    " · 已掌握"
-                                                } else {
-                                                    ""
-                                                }
-                                            ))
-                                            .small()
-                                            .color(muted()),
+                                            RichText::new("暂无记录").size(13.).color(muted()),
                                         );
-                                    });
-                                ui.add_space(6.);
-                            }
-                            if s.entries.is_empty() {
-                                ui.label("完成一次练习后，记录会出现在这里。");
-                            }
+                                    }
+                                });
                         });
                 },
             );
@@ -628,47 +835,104 @@ impl PersonalDeskApp {
                 egui::vec2(ui.available_width(), height),
                 egui::Layout::top_down(egui::Align::Min),
                 |ui| {
-                    egui::ScrollArea::vertical()
-                        .id_salt(("notebook-detail", kind))
-                        .auto_shrink([false, false])
-                        .show(ui, |ui| {
-                            if let Some(id) = s.selected.as_ref() {
-                                if let Some(entry) = s.entries.iter().find(|e| &e.card.id == id) {
-                                    ui.heading(&entry.card.title);
-                                    if ui
-                                        .add_enabled(
-                                            !self.study.busy,
-                                            egui::Button::new("再练一次"),
-                                        )
-                                        .clicked()
-                                    {
-                                        retry = Some((id.clone(), None));
-                                    }
-                                }
-                                render_trend(ui, &s.history);
-                                for attempt in s.history.iter().rev() {
-                                    ui.collapsing(
-                                        format!(
+                    let width = ui.available_width();
+                    chrome::paper().show(ui, |ui| {
+                        ui.set_width((width - 58.).max(180.));
+                        if let Some(id) = s.selected.as_ref() {
+                            if let Some(entry) = s.entries.iter().find(|e| &e.card.id == id) {
+                                ui.label(RichText::new(&entry.card.title).size(22.).strong());
+                                ui.add_space(8.);
+                                ui.horizontal(|ui| {
+                                    chrome::badge(
+                                        ui,
+                                        &format!("最近 {}%", entry.progress.latest),
+                                        accent(),
+                                    );
+                                    ui.label(
+                                        RichText::new(format!(
+                                            "累计 {} 次",
+                                            entry.progress.attempts
+                                        ))
+                                        .size(12.)
+                                        .color(muted()),
+                                    );
+                                    ui.with_layout(
+                                        egui::Layout::right_to_left(egui::Align::Center),
+                                        |ui| {
+                                            if ui
+                                                .add_enabled(
+                                                    !self.study.busy,
+                                                    primary_button("再练一次"),
+                                                )
+                                                .clicked()
+                                            {
+                                                retry = Some((id.clone(), None));
+                                            }
+                                        },
+                                    );
+                                });
+                            }
+                            ui.add_space(10.);
+                            render_trend(ui, &s.history);
+                            ui.add_space(14.);
+                            egui::ScrollArea::vertical()
+                                .id_salt(("notebook-detail", kind))
+                                .max_height((height - 260.).max(100.))
+                                .min_scrolled_height((height - 260.).max(100.))
+                                .auto_shrink([false, false])
+                                .show(ui, |ui| {
+                                    for attempt in s.history.iter().rev() {
+                                        egui::CollapsingHeader::new(format!(
                                             "第 {} 次 · {}% · {}",
                                             attempt.number,
                                             attempt.completion,
-                                            &attempt.at[..19.min(attempt.at.len())]
-                                        ),
-                                        |ui| {
-                                            ui.label(&attempt.answer);
-                                            render_feedback(ui, attempt);
+                                            attempt
+                                                .at
+                                                .get(..19)
+                                                .unwrap_or(&attempt.at)
+                                                .replace('T', " ")
+                                        ))
+                                        .id_salt(&attempt.id)
+                                        .default_open(
+                                            attempt.number
+                                                == s.history.last().map(|a| a.number).unwrap_or(0),
+                                        )
+                                        .show(ui, |ui| {
+                                            ui.add_space(8.);
                                             ui.label(
-                                                RichText::new(&attempt.model)
-                                                    .small()
-                                                    .color(muted()),
+                                                RichText::new("我的答案").size(12.).color(muted()),
                                             );
-                                        },
-                                    );
+                                            ui.label(if attempt.answer.trim().is_empty() {
+                                                "未作答"
+                                            } else {
+                                                &attempt.answer
+                                            });
+                                            ui.add_space(14.);
+                                            render_feedback(ui, attempt);
+                                        });
+                                        ui.add_space(10.);
+                                    }
+                                });
+                        } else {
+                            ui.set_min_height((height - 58.).max(180.));
+                            chrome::empty_state(
+                                ui,
+                                "还没有练习记录",
+                                "完成一次练习后，在这里查看进步",
+                                if kind == "word" {
+                                    TileKind::Word
+                                } else {
+                                    TileKind::Practice
+                                },
+                            );
+                            ui.add_space(18.);
+                            ui.vertical_centered(|ui| {
+                                if ui.add(primary_button("开始练习")).clicked() {
+                                    s.notebook = false;
                                 }
-                            } else {
-                                ui.label("选择一条记录，查看每次完成度与批改详情。");
-                            }
-                        });
+                            });
+                        }
+                    });
                 },
             );
         });
@@ -820,50 +1084,99 @@ impl PersonalDeskApp {
     }
 }
 fn render_feedback(ui: &mut egui::Ui, attempt: &Attempt) {
-    ui.label(&attempt.feedback.summary);
+    use crate::ui_components::chrome;
+    ui.label(RichText::new(&attempt.feedback.summary).size(14.));
+    ui.add_space(10.);
     for check in &attempt.feedback.checks {
-        let text = attempt
-            .question
-            .rubric
-            .iter()
-            .find(|r| r.id == check.id)
-            .map(|r| r.text.as_str())
-            .unwrap_or(&check.id);
-        ui.collapsing(format!("{} 分 · {}", check.earned, text), |ui| {
-            ui.label(&check.reason);
-            if !check.evidence.is_empty() {
-                ui.label(
-                    RichText::new(format!("原文：{}", check.evidence))
-                        .small()
-                        .color(muted()),
-                );
-            }
-        });
+        let rubric = attempt.question.rubric.iter().find(|r| r.id == check.id);
+        let points = rubric.map(|r| r.points).unwrap_or(0);
+        let text = rubric.map(|r| r.text.as_str()).unwrap_or(&check.id);
+        egui::Frame::new()
+            .fill(crate::theme::input())
+            .corner_radius(10)
+            .inner_margin(12)
+            .show(ui, |ui| {
+                ui.horizontal_top(|ui| {
+                    chrome::badge(
+                        ui,
+                        &format!("{} / {}", check.earned, points),
+                        if check.earned == points {
+                            Color32::from_rgb(47, 139, 108)
+                        } else {
+                            muted()
+                        },
+                    );
+                    ui.vertical(|ui| {
+                        ui.set_width((ui.available_width() - 2.).max(100.));
+                        ui.add(egui::Label::new(RichText::new(text).size(13.)).wrap());
+                        ui.add_space(4.);
+                        ui.add(
+                            egui::Label::new(RichText::new(&check.reason).size(12.).color(muted()))
+                                .wrap(),
+                        );
+                        if !check.evidence.is_empty() {
+                            ui.collapsing("答案依据", |ui| {
+                                ui.label(RichText::new(&check.evidence).size(12.).color(muted()));
+                            });
+                        }
+                    });
+                });
+            });
+        ui.add_space(6.);
     }
     if !attempt.feedback.weak_points.is_empty() {
-        ui.label(format!(
-            "下次注意：{}",
-            attempt.feedback.weak_points.join("；")
-        ));
+        ui.add_space(6.);
+        ui.label(
+            RichText::new(format!(
+                "下次注意：{}",
+                attempt.feedback.weak_points.join("；")
+            ))
+            .size(13.)
+            .color(muted()),
+        );
     }
 }
 fn render_trend(ui: &mut egui::Ui, history: &[Attempt]) {
     if history.is_empty() {
         return;
     }
+    ui.label(RichText::new("完成度记录").size(12.).color(muted()));
+    if history.len() == 1 {
+        ui.add_space(6.);
+        crate::ui_components::chrome::badge(
+            ui,
+            &format!("第 {} 次   {}%", history[0].number, history[0].completion),
+            accent(),
+        );
+        return;
+    }
+    let history = &history[history.len().saturating_sub(20)..];
     let (rect, _) =
-        ui.allocate_exact_size(egui::vec2(ui.available_width(), 100.), egui::Sense::hover());
-    let graph = rect.shrink2(egui::vec2(14., 10.));
-    ui.painter().line_segment(
-        [graph.left_bottom(), graph.right_bottom()],
-        egui::Stroke::new(1., border()),
+        ui.allocate_exact_size(egui::vec2(ui.available_width(), 108.), egui::Sense::hover());
+    let graph = egui::Rect::from_min_max(
+        rect.min + egui::vec2(28., 12.),
+        rect.max - egui::vec2(14., 21.),
     );
+    for value in [0, 50, 100] {
+        let y = graph.bottom() - value as f32 / 100. * graph.height();
+        ui.painter().line_segment(
+            [egui::pos2(graph.left(), y), egui::pos2(graph.right(), y)],
+            egui::Stroke::new(1., border().gamma_multiply(0.6)),
+        );
+        ui.painter().text(
+            egui::pos2(rect.left(), y),
+            egui::Align2::LEFT_CENTER,
+            value.to_string(),
+            egui::FontId::proportional(10.),
+            muted(),
+        );
+    }
     let points = history
         .iter()
         .enumerate()
         .map(|(i, a)| {
             egui::pos2(
-                graph.left() + i as f32 / (history.len() - 1).max(1) as f32 * graph.width(),
+                graph.left() + i as f32 / (history.len() - 1) as f32 * graph.width(),
                 graph.bottom() - a.completion as f32 / 100. * graph.height(),
             )
         })
@@ -872,8 +1185,30 @@ fn render_trend(ui: &mut egui::Ui, history: &[Attempt]) {
         ui.painter()
             .line_segment([pair[0], pair[1]], egui::Stroke::new(2., accent()));
     }
-    for p in points {
-        ui.painter().circle_filled(p, 3., accent());
+    for point in points {
+        ui.painter().circle_filled(point, 3., surface());
+        ui.painter()
+            .circle_stroke(point, 3., egui::Stroke::new(1.8, accent()));
+    }
+    for (x, number, align) in [
+        (
+            graph.left(),
+            history.first().unwrap().number,
+            egui::Align2::LEFT_BOTTOM,
+        ),
+        (
+            graph.right(),
+            history.last().unwrap().number,
+            egui::Align2::RIGHT_BOTTOM,
+        ),
+    ] {
+        ui.painter().text(
+            egui::pos2(x, rect.bottom()),
+            align,
+            format!("第 {number} 次"),
+            egui::FontId::proportional(10.),
+            muted(),
+        );
     }
 }
 

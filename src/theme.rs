@@ -40,16 +40,16 @@ pub struct ThemeSettings {
 impl Default for ThemeSettings {
     fn default() -> Self {
         Self {
-            accent: [0, 122, 255],
-            text: [29, 29, 31],
-            muted: [112, 112, 119],
-            canvas: [250, 250, 252],
-            sidebar: [240, 240, 244],
+            accent: [0, 113, 227],
+            text: [31, 35, 42],
+            muted: [118, 126, 139],
+            canvas: [248, 249, 251],
+            sidebar: [241, 244, 248],
             surface: [255, 255, 255],
-            input: [245, 245, 247],
-            border: [224, 225, 230],
+            input: [246, 248, 251],
+            border: [227, 232, 239],
             button_text: [255, 255, 255],
-            sidebar_text: [88, 88, 96],
+            sidebar_text: [94, 103, 117],
             surface_opacity: 1.0,
             sidebar_opacity: 1.0,
             image_opacity: 0.7,
@@ -67,10 +67,19 @@ impl ThemeSettings {
             .and_then(|s| serde_json::from_str(s).ok())
             .filter(|theme: &Self| theme.validate().is_ok())
             .unwrap_or_default();
-        // Migrate only the old stock palette, retaining custom images and sizing.
-        if theme.accent == [101, 88, 211]
+        // Refresh only untouched stock palettes, keeping custom colors and backgrounds.
+        if (theme.accent == [101, 88, 211]
             && theme.text == [32, 40, 59]
-            && theme.canvas == [247, 248, 252]
+            && theme.canvas == [247, 248, 252])
+            || (theme.accent == [0, 122, 255]
+                && theme.text == [29, 29, 31]
+                && theme.canvas == [250, 250, 252]
+                && theme.sidebar == [240, 240, 244]
+                && theme.input == [245, 245, 247]
+                && theme.border == [224, 225, 230]
+                && theme.muted == [112, 112, 119]
+                && theme.sidebar_text == [88, 88, 96]
+                && theme.surface == [255, 255, 255])
         {
             let fresh = Self::default();
             theme.accent = fresh.accent;
@@ -137,7 +146,8 @@ impl ThemeSettings {
             v.widgets.hovered.weak_bg_fill = input();
             v.widgets.active.bg_fill = surface().lerp_to_gamma(accent(), 0.08);
             v.widgets.active.weak_bg_fill = v.widgets.active.bg_fill;
-            v.widgets.hovered.bg_stroke = egui::Stroke::new(1.0, accent());
+            v.widgets.hovered.bg_stroke =
+                egui::Stroke::new(1.0, border().lerp_to_gamma(accent(), 0.3));
             v.widgets.active.bg_stroke = egui::Stroke::new(1.0, accent());
         });
     }
@@ -180,6 +190,7 @@ pub fn input() -> Color32 {
 pub fn border() -> Color32 {
     ACTIVE.with(|t| rgb(t.borrow().border))
 }
+
 pub fn button_text() -> Color32 {
     ACTIVE.with(|t| rgb(t.borrow().button_text))
 }
@@ -298,4 +309,47 @@ pub fn image_rects(rect: egui::Rect, size: egui::Vec2, fit: ImageFit) -> (egui::
         rect,
         egui::Rect::from_center_size(egui::pos2(0.5, 0.5), uv_size),
     )
+}
+
+#[cfg(test)]
+mod palette_tests {
+    use super::*;
+    #[test]
+    fn stock_palette_refresh_keeps_custom_colors_images_and_zoom() {
+        let old = ThemeSettings {
+            accent: [0, 122, 255],
+            text: [29, 29, 31],
+            muted: [112, 112, 119],
+            canvas: [250, 250, 252],
+            sidebar: [240, 240, 244],
+            input: [245, 245, 247],
+            border: [224, 225, 230],
+            sidebar_text: [88, 88, 96],
+            background: Some("backgrounds/example.png".into()),
+            zoom: 1.2,
+            image_opacity: 0.4,
+            ..Default::default()
+        };
+        let load = |theme: &ThemeSettings| {
+            ThemeSettings::load(&BTreeMap::from([(
+                "appearance.theme".into(),
+                serde_json::to_string(theme).unwrap(),
+            )]))
+        };
+        let refreshed = load(&old);
+        assert_eq!(refreshed.accent, ThemeSettings::default().accent);
+        assert_eq!(refreshed.background, old.background);
+        assert_eq!(refreshed.zoom, 1.2);
+        assert_eq!(refreshed.image_opacity, 0.4);
+        let custom = ThemeSettings {
+            muted: [90, 110, 130],
+            ..old.clone()
+        };
+        assert_eq!(load(&custom), custom);
+        let custom = ThemeSettings {
+            accent: [150, 70, 80],
+            ..old
+        };
+        assert_eq!(load(&custom), custom);
+    }
 }

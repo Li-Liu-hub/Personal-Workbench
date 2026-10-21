@@ -167,8 +167,10 @@ pub fn credential_entry(
         if grid { 16 } else { 9 },
         egui::Stroke::new(
             1.0,
-            if editing || response.hovered() {
+            if editing {
                 accent()
+            } else if response.hovered() {
+                border().lerp_to_gamma(accent(), 0.4)
             } else {
                 border()
             },
