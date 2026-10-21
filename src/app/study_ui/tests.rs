@@ -18,6 +18,7 @@ fn sample() -> Card {
             .collect(),
         source: String::new(),
         phonetic: String::new(),
+        sql: None,
     }
 }
 fn grade(card: &Card, score: u8) -> Grade {
@@ -43,6 +44,7 @@ fn grade(card: &Card, score: u8) -> Grade {
             .collect(),
         summary: "测试结果".into(),
         weak_points: vec![],
+        sql: None,
     }
 }
 fn draft(card: &Card) -> Pending {
@@ -53,7 +55,7 @@ fn draft(card: &Card) -> Pending {
 fn seeds_are_complete_and_invalid_import_rolls_back() {
     let dir = tempfile::tempdir().unwrap();
     let mut db = Database::open(dir.path()).unwrap();
-    assert_eq!(db.study_count("engineering").unwrap(), 30);
+    assert_eq!(db.study_count("engineering").unwrap(), 37);
     assert_eq!(db.study_count("word").unwrap(), 5040);
     for topic in study::TOPICS {
         assert_eq!(
@@ -62,7 +64,7 @@ fn seeds_are_complete_and_invalid_import_rolls_back() {
                 .iter()
                 .filter(|c| c.topic == topic)
                 .count(),
-            5
+            if topic == "SQL 命令" { 12 } else { 5 }
         );
     }
     let mut invalid = sample();
@@ -232,6 +234,17 @@ fn ui_accepts_answer_handles_background_grade_and_shows_notebook_history() {
     let dir = tempfile::tempdir().unwrap();
     let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
     app.section = Section::Practice;
+    let fixture = sample();
+    app.db
+        .as_mut()
+        .unwrap()
+        .import_study_cards(std::slice::from_ref(&fixture))
+        .unwrap();
+    app.study.practice = Session {
+        card: Some(fixture.clone()),
+        pending: Some(pending(&fixture, "")),
+        ..Default::default()
+    };
     let ctx = egui::Context::default();
     configure_theme(&ctx);
     input_frame(&mut app, &ctx, 0., vec![], vec![]);
@@ -452,6 +465,151 @@ fn ctrl_enter_submits_the_focused_answer_without_adding_a_newline() {
     );
 }
 
+#[test]
+fn sql_run_button_executes_without_model_or_counting_an_attempt() {
+    use crate::app::editor_tests::{input_frame, pointer};
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+    app.section = Section::Practice;
+    let card = app
+        .db
+        .as_ref()
+        .unwrap()
+        .study_card("eng:3:05")
+        .unwrap()
+        .unwrap();
+    let answer = card.sql.as_ref().unwrap().reference.clone();
+    app.study.practice = Session {
+        card: Some(card.clone()),
+        answer: answer.clone(),
+        pending: Some(pending(&card, &answer)),
+        ..Default::default()
+    };
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0., vec![], vec![]);
+    let output = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    let button = position(&output, "运行 SQL");
+    assert!(button.y > 680. && button.y < 800.);
+    let editor = position(&output, &answer);
+    assert!(
+        editor.y > 250. && editor.y + 100. < button.y,
+        "SQL editor must remain visible: {editor:?}"
+    );
+    input_frame(&mut app, &ctx, 0.2, pointer(button, true), vec![]);
+    input_frame(&mut app, &ctx, 0.3, pointer(button, false), vec![]);
+    let started = std::time::Instant::now();
+    while app.study.busy && started.elapsed().as_secs() < 4 {
+        app.poll_background();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    assert!(!app.study.busy);
+    let report = app.study.practice.sql_run.as_ref().unwrap();
+    assert_eq!(report.matches, Some(true));
+    assert_eq!(report.changed_rows, 1);
+    assert!(report.rolled_back);
+    assert_eq!(app.study.ai.status(), "未加载");
+    assert!(
+        app.db
+            .as_ref()
+            .unwrap()
+            .study_attempts(&card.id)
+            .unwrap()
+            .is_empty()
+    );
+    app.study.practice.answer = "UPDATE accounts SET balance=0".into();
+    assert_ne!(app.study.practice.sql_answer, app.study.practice.answer);
+}
+
+#[test]
+fn real_sql_results_are_model_context_and_survive_history_export_and_copy() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut db = Database::open(dir.path()).unwrap();
+    let card = db.study_card("sql:sqlite:insert").unwrap().unwrap();
+    let answer = card.sql.as_ref().unwrap().reference.clone();
+    let report = crate::sql_practice::run(card.sql.as_ref().unwrap(), &answer);
+    let request = crate::local_ai::grade_request(&card, &answer, Some(&report));
+    let content: serde_json::Value =
+        serde_json::from_str(request["messages"][1]["content"].as_str().unwrap()).unwrap();
+    assert_eq!(content["execution"]["sample_matches"], true);
+    assert_eq!(content["execution"]["dialect"], "SQLite");
+    assert!(
+        content["sql_setup"]
+            .as_str()
+            .unwrap()
+            .contains("CREATE TABLE orders")
+    );
+    let mut grade = Grade::unknown(&card);
+    grade.sql = Some(report);
+    let p = pending(&card, &answer);
+    let attempt = db.record_study_attempt(&p, grade, "fixture", 1).unwrap();
+    // An engine match is evidence, not an invented model score.
+    assert_eq!(attempt.completion, 0);
+    let copied = study_clipboard(&attempt);
+    assert!(
+        copied.contains("CREATE TABLE orders")
+            && copied.contains(&answer)
+            && copied.contains("SQLite 实际运行")
+    );
+    drop(db);
+    let db = Database::open(dir.path()).unwrap();
+    assert_eq!(
+        db.study_attempts(&card.id).unwrap()[0]
+            .feedback
+            .sql
+            .as_ref()
+            .unwrap()
+            .matches,
+        Some(true)
+    );
+    let target = dir.path().join("study.zip");
+    export::write(dir.path(), &target, export::Scope::All).unwrap();
+    let mut zip = zip::ZipArchive::new(fs::File::open(target).unwrap()).unwrap();
+    let saved: study::Bundle =
+        serde_json::from_reader(zip.by_name("刷题王.json").unwrap()).unwrap();
+    assert_eq!(
+        saved.attempts[0].feedback.sql.as_ref().unwrap().matches,
+        Some(true)
+    );
+}
+
+#[test]
+#[ignore = "requires installed local Spark weights and GPU runtime"]
+fn live_sql_execution_and_local_grading() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Database::open(dir.path()).unwrap();
+    let ai = LocalAi::default();
+    let config = Config::default();
+    for (id, correct) in [
+        ("eng:3:02", true),
+        ("eng:3:02", false),
+        ("sql:sqlite:insert", true),
+    ] {
+        let card = db.study_card(id).unwrap().unwrap();
+        let lab = card.sql.as_ref().unwrap();
+        let answer = if correct {
+            lab.reference.clone()
+        } else {
+            "SELECT id, 0 AS order_count FROM users ORDER BY id;".into()
+        };
+        let grade = ai
+            .grade(&config, &dir.path().join("model.log"), &card, &answer)
+            .unwrap();
+        let score = grade.completion(&card, &answer).unwrap();
+        println!(
+            "{id} correct={correct} score={score} summary={}",
+            grade.summary
+        );
+        assert_eq!(grade.sql.as_ref().unwrap().matches, Some(correct));
+        if correct {
+            assert!(score >= 75);
+        } else {
+            assert!(score < 75);
+        }
+    }
+    ai.stop();
+}
+
 /// Explicitly run against real local weights; uses its own isolated data directory.
 #[test]
 #[ignore = "requires installed local Spark weights and GPU runtime"]
@@ -462,14 +620,18 @@ fn live_local_grading_end_to_end() {
         idle_seconds: 0,
         ..Default::default()
     };
-    let c = app
-        .db
-        .as_ref()
-        .unwrap()
-        .study_cards("engineering")
-        .unwrap()
+    // Keep the original semantic-grading fixture independent of executable bank revisions.
+    let original: Vec<Card> =
+        serde_json::from_str(include_str!("../../../assets/engineering.json")).unwrap();
+    let mut c = original
         .into_iter()
         .find(|c| c.title.contains("NULL") || c.prompt.contains("COUNT(*)"))
+        .unwrap();
+    c.id = "test:semantic-grader".into();
+    app.db
+        .as_mut()
+        .unwrap()
+        .import_study_cards(std::slice::from_ref(&c))
         .unwrap();
     let word = app
         .db

@@ -1,0 +1,525 @@
+[
+  {
+    "id": "eng:3:01",
+    "kind": "engineering",
+    "title": "每个部门薪资前三档",
+    "topic": "SQL 命令",
+    "prompt": "人事需要每个部门薪资最高的前三个不同薪资档的员工，并列都保留，salary 为 NULL 的员工排除。返回 id、dept_id、salary，按 dept_id 升序、salary 降序、id 升序排列。仅填写 SQLite SQL，可用 -- 注释解释。",
+    "answer": "SELECT id, dept_id, salary FROM (\n  SELECT id, dept_id, salary,\n    DENSE_RANK() OVER (PARTITION BY dept_id ORDER BY salary DESC) AS rank_no\n  FROM employees WHERE salary IS NOT NULL\n) WHERE rank_no <= 3 ORDER BY dept_id, salary DESC, id;\n\nDENSE_RANK 按不同薪资档排名，并列薪资拥有相同名次，且不会跳过下一档。先排除 NULL，再在每个部门内部排名；外层筛前三档。ROW_NUMBER 会漏掉并列员工，RANK 可能跳档。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "排除 NULL 薪资",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "每个部门分别排名，按薪资降序",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "使用不同薪资档的排名，保留并列且只取前三档",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "返回要求的三列并按要求排序",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "sql": {
+      "setup": "CREATE TABLE employees(id INTEGER PRIMARY KEY, name TEXT NOT NULL, dept_id INTEGER NOT NULL, salary INTEGER);\nINSERT INTO employees VALUES (1,'Lin',10,12000),(2,'Chen',10,10000),(3,'Wu',10,10000),(4,'Li',10,8000),(5,'Zhou',10,7000),(6,'Xu',20,9000),(7,'He',20,NULL),(8,'Sun',20,6000);",
+      "tables": [
+        "employees"
+      ],
+      "reference": "SELECT id, dept_id, salary FROM (\n  SELECT id, dept_id, salary,\n    DENSE_RANK() OVER (PARTITION BY dept_id ORDER BY salary DESC) AS rank_no\n  FROM employees WHERE salary IS NOT NULL\n) WHERE rank_no <= 3 ORDER BY dept_id, salary DESC, id;",
+      "verify": null,
+      "ordered": true,
+      "runnable": true,
+      "explanation": "DENSE_RANK 按不同薪资档排名，并列薪资拥有相同名次，且不会跳过下一档。先排除 NULL，再在每个部门内部排名；外层筛前三档。ROW_NUMBER 会漏掉并列员工，RANK 可能跳档。"
+    }
+  },
+  {
+    "id": "eng:3:02",
+    "kind": "engineering",
+    "title": "统计所有用户的订单数",
+    "topic": "SQL 命令",
+    "prompt": "运营需要所有用户及其订单数，包括没有下单的用户；所有状态的订单都计数。返回 user_id、order_count，按 user_id 升序。",
+    "answer": "SELECT u.id AS user_id, COUNT(o.id) AS order_count FROM users u LEFT JOIN orders o ON o.user_id=u.id GROUP BY u.id ORDER BY u.id;\n\nLEFT JOIN 保留左表的每个用户。没有匹配订单的那一行，o.id 为 NULL；COUNT(o.id) 不计 NULL，因此得到 0。COUNT(*) 会把这行也算进去，导致零订单用户被算成 1。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "保留没有订单的用户",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "按用户编号关联订单",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "按用户分组并只统计匹配的订单",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "返回用户编号和正确数量并排序",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "sql": {
+      "setup": "CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT NOT NULL);\nCREATE TABLE orders(id INTEGER PRIMARY KEY, user_id INTEGER REFERENCES users(id), status TEXT NOT NULL, amount INTEGER NOT NULL CHECK(amount>=0));\nINSERT INTO users VALUES(1,'Lin'),(2,'Chen'),(3,'Wu'),(4,'Li');\nINSERT INTO orders VALUES(101,1,'paid',800),(102,1,'paid',500),(103,2,'pending',2000),(104,2,'paid',600),(105,4,'paid',1000),(106,4,'cancelled',700);",
+      "tables": [
+        "users",
+        "orders"
+      ],
+      "reference": "SELECT u.id AS user_id, COUNT(o.id) AS order_count FROM users u LEFT JOIN orders o ON o.user_id=u.id GROUP BY u.id ORDER BY u.id;",
+      "verify": null,
+      "ordered": true,
+      "runnable": true,
+      "explanation": "LEFT JOIN 保留左表的每个用户。没有匹配订单的那一行，o.id 为 NULL；COUNT(o.id) 不计 NULL，因此得到 0。COUNT(*) 会把这行也算进去，导致零订单用户被算成 1。"
+    }
+  },
+  {
+    "id": "eng:3:03",
+    "kind": "engineering",
+    "title": "筛选已支付总额超过 1000 的用户",
+    "topic": "SQL 命令",
+    "prompt": "财务只统计 status=paid 的订单。找出已支付总额严格大于 1000 的用户，返回 user_id、total_amount，按 user_id 升序。金额恰好 1000 不入选。",
+    "answer": "SELECT user_id, SUM(amount) AS total_amount FROM orders WHERE status='paid' GROUP BY user_id HAVING SUM(amount)>1000 ORDER BY user_id;\n\nWHERE 先过滤每条订单，只留下已支付记录；GROUP BY 再按用户汇总；HAVING 过滤分组后的总金额。不能把未支付订单加入汇总，也不能用 >=1000。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "仅统计 paid 订单",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "按 user_id 分组",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "正确求和并用 HAVING 筛选严格大于 1000",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "返回正确列并按用户升序",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "sql": {
+      "setup": "CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT NOT NULL);\nCREATE TABLE orders(id INTEGER PRIMARY KEY, user_id INTEGER REFERENCES users(id), status TEXT NOT NULL, amount INTEGER NOT NULL CHECK(amount>=0));\nINSERT INTO users VALUES(1,'Lin'),(2,'Chen'),(3,'Wu'),(4,'Li');\nINSERT INTO orders VALUES(101,1,'paid',800),(102,1,'paid',500),(103,2,'pending',2000),(104,2,'paid',600),(105,4,'paid',1000),(106,4,'cancelled',700);",
+      "tables": [
+        "users",
+        "orders"
+      ],
+      "reference": "SELECT user_id, SUM(amount) AS total_amount FROM orders WHERE status='paid' GROUP BY user_id HAVING SUM(amount)>1000 ORDER BY user_id;",
+      "verify": null,
+      "ordered": true,
+      "runnable": true,
+      "explanation": "WHERE 先过滤每条订单，只留下已支付记录；GROUP BY 再按用户汇总；HAVING 过滤分组后的总金额。不能把未支付订单加入汇总，也不能用 >=1000。"
+    }
+  },
+  {
+    "id": "eng:3:04",
+    "kind": "engineering",
+    "title": "排除封禁用户，处理 NULL",
+    "topic": "SQL 命令",
+    "prompt": "users 是用户表，blocked 是可能含 NULL 和重复编号的封禁清单。返回没有被封禁的用户 id、name，按 id 升序。可在 SQL 注释中解释 NULL 陷阱。",
+    "answer": "SELECT u.id, u.name FROM users u WHERE NOT EXISTS (SELECT 1 FROM blocked b WHERE b.user_id=u.id) ORDER BY u.id;\n\nNOT IN 的集合中含 NULL 时，比较可能得到 UNKNOWN，WHERE 不会保留 UNKNOWN。NOT EXISTS 按当前用户编号查找匹配行，只判断是否存在，不会因为无关的 NULL 行误删其他用户。过滤 NULL 后再 NOT IN 也是有效写法。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "返回未被封禁的用户",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "正确关联用户编号",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "兼容封禁列表的 NULL 和重复数据",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "返回 id、name 并排序",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "sql": {
+      "setup": "CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT NOT NULL);\nCREATE TABLE blocked(user_id INTEGER);\nINSERT INTO users VALUES(1,'Lin'),(2,'Chen'),(3,'Wu'),(4,'Li');\nINSERT INTO blocked VALUES(2),(NULL),(2);",
+      "tables": [
+        "users",
+        "blocked"
+      ],
+      "reference": "SELECT u.id, u.name FROM users u WHERE NOT EXISTS (SELECT 1 FROM blocked b WHERE b.user_id=u.id) ORDER BY u.id;",
+      "verify": null,
+      "ordered": true,
+      "runnable": true,
+      "explanation": "NOT IN 的集合中含 NULL 时，比较可能得到 UNKNOWN，WHERE 不会保留 UNKNOWN。NOT EXISTS 按当前用户编号查找匹配行，只判断是否存在，不会因为无关的 NULL 行误删其他用户。过滤 NULL 后再 NOT IN 也是有效写法。"
+    }
+  },
+  {
+    "id": "eng:3:05",
+    "kind": "engineering",
+    "title": "余额足够时扣减 100",
+    "topic": "SQL 命令",
+    "prompt": "为 id=1 的账户扣款 100，余额不足时不扣款，不影响其他账户。写一条带余额条件的 UPDATE。界面显示受影响行数：1 表示本次扣款成功，0 表示条件不满足。每次运行都会恢复样例余额。",
+    "answer": "UPDATE accounts SET balance=balance-100 WHERE id=1 AND balance>=100;\n\n把余额检查写进 UPDATE 的 WHERE 中，检查与扣减由一条语句完成。单独先查余额再扣款，在并发时可能基于过期余额判断。这里练习条件更新，事务由练习引擎管理。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "使用 UPDATE 扣减余额",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "仅更新 id=1",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "使用 balance>=100 作为更新条件",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "余额减少 100 且其他账户不变",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "sql": {
+      "setup": "CREATE TABLE accounts(id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL CHECK(balance>=0));\nINSERT INTO accounts VALUES(1,'Lin',150),(2,'Chen',50),(3,'Wu',100);",
+      "tables": [
+        "accounts"
+      ],
+      "reference": "UPDATE accounts SET balance=balance-100 WHERE id=1 AND balance>=100;",
+      "verify": "SELECT id,owner,balance FROM accounts ORDER BY id;",
+      "ordered": true,
+      "runnable": true,
+      "explanation": "把余额检查写进 UPDATE 的 WHERE 中，检查与扣减由一条语句完成。单独先查余额再扣款，在并发时可能基于过期余额判断。这里练习条件更新，事务由练习引擎管理。"
+    }
+  },
+  {
+    "id": "sql:sqlite:insert",
+    "kind": "engineering",
+    "title": "新增订单，保留原有数据",
+    "topic": "SQL 命令",
+    "prompt": "用户 3 新下单。向 orders 新增 id=107、user_id=3、status=pending、amount=300 的订单，其他记录不变。",
+    "answer": "INSERT INTO orders(id,user_id,status,amount) VALUES(107,3,'pending',300);\n\nINSERT 明确列名与值的对应关系，避免依赖物理列顺序。user_id=3 已存在，所以满足外键约束；主键 107 不能与现有订单重复。执行后比较整张订单表，防止误改原记录。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "使用 INSERT 新增 orders 记录",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "订单编号为 107 且用户为 3",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "状态 pending、金额 300",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "保留所有原订单",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "sql": {
+      "setup": "CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT NOT NULL);\nCREATE TABLE orders(id INTEGER PRIMARY KEY, user_id INTEGER REFERENCES users(id), status TEXT NOT NULL, amount INTEGER NOT NULL CHECK(amount>=0));\nINSERT INTO users VALUES(1,'Lin'),(2,'Chen'),(3,'Wu'),(4,'Li');\nINSERT INTO orders VALUES(101,1,'paid',800),(102,1,'paid',500),(103,2,'pending',2000),(104,2,'paid',600),(105,4,'paid',1000),(106,4,'cancelled',700);",
+      "tables": [
+        "users",
+        "orders"
+      ],
+      "reference": "INSERT INTO orders(id,user_id,status,amount) VALUES(107,3,'pending',300);",
+      "verify": "SELECT id,user_id,status,amount FROM orders ORDER BY id;",
+      "ordered": true,
+      "runnable": true,
+      "explanation": "INSERT 明确列名与值的对应关系，避免依赖物理列顺序。user_id=3 已存在，所以满足外键约束；主键 107 不能与现有订单重复。执行后比较整张订单表，防止误改原记录。"
+    }
+  },
+  {
+    "id": "sql:sqlite:delete",
+    "kind": "engineering",
+    "title": "清理取消订单",
+    "topic": "SQL 命令",
+    "prompt": "清理 orders 中 status=cancelled 的订单，保留 paid 和 pending 订单。写出 DELETE。",
+    "answer": "DELETE FROM orders WHERE status='cancelled';\n\nDELETE FROM 指定表，WHERE 限定要删除的记录。忘记 WHERE 会删除所有订单。查看运行后的完整数据，确认取消订单已移除、其他订单仍然存在；练习结束会回滚。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "使用 DELETE FROM orders",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "按 status=cancelled 筛选",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "取消订单全部移除",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "其他状态订单不变",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "sql": {
+      "setup": "CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT NOT NULL);\nCREATE TABLE orders(id INTEGER PRIMARY KEY, user_id INTEGER REFERENCES users(id), status TEXT NOT NULL, amount INTEGER NOT NULL CHECK(amount>=0));\nINSERT INTO users VALUES(1,'Lin'),(2,'Chen'),(3,'Wu'),(4,'Li');\nINSERT INTO orders VALUES(101,1,'paid',800),(102,1,'paid',500),(103,2,'pending',2000),(104,2,'paid',600),(105,4,'paid',1000),(106,4,'cancelled',700);",
+      "tables": [
+        "users",
+        "orders"
+      ],
+      "reference": "DELETE FROM orders WHERE status='cancelled';",
+      "verify": "SELECT id,user_id,status,amount FROM orders ORDER BY id;",
+      "ordered": true,
+      "runnable": true,
+      "explanation": "DELETE FROM 指定表，WHERE 限定要删除的记录。忘记 WHERE 会删除所有订单。查看运行后的完整数据，确认取消订单已移除、其他订单仍然存在；练习结束会回滚。"
+    }
+  },
+  {
+    "id": "sql:sqlite:upsert",
+    "kind": "engineering",
+    "title": "入库：存在就累加，不存在就新增",
+    "topic": "SQL 命令",
+    "prompt": "仓库收到商品 A 共 3 件、商品 C 共 5 件。A 已存在则累加库存，C 不存在则新增；B 不变。使用 SQLite 的 UPSERT，可用一条或多条 SQL。",
+    "answer": "INSERT INTO stock(sku,quantity) VALUES('A',3),('C',5) ON CONFLICT(sku) DO UPDATE SET quantity=stock.quantity+excluded.quantity;\n\nON CONFLICT(sku) 使用主键判断冲突。excluded.quantity 是本次准备插入的数量，stock.quantity 是已有库存；两者相加实现入库累加。使用 REPLACE 会覆盖数量，不能完成累加。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "A 的最终库存为 13",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "C 的最终库存为 5",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "冲突时累加库存而不是覆盖",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "B 保持 4 且没有多余商品",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "sql": {
+      "setup": "CREATE TABLE stock(sku TEXT PRIMARY KEY, quantity INTEGER NOT NULL CHECK(quantity>=0));\nINSERT INTO stock VALUES('A',10),('B',4);",
+      "tables": [
+        "stock"
+      ],
+      "reference": "INSERT INTO stock(sku,quantity) VALUES('A',3),('C',5) ON CONFLICT(sku) DO UPDATE SET quantity=stock.quantity+excluded.quantity;",
+      "verify": "SELECT sku,quantity FROM stock ORDER BY sku;",
+      "ordered": true,
+      "runnable": true,
+      "explanation": "ON CONFLICT(sku) 使用主键判断冲突。excluded.quantity 是本次准备插入的数量，stock.quantity 是已有库存；两者相加实现入库累加。使用 REPLACE 会覆盖数量，不能完成累加。"
+    }
+  },
+  {
+    "id": "sql:sqlite:transfer",
+    "kind": "engineering",
+    "title": "在同一轮练习中转账",
+    "topic": "SQL 命令",
+    "prompt": "账户 1 向账户 2 转账 100。样例余额足够，写两条 UPDATE；账户 3 不变。练习引擎已开启事务，请不要填写 BEGIN 或 COMMIT。也可以追加 SELECT 查看变化。",
+    "answer": "UPDATE accounts SET balance=balance-100 WHERE id=1 AND balance>=100;\nUPDATE accounts SET balance=balance+100 WHERE id=2;\n\n转账包含转出和转入两次修改。真实业务还要验证扣款成功后才入账，并处理并发、重试和失败回滚。本题先观察同一事务中的两次变化；运行后即回滚，下一次仍从原始余额开始。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "账户 1 减少 100",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "账户 2 增加 100",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "账户 3 不变",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "两次修改金额一致且未产生多余记录",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "sql": {
+      "setup": "CREATE TABLE accounts(id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL CHECK(balance>=0));\nINSERT INTO accounts VALUES(1,'Lin',150),(2,'Chen',50),(3,'Wu',100);",
+      "tables": [
+        "accounts"
+      ],
+      "reference": "UPDATE accounts SET balance=balance-100 WHERE id=1 AND balance>=100;\nUPDATE accounts SET balance=balance+100 WHERE id=2;",
+      "verify": "SELECT id,owner,balance FROM accounts ORDER BY id;",
+      "ordered": true,
+      "runnable": true,
+      "explanation": "转账包含转出和转入两次修改。真实业务还要验证扣款成功后才入账，并处理并发、重试和失败回滚。本题先观察同一事务中的两次变化；运行后即回滚，下一次仍从原始余额开始。"
+    }
+  },
+  {
+    "id": "sql:sqlite:concept-null",
+    "kind": "engineering",
+    "title": "概念：COUNT(*) 和 COUNT(列)",
+    "topic": "SQL 命令",
+    "prompt": "观察 blocked 表：user_id 依次为 2、NULL、2。COUNT(*)、COUNT(user_id)、COUNT(DISTINCT user_id) 分别返回多少？解释原因。填写文字即可。",
+    "answer": "结果分别是 3、2、1。COUNT(*) 统计所有行；COUNT(user_id) 忽略 NULL，但仍计入重复的 2；COUNT(DISTINCT user_id) 既忽略 NULL，也去掉重复值。NULL 表示未知或缺失，不等于数值 0。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "COUNT(*) 为 3 并解释统计所有行",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "COUNT(user_id) 为 2 并解释忽略 NULL",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "COUNT(DISTINCT user_id) 为 1 并解释去重",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "理解 NULL 不是 0",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "sql": {
+      "setup": "CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT NOT NULL);\nCREATE TABLE blocked(user_id INTEGER);\nINSERT INTO users VALUES(1,'Lin'),(2,'Chen'),(3,'Wu'),(4,'Li');\nINSERT INTO blocked VALUES(2),(NULL),(2);",
+      "tables": [
+        "users",
+        "blocked"
+      ],
+      "reference": "SELECT COUNT(*) AS all_rows,COUNT(user_id) AS non_null_rows,COUNT(DISTINCT user_id) AS distinct_users FROM blocked;",
+      "verify": null,
+      "ordered": false,
+      "runnable": false,
+      "explanation": "结果分别是 3、2、1。COUNT(*) 统计所有行；COUNT(user_id) 忽略 NULL，但仍计入重复的 2；COUNT(DISTINCT user_id) 既忽略 NULL，也去掉重复值。NULL 表示未知或缺失，不等于数值 0。"
+    }
+  },
+  {
+    "id": "sql:sqlite:concept-keys",
+    "kind": "engineering",
+    "title": "概念：主键与外键",
+    "topic": "SQL 命令",
+    "prompt": "结合 users、orders 的建表语句回答：订单 id 重复会怎样？订单 user_id=999 会怎样？这两个约束各解决什么问题？填写文字即可。",
+    "answer": "orders.id 的主键约束保证订单标识唯一，重复 id 会失败。orders.user_id 的外键引用 users.id；启用外键检查时，引用不存在的 999 会失败。主键维护本表身份，外键维护表间引用一致性，不能相互替代。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "重复主键会导致写入失败",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "不存在的用户编号违反外键",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "主键用于唯一标识本表记录",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "外键维护表间引用一致性",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "sql": {
+      "setup": "CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT NOT NULL);\nCREATE TABLE orders(id INTEGER PRIMARY KEY, user_id INTEGER REFERENCES users(id), status TEXT NOT NULL, amount INTEGER NOT NULL CHECK(amount>=0));\nINSERT INTO users VALUES(1,'Lin'),(2,'Chen'),(3,'Wu'),(4,'Li');\nINSERT INTO orders VALUES(101,1,'paid',800),(102,1,'paid',500),(103,2,'pending',2000),(104,2,'paid',600),(105,4,'paid',1000),(106,4,'cancelled',700);",
+      "tables": [
+        "users",
+        "orders"
+      ],
+      "reference": "SELECT id,user_id FROM orders ORDER BY id;",
+      "verify": null,
+      "ordered": false,
+      "runnable": false,
+      "explanation": "orders.id 的主键约束保证订单标识唯一，重复 id 会失败。orders.user_id 的外键引用 users.id；启用外键检查时，引用不存在的 999 会失败。主键维护本表身份，外键维护表间引用一致性，不能相互替代。"
+    }
+  },
+  {
+    "id": "sql:sqlite:concept-transaction",
+    "kind": "engineering",
+    "title": "概念：失败为何要回滚",
+    "topic": "SQL 命令",
+    "prompt": "账户 1 转出 100 后，给账户 2 入账的语句失败。如果两步各自提交会出现什么问题？事务的原子性和 ROLLBACK 如何解决？填写文字即可。",
+    "answer": "若转出单独提交、转入失败，账户 1 已扣款而账户 2 没收到钱，资金状态不完整。把两步放入同一事务，全部成功才 COMMIT；任何一步失败就 ROLLBACK，撤销本事务中已发生的修改。原子性强调这组操作整体成功或整体失败。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "指出扣款成功入账失败导致资金不一致",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "两次修改放入同一个事务",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "全部成功才提交",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "失败回滚已发生的修改并解释原子性",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "sql": {
+      "setup": "CREATE TABLE accounts(id INTEGER PRIMARY KEY, owner TEXT NOT NULL, balance INTEGER NOT NULL CHECK(balance>=0));\nINSERT INTO accounts VALUES(1,'Lin',150),(2,'Chen',50),(3,'Wu',100);",
+      "tables": [
+        "accounts"
+      ],
+      "reference": "SELECT id,owner,balance FROM accounts ORDER BY id;",
+      "verify": null,
+      "ordered": false,
+      "runnable": false,
+      "explanation": "若转出单独提交、转入失败，账户 1 已扣款而账户 2 没收到钱，资金状态不完整。把两步放入同一事务，全部成功才 COMMIT；任何一步失败就 ROLLBACK，撤销本事务中已发生的修改。原子性强调这组操作整体成功或整体失败。"
+    }
+  }
+]

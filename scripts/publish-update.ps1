@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '统一浅色分组导航与分段切换；重排刷题、单词和记录本；练习底部操作固定，记录整行可点击，支持Ctrl+Enter提交；保留全部数据和自定义主题'
+    [string]$Notes = 'SQL练习提供完整表结构与样例数据，支持直接运行、结果验证及自动回滚；4B结合执行结果评分并简短讲解；可复制完整题目与反馈；保留个人数据和历史作答'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

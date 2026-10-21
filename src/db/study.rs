@@ -13,7 +13,7 @@ impl Database {
             .get("study.seed.version")
             .is_some_and(|v| v == "1")
         {
-            return Ok(());
+            return self.prepare_sql_study();
         }
         let mut cards: Vec<Card> =
             serde_json::from_str(include_str!("../../assets/engineering.json"))?;
@@ -42,9 +42,61 @@ impl Database {
             }],
             source: "https://github.com/skywind3000/ECDICT".into(),
             phonetic: w.phonetic,
+            sql: None,
         }));
         self.import_study_cards(&cards)?;
         self.set_setting("study.seed.version", "1")?;
+        self.prepare_sql_study()
+    }
+    fn prepare_sql_study(&mut self) -> Result<()> {
+        if self
+            .settings()?
+            .get("study.sqlite.seed.version")
+            .is_some_and(|v| v == "1")
+        {
+            return Ok(());
+        }
+        let previous: Vec<Card> =
+            serde_json::from_str(include_str!("../../assets/engineering.json"))?;
+        let cards: Vec<Card> =
+            serde_json::from_str(include_str!("../../assets/sql_practice.json"))?;
+        for card in &cards {
+            card.validate()?;
+        }
+        let tx = self.desk.transaction()?;
+        for card in &cards {
+            let existing: Option<String> = tx
+                .query_row(
+                    "SELECT card_json FROM study_cards WHERE id=?1",
+                    [&card.id],
+                    |r| r.get(0),
+                )
+                .optional()?;
+            match existing {
+                None => {
+                    tx.execute(
+                        "INSERT INTO study_cards(id,kind,topic,card_json) VALUES(?1,?2,?3,?4)",
+                        params![card.id, card.kind, card.topic, serde_json::to_string(card)?],
+                    )?;
+                }
+                Some(json) => {
+                    // Upgrade only untouched built-ins. Custom banks and immutable attempt snapshots remain intact.
+                    let existing: Card = serde_json::from_str(&json)?;
+                    if previous.iter().any(|old| {
+                        old.id == card.id
+                            && serde_json::to_value(old).ok()
+                                == serde_json::to_value(&existing).ok()
+                    }) {
+                        tx.execute(
+                            "UPDATE study_cards SET topic=?2,card_json=?3 WHERE id=?1",
+                            params![card.id, card.topic, serde_json::to_string(card)?],
+                        )?;
+                    }
+                }
+            }
+        }
+        tx.execute("INSERT INTO settings(key,value) VALUES('study.sqlite.seed.version','1') ON CONFLICT(key) DO UPDATE SET value='1'", [])?;
+        tx.commit()?;
         Ok(())
     }
     pub fn import_study_cards(&mut self, cards: &[Card]) -> Result<usize> {
@@ -282,4 +334,87 @@ impl Database {
 fn write_progress(tx: &rusqlite::Transaction<'_>, p: &Progress) -> Result<()> {
     tx.execute("INSERT INTO study_progress(card_id,attempts,streak,mastered,latest) VALUES(?1,?2,?3,?4,?5) ON CONFLICT(card_id) DO UPDATE SET attempts=excluded.attempts,streak=excluded.streak,mastered=excluded.mastered,latest=excluded.latest",params![p.card_id,p.attempts,p.streak,p.mastered,p.latest])?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn sqlite_seed_upgrade_preserves_attempts_pending_and_custom_questions() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut db = Database::open(dir.path()).unwrap();
+        let old: Vec<Card> =
+            serde_json::from_str(include_str!("../../assets/engineering.json")).unwrap();
+        for id in ["eng:3:01", "eng:3:02"] {
+            let mut card = old.iter().find(|c| c.id == id).unwrap().clone();
+            if id == "eng:3:02" {
+                card.prompt.push_str(" 自定义题干保留");
+            }
+            db.desk
+                .execute(
+                    "UPDATE study_cards SET card_json=?2 WHERE id=?1",
+                    params![id, serde_json::to_string(&card).unwrap()],
+                )
+                .unwrap();
+        }
+        let card = db.study_card("eng:3:01").unwrap().unwrap();
+        let p = Pending {
+            id: "previous-attempt".into(),
+            card_id: card.id.clone(),
+            answer: "历史答案".into(),
+            at: "2026-10-21T12:00:00+08:00".into(),
+        };
+        db.record_study_attempt(&p, Grade::unknown(&card), "old-model", 12)
+            .unwrap();
+        let saved: String = db
+            .desk
+            .query_row(
+                "SELECT attempt_json FROM study_attempts WHERE id=?1",
+                [&p.id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let pending = Pending {
+            id: "previous-pending".into(),
+            ..p
+        };
+        db.save_study_pending(&pending).unwrap();
+        db.desk
+            .execute(
+                "DELETE FROM settings WHERE key='study.sqlite.seed.version'",
+                [],
+            )
+            .unwrap();
+        drop(db);
+        let db = Database::open(dir.path()).unwrap();
+        assert!(db.study_card("eng:3:01").unwrap().unwrap().sql.is_some());
+        let custom = db.study_card("eng:3:02").unwrap().unwrap();
+        assert!(custom.sql.is_none() && custom.prompt.ends_with("自定义题干保留"));
+        let after: String = db
+            .desk
+            .query_row(
+                "SELECT attempt_json FROM study_attempts WHERE id='previous-attempt'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(saved, after);
+        assert!(
+            db.study_attempts(&card.id).unwrap()[0]
+                .question
+                .sql
+                .is_none()
+        );
+        assert_eq!(db.study_progress(&card.id).unwrap().attempts, 1);
+        assert_eq!(
+            db.study_pending("engineering").unwrap()[0].answer,
+            "历史答案"
+        );
+        assert_eq!(db.study_count("engineering").unwrap(), 37);
+        let integrity: String = db
+            .desk
+            .query_row("PRAGMA integrity_check", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(integrity, "ok");
+    }
 }

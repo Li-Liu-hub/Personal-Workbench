@@ -18,6 +18,7 @@ mod local_ai;
 mod model;
 #[cfg(test)]
 mod search;
+mod sql_practice;
 mod study;
 mod tags;
 mod theme;
