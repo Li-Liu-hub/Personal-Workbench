@@ -19,6 +19,8 @@ fn sample() -> Card {
         source: String::new(),
         phonetic: String::new(),
         sql: None,
+        origin: None,
+        project: None,
     }
 }
 fn grade(card: &Card, score: u8) -> Grade {
@@ -45,6 +47,7 @@ fn grade(card: &Card, score: u8) -> Grade {
         summary: "测试结果".into(),
         weak_points: vec![],
         sql: None,
+        project: None,
     }
 }
 fn draft(card: &Card) -> Pending {
@@ -55,7 +58,7 @@ fn draft(card: &Card) -> Pending {
 fn seeds_are_complete_and_invalid_import_rolls_back() {
     let dir = tempfile::tempdir().unwrap();
     let mut db = Database::open(dir.path()).unwrap();
-    assert_eq!(db.study_count("engineering").unwrap(), 37);
+    assert_eq!(db.study_count("engineering").unwrap(), 38);
     assert_eq!(db.study_count("word").unwrap(), 5040);
     for topic in study::TOPICS {
         assert_eq!(
@@ -64,7 +67,13 @@ fn seeds_are_complete_and_invalid_import_rolls_back() {
                 .iter()
                 .filter(|c| c.topic == topic)
                 .count(),
-            if topic == "SQL 命令" { 12 } else { 5 }
+            if topic == "SQL 命令" {
+                12
+            } else if topic == "项目修 Bug" {
+                1
+            } else {
+                5
+            }
         );
     }
     let mut invalid = sample();
@@ -270,7 +279,7 @@ fn ui_accepts_answer_handles_background_grade_and_shows_notebook_history() {
     let p = app.study.practice.pending.clone().unwrap();
     app.study.busy = true;
     app.sender
-        .send(BackgroundMessage::StudyGraded(GradedMessage {
+        .send(BackgroundMessage::graded(GradedMessage {
             kind: "engineering".into(),
             pending: p,
             result: Ok(grade(&c, 75)),

@@ -272,6 +272,12 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
                         version: 1,
                         cards,
                         attempts,
+                        dialogue: snapshot.study_all_dialogue(kind)?,
+                        projects: if kind == "engineering" {
+                            snapshot.study_projects()?
+                        } else {
+                            vec![]
+                        },
                     },
                 )?;
                 package.json(

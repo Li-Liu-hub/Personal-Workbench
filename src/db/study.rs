@@ -8,6 +8,9 @@ impl Database {
           CREATE INDEX IF NOT EXISTS study_attempts_card ON study_attempts(card_id,number);
           CREATE TABLE IF NOT EXISTS study_progress(card_id TEXT PRIMARY KEY REFERENCES study_cards(id),attempts INTEGER NOT NULL,streak INTEGER NOT NULL,mastered INTEGER NOT NULL,latest INTEGER NOT NULL);
           CREATE TABLE IF NOT EXISTS study_pending(id TEXT PRIMARY KEY,card_id TEXT NOT NULL REFERENCES study_cards(id),answer TEXT NOT NULL,at TEXT NOT NULL);")?;
+        self.desk.execute_batch("CREATE TABLE IF NOT EXISTS study_dialogue(id TEXT PRIMARY KEY,card_id TEXT NOT NULL REFERENCES study_cards(id),role TEXT NOT NULL,content TEXT NOT NULL,at TEXT NOT NULL); CREATE INDEX IF NOT EXISTS study_dialogue_card ON study_dialogue(card_id,at); CREATE TABLE IF NOT EXISTS study_help(pending_id TEXT PRIMARY KEY);")?;
+        self.desk.execute_batch("CREATE TABLE IF NOT EXISTS study_project_code(card_id TEXT PRIMARY KEY REFERENCES study_cards(id),source_json TEXT NOT NULL,report_json TEXT);")?;
+        self.import_study_cards(&[crate::challenges::card()])?;
         if self
             .settings()?
             .get("study.seed.version")
@@ -43,6 +46,8 @@ impl Database {
             source: "https://github.com/skywind3000/ECDICT".into(),
             phonetic: w.phonetic,
             sql: None,
+            origin: None,
+            project: None,
         }));
         self.import_study_cards(&cards)?;
         self.set_setting("study.seed.version", "1")?;
@@ -127,7 +132,7 @@ impl Database {
         rules.validate()?;
         let tx = self.desk.transaction()?;
         let records = tx
-            .prepare("SELECT card_id,completion FROM study_attempts ORDER BY card_id,number")?
+            .prepare("SELECT card_id,completion FROM study_attempts WHERE COALESCE(json_extract(attempt_json,'$.assisted'),0)=0 ORDER BY card_id,number")?
             .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, u8>(1)?)))?
             .collect::<std::result::Result<Vec<_>, _>>()?;
         let mut groups = std::collections::BTreeMap::<String, Vec<u8>>::new();
@@ -138,6 +143,7 @@ impl Database {
             let p = Progress::from_scores(id, &scores, rules);
             write_progress(&tx, &p)?;
         }
+        tx.execute("UPDATE study_progress SET attempts=(SELECT COUNT(*) FROM study_attempts a WHERE a.card_id=study_progress.card_id),latest=(SELECT completion FROM study_attempts a WHERE a.card_id=study_progress.card_id ORDER BY number DESC LIMIT 1)",[])?;
         tx.execute("INSERT INTO settings(key,value) VALUES('study.rules',?1) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[serde_json::to_string(rules)?])?;
         tx.commit()?;
         Ok(())
@@ -151,6 +157,118 @@ impl Database {
             .optional()?;
         json.map(|v| serde_json::from_str(&v).map_err(DeskError::from))
             .transpose()
+    }
+    pub fn draw_word(&self, mode: &str, recent: &[String], roll: u64) -> Result<Option<Card>> {
+        let prefix = if mode == "释义" {
+            String::new()
+        } else {
+            format!("drill:{}:", crate::english::slug(mode))
+        };
+        let rows=self.desk.prepare("SELECT c.card_json,COALESCE(p.mastered,0),COALESCE(p.attempts,0),COALESCE(p.latest,0) FROM study_cards c LEFT JOIN study_progress p ON p.card_id=?1||c.id WHERE c.kind='word' AND json_extract(c.card_json,'$.origin') IS NULL ORDER BY c.id")?
+            .query_map([prefix],|r|Ok((r.get::<_,String>(0)?,r.get::<_,bool>(1)?,r.get::<_,u32>(2)?,r.get::<_,u8>(3)?)))?
+            .collect::<std::result::Result<Vec<_>,_>>()?;
+        let rules = self.study_rules();
+        let mut candidates = Vec::new();
+        for (json, mastered, attempts, latest) in rows {
+            let card: Card = serde_json::from_str(&json)?;
+            if mastered && rules.mastered == study::MasteredMode::Stop {
+                continue;
+            }
+            let weight = if mastered {
+                1u64
+            } else if attempts == 0 {
+                100
+            } else if latest < rules.threshold {
+                150
+            } else {
+                60
+            };
+            candidates.push((card, weight));
+        }
+        if candidates.iter().any(|(c, _)| !recent.contains(&c.id)) {
+            candidates.retain(|(c, _)| !recent.contains(&c.id));
+        }
+        let total: u64 = candidates.iter().map(|(_, w)| w).sum();
+        if total == 0 {
+            return Ok(None);
+        }
+        let mut draw = roll % total;
+        for (card, weight) in candidates {
+            if draw < weight {
+                return Ok(Some(card));
+            }
+            draw -= weight;
+        }
+        Ok(None)
+    }
+    pub fn append_study_dialogue(
+        &mut self,
+        card_id: &str,
+        message: &crate::local_ai::Dialogue,
+    ) -> Result<()> {
+        self.desk.execute("INSERT OR IGNORE INTO study_dialogue(id,card_id,role,content,at) VALUES(?1,?2,?3,?4,?5)",params![message.id,card_id,message.role,message.content,message.at])?;
+        Ok(())
+    }
+    pub fn mark_study_help(&mut self, pending_id: &str) -> Result<()> {
+        self.desk.execute(
+            "INSERT OR IGNORE INTO study_help(pending_id) VALUES(?1)",
+            [pending_id],
+        )?;
+        Ok(())
+    }
+    pub fn study_dialogue(&self, card_id: &str) -> Result<Vec<crate::local_ai::Dialogue>> {
+        Ok(self
+            .desk
+            .prepare(
+                "SELECT id,role,content,at FROM study_dialogue WHERE card_id=?1 ORDER BY rowid",
+            )?
+            .query_map([card_id], |r| {
+                Ok(crate::local_ai::Dialogue {
+                    id: r.get(0)?,
+                    role: r.get(1)?,
+                    content: r.get(2)?,
+                    at: r.get(3)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?)
+    }
+    pub fn study_all_dialogue(&self, kind: &str) -> Result<Vec<study::SavedDialogue>> {
+        Ok(self.desk.prepare("SELECT d.card_id,d.id,d.role,d.content,d.at FROM study_dialogue d JOIN study_cards c ON c.id=d.card_id WHERE c.kind=?1 ORDER BY d.rowid")?.query_map([kind],|r|Ok(study::SavedDialogue{card_id:r.get(0)?,message:crate::local_ai::Dialogue{id:r.get(1)?,role:r.get(2)?,content:r.get(3)?,at:r.get(4)?}}))?.collect::<std::result::Result<Vec<_>,_>>()?)
+    }
+    pub fn save_study_project(&mut self, saved: &crate::challenges::Saved) -> Result<()> {
+        self.desk.execute("INSERT INTO study_project_code(card_id,source_json,report_json) VALUES(?1,?2,?3) ON CONFLICT(card_id) DO UPDATE SET source_json=excluded.source_json,report_json=excluded.report_json",params![saved.card_id,serde_json::to_string(&saved.source)?,saved.report.as_ref().map(serde_json::to_string).transpose()?])?;
+        Ok(())
+    }
+    pub fn study_project(&self, card_id: &str) -> Result<Option<crate::challenges::Saved>> {
+        let row = self
+            .desk
+            .query_row(
+                "SELECT source_json,report_json FROM study_project_code WHERE card_id=?1",
+                [card_id],
+                |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?)),
+            )
+            .optional()?;
+        row.map(|(source, report)| {
+            Ok(crate::challenges::Saved {
+                card_id: card_id.into(),
+                source: serde_json::from_str(&source)?,
+                report: report.map(|s| serde_json::from_str(&s)).transpose()?,
+            })
+        })
+        .transpose()
+    }
+    pub fn study_projects(&self) -> Result<Vec<crate::challenges::Saved>> {
+        let ids = self
+            .desk
+            .prepare("SELECT card_id FROM study_project_code ORDER BY card_id")?
+            .query_map([], |r| r.get::<_, String>(0))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        ids.into_iter()
+            .map(|id| self.study_project(&id)?.ok_or(DeskError::UnsupportedFormat))
+            .collect()
+    }
+    pub fn study_totals(&self, kind: &str) -> Result<(u32, u32, u32)> {
+        Ok(self.desk.query_row("SELECT COUNT(*),COALESCE(SUM(mastered),0),COALESCE(SUM(CASE WHEN latest<?2 THEN 1 ELSE 0 END),0) FROM study_progress p JOIN study_cards c ON c.id=p.card_id WHERE c.kind=?1",params![kind,self.study_rules().threshold],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?)))?)
     }
     pub fn study_cards(&self, kind: &str) -> Result<Vec<Card>> {
         self.desk
@@ -269,13 +387,23 @@ impl Database {
         let rules = self.study_rules();
         let tx = self.desk.transaction()?;
         let mut scores = tx
-            .prepare("SELECT completion FROM study_attempts WHERE card_id=?1 ORDER BY number")?
+            .prepare("SELECT completion FROM study_attempts WHERE card_id=?1 AND COALESCE(json_extract(attempt_json,'$.assisted'),0)=0 ORDER BY number")?
             .query_map([&p.card_id], |r| r.get::<_, u8>(0))?
             .collect::<std::result::Result<Vec<_>, _>>()?;
+        let number: u32 = tx.query_row(
+            "SELECT COALESCE(MAX(number),0)+1 FROM study_attempts WHERE card_id=?1",
+            [&p.card_id],
+            |r| r.get(0),
+        )?;
+        let assisted: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM study_help WHERE pending_id=?1)",
+            [&p.id],
+            |r| r.get(0),
+        )?;
         let attempt = Attempt {
             id: p.id.clone(),
             card_id: p.card_id.clone(),
-            number: scores.len() as u32 + 1,
+            number,
             at: chrono::Local::now().to_rfc3339(),
             answer: p.answer.clone(),
             completion,
@@ -284,13 +412,16 @@ impl Database {
             elapsed_ms,
             question: card,
             rules: rules.clone(),
+            assisted,
         };
         tx.execute("INSERT INTO study_attempts(id,card_id,number,at,completion,attempt_json) VALUES(?1,?2,?3,?4,?5,?6)",params![attempt.id,attempt.card_id,attempt.number,attempt.at,attempt.completion,serde_json::to_string(&attempt)?])?;
-        scores.push(completion);
-        write_progress(
-            &tx,
-            &Progress::from_scores(p.card_id.clone(), &scores, &rules),
-        )?;
+        if !assisted {
+            scores.push(completion);
+        }
+        let mut progress = Progress::from_scores(p.card_id.clone(), &scores, &rules);
+        progress.attempts = number;
+        progress.latest = completion;
+        write_progress(&tx, &progress)?;
         tx.execute("DELETE FROM study_pending WHERE id=?1", [&p.id])?;
         tx.commit()?;
         Ok(attempt)
@@ -321,11 +452,11 @@ impl Database {
     }
     pub fn study_today(&self, kind: &str) -> Result<u32> {
         let day = chrono::Local::now().format("%Y-%m-%d").to_string();
-        Ok(self.desk.query_row("SELECT COUNT(DISTINCT a.card_id) FROM study_attempts a JOIN study_cards c ON c.id=a.card_id WHERE c.kind=?1 AND substr(a.at,1,10)=?2",params![kind,day],|r|r.get(0))?)
+        Ok(self.desk.query_row("SELECT COUNT(DISTINCT CASE WHEN c.kind='word' THEN COALESCE(json_extract(c.card_json,'$.origin'),c.id) ELSE a.card_id END) FROM study_attempts a JOIN study_cards c ON c.id=a.card_id WHERE c.kind=?1 AND substr(a.at,1,10)=?2",params![kind,day],|r|r.get(0))?)
     }
     pub fn study_count(&self, kind: &str) -> Result<u32> {
         Ok(self.desk.query_row(
-            "SELECT COUNT(*) FROM study_cards WHERE kind=?1",
+            "SELECT COUNT(*) FROM study_cards WHERE kind=?1 AND json_extract(card_json,'$.origin') IS NULL",
             [kind],
             |r| r.get(0),
         )?)
@@ -410,7 +541,7 @@ mod tests {
             db.study_pending("engineering").unwrap()[0].answer,
             "历史答案"
         );
-        assert_eq!(db.study_count("engineering").unwrap(), 37);
+        assert_eq!(db.study_count("engineering").unwrap(), 38);
         let integrity: String = db
             .desk
             .query_row("PRAGMA integrity_check", [], |r| r.get(0))

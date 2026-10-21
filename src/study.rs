@@ -1,13 +1,14 @@
 use crate::error::{DeskError, Result};
 use serde::{Deserialize, Serialize};
 
-pub const TOPICS: [&str; 6] = [
+pub const TOPICS: [&str; 7] = [
     "场景题",
     "八股题",
     "SQL 命令",
     "Linux 命令",
     "Bug 排查",
     "性能调优",
+    "项目修 Bug",
 ];
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Rubric {
@@ -29,6 +30,10 @@ pub struct Card {
     pub phonetic: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sql: Option<crate::sql_practice::Lab>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub origin: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project: Option<String>,
 }
 impl Card {
     pub fn validate(&self) -> Result<()> {
@@ -138,6 +143,8 @@ pub struct Grade {
     pub weak_points: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sql: Option<crate::sql_practice::Report>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project: Option<crate::challenges::Report>,
 }
 impl Grade {
     /// A model cannot invent a final score: validate every rubric result and sum it here.
@@ -187,6 +194,7 @@ impl Grade {
             summary: "已记入记录本，下次继续练习。".into(),
             weak_points: vec![],
             sql: None,
+            project: None,
         }
     }
 }
@@ -203,6 +211,8 @@ pub struct Attempt {
     pub elapsed_ms: u64,
     pub question: Card,
     pub rules: Rules,
+    #[serde(default)]
+    pub assisted: bool,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct NotebookEntry {
@@ -222,6 +232,15 @@ pub struct Bundle {
     pub cards: Vec<Card>,
     #[serde(default)]
     pub attempts: Vec<Attempt>,
+    #[serde(default)]
+    pub dialogue: Vec<SavedDialogue>,
+    #[serde(default)]
+    pub projects: Vec<crate::challenges::Saved>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SavedDialogue {
+    pub card_id: String,
+    pub message: crate::local_ai::Dialogue,
 }
 
 #[cfg(test)]

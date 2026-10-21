@@ -12,12 +12,12 @@ impl Database {
         if contact.name.trim().is_empty() {
             return Err(crate::error::DeskError::InvalidPath("请填写姓名".into()));
         }
-        crate::model::validate_date(&contact.birthday)?;
+        let birthday = crate::model::normalize_date(&contact.birthday)?;
         let selected = crate::tags::normalize(tags)?;
         let tx = self.desk.transaction()?;
         super::ensure_tags(&tx, crate::tags::Scope::Contacts, &selected)?;
         let changed = tx.execute("UPDATE contacts SET name=?1,school=?2,major=?3,work=?4,phone=?5,national_id=?6,address=?7,gender=?8,birthday=?9,hobbies=?10,tags_json=?11,updated_at=CURRENT_TIMESTAMP WHERE id=?12",
-            params![contact.name.trim(),contact.school,contact.major,contact.work,contact.phone,contact.national_id,contact.address,contact.gender,contact.birthday,contact.hobbies,serde_json::to_string(&selected)?,contact.id])?;
+            params![contact.name.trim(),contact.school,contact.major,contact.work,contact.phone,contact.national_id,contact.address,contact.gender,birthday,contact.hobbies,serde_json::to_string(&selected)?,contact.id])?;
         if changed != 1 {
             return Err(crate::error::DeskError::InvalidPath(
                 "联系人已不存在".into(),
@@ -92,6 +92,7 @@ impl Database {
     }
     fn save_contact_inner(&mut self, contact: &Contact, selected: Option<&[String]>) -> Result<()> {
         contacts::validate(contact)?;
+        let birthday = crate::model::normalize_date(&contact.birthday)?;
         let tx = self.desk.transaction()?;
         tx.execute("INSERT INTO contacts(id,name,school,work,phone,national_id,address,gender,hobbies,chat_notes,birthday,major,photo)
             VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)
@@ -99,7 +100,7 @@ impl Database {
             phone=excluded.phone,national_id=excluded.national_id,address=excluded.address,gender=excluded.gender,
             hobbies=excluded.hobbies,chat_notes=excluded.chat_notes,birthday=excluded.birthday,major=excluded.major,photo=excluded.photo,updated_at=CURRENT_TIMESTAMP",
             params![contact.id,contact.name.trim(),contact.school,contact.work,contact.phone,
-                contact.national_id,contact.address,contact.gender,contact.hobbies,contact.chat_notes,contact.birthday,contact.major,contact.photo])?;
+                contact.national_id,contact.address,contact.gender,contact.hobbies,contact.chat_notes,birthday,contact.major,contact.photo])?;
         tx.execute(
             "DELETE FROM contact_chats WHERE contact_id=?1",
             [&contact.id],

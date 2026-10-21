@@ -29,6 +29,8 @@ impl PersonalDeskApp {
         contact.name = "示例联系人".into();
         contact.school = "示例大学".into();
         contact.work = "产品设计".into();
+        contact.birthday = "2005-05-20".into();
+        contact.phone = "13800000000".into();
         self.db
             .as_mut()
             .unwrap()
@@ -39,6 +41,8 @@ impl PersonalDeskApp {
         item.brand = "示例品牌".into();
         item.model = "Pro 14".into();
         item.location = "书房".into();
+        item.purchase_date = "2025-09-01".into();
+        item.purchase_price_cents = Some(699900);
         item.tags = vec!["数码".into()];
         self.db
             .as_mut()
@@ -124,6 +128,22 @@ impl PersonalDeskApp {
                         )));
                         self.prepare_sql_preview();
                     }
+                    14 => {
+                        self.section = Section::Words;
+                        self.prepare_learning_preview("造句");
+                    }
+                    15 => {
+                        self.section = Section::Words;
+                        self.prepare_learning_preview("中译英");
+                    }
+                    16 => {
+                        self.section = Section::Practice;
+                        self.prepare_learning_preview("project");
+                    }
+                    17 => {
+                        self.section = Section::Contacts;
+                        self.view_modes.set(Section::Contacts, ViewMode::Grid);
+                    }
                     _ => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
                 }
             }
@@ -148,6 +168,10 @@ impl PersonalDeskApp {
             "practice-small",
             "words-small",
             "sql-practice",
+            "word-sentence",
+            "word-translation",
+            "project-repair",
+            "contacts-grid",
         ][c.step];
         let path = c.output.join(format!("{name}.png"));
         let completed = c.completed.clone();

@@ -4,6 +4,15 @@ impl PersonalDeskApp {
         let Some(mut draft) = self.inline_inventory.get(id).cloned() else {
             return true;
         };
+        if let Some(value) = self.inventory_quantities.get(id) {
+            match value.trim().parse::<i64>() {
+                Ok(number) if number >= 0 => draft.quantity = number,
+                _ => {
+                    self.notice = "数量需要填写大于等于 0 的整数".into();
+                    return false;
+                }
+            }
+        }
         if let Some(value) = self.inventory_prices.get(id) {
             match parse_price(value) {
                 Ok(price) => draft.purchase_price_cents = price,
@@ -27,6 +36,7 @@ impl PersonalDeskApp {
             Ok(()) => {
                 self.inline_inventory.remove(id);
                 self.inventory_prices.remove(id);
+                self.inventory_quantities.remove(id);
                 self.load_inventory();
                 self.load_tags();
                 self.notice = "已保存".into();
@@ -43,6 +53,8 @@ impl PersonalDeskApp {
         use crate::ui_components::table;
         let options = self.inventory_tags.clone();
         const C: &[f32] = &[135., 80., 105., 50., 90., 108., 90., 108., 95., 140.];
+        let fitted = table::fit(C, ui.available_width());
+        let columns = fitted.as_slice();
         ui.spacing_mut().scroll.floating = false;
         egui::ScrollArea::horizontal()
             .id_salt("inventory-columns")
@@ -50,7 +62,7 @@ impl PersonalDeskApp {
                 ui.spacing_mut().item_spacing.y = 0.;
                 table::header(
                     ui,
-                    C,
+                    columns,
                     &[
                         "名称",
                         "品牌",
@@ -67,7 +79,7 @@ impl PersonalDeskApp {
                 for item in items {
                     let mut draft = self.inline_inventory.get(&item.id).unwrap_or(item).clone();
                     let mut changed = false;
-                    let (response, cells) = table::row(ui, ("inventory-row", &item.id), C);
+                    let (response, cells) = table::row(ui, ("inventory-row", &item.id), columns);
                     for (index, value) in [
                         (0, &mut draft.name),
                         (1, &mut draft.brand),
@@ -77,12 +89,19 @@ impl PersonalDeskApp {
                         (7, &mut draft.disposal_date),
                     ] {
                         changed |= table::text(ui, cells[index], (&item.id, index), value);
+                        if matches!(index, 5 | 7) {
+                            table::date_hint(ui, cells[index], value);
+                        }
                     }
-                    table::cell_ui(ui, cells[3], |ui| {
-                        changed |= ui
-                            .add(egui::DragValue::new(&mut draft.quantity).range(0..=i64::MAX))
-                            .changed();
-                    });
+                    let mut quantity = self
+                        .inventory_quantities
+                        .get(&item.id)
+                        .cloned()
+                        .unwrap_or_else(|| draft.quantity.to_string());
+                    if table::text(ui, cells[3], (&item.id, "quantity"), &mut quantity) {
+                        self.inventory_quantities.insert(item.id.clone(), quantity);
+                        changed = true;
+                    }
                     let mut price =
                         self.inventory_prices
                             .get(&item.id)
@@ -132,6 +151,7 @@ impl PersonalDeskApp {
                     if cancel {
                         self.inline_inventory.remove(&item.id);
                         self.inventory_prices.remove(&item.id);
+                        self.inventory_quantities.remove(&item.id);
                     } else if save {
                         self.save_inline_inventory(&item.id);
                     }
@@ -151,7 +171,7 @@ impl PersonalDeskApp {
                         }
                     }
                 }
-                if table::add_row(ui, C, "add-inventory-row", "添加物品").clicked() {
+                if table::add_row(ui, columns, "add-inventory-row", "添加物品").clicked() {
                     self.add_current_item();
                 }
             });
