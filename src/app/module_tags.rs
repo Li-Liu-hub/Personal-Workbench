@@ -166,19 +166,23 @@ impl PersonalDeskApp {
             return;
         }
         if self.section == Section::Folders && self.current_directory.is_some() {
-            ui.horizontal_wrapped(|ui| {
-                for kind in files::FileFilter::ALL {
-                    ui.selectable_value(&mut self.file_filter, kind, kind.label());
-                }
-            });
-            ui.add_space(12.0);
+            egui::ComboBox::from_id_salt("file-type-filter")
+                .width(112.0)
+                .selected_text(format!("类型：{}", self.file_filter.label()))
+                .show_ui(ui, |ui| {
+                    for kind in files::FileFilter::ALL {
+                        ui.selectable_value(&mut self.file_filter, kind, kind.label());
+                    }
+                });
             return;
         }
-        if let Some(scope) = TagScope::for_section(self.section)
-            && !matches!(scope, TagScope::Credentials | TagScope::Inventory)
-        {
+        if let Some(scope) = TagScope::for_section(self.section) {
             let names = self.names_for_scope(scope);
-            let filter = self.module_filters.entry(scope.key().into()).or_default();
+            let filter = match scope {
+                TagScope::Credentials => &mut self.account_filter,
+                TagScope::Inventory => &mut self.inventory_filter,
+                _ => self.module_filters.entry(scope.key().into()).or_default(),
+            };
             if tag_filter_bar(ui, filter, &names) {
                 self.open_tag_manager(scope);
             }

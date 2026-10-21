@@ -523,6 +523,7 @@ impl PersonalDeskApp {
             115., 65., 120., 150., 115., 100., 135., 180., 180., 140., 130., 160.,
         ];
         let options = self.names_for_scope(TagScope::Contacts);
+        ui.spacing_mut().scroll.floating = false;
         egui::ScrollArea::horizontal()
             .id_salt("contact-columns")
             .show(ui, |ui| {
@@ -632,10 +633,7 @@ impl PersonalDeskApp {
                         self.contact_dialog_open = true;
                     }
                 }
-                if ui
-                    .add_sized([table::width(C), 40.], egui::Button::new("+ 添加联系人"))
-                    .clicked()
-                {
+                if table::add_row(ui, C, "add-contact-row", "添加联系人").clicked() {
                     self.add_current_item();
                 }
             });

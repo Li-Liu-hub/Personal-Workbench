@@ -1,6 +1,29 @@
 //! Shared geometry for editable table headers and rows.
 use super::*;
 
+pub fn add_row(ui: &mut Ui, columns: &[f32], id: &str, label: &str) -> Response {
+    let (_, rect) = ui.allocate_space(egui::vec2(width(columns), 40.0));
+    let response = ui.interact(rect, ui.scope_id().with(id), egui::Sense::click());
+    let painter = ui.painter().with_clip_rect(rect.intersect(ui.clip_rect()));
+    painter.rect_filled(
+        rect,
+        6,
+        if response.hovered() {
+            surface().lerp_to_gamma(accent(), 0.06)
+        } else {
+            surface()
+        },
+    );
+    painter.text(
+        rect.left_center() + egui::vec2(26.0, 0.0),
+        egui::Align2::LEFT_CENTER,
+        format!("+ {label}"),
+        egui::FontId::proportional(14.0),
+        accent(),
+    );
+    response
+}
+
 pub fn width(columns: &[f32]) -> f32 {
     columns.iter().sum::<f32>() + 32.0
 }

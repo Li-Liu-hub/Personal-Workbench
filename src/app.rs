@@ -19,6 +19,7 @@ mod game_ui;
 #[cfg(debug_assertions)]
 mod interaction_probe;
 mod inventory_ui;
+mod layout_ui;
 mod library_ui;
 mod module_tags;
 #[cfg(debug_assertions)]
@@ -1317,120 +1318,7 @@ impl PersonalDeskApp {
         }
     }
 
-    fn render_header(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
-        let mut search_id = None;
-        let title = self.page_title();
-        ui.horizontal(|ui| {
-            ui.set_min_height(42.0);
-            ui.add_sized(
-                [180.0_f32.min(ui.available_width() * 0.24), 42.0],
-                egui::Label::new(RichText::new(&title).size(25.0).strong().color(ink())).truncate(),
-            )
-            .on_hover_text(&title);
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if !self.add_label().is_empty()
-                    && ui
-                        .add(primary_button(&format!("+  {}", self.add_label())))
-                        .clicked()
-                {
-                    self.add_current_item();
-                }
-                if self.section == Section::Folders && ui.button("PowerShell").clicked() {
-                    let previous = self.section;
-                    self.open_terminal(
-                        self.current_directory
-                            .clone()
-                            .unwrap_or_else(|| self.data_dir.clone()),
-                    );
-                    self.section = previous;
-                    self.terminal_inline = true;
-                }
-                if (self.undo.available()
-                    || (self.section == Section::Books && !self.library.undo.is_empty()))
-                    && ui.button("撤回 Ctrl+Z").clicked()
-                {
-                    self.undo_last_delete();
-                }
-                if (match self.section {
-                    Section::Contacts => !self.inline_contacts.is_empty(),
-                    Section::Credentials => !self.inline_credentials.is_empty(),
-                    Section::Inventory => !self.inline_inventory.is_empty(),
-                    _ => false,
-                }) && ui.button("保存修改").clicked()
-                {
-                    self.save_visible_rows();
-                }
-                if ui
-                    .add_enabled(
-                        !self.export_busy,
-                        egui::Button::new(if self.export_busy {
-                            "导出中…"
-                        } else {
-                            "导出"
-                        }),
-                    )
-                    .clicked()
-                {
-                    self.export_dialog_open = true;
-                }
-                if !matches!(
-                    self.section,
-                    Section::Games | Section::Terminal | Section::Browser
-                ) {
-                    self.render_view_switcher(ui);
-                }
-            });
-        });
-        {
-            ui.add_space(10.0);
-            ui.horizontal(|ui| {
-                let hint = match self.section {
-                    Section::Folders => "搜索文件名、路径或已索引内容  Ctrl+K",
-                    Section::Credentials => "搜索名称、账号、密码、备注或标签  Ctrl+K",
-                    Section::Documents => "搜索文档标题或已索引内容  Ctrl+K",
-                    _ => "搜索当前页面  Ctrl+K",
-                };
-                let width = (ui.available_width() - 155.0).clamp(100.0, 620.0);
-                let response = ui.add_sized(
-                    [width, 38.0],
-                    egui::TextEdit::singleline(&mut self.search_query)
-                        .id_salt("global-search")
-                        .margin(egui::Margin::symmetric(12, 10))
-                        .hint_text(hint),
-                );
-                search_id = Some(response.id);
-                self.search_field = Some(response.id);
-                if response.changed() {
-                    self.search_results.clear();
-                    self.search_pending = Some(ui.input(|input| input.time) + 0.3);
-                    ctx.request_repaint_after(Duration::from_millis(310));
-                }
-                if ui.button("搜索").clicked()
-                    || (response.lost_focus()
-                        && ui.input(|input| input.key_pressed(egui::Key::Enter)))
-                {
-                    self.search_pending = None;
-                    self.run_search();
-                }
-                if ui
-                    .add_enabled(!self.search_query.is_empty(), egui::Button::new("清空"))
-                    .clicked()
-                {
-                    self.search_query.clear();
-                    self.search_results.clear();
-                    self.search_pending = None;
-                }
-            });
-            if self
-                .search_pending
-                .is_some_and(|deadline| ctx.input(|input| input.time) >= deadline)
-            {
-                self.search_pending = None;
-                if matches!(self.section, Section::Folders | Section::Documents) {
-                    self.run_search();
-                }
-            }
-        }
+    fn handle_workspace_shortcuts(&mut self, ctx: &egui::Context) {
         if !self.detail_open()
             && !ctx.egui_wants_keyboard_input()
             && !self.terminal_focused
@@ -1467,7 +1355,7 @@ impl PersonalDeskApp {
         }
         if ctrl_k
             && !self.detail_open()
-            && let Some(id) = search_id
+            && let Some(id) = self.search_field
         {
             ctx.memory_mut(|memory| memory.request_focus(id));
         }
@@ -2001,9 +1889,6 @@ impl PersonalDeskApp {
     }
 
     fn render_credentials(&mut self, ui: &mut egui::Ui) {
-        if tag_filter_bar(ui, &mut self.account_filter, &self.account_tags) {
-            self.open_tag_manager(TagScope::Credentials);
-        }
         let query = self.search_query.trim().to_lowercase();
         let mut visible = self
             .credentials
@@ -2211,9 +2096,6 @@ impl PersonalDeskApp {
     }
 
     fn render_inventory(&mut self, ui: &mut egui::Ui) {
-        if tag_filter_bar(ui, &mut self.inventory_filter, &self.inventory_tags) {
-            self.open_tag_manager(TagScope::Inventory);
-        }
         let query = self.search_query.trim().to_lowercase();
         let mut visible = self
             .inventory_items
@@ -2520,7 +2402,8 @@ impl PersonalDeskApp {
         if let (Some(root), Some(current)) =
             (self.current_root.clone(), self.current_directory.clone())
         {
-            ui.horizontal_wrapped(|ui| {
+            ui.add_space(6.0);
+            ui.horizontal(|ui| {
                 if ui.button("重置").clicked() {
                     self.current_root = None;
                     self.current_directory = None;
@@ -2535,6 +2418,12 @@ impl PersonalDeskApp {
                 {
                     self.navigate(parent.to_path_buf(), parent.to_path_buf());
                 }
+                let location = files::shell_path(&current).display().to_string();
+                ui.add_sized(
+                    [(ui.available_width() - 320.0).max(70.0), 32.0],
+                    egui::Label::new(RichText::new(&location).small().color(muted())).truncate(),
+                )
+                .on_hover_text(&location);
                 if ui.button("添加文件").clicked()
                     && let Some(paths) = rfd::FileDialog::new().set_title("添加文件").pick_files()
                 {
@@ -2543,30 +2432,35 @@ impl PersonalDeskApp {
                 if ui.button("刷新").clicked() {
                     self.refresh_files();
                 }
-                if ui.button("在资源管理器打开").clicked()
-                    && let Err(error) = files::open_in_system(&current)
-                {
-                    self.notice = error.to_string();
+                if ui.button("PowerShell").clicked() {
+                    self.open_terminal(current.clone());
+                    self.section = Section::Folders;
+                    self.terminal_inline = true;
                 }
-                if ui.button("更新内容索引").clicked() {
-                    let shortcut = self
-                        .db
-                        .as_ref()
-                        .and_then(|db| db.shortcuts().ok())
-                        .unwrap_or_default()
-                        .into_iter()
-                        .find(|shortcut| {
-                            shortcut.path.canonicalize().is_ok_and(|path| path == root)
-                        });
-                    if let Some(shortcut) = shortcut {
-                        self.start_index(shortcut.id, root.clone());
+                ui.menu_button("更多", |ui| {
+                    if ui.button("在资源管理器打开").clicked() {
+                        if let Err(error) = files::open_in_system(&current) {
+                            self.notice = error.to_string();
+                        }
+                        ui.close();
                     }
-                }
+                    if ui.button("更新内容索引").clicked() {
+                        let shortcut = self
+                            .db
+                            .as_ref()
+                            .and_then(|db| db.shortcuts().ok())
+                            .unwrap_or_default()
+                            .into_iter()
+                            .find(|shortcut| {
+                                shortcut.path.canonicalize().is_ok_and(|path| path == root)
+                            });
+                        if let Some(shortcut) = shortcut {
+                            self.start_index(shortcut.id, root.clone());
+                        }
+                        ui.close();
+                    }
+                });
             });
-            let location = files::shell_path(&current).display().to_string();
-            ui.add(egui::Label::new(RichText::new(&location).small().color(muted())).truncate())
-                .on_hover_text(location);
-            ui.add_space(12.0);
         }
     }
 
@@ -2996,12 +2890,12 @@ impl PersonalDeskApp {
             egui::Panel::left("navigation")
                 .resizable(false)
                 .show_separator_line(false)
-                .exact_size(200.0)
+                .exact_size(184.0)
                 .frame(
                     egui::Frame::default()
                         .fill(sidebar())
                         .stroke(egui::Stroke::NONE)
-                        .inner_margin(egui::Margin::symmetric(16, 18)),
+                        .inner_margin(egui::Margin::symmetric(12, 14)),
                 )
                 .show(ui, |ui| self.render_sidebar(ui));
         }
@@ -3013,12 +2907,21 @@ impl PersonalDeskApp {
             });
             return;
         }
+        egui::Panel::bottom("workspace-status")
+            .exact_size(24.0)
+            .show_separator_line(false)
+            .frame(
+                egui::Frame::new()
+                    .fill(content_fill())
+                    .inner_margin(egui::Margin::symmetric(24, 2)),
+            )
+            .show(ui, |ui| self.render_status(ui));
         let content_panel = egui::CentralPanel::default()
             .frame(
                 egui::Frame::default()
                     .fill(content_fill())
                     .stroke(egui::Stroke::NONE)
-                    .inner_margin(egui::Margin::symmetric(28, 24)),
+                    .inner_margin(egui::Margin::symmetric(24, 14)),
             )
             .show(ui, |ui| {
                 if self.section == Section::Browser {
@@ -3036,26 +2939,20 @@ impl PersonalDeskApp {
                         .min_size(180.0)
                         .show(ui, |ui| self.render_terminal(ui));
                 }
-                self.render_header(ui, &ctx);
-                ui.add_space(12.0);
-                self.render_module_filters(ui);
-                if !self.notice.is_empty() {
-                    ui.add(
-                        egui::Label::new(RichText::new(&self.notice).small().color(muted()))
-                            .truncate(),
-                    )
-                    .on_hover_text(&self.notice);
-                    ui.add_space(6.0);
-                }
-                if self.section == Section::Folders {
-                    self.render_folder_toolbar(ui);
-                }
-                if self.section == Section::Documents
-                    && (self.editor_visible || self.library.book.is_some())
-                {
+                self.search_field = None;
+                let editing = self.section == Section::Documents
+                    && (self.editor_visible || self.library.book.is_some());
+                if editing {
                     self.render_document_toolbar(ui);
                     self.render_book_tabs(ui);
+                } else {
+                    self.render_header(ui, &ctx);
+                    if self.section == Section::Folders {
+                        self.render_folder_toolbar(ui);
+                    }
                 }
+                self.handle_workspace_shortcuts(&ctx);
+                ui.add_space(12.0);
                 egui::ScrollArea::vertical()
                     .id_salt((
                         "workspace-content",
@@ -3834,10 +3731,10 @@ fn configure_theme(ctx: &egui::Context) {
         style
             .text_styles
             .insert(egui::TextStyle::Heading, egui::FontId::proportional(24.0));
-        style.spacing.item_spacing = egui::vec2(10.0, 10.0);
-        style.spacing.button_padding = egui::vec2(12.0, 7.0);
+        style.spacing.item_spacing = egui::vec2(8.0, 6.0);
+        style.spacing.button_padding = egui::vec2(10.0, 5.0);
         style.animation_time = 0.12;
-        style.spacing.interact_size.y = 36.0;
+        style.spacing.interact_size.y = 32.0;
         style.visuals.panel_fill = canvas();
         style.visuals.window_fill = surface();
         style.visuals.window_corner_radius = egui::CornerRadius::same(14);

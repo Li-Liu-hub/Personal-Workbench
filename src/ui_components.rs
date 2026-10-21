@@ -20,7 +20,27 @@ pub fn primary_button(label: &str) -> egui::Button<'_> {
         .fill(accent())
         .stroke(egui::Stroke::NONE)
         .corner_radius(10)
-        .min_size(egui::vec2(0.0, 38.0))
+        .min_size(egui::vec2(0.0, 32.0))
+}
+
+pub fn toolbar_title(ui: &mut Ui, title: &str, width: f32, size: f32) -> Response {
+    let (rect, response) = ui.allocate_exact_size(egui::vec2(width, 38.0), egui::Sense::click());
+    let mut job = egui::text::LayoutJob::simple(
+        title.to_owned(),
+        egui::FontId::proportional(size),
+        ink(),
+        width,
+    );
+    job.wrap.max_rows = 1;
+    let galley = ui.painter().layout_job(job);
+    ui.painter()
+        .with_clip_rect(rect.intersect(ui.clip_rect()))
+        .galley(
+            egui::pos2(rect.left(), rect.center().y - galley.size().y / 2.0),
+            galley,
+            ink(),
+        );
+    response.on_hover_text(title)
 }
 
 pub fn classification_dropdown(
@@ -375,18 +395,24 @@ pub fn tagged_tile(
 }
 
 pub fn tag_filter_bar(ui: &mut Ui, filter: &mut crate::tags::Filter, names: &[String]) -> bool {
-    let mut manage = false;
-    ui.horizontal_wrapped(|ui| {
-        ui.label(egui::RichText::new("分类").color(muted()));
-        ui.selectable_value(filter, crate::tags::Filter::All, "全部");
-        ui.selectable_value(filter, crate::tags::Filter::Untagged, "未分类");
-        for name in names {
-            ui.selectable_value(filter, crate::tags::Filter::Named(name.clone()), name);
-        }
-        manage = ui.button("+ 管理标签").clicked();
-    });
-    ui.add_space(10.0);
-    manage
+    let selected = match filter {
+        crate::tags::Filter::All => "全部分类",
+        crate::tags::Filter::Untagged => "未分类",
+        crate::tags::Filter::Named(name) => name,
+    }
+    .to_owned();
+    egui::ComboBox::from_id_salt("page-category-filter")
+        .width(112.0)
+        .truncate()
+        .selected_text(selected)
+        .show_ui(ui, |ui| {
+            ui.selectable_value(filter, crate::tags::Filter::All, "全部分类");
+            ui.selectable_value(filter, crate::tags::Filter::Untagged, "未分类");
+            for name in names {
+                ui.selectable_value(filter, crate::tags::Filter::Named(name.clone()), name);
+            }
+        });
+    ui.button("标签").on_hover_text("管理分类标签").clicked()
 }
 
 pub fn tag_choices(ui: &mut Ui, selected: &mut Vec<String>, names: &[String]) -> bool {
