@@ -144,6 +144,30 @@ impl PersonalDeskApp {
                         self.section = Section::Contacts;
                         self.view_modes.set(Section::Contacts, ViewMode::Grid);
                     }
+                    18 => {
+                        self.section = Section::Documents;
+                        self.library.book = None;
+                        let mut book = crate::library::Book::new();
+                        book.title = "日记本".into();
+                        let db = self.db.as_mut().unwrap();
+                        db.save_book(&book).unwrap();
+                        db.create_writing("昨天的记录", Some(&book.id), None)
+                            .unwrap();
+                        self.new_writing_for_day(
+                            true,
+                            chrono::NaiveDate::from_ymd_opt(2026, 10, 22).unwrap(),
+                        );
+                        self.writing.page.as_mut().unwrap().body =
+                            "## 今天的记录\n\n日记放进图书后，标题和正文都保留在自己的标签页里。"
+                                .into();
+                        self.mark_writing_changed(0.);
+                        let id = self.writing.page.as_ref().unwrap().id.clone();
+                        self.group_written_documents(&[id], Some(&book.id));
+                        self.notice.clear();
+                    }
+                    19 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                        1000., 680.,
+                    ))),
                     _ => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
                 }
             }
@@ -172,6 +196,8 @@ impl PersonalDeskApp {
             "word-translation",
             "project-repair",
             "contacts-grid",
+            "diary-in-book",
+            "diary-in-book-small",
         ][c.step];
         let path = c.output.join(format!("{name}.png"));
         let completed = c.completed.clone();

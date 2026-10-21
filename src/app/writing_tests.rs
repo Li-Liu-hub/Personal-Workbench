@@ -261,3 +261,213 @@ fn interrupted_and_conflicting_drafts_recover_as_copies_without_overwriting_save
     let app = PersonalDeskApp::open_data_directory(dir.path().into());
     assert_eq!(app.db.as_ref().unwrap().writing_pages().unwrap().len(), 2);
 }
+
+fn drag_writing(app: &mut PersonalDeskApp, ctx: &egui::Context, from: egui::Pos2, to: egui::Pos2) {
+    input_frame(app, ctx, 1., pointer(from, true), vec![]);
+    input_frame(
+        app,
+        ctx,
+        1.1,
+        vec![egui::Event::PointerMoved(from + egui::vec2(18., 0.))],
+        vec![],
+    );
+    input_frame(app, ctx, 1.2, vec![egui::Event::PointerMoved(to)], vec![]);
+    input_frame(app, ctx, 1.3, pointer(to, false), vec![]);
+    input_frame(app, ctx, 1.4, vec![], vec![]);
+}
+
+#[test]
+fn dragging_diary_into_existing_book_keeps_title_content_and_daily_link() {
+    for mode in [crate::views::ViewMode::Grid, crate::views::ViewMode::List] {
+        let dir = tempfile::tempdir().unwrap();
+        let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+        let mut book = crate::library::Book::new();
+        book.title = "我的日记本".into();
+        app.db.as_mut().unwrap().save_book(&book).unwrap();
+        app.db
+            .as_mut()
+            .unwrap()
+            .create_writing("已存在的篇章", Some(&book.id), None)
+            .unwrap();
+        let day = chrono::NaiveDate::from_ymd_opt(2026, 10, 22).unwrap();
+        app.new_writing_for_day(true, day);
+        let id = app.writing.page.as_ref().unwrap().id.clone();
+        app.writing.page.as_mut().unwrap().body = "完整的日记正文，不能被归组覆盖。".into();
+        app.mark_writing_changed(0.);
+        assert!(app.flush_writing());
+        app.writing.page = None;
+        app.library.book = None;
+        app.set_view_mode(mode);
+        let ctx = egui::Context::default();
+        configure_theme(&ctx);
+        input_frame(&mut app, &ctx, 0., vec![], vec![]);
+        let out = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+        drag_writing(
+            &mut app,
+            &ctx,
+            text_position(&out, "2026-10-22"),
+            text_position(&out, "我的日记本"),
+        );
+        let db = app.db.as_ref().unwrap();
+        let saved = db.writing_page(&id).unwrap().unwrap();
+        assert_eq!(
+            saved.book_id, book.id,
+            "diary should move into the existing book"
+        );
+        assert_eq!(saved.title, "2026-10-22");
+        assert_eq!(saved.body, "完整的日记正文，不能被归组覆盖。");
+        assert_eq!(db.books().unwrap().len(), 1);
+        assert_eq!(db.books().unwrap()[0].title, "我的日记本");
+        assert_eq!(app.writing.page.as_ref().unwrap().id, id);
+        assert_eq!(app.library.book.as_ref().unwrap().id, book.id);
+        drop(app);
+        let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+        assert!(app.new_writing_for_day(true, day));
+        assert_eq!(app.writing.page.as_ref().unwrap().id, id);
+        assert_eq!(app.library.book.as_ref().unwrap().id, book.id);
+        assert_eq!(
+            app.db.as_ref().unwrap().book_pages(&book.id).unwrap().len(),
+            2
+        );
+    }
+}
+
+#[test]
+fn dropping_between_pages_in_a_book_never_creates_another_book() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+    let mut book = crate::library::Book::new();
+    book.title = "日常记录".into();
+    let db = app.db.as_mut().unwrap();
+    db.save_book(&book).unwrap();
+    let first = db.create_writing("第一篇", Some(&book.id), None).unwrap();
+    let diary = db
+        .create_writing("2026-10-22", Some(&book.id), Some("2026-10-22"))
+        .unwrap();
+    app.section = Section::Documents;
+    app.library.book = Some(book.clone());
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0., vec![], vec![]);
+    let out = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    drag_writing(
+        &mut app,
+        &ctx,
+        text_position(&out, "2026-10-22"),
+        text_position(&out, "第一篇"),
+    );
+    let db = app.db.as_ref().unwrap();
+    assert_eq!(
+        db.books().unwrap().len(),
+        1,
+        "dropping inside a book must not create a replacement book"
+    );
+    assert_eq!(db.book_pages(&book.id).unwrap().len(), 2);
+    assert_eq!(
+        db.writing_page(&diary.id).unwrap().unwrap().book_id,
+        book.id
+    );
+    assert_eq!(
+        db.writing_page(&first.id).unwrap().unwrap().book_id,
+        book.id
+    );
+    assert_eq!(
+        db.writing_page(&first.id).unwrap().unwrap().revision,
+        first.revision
+    );
+    assert_eq!(
+        db.writing_page(&diary.id).unwrap().unwrap().revision,
+        diary.revision
+    );
+    assert_eq!(app.writing.page.as_ref().unwrap().id, diary.id);
+}
+
+#[test]
+fn grouping_root_diary_opens_its_own_tab_and_continues_saving_after_restart() {
+    for mode in [crate::views::ViewMode::Grid, crate::views::ViewMode::List] {
+        let dir = tempfile::tempdir().unwrap();
+        let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+        let db = app.db.as_mut().unwrap();
+        let other = db.create_writing("想一起保存的文档", None, None).unwrap();
+        let mut diary = db
+            .create_writing("2026-10-22", None, Some("2026-10-22"))
+            .unwrap();
+        diary.body = "不会消失的日记正文".into();
+        diary.tags = vec!["日记".into()];
+        db.save_book_page(&mut diary).unwrap();
+        app.section = Section::Documents;
+        app.set_view_mode(mode);
+        let ctx = egui::Context::default();
+        configure_theme(&ctx);
+        input_frame(&mut app, &ctx, 0., vec![], vec![]);
+        let out = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+        drag_writing(
+            &mut app,
+            &ctx,
+            text_position(&out, "2026-10-22"),
+            text_position(&out, "想一起保存的文档"),
+        );
+        assert_eq!(app.writing.page.as_ref().unwrap().id, diary.id);
+        let book = app.library.book.as_ref().unwrap().clone();
+        assert_eq!(book.title, "新建图书");
+        let out = input_frame(&mut app, &ctx, 1.5, vec![], vec![]);
+        for title in [&book.title, &diary.title, &other.title] {
+            text_position(&out, title);
+        }
+        app.writing
+            .page
+            .as_mut()
+            .unwrap()
+            .body
+            .push_str("\n归组后继续写");
+        app.mark_writing_changed(2.);
+        assert!(
+            app.flush_writing(),
+            "grouping must refresh the editor revision"
+        );
+        drop(app);
+        let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+        app.new_writing_for_day(true, chrono::NaiveDate::from_ymd_opt(2026, 10, 22).unwrap());
+        let saved = app.writing.page.as_ref().unwrap();
+        assert_eq!(saved.id, diary.id);
+        assert_eq!(saved.title, diary.title);
+        assert_eq!(saved.tags, diary.tags);
+        assert_eq!(saved.body, "不会消失的日记正文\n归组后继续写");
+        assert_eq!(saved.book_id, book.id);
+        assert_eq!(app.db.as_ref().unwrap().writing_pages().unwrap().len(), 2);
+        assert_eq!(app.db.as_ref().unwrap().books().unwrap().len(), 1);
+    }
+}
+
+#[test]
+fn failed_writing_group_rolls_back_and_repeated_drop_does_not_change_saved_pages() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut db = Database::open(dir.path()).unwrap();
+    let mut book = crate::library::Book::new();
+    book.title = "保留名称".into();
+    db.save_book(&book).unwrap();
+    let page = db.create_writing("日记", None, Some("2026-10-22")).unwrap();
+    assert!(
+        db.group_writing(&[page.id.clone(), "missing-page".into()], Some(&book.id))
+            .is_err()
+    );
+    assert_eq!(
+        db.writing_page(&page.id).unwrap().unwrap().book_id,
+        page.book_id
+    );
+    assert!(db.group_writing(&[], None).is_err());
+    assert!(
+        db.group_writing(&[page.id.clone(), page.id.clone()], None)
+            .is_err()
+    );
+    db.group_writing(std::slice::from_ref(&page.id), Some(&book.id))
+        .unwrap();
+    let moved = db.writing_page(&page.id).unwrap().unwrap();
+    db.group_writing(std::slice::from_ref(&page.id), Some(&book.id))
+        .unwrap();
+    assert_eq!(
+        db.writing_page(&page.id).unwrap().unwrap().revision,
+        moved.revision
+    );
+    assert_eq!(db.books().unwrap()[0].title, book.title);
+}

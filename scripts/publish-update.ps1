@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '刷题与英语新增讲解追问侧栏、一键启动模型和真实速度统计；单词增加造句、双向翻译、语法及混合训练；新增Java项目修Bug与实际测试；修复联系人视图切换，统一联系人和物品列表；保留个人数据及历史记录'
+    [string]$Notes = '修复日记与文档归组后看似消失的问题；同本图书内拖放不再另建图书，归组后自动打开原文档标签并显示图书名称；保留日记正文、标题、标签及日期关联'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
