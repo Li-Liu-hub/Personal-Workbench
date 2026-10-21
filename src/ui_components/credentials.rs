@@ -94,6 +94,23 @@ fn editable_field(
     )
 }
 
+fn readonly_value(ui: &mut Ui, value: &str, rect: egui::Rect, size: f32) -> Response {
+    let galley = layout(ui, value, rect.width(), size);
+    ui.painter()
+        .with_clip_rect(rect.intersect(ui.clip_rect()))
+        .galley(rect.min, galley, ink());
+    ui.interact(
+        rect,
+        ui.scope_id().with((
+            "readonly",
+            value,
+            rect.min.x.to_bits(),
+            rect.min.y.to_bits(),
+        )),
+        egui::Sense::click(),
+    )
+}
+
 pub fn credential_entry(
     ui: &mut Ui,
     item: &mut CredentialSummary,
@@ -224,14 +241,23 @@ pub fn credential_entry(
             ),
         )
     };
-    let title = editable_field(
-        ui,
-        egui::Id::unique(("credential-inline", &item.id, "title")),
-        &mut item.title,
-        title_rect,
-        if grid { 16.0 } else { 14.0 },
-        false,
-    );
+    let title = if grid {
+        ui.place(
+            title_rect,
+            egui::Label::new(&item.title)
+                .truncate()
+                .sense(egui::Sense::click()),
+        )
+    } else {
+        editable_field(
+            ui,
+            egui::Id::unique(("credential-inline", &item.id, "title")),
+            &mut item.title,
+            title_rect,
+            if grid { 16.0 } else { 14.0 },
+            false,
+        )
+    };
     let category_rect = if grid {
         egui::Rect::from_min_size(rect.min + egui::vec2(20.0, 52.0), egui::vec2(inner, 28.0))
     } else {
@@ -245,32 +271,54 @@ pub fn credential_entry(
             .max_rect(category_rect)
             .layout(egui::Layout::top_down(egui::Align::Min)),
     );
-    let classification_changed = classification_dropdown(
-        &mut category_ui,
-        ("account-category", &item.id),
-        &mut item.tags,
-        categories,
-        category_rect.width(),
-    );
-    let username = editable_field(
-        ui,
-        egui::Id::unique(("credential-inline", &item.id, "username")),
-        &mut item.username,
-        username_rect,
-        14.0,
-        true,
-    );
-    let password = editable_field(
-        ui,
-        egui::Id::unique(("credential-inline", &item.id, "password")),
-        &mut item.password,
-        password_rect,
-        15.0,
-        true,
-    );
+    let classification_changed = if grid {
+        category_ui.label(
+            egui::RichText::new(if item.tags.is_empty() {
+                "未分类".into()
+            } else {
+                item.tags.join(" · ")
+            })
+            .small()
+            .color(muted()),
+        );
+        false
+    } else {
+        classification_dropdown(
+            &mut category_ui,
+            ("account-category", &item.id),
+            &mut item.tags,
+            categories,
+            category_rect.width(),
+        )
+    };
+    let username = if grid {
+        readonly_value(ui, &item.username, username_rect, 14.0)
+    } else {
+        editable_field(
+            ui,
+            egui::Id::unique(("credential-inline", &item.id, "username")),
+            &mut item.username,
+            username_rect,
+            14.0,
+            true,
+        )
+    };
+    let password = if grid {
+        readonly_value(ui, &item.password, password_rect, 15.0)
+    } else {
+        editable_field(
+            ui,
+            egui::Id::unique(("credential-inline", &item.id, "password")),
+            &mut item.password,
+            password_rect,
+            15.0,
+            true,
+        )
+    };
     copy_button(ui, &item.id, "username", &item.username, user_copy);
     copy_button(ui, &item.id, "password", &item.password, password_copy);
-    let details = quick_action(ui, (&item.id, "details"), detail_rect, "详情").clicked();
+    let details = quick_action(ui, (&item.id, "details"), detail_rect, "详情").clicked()
+        || (grid && (title.clicked() || username.clicked() || password.clicked()));
     let mut save = false;
     let mut cancel = false;
     if editing {

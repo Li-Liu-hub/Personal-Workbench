@@ -113,6 +113,8 @@ impl PersonalDeskApp {
         if install {
             if !self.inline_credentials.is_empty() {
                 self.updates.status = "请先保存或取消账号修改".into();
+            } else if !self.inline_contacts.is_empty() {
+                self.updates.status = "请先保存或取消联系人修改".into();
             } else if !self.inline_inventory.is_empty() {
                 self.updates.status = "请先保存或取消物品修改".into();
             } else if self.terminal_starting
@@ -120,7 +122,6 @@ impl PersonalDeskApp {
                 || self.drop_busy
                 || self.export_busy
                 || self.contact_import_busy
-                || self.codex.busy
             {
                 self.updates.status = "当前操作完成后即可更新".into();
             } else if self.editor_dirty && !self.save_editor() {

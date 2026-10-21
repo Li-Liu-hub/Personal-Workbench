@@ -23,12 +23,28 @@ impl PersonalDeskApp {
         let Some(probe) = self.interaction_probe.as_mut() else {
             return;
         };
+        if matches!(probe.phase, 0 | 1 | 3 | 4) {
+            // This isolated probe is launched hidden. Simulate the host focus event
+            // together with keyboard input; it does not automate physical input.
+            input.focused = true;
+        }
         if matches!(probe.phase, 0 | 3)
             && !self.terminal_starting
             && self.terminal.is_some()
+            && input.focused
+            && self.terminal_focused
             && probe.since.elapsed() > Duration::from_secs(2)
             && probe.frames > 5
         {
+            let _ = fs::write(
+                probe
+                    .output
+                    .join(format!("input-focus-{}.txt", probe.phase)),
+                format!(
+                    "window_focused={} canvas_focused={}",
+                    input.focused, self.terminal_focused
+                ),
+            );
             let expression = if probe.phase == 0 {
                 "[Console]::WriteLine(('FIRST_UI_'+(40+2)))"
             } else {
@@ -98,7 +114,7 @@ impl PersonalDeskApp {
                 }
                 if file.exists() {
                     self.section = Section::Terminal;
-                    self.terminal_command_focus = true;
+                    self.terminal_focus_requested = true;
                     probe.phase = 3;
                     probe.since = Instant::now();
                     probe.frames = 0;
@@ -111,7 +127,7 @@ impl PersonalDeskApp {
                     "chatgpt"
                 };
                 let page_file = probe.output.join(format!("{label}-page.json"));
-                if probe.frames.is_multiple_of(15) {
+                if !self.browser.loading() && probe.frames.is_multiple_of(15) {
                     self.browser.probe_input(page_file.clone());
                 }
                 let ready = fs::read(&page_file)
@@ -127,8 +143,10 @@ impl PersonalDeskApp {
                     || probe.since.elapsed() > Duration::from_secs(25)
                 {
                     let _=fs::write(probe.output.join(format!("{label}-status.json")),serde_json::to_vec_pretty(&serde_json::json!({"loading":self.browser.loading(),"error":self.browser.page_error(),"engine_error":self.browser.error})).unwrap());
-                    self.browser
-                        .probe_input(probe.output.join(format!("{label}-page.json")));
+                    if !self.browser.loading() {
+                        self.browser
+                            .probe_input(probe.output.join(format!("{label}-page.json")));
+                    }
                     probe.phase += 1;
                     probe.since = Instant::now();
                     probe.frames = 0;

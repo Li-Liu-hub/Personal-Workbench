@@ -29,8 +29,19 @@ struct RowLayout {
 
 pub fn view_switcher(ui: &mut Ui, mode: &mut ViewMode) -> bool {
     let previous = *mode;
-    ui.selectable_value(mode, ViewMode::List, "列表");
-    ui.selectable_value(mode, ViewMode::Grid, "宫格");
+    egui::Frame::new()
+        .fill(crate::theme::input())
+        .corner_radius(8)
+        .inner_margin(3)
+        .show(ui, |ui| {
+            ui.spacing_mut().item_spacing.x = 2.;
+            ui.visuals_mut().selection.bg_fill = surface();
+            ui.visuals_mut().selection.stroke = egui::Stroke::new(1., ink());
+            ui.horizontal(|ui| {
+                ui.selectable_value(mode, ViewMode::Grid, "宫格");
+                ui.selectable_value(mode, ViewMode::List, "列表");
+            });
+        });
     previous != *mode
 }
 

@@ -1,9 +1,14 @@
 use super::*;
 impl PersonalDeskApp {
-    pub(super) fn render_document_editor_inline(&mut self, ui: &mut egui::Ui) {
+    pub(super) fn render_document_toolbar(&mut self, ui: &mut egui::Ui) {
         let mut close = false;
         ui.horizontal_wrapped(|ui| {
             close = ui.button("← 全部文档").clicked();
+            if let Some(book) = self.library.book.clone()
+                && ui.button(&book.title).on_hover_text("重命名图书").clicked()
+            {
+                self.library.dialog = Some(book);
+            }
             if ui.button("保存").clicked() {
                 self.save_editor();
             }
@@ -20,12 +25,14 @@ impl PersonalDeskApp {
                 .color(muted()),
             );
         });
-        if close {
-            if !self.editor_dirty || self.save_editor() {
-                self.editor_visible = false;
-            }
-            return;
+        if close && (!self.editor_dirty || self.save_editor()) && self.save_library_page() {
+            self.editor_visible = false;
+            self.library.book = None;
+            self.library.page = None;
+            self.document_scroll_epoch = self.document_scroll_epoch.wrapping_add(1);
         }
+    }
+    pub(super) fn render_document_editor_inline(&mut self, ui: &mut egui::Ui) {
         if let Some(path) = self.editor_path.clone() {
             let id = self
                 .db

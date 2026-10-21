@@ -135,9 +135,12 @@ impl Database {
         }
         desk.execute_batch("CREATE TABLE IF NOT EXISTS books(id TEXT PRIMARY KEY,title TEXT NOT NULL,deleted INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
             CREATE TABLE IF NOT EXISTS book_pages(id TEXT PRIMARY KEY,book_id TEXT NOT NULL REFERENCES books(id),title TEXT NOT NULL,body TEXT NOT NULL DEFAULT '',revision INTEGER NOT NULL DEFAULT 1,deleted INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS book_documents(document_path TEXT PRIMARY KEY,book_id TEXT NOT NULL REFERENCES books(id),position INTEGER NOT NULL DEFAULT 0);
             CREATE TABLE IF NOT EXISTS book_page_drafts(id TEXT PRIMARY KEY,book_id TEXT NOT NULL,writer TEXT NOT NULL,page_json TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS book_page_versions(page_id TEXT NOT NULL,revision INTEGER NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,tags_json TEXT NOT NULL,PRIMARY KEY(page_id,revision));")?;
         for (table, column, kind) in [
+            ("inventory_items", "brand", "TEXT NOT NULL DEFAULT ''"),
+            ("inventory_items", "model", "TEXT NOT NULL DEFAULT ''"),
             ("contacts", "birthday", "TEXT NOT NULL DEFAULT ''"),
             ("contacts", "major", "TEXT NOT NULL DEFAULT ''"),
             ("contacts", "photo", "BLOB NOT NULL DEFAULT X''"),
@@ -786,7 +789,7 @@ impl Database {
 
     pub fn inventory_items(&self) -> Result<Vec<InventoryItem>> {
         let mut stmt = self.desk.prepare(
-            "SELECT id,name,category,quantity,location,notes,tags_json,purchase_date,purchase_price_cents,disposal_date FROM inventory_items ORDER BY updated_at DESC,name COLLATE NOCASE",
+            "SELECT id,name,category,quantity,location,notes,tags_json,purchase_date,purchase_price_cents,disposal_date,brand,model FROM inventory_items ORDER BY updated_at DESC,name COLLATE NOCASE",
         )?;
         let rows = stmt.query_map([], |row| {
             Ok(InventoryItem {
@@ -800,6 +803,8 @@ impl Database {
                 purchase_date: row.get(7)?,
                 purchase_price_cents: row.get(8)?,
                 disposal_date: row.get(9)?,
+                brand: row.get(10)?,
+                model: row.get(11)?,
             })
         })?;
         rows.collect::<std::result::Result<Vec<_>, _>>()
@@ -819,9 +824,9 @@ impl Database {
         let tx = self.desk.transaction()?;
         ensure_tags(&tx, TagScope::Inventory, &values)?;
         tx.execute(
-            "INSERT INTO inventory_items(id,name,category,quantity,location,notes,tags_json,purchase_date,purchase_price_cents,disposal_date) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)
+            "INSERT INTO inventory_items(id,name,category,quantity,location,notes,tags_json,purchase_date,purchase_price_cents,disposal_date,brand,model) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)
              ON CONFLICT(id) DO UPDATE SET name=excluded.name,category=excluded.category,quantity=excluded.quantity,
-               location=excluded.location,notes=excluded.notes,tags_json=excluded.tags_json,purchase_date=excluded.purchase_date,purchase_price_cents=excluded.purchase_price_cents,disposal_date=excluded.disposal_date,updated_at=CURRENT_TIMESTAMP",
+               location=excluded.location,notes=excluded.notes,tags_json=excluded.tags_json,purchase_date=excluded.purchase_date,purchase_price_cents=excluded.purchase_price_cents,disposal_date=excluded.disposal_date,brand=excluded.brand,model=excluded.model,updated_at=CURRENT_TIMESTAMP",
             params![
                 item.id,
                 item.name.trim(),
@@ -829,7 +834,7 @@ impl Database {
                 item.quantity.max(0),
                 item.location.trim(),
                 item.notes.trim(),
-                serde_json::to_string(&values)?,item.purchase_date,item.purchase_price_cents,item.disposal_date
+                serde_json::to_string(&values)?,item.purchase_date,item.purchase_price_cents,item.disposal_date,item.brand.trim(),item.model.trim()
             ],
         )?;
         tx.commit()?;

@@ -2,6 +2,7 @@ use eframe::egui::{self, Color32, Response, Ui};
 
 mod collection;
 mod credentials;
+pub mod table;
 mod website;
 pub use collection::{
     collection, entry, file_entry, file_list_header, file_transfer_button, tagged_entry,
@@ -161,40 +162,34 @@ pub fn navigation_item(
     count: Option<usize>,
 ) -> Response {
     let (rect, response) =
-        ui.allocate_exact_size(egui::vec2(ui.available_width(), 42.0), egui::Sense::click());
-    let color = if selected { accent() } else { sidebar_text() };
+        ui.allocate_exact_size(egui::vec2(ui.available_width(), 38.0), egui::Sense::click());
+    let color = if selected {
+        button_text()
+    } else {
+        sidebar_text()
+    };
     if selected || response.hovered() {
         ui.painter().rect_filled(
             rect,
             10,
             if selected {
-                sidebar().lerp_to_gamma(accent(), 0.15)
+                accent()
             } else {
-                sidebar().lerp_to_gamma(accent(), 0.16)
+                sidebar().lerp_to_gamma(ink(), 0.05)
             },
-        );
-    }
-    if selected {
-        ui.painter().rect_filled(
-            egui::Rect::from_center_size(
-                egui::pos2(rect.left() + 2.0, rect.center().y),
-                egui::vec2(3.0, 18.0),
-            ),
-            2,
-            accent(),
         );
     }
     paint_icon(
         ui.painter(),
-        egui::Rect::from_min_size(
-            rect.left_top() + egui::vec2(16.0, 14.0),
-            egui::vec2(20.0, 20.0),
+        egui::Rect::from_center_size(
+            rect.left_center() + egui::vec2(20.0, 0.0),
+            egui::vec2(18.0, 18.0),
         ),
         kind,
         color,
     );
     ui.painter().text(
-        rect.left_center() + egui::vec2(50.0, 0.0),
+        rect.left_center() + egui::vec2(39.0, 0.0),
         egui::Align2::LEFT_CENTER,
         title,
         egui::FontId::proportional(14.0),
@@ -254,8 +249,8 @@ pub fn tile(
         .animate_bool(response.id.with("hover"), response.hovered());
     let (icon_color, _tint) = match kind {
         TileKind::Folder => (
-            Color32::from_rgb(207, 154, 65),
-            Color32::from_rgb(253, 245, 227),
+            Color32::from_rgb(64, 156, 255),
+            Color32::from_rgb(231, 242, 255),
         ),
         TileKind::Document => (
             Color32::from_rgb(85, 135, 213),
@@ -390,7 +385,7 @@ pub fn tag_filter_bar(ui: &mut Ui, filter: &mut crate::tags::Filter, names: &[St
         }
         manage = ui.button("+ 管理标签").clicked();
     });
-    ui.add_space(16.0);
+    ui.add_space(10.0);
     manage
 }
 

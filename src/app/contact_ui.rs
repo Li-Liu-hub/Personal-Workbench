@@ -78,6 +78,10 @@ impl PersonalDeskApp {
         let mut delete = None;
         let mut add = false;
         visible.sort_by_key(|item| !self.is_favorite("contacts", &item.id));
+        if self.view_mode() == ViewMode::List {
+            self.render_contact_rows(ui, &visible);
+            return;
+        }
         collection(ui, "contacts-gallery", self.view_mode(), |ui, side| {
             for item in visible {
                 let detail = [
@@ -481,4 +485,159 @@ impl PersonalDeskApp {
 fn field(ui: &mut egui::Ui, label: &str, value: &mut String) {
     ui.label(label);
     ui.add(egui::TextEdit::singleline(value).desired_width(f32::INFINITY));
+}
+
+impl PersonalDeskApp {
+    pub(super) fn save_inline_contact(&mut self, id: &str) -> bool {
+        let Some(draft) = self.inline_contacts.get(id).cloned() else {
+            return true;
+        };
+        let tags = self
+            .inline_contact_tags
+            .get(id)
+            .cloned()
+            .unwrap_or_else(|| self.record_labels(TagScope::Contacts, id));
+        match self
+            .db
+            .as_mut()
+            .ok_or(DeskError::UnsupportedFormat)
+            .and_then(|db| db.update_contact_fields(&draft, &tags))
+        {
+            Ok(()) => {
+                self.inline_contacts.remove(id);
+                self.inline_contact_tags.remove(id);
+                self.load_contacts();
+                self.load_tags();
+                self.notice = "已保存".into();
+                true
+            }
+            Err(error) => {
+                self.notice = error.to_string();
+                false
+            }
+        }
+    }
+    fn render_contact_rows(&mut self, ui: &mut egui::Ui, items: &[Contact]) {
+        use crate::ui_components::table;
+        const C: &[f32] = &[
+            115., 65., 120., 150., 115., 100., 135., 180., 180., 140., 130., 160.,
+        ];
+        let options = self.names_for_scope(TagScope::Contacts);
+        egui::ScrollArea::horizontal()
+            .id_salt("contact-columns")
+            .show(ui, |ui| {
+                ui.spacing_mut().item_spacing.y = 0.;
+                table::header(
+                    ui,
+                    C,
+                    &[
+                        "姓名",
+                        "性别",
+                        "生日",
+                        "学校",
+                        "专业",
+                        "工作",
+                        "手机号",
+                        "身份证号",
+                        "地址",
+                        "爱好",
+                        "分类",
+                        "操作",
+                    ],
+                );
+                for item in items {
+                    let mut draft = self.inline_contacts.get(&item.id).unwrap_or(item).clone();
+                    let mut tags = self
+                        .inline_contact_tags
+                        .get(&item.id)
+                        .cloned()
+                        .unwrap_or_else(|| self.record_labels(TagScope::Contacts, &item.id));
+                    let mut changed = false;
+                    let (response, cells) = table::row(ui, ("contact-row", &item.id), C);
+                    for (index, value) in [
+                        (0, &mut draft.name),
+                        (1, &mut draft.gender),
+                        (2, &mut draft.birthday),
+                        (3, &mut draft.school),
+                        (4, &mut draft.major),
+                        (5, &mut draft.work),
+                        (6, &mut draft.phone),
+                        (7, &mut draft.national_id),
+                        (8, &mut draft.address),
+                        (9, &mut draft.hobbies),
+                    ] {
+                        changed |= table::text(
+                            ui,
+                            cells[index],
+                            ("contact-field", &item.id, index),
+                            value,
+                        );
+                    }
+                    table::cell_ui(ui, cells[10], |ui| {
+                        changed |= crate::ui_components::classification_dropdown(
+                            ui,
+                            (&item.id, "inline-category"),
+                            &mut tags,
+                            &options,
+                            cells[10].width(),
+                        );
+                    });
+                    let mut save = false;
+                    let mut cancel = false;
+                    let mut detail = false;
+                    table::cell_ui(ui, cells[11], |ui| {
+                        if changed || self.inline_contacts.contains_key(&item.id) {
+                            save = ui.small_button("保存").clicked();
+                            cancel = ui.small_button("取消").clicked();
+                        }
+                        if !changed && !self.inline_contacts.contains_key(&item.id) {
+                            detail = ui.small_button("详情").clicked();
+                        }
+                    });
+                    self.favorite_control(ui, &response, "contacts", &item.id);
+                    response.context_menu(|ui| {
+                        if ui.button("删除联系人").clicked() {
+                            if let Some(db) = self.db.as_mut() {
+                                match db.delete_contact(&item.id) {
+                                    Ok(()) => {
+                                        self.inline_contacts.remove(&item.id);
+                                        self.inline_contact_tags.remove(&item.id);
+                                        self.load_contacts();
+                                    }
+                                    Err(e) => self.notice = e.to_string(),
+                                }
+                            }
+                            ui.close();
+                        }
+                    });
+                    if changed {
+                        self.inline_contacts.insert(item.id.clone(), draft.clone());
+                        self.inline_contact_tags.insert(item.id.clone(), tags);
+                    }
+                    if cancel {
+                        self.inline_contacts.remove(&item.id);
+                        self.inline_contact_tags.remove(&item.id);
+                    } else if save {
+                        self.save_inline_contact(&item.id);
+                    }
+                    if detail && self.save_inline_contact(&item.id) {
+                        self.contact_draft = self
+                            .contact_items
+                            .iter()
+                            .find(|c| c.id == item.id)
+                            .cloned()
+                            .unwrap_or(draft);
+                        self.contact_error.clear();
+                        self.contact_chat_open = None;
+                        self.contact_dialog_open = true;
+                    }
+                }
+                if ui
+                    .add_sized([table::width(C), 40.], egui::Button::new("+ 添加联系人"))
+                    .clicked()
+                {
+                    self.add_current_item();
+                }
+            });
+    }
 }
