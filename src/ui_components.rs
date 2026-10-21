@@ -4,10 +4,7 @@ mod collection;
 mod credentials;
 pub mod table;
 mod website;
-pub use collection::{
-    collection, entry, file_entry, file_list_header, file_transfer_button, tagged_entry,
-    view_switcher,
-};
+pub use collection::{collection, entry, tagged_entry, view_switcher};
 pub use credentials::{credential_entry, credential_list_header};
 pub use website::website_entry;
 
@@ -571,55 +568,6 @@ fn quick_action(
         ink(),
     );
     response.on_hover_cursor(egui::CursorIcon::PointingHand)
-}
-
-pub fn document_entry(
-    ui: &mut Ui,
-    id: &str,
-    title: &str,
-    preview: &str,
-    labels: &[String],
-    layout: collection::EntryLayout,
-) -> Response {
-    if layout.mode == crate::views::ViewMode::List {
-        return tagged_entry(ui, id, title, (preview, labels), TileKind::Document, layout);
-    }
-    let (_, rect) = ui.allocate_space(egui::vec2(layout.width, layout.width));
-    let response = ui.interact(rect, ui.scope_id().with(id), egui::Sense::click_and_drag());
-    let painter = ui.painter().with_clip_rect(rect.intersect(ui.clip_rect()));
-    painter.rect_filled(rect, 14, surface());
-    painter.rect_stroke(
-        rect,
-        14,
-        egui::Stroke::new(
-            1.0,
-            if response.hovered() {
-                accent()
-            } else {
-                border()
-            },
-        ),
-        egui::StrokeKind::Inside,
-    );
-    for (value, offset, size, rows, color) in [
-        (title, 64.0, 18.0, 2, ink()),
-        (preview, 112.0, 13.0, 4, muted()),
-    ] {
-        let mut job = egui::text::LayoutJob::simple(
-            value.to_owned(),
-            egui::FontId::proportional(size),
-            color,
-            layout.width - 40.0,
-        );
-        job.wrap.max_rows = rows;
-        job.wrap.break_anywhere = true;
-        painter.galley(
-            rect.min + egui::vec2(20.0, offset),
-            painter.layout_job(job),
-            color,
-        );
-    }
-    response
 }
 
 #[cfg(test)]

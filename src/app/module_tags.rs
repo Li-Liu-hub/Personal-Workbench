@@ -165,17 +165,6 @@ impl PersonalDeskApp {
         if self.section == Section::Books && self.library.book.is_some() {
             return;
         }
-        if self.section == Section::Folders && self.current_directory.is_some() {
-            egui::ComboBox::from_id_salt("file-type-filter")
-                .width(112.0)
-                .selected_text(format!("类型：{}", self.file_filter.label()))
-                .show_ui(ui, |ui| {
-                    for kind in files::FileFilter::ALL {
-                        ui.selectable_value(&mut self.file_filter, kind, kind.label());
-                    }
-                });
-            return;
-        }
         if let Some(scope) = TagScope::for_section(self.section) {
             let names = self.names_for_scope(scope);
             let filter = match scope {
@@ -186,19 +175,6 @@ impl PersonalDeskApp {
             if tag_filter_bar(ui, filter, &names) {
                 self.open_tag_manager(scope);
             }
-        }
-    }
-    pub(super) fn file_transfer_controls(
-        &mut self,
-        ui: &mut egui::Ui,
-        response: &egui::Response,
-        path: &std::path::Path,
-    ) {
-        if crate::ui_components::file_transfer_button(ui, response, self.view_mode()) {
-            self.copy_file_request = Some(path.to_path_buf());
-        }
-        if response.drag_started_by(egui::PointerButton::Primary) && !self.detail_open() {
-            self.drag_file_request = Some(path.to_path_buf());
         }
     }
 }

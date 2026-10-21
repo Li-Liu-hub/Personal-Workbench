@@ -35,7 +35,6 @@ pub fn key(section: Section) -> &'static str {
     match section {
         Section::Browser => "view.browser",
         Section::Books => "view.books",
-        Section::Terminal => "view.terminal",
         Section::Folders => "view.folders",
         Section::Credentials => "view.credentials",
         Section::Documents => "view.documents",

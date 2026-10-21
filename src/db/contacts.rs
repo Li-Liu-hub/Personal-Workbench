@@ -68,6 +68,7 @@ impl Database {
         Ok(contacts)
     }
 
+    #[cfg(test)]
     pub fn save_contact(&mut self, contact: &Contact) -> Result<()> {
         self.save_contact_inner(contact, None)
     }

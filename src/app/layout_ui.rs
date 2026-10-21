@@ -7,7 +7,11 @@ impl PersonalDeskApp {
             ui.set_min_height(38.0);
             let actions_width = 300.0
                 + if self.has_visible_edits() { 88.0 } else { 0.0 }
-                + if self.undo.available() { 60.0 } else { 0.0 };
+                + if self.index_undo_available() {
+                    60.0
+                } else {
+                    0.0
+                };
             let width = (ui.available_width() - actions_width).clamp(120.0, 320.0);
             crate::ui_components::toolbar_title(ui, &title, width, 22.0);
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -27,13 +31,12 @@ impl PersonalDeskApp {
                 if self.has_visible_edits() && ui.button("保存修改").clicked() {
                     self.save_visible_rows();
                 }
-                if self.undo.available() && ui.button("撤回").on_hover_text("Ctrl+Z").clicked() {
-                    self.undo_last_delete();
+                if self.index_undo_available()
+                    && ui.button("撤回").on_hover_text("Ctrl+Z").clicked()
+                {
+                    self.undo_index_removal();
                 }
-                if !matches!(
-                    self.section,
-                    Section::Games | Section::Terminal | Section::Browser
-                ) {
+                if !matches!(self.section, Section::Games | Section::Browser) {
                     self.render_view_switcher(ui);
                 }
             });
@@ -41,14 +44,13 @@ impl PersonalDeskApp {
         ui.add_space(6.0);
         ui.horizontal(|ui| {
             ui.set_min_height(32.0);
-            let has_filter = TagScope::for_section(self.section).is_some()
-                || (self.section == Section::Folders && self.current_directory.is_some());
+            let has_filter = TagScope::for_section(self.section).is_some();
             let controls = if has_filter { 310.0 } else { 130.0 };
             let width = (ui.available_width() - controls).max(160.0);
             let hint = match self.section {
-                Section::Folders => "搜索文件名、路径、内容  Ctrl+K",
+                Section::Folders => "搜索名称、路径、标签  Ctrl+K",
                 Section::Credentials => "搜索名称、账号、密码、标签  Ctrl+K",
-                Section::Documents => "搜索文档标题、内容  Ctrl+K",
+                Section::Documents => "搜索文档名称、路径、标签  Ctrl+K",
                 _ => "搜索当前页面  Ctrl+K",
             };
             let response = ui.add_sized(
@@ -60,7 +62,6 @@ impl PersonalDeskApp {
             );
             self.search_field = Some(response.id);
             if response.changed() {
-                self.search_results.clear();
                 self.search_pending = Some(ui.input(|input| input.time) + 0.3);
                 ctx.request_repaint_after(Duration::from_millis(310));
             }
@@ -75,7 +76,7 @@ impl PersonalDeskApp {
                 .clicked()
             {
                 self.search_query.clear();
-                self.search_results.clear();
+
                 self.search_pending = None;
             }
             if has_filter {

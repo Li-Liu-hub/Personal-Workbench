@@ -19,6 +19,81 @@ pub struct Database {
 }
 
 impl Database {
+    pub fn remove_index(&mut self, scope: &str, key: &str) -> Result<()> {
+        let (table, column) = match scope {
+            "documents" => ("documents", "path"),
+            "shortcuts" => ("shortcuts", "id"),
+            _ => return Err(DeskError::UnsupportedFormat),
+        };
+        let key = if scope == "documents" {
+            let normalized = Path::new(key)
+                .canonicalize()
+                .unwrap_or_else(|_| PathBuf::from(key));
+            self.desk
+                .query_row(
+                    "SELECT path FROM documents WHERE path=?1 OR path=?2 ORDER BY path=?1 DESC LIMIT 1",
+                    params![key, normalized.to_string_lossy().as_ref()],
+                    |r| r.get::<_, String>(0),
+                )
+                .optional()?
+                .unwrap_or_else(|| key.to_owned())
+        } else {
+            key.to_owned()
+        };
+        let tx = self.desk.transaction()?;
+        if tx.execute(
+            &format!("UPDATE {table} SET hidden=1 WHERE {column}=?1 AND hidden=0"),
+            [&key],
+        )? > 0
+        {
+            tx.execute(
+                "INSERT INTO index_undo(scope,record_key) VALUES(?1,?2)",
+                params![scope, key],
+            )?;
+        }
+        tx.commit()?;
+        Ok(())
+    }
+    pub fn index_undo_available(&self) -> Result<bool> {
+        Ok(self.desk.query_row("SELECT EXISTS(SELECT 1 FROM index_undo u WHERE (scope='documents' AND EXISTS(SELECT 1 FROM documents WHERE path=u.record_key AND hidden=1)) OR (scope='shortcuts' AND EXISTS(SELECT 1 FROM shortcuts WHERE id=u.record_key AND hidden=1)))",[],|r|r.get(0))?)
+    }
+    pub fn undo_index_removal(&mut self) -> Result<bool> {
+        let tx = self.desk.transaction()?;
+        let mut restored = false;
+        loop {
+            let item = tx
+                .query_row(
+                    "SELECT id,scope,record_key FROM index_undo ORDER BY id DESC LIMIT 1",
+                    [],
+                    |r| {
+                        Ok((
+                            r.get::<_, i64>(0)?,
+                            r.get::<_, String>(1)?,
+                            r.get::<_, String>(2)?,
+                        ))
+                    },
+                )
+                .optional()?;
+            let Some((id, scope, key)) = item else {
+                break;
+            };
+            let (table, column) = match scope.as_str() {
+                "documents" => ("documents", "path"),
+                "shortcuts" => ("shortcuts", "id"),
+                _ => return Err(DeskError::UnsupportedFormat),
+            };
+            restored = tx.execute(
+                &format!("UPDATE {table} SET hidden=0 WHERE {column}=?1 AND hidden=1"),
+                [key],
+            )? > 0;
+            tx.execute("DELETE FROM index_undo WHERE id=?1", [id])?;
+            if restored {
+                break;
+            }
+        }
+        tx.commit()?;
+        Ok(restored)
+    }
     pub fn favorites(&self) -> Result<Vec<(String, String)>> {
         Ok(self
             .desk
@@ -139,6 +214,8 @@ impl Database {
             CREATE TABLE IF NOT EXISTS book_page_drafts(id TEXT PRIMARY KEY,book_id TEXT NOT NULL,writer TEXT NOT NULL,page_json TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS book_page_versions(page_id TEXT NOT NULL,revision INTEGER NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,tags_json TEXT NOT NULL,PRIMARY KEY(page_id,revision));")?;
         for (table, column, kind) in [
+            ("documents", "hidden", "INTEGER NOT NULL DEFAULT 0"),
+            ("shortcuts", "hidden", "INTEGER NOT NULL DEFAULT 0"),
             ("inventory_items", "brand", "TEXT NOT NULL DEFAULT ''"),
             ("inventory_items", "model", "TEXT NOT NULL DEFAULT ''"),
             ("contacts", "birthday", "TEXT NOT NULL DEFAULT ''"),
@@ -166,6 +243,7 @@ impl Database {
                 desk.execute_batch(&format!("ALTER TABLE {table} ADD COLUMN {column} {kind}"))?;
             }
         }
+        desk.execute_batch("CREATE TABLE IF NOT EXISTS index_undo(id INTEGER PRIMARY KEY AUTOINCREMENT,scope TEXT NOT NULL,record_key TEXT NOT NULL)")?;
         // Additive migration leaves existing accounts and quantities untouched.
         for scope in TagScope::ALL {
             let table = scope.table();
@@ -202,7 +280,7 @@ impl Database {
     }
 
     pub fn shortcuts(&self) -> Result<Vec<Shortcut>> {
-        let mut stmt = self.desk.prepare("SELECT id,name,path_native,is_dir,pinned FROM shortcuts ORDER BY pinned DESC,name COLLATE NOCASE")?;
+        let mut stmt = self.desk.prepare("SELECT id,name,path_native,is_dir,pinned FROM shortcuts WHERE hidden=0 ORDER BY pinned DESC,name COLLATE NOCASE")?;
         let rows = stmt.query_map([], |r| {
             Ok((
                 r.get::<_, String>(0)?,
@@ -225,6 +303,7 @@ impl Database {
         .collect::<std::result::Result<Vec<_>, DeskError>>()
     }
 
+    #[cfg(test)]
     pub fn remove_shortcut(&mut self, id: &str) -> Result<()> {
         let tx = self.desk.transaction()?;
         tx.execute(
@@ -458,6 +537,7 @@ impl Database {
             .collect::<std::result::Result<Vec<_>, _>>()?)
     }
 
+    #[cfg(test)]
     pub fn save_website(&mut self, item: &Website) -> Result<()> {
         let existing: Option<String> = self
             .desk
@@ -606,6 +686,7 @@ impl Database {
         Err(DeskError::InvalidPath("数据库正忙，请稍后重新导出".into()))
     }
 
+    #[cfg(test)]
     pub fn index_file(
         &mut self,
         root_id: &str,
@@ -637,6 +718,7 @@ impl Database {
         Ok(())
     }
 
+    #[cfg(test)]
     pub fn search_files(&self, query: &str) -> Result<Vec<(String, String)>> {
         let mut out = Vec::new();
         if query.chars().count() >= 3 {
@@ -676,7 +758,7 @@ impl Database {
             .and_then(|s| s.to_str())
             .unwrap_or("txt")
             .to_ascii_lowercase();
-        self.desk.execute("INSERT INTO documents(path,format) VALUES(?1,?2) ON CONFLICT(path) DO UPDATE SET last_opened=CURRENT_TIMESTAMP",params![path,format])?;
+        self.desk.execute("INSERT INTO documents(path,format) VALUES(?1,?2) ON CONFLICT(path) DO UPDATE SET last_opened=CURRENT_TIMESTAMP,hidden=0",params![path,format])?;
         Ok(())
     }
 
@@ -702,10 +784,11 @@ impl Database {
         Ok(normalized.to_string_lossy().into_owned())
     }
 
+    #[cfg(test)]
     pub fn documents(&self) -> Result<Vec<PathBuf>> {
         let mut stmt = self
             .desk
-            .prepare("SELECT path FROM documents ORDER BY last_opened DESC, path")?;
+            .prepare("SELECT path FROM documents WHERE hidden=0 ORDER BY last_opened DESC, path")?;
         let rows = stmt.query_map([], |r| r.get::<_, String>(0))?;
         let mut paths = Vec::new();
         for row in rows {
@@ -716,7 +799,7 @@ impl Database {
 
     pub fn document_records(&self) -> Result<Vec<DocumentRecord>> {
         let mut statement = self.desk.prepare(
-            "SELECT path,title FROM documents ORDER BY last_opened DESC,title<>'' DESC,path",
+            "SELECT path,title FROM documents WHERE hidden=0 ORDER BY last_opened DESC,title<>'' DESC,path",
         )?;
         let records = statement.query_map([], |row| {
             let path = PathBuf::from(row.get::<_, String>(0)?);
@@ -728,12 +811,14 @@ impl Database {
             .map_err(DeskError::from)
     }
 
+    #[cfg(test)]
     pub fn document_title(&self, path: &Path) -> Result<String> {
         let normalized = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
         let title: Option<String> = self.desk.query_row("SELECT title FROM documents WHERE path=?1 OR path=?2 ORDER BY title<>'' DESC LIMIT 1", params![path.to_string_lossy().as_ref(),normalized.to_string_lossy().as_ref()], |row| row.get(0)).optional()?;
         Ok(visible_document_title(path, title.unwrap_or_default()))
     }
 
+    #[cfg(test)]
     pub fn set_document_title(&mut self, path: &Path, title: &str) -> Result<()> {
         self.touch_document(path)?;
         let path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
@@ -764,6 +849,7 @@ impl Database {
     }
 
     /// Remove the library record and its derived index; never remove the file here.
+    #[cfg(test)]
     pub fn forget_document(&mut self, path: &Path) -> Result<()> {
         let display = path.to_string_lossy();
         let normalized = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());

@@ -117,23 +117,8 @@ impl PersonalDeskApp {
                 self.updates.status = "请先保存或取消联系人修改".into();
             } else if !self.inline_inventory.is_empty() {
                 self.updates.status = "请先保存或取消物品修改".into();
-            } else if self.terminal_starting
-                || self.file_operations > 0
-                || self.drop_busy
-                || self.export_busy
-                || self.contact_import_busy
-            {
+            } else if self.export_busy || self.contact_import_busy {
                 self.updates.status = "当前操作完成后即可更新".into();
-            } else if self.editor_dirty && !self.save_editor() {
-                self.updates.status = "文档尚未保存，未开始更新".into();
-            } else if !self.save_library_page() {
-                self.updates.status = "图书页面尚未保存，未开始更新".into();
-            } else if self
-                .terminal
-                .as_mut()
-                .is_some_and(|terminal| terminal.active())
-            {
-                self.updates.status = "请先关闭 PowerShell 终端后更新".into();
             } else if !self.browser.tabs.is_empty() {
                 self.updates.status = "请先关闭网页标签页后更新，避免丢失未发送的内容".into();
             } else if let Some(release) = self.updates.release.as_ref() {

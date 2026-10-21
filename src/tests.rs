@@ -2,8 +2,6 @@ use std::fs;
 
 use crate::{
     db::Database,
-    documents::{self, WordHandler},
-    error::DeskError,
     files,
     model::{Credential, InventoryItem},
 };
@@ -52,7 +50,8 @@ fn additional_module_labels_survive_edits_restart_rename_delete_and_scoped_expor
     fs::create_dir(&folder).unwrap();
     db.save_shortcut("folder", &folder, true).unwrap();
     let shortcut = db.shortcuts().unwrap().remove(0);
-    let document = documents::create_managed_document(&base).unwrap();
+    let document = base.join("document.md");
+    fs::write(&document, "fixture").unwrap();
     db.set_document_title(&document, "文档原名").unwrap();
     let document = db.document_records().unwrap().remove(0);
     let mut website = Website::new();
@@ -253,55 +252,6 @@ fn exports_include_selected_labels_and_unused_scoped_tag_catalogs() {
 }
 
 #[test]
-fn external_drop_copies_files_and_trees_with_unique_names_and_keeps_sources() {
-    let directory = tempfile::tempdir().unwrap();
-    let source = directory.path().join("source");
-    let target = directory.path().join("target");
-    fs::create_dir(&source).unwrap();
-    fs::create_dir(&target).unwrap();
-    let file = source.join("计划.txt");
-    fs::write(&file, "new-content").unwrap();
-    fs::write(target.join("计划.txt"), "existing-content").unwrap();
-    let folder = source.join("资料.v1");
-    fs::create_dir(&folder).unwrap();
-    fs::write(folder.join("inner.txt"), "inside").unwrap();
-    fs::create_dir(target.join("资料.v1")).unwrap();
-    let report = files::copy_dropped(
-        &[
-            file.clone(),
-            file.clone(),
-            folder.clone(),
-            source.join("missing.txt"),
-        ],
-        &target,
-    );
-    assert_eq!(report.copied.len(), 2);
-    assert_eq!(report.failures.len(), 1);
-    assert_eq!(
-        fs::read_to_string(target.join("计划.txt")).unwrap(),
-        "existing-content"
-    );
-    assert_eq!(
-        fs::read_to_string(target.join("计划 (副本).txt")).unwrap(),
-        "new-content"
-    );
-    assert_eq!(
-        fs::read_to_string(target.join("资料.v1 (副本)/inner.txt")).unwrap(),
-        "inside"
-    );
-    assert_eq!(fs::read_to_string(&file).unwrap(), "new-content");
-    assert!(folder.join("inner.txt").exists());
-    assert_eq!(
-        files::copy_dropped(std::slice::from_ref(&file), &target).copied[0],
-        target.canonicalize().unwrap().join("计划 (副本 2).txt")
-    );
-    let nested = folder.join("nested");
-    fs::create_dir(&nested).unwrap();
-    assert_eq!(files::copy_dropped(&[folder], &nested).failures.len(), 1);
-    assert_eq!(fs::read_dir(&nested).unwrap().count(), 0);
-}
-
-#[test]
 fn websites_normalize_persist_edit_and_delete_without_opening_the_browser() {
     use crate::{model::Website, websites};
     let directory = tempfile::tempdir().unwrap();
@@ -438,7 +388,17 @@ fn all_exports_include_records_documents_recovery_and_a_readable_database_snapsh
     );
     let documents = archive_json(&mut archive, "文档清单.json");
     for record in documents.as_array().unwrap() {
-        let member = record["archive_path"].as_str().unwrap();
+        let Some(member) = record["archive_path"].as_str() else {
+            assert_eq!(
+                record["path"],
+                external_document
+                    .canonicalize()
+                    .unwrap()
+                    .to_string_lossy()
+                    .as_ref()
+            );
+            continue;
+        };
         let mut text = String::new();
         archive
             .by_name(member)
@@ -772,45 +732,6 @@ fn indexed_search_updates_old_terms_and_handles_short_literal_queries() {
 }
 
 #[test]
-fn editor_refuses_to_overwrite_a_file_changed_by_another_program() {
-    let directory = tempfile::tempdir().expect("temporary document directory");
-    let path = directory.path().join("notes.md");
-    fs::write(&path, "original").expect("create original document");
-    let (_, fingerprint) = documents::read_text_with_fingerprint(&path).expect("read original");
-    fs::write(&path, "external update").expect("simulate external edit");
-
-    let result = documents::save_text_atomic_checked(&path, "my edit", Some(fingerprint));
-    assert!(matches!(result, Err(DeskError::ConcurrentModification)));
-    assert_eq!(
-        fs::read_to_string(&path).expect("read after conflict"),
-        "external update"
-    );
-}
-
-#[test]
-fn blank_docx_is_a_valid_package_and_file_operations_reject_path_traversal() {
-    let directory = tempfile::tempdir().expect("temporary document directory");
-    let path = directory.path().join("blank.docx");
-    let handler = WordHandler;
-    documents::create_document(&handler, &path).expect("create blank Word document");
-    let file = fs::File::open(&path).expect("open generated document");
-    let mut archive = zip::ZipArchive::new(file).expect("parse docx zip");
-    let mut xml = String::new();
-    std::io::Read::read_to_string(
-        &mut archive.by_name("word/document.xml").expect("document part"),
-        &mut xml,
-    )
-    .expect("read document xml");
-    assert!(xml.contains("<w:document"));
-
-    let parent = directory.path().join("files");
-    fs::create_dir(&parent).expect("create working folder");
-    assert!(files::create_folder(&parent, "../outside").is_err());
-    assert!(files::copy_path(&parent, &parent).is_err());
-    assert!(parent.is_dir());
-}
-
-#[test]
 fn inventory_items_can_be_created_updated_listed_and_deleted() {
     let directory = tempfile::tempdir().expect("temporary data directory");
     let mut db = Database::open(directory.path()).expect("open database");
@@ -910,6 +831,10 @@ fn search_hides_files_that_were_removed_after_indexing() {
             .len(),
         1
     );
+    let result = crate::search::search(&db, "测试索引").unwrap().remove(0);
+    assert_eq!(result.category, "已索引文件");
+    assert_eq!(result.title, "测试索引");
+    assert_eq!(result.path, Some(result.detail));
     fs::remove_file(&path).expect("simulate deletion outside app");
     assert!(
         crate::search::search(&db, "测试索引")
@@ -948,26 +873,6 @@ fn old_document_records_gain_titles_without_losing_existing_content() {
     );
 }
 
-#[test]
-fn word_export_contains_the_written_body_and_escapes_xml() {
-    let directory = tempfile::tempdir().expect("temporary export directory");
-    let path = directory.path().join("导出.docx");
-    WordHandler
-        .export_text(&path, "日常笔记 & <正文>\n第二段")
-        .expect("export actual content");
-    let mut archive =
-        zip::ZipArchive::new(fs::File::open(&path).expect("open export")).expect("valid docx");
-    let mut xml = String::new();
-    std::io::Read::read_to_string(
-        &mut archive.by_name("word/document.xml").expect("document part"),
-        &mut xml,
-    )
-    .expect("read body");
-    assert!(xml.contains("日常笔记 &amp; &lt;正文&gt;"));
-    assert!(xml.contains("第二段"));
-    assert_eq!(xml.matches("<w:p>").count(), 2);
-    assert!(WordHandler.export_text(&path, "不能覆盖原文件").is_err());
-}
 #[test]
 fn tool_edits_persist_and_removal_preserves_the_external_program() {
     let directory = tempfile::tempdir().unwrap();

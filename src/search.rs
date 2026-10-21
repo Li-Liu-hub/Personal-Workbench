@@ -1,20 +1,6 @@
 use std::path::Path;
 
-use crate::{db::Database, error::Result, files, model::SearchResult};
-
-pub fn index_folder(db: &mut Database, root_id: &str, root: &Path) -> Result<usize> {
-    let records = files::scan_root(root, 10_000, 2 * 1024 * 1024, 64 * 1024 * 1024)?;
-    let count = records.len();
-    for item in records {
-        db.index_file(root_id, &item.path, &item.title, &item.body)?;
-    }
-    Ok(count)
-}
-
-pub fn index_folder_at(data_dir: &Path, root_id: &str, root: &Path) -> Result<usize> {
-    let mut db = Database::open(data_dir)?;
-    index_folder(&mut db, root_id, root)
-}
+use crate::{db::Database, error::Result, model::SearchResult};
 
 pub fn search(db: &Database, query: &str) -> Result<Vec<SearchResult>> {
     let term = query.trim();

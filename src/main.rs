@@ -6,11 +6,8 @@ mod browser;
 mod contacts;
 mod crypto;
 mod db;
-mod documents;
 mod error;
 mod export;
-mod file_drop;
-mod file_transfer;
 mod files;
 mod games;
 mod import;
@@ -19,9 +16,9 @@ mod launcher;
 mod legacy_credentials;
 mod library;
 mod model;
+#[cfg(test)]
 mod search;
 mod tags;
-mod terminal;
 mod theme;
 mod ui_components;
 mod undo;
@@ -38,26 +35,6 @@ use eframe::egui;
 fn main() -> eframe::Result {
     let mut arguments = std::env::args_os().skip(1);
     let action = arguments.next();
-    #[cfg(debug_assertions)]
-    if action.as_ref().is_some_and(|a| a == "--interaction-probe") {
-        let output = std::path::PathBuf::from(arguments.next().expect("probe output"));
-        let base = std::env::temp_dir().join(format!(
-            "personal-desk-interaction-{}",
-            uuid::Uuid::new_v4()
-        ));
-        return eframe::run_native(
-            "个人办公台 · 交互验证",
-            eframe::NativeOptions {
-                viewport: egui::ViewportBuilder::default().with_inner_size([1100.0, 800.0]),
-                ..Default::default()
-            },
-            Box::new(move |cc| {
-                let mut app = PersonalDeskApp::layout_preview(cc, base);
-                app.start_interaction_probe(output);
-                Ok(Box::new(app))
-            }),
-        );
-    }
     if action.as_ref().is_some_and(|a| a == "--apply-update") {
         let result = arguments
             .next()
@@ -119,7 +96,7 @@ fn main() -> eframe::Result {
             },
             eframe::NativeOptions {
                 viewport: egui::ViewportBuilder::default()
-                    .with_drag_and_drop(true)
+                    .with_drag_and_drop(false)
                     .with_inner_size([1280.0, 800.0]),
                 ..Default::default()
             },
@@ -134,7 +111,7 @@ fn main() -> eframe::Result {
     }
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_drag_and_drop(true)
+            .with_drag_and_drop(false)
             .with_inner_size([1280.0, 800.0])
             .with_min_inner_size([1000.0, 680.0]),
         ..Default::default()
