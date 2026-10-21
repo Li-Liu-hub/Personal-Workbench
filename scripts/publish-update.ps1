@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '账号宫格铺满内容区并按行对齐；账号列表和宫格只绘制可见条目，缓存筛选布局及标签；联系人聊天原件按需加载，减少常驻内存；保留全部已有数据'
+    [string]$Notes = '新增刷题王与5040词IELTS练习、本地Spark模型批改、双记录本及掌握降频；恢复简约台内写作、日期日志、Markdown预览；移除大模型聊天页面，保留已有数据和导出'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

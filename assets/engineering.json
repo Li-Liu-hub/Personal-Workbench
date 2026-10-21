@@ -1,0 +1,962 @@
+[
+  {
+    "id": "eng:1:01",
+    "kind": "engineering",
+    "title": "重复支付回调如何只入账一次",
+    "topic": "场景题",
+    "prompt": "支付平台会重试同一笔回调，请设计服务端幂等处理，说明并发重复请求、数据库提交失败、响应丢失三种情况。",
+    "answer": "1. 用支付流水号或业务唯一键确定幂等身份；不使用随机请求号\n2. 唯一约束或原子条件更新作并发仲裁，不能仅先查再插\n3. 幂等记录与入账业务在同一事务内提交，失败回滚\n4. 重复成功回调返回已成功；提交后响应丢失的重试不再重复入账",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "用支付流水号或业务唯一键确定幂等身份；不使用随机请求号",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "唯一约束或原子条件更新作并发仲裁，不能仅先查再插",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "幂等记录与入账业务在同一事务内提交，失败回滚",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "重复成功回调返回已成功；提交后响应丢失的重试不再重复入账",
+        "points": 25
+      }
+    ],
+    "source": "https://www.postgresql.org/docs/current/ddl-constraints.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:1:02",
+    "kind": "engineering",
+    "title": "库存 10 件遇到 100 个并发下单",
+    "topic": "场景题",
+    "prompt": "数据库库存为10，100个请求同时扣减1件。给出不会超卖的方案及失败处理。同时考虑请求重试与并发验证。",
+    "answer": "1. 条件更新 UPDATE stock SET amount=amount-1 WHERE id=? AND amount>=1\n2. 以受影响行数判断成功，0行即库存不足或记录不存在\n3. 扣库存与订单写入在事务中完成或配合可靠补偿\n4. 说明唯一订单号防重试重复扣减，并用并发测试验证最终库存不负",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "条件更新 UPDATE stock SET amount=amount-1 WHERE id=? AND amount>=1",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "以受影响行数判断成功，0行即库存不足或记录不存在",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "扣库存与订单写入在事务中完成或配合可靠补偿",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "说明唯一订单号防重试重复扣减，并用并发测试验证最终库存不负",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/update.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:1:03",
+    "kind": "engineering",
+    "title": "本地事务成功但消息没发出",
+    "topic": "场景题",
+    "prompt": "订单写库成功后要发送MQ消息，不能接受业务已提交但消息永久丢失。设计可靠流程。",
+    "answer": "1. 订单与待发送事件在同一本地事务内写入即 outbox\n2. 独立投递器重试发送并记录进度，处理发送成功但状态未标记\n3. 消费者用业务事件ID幂等，不能依赖消息绝不重复\n4. 有积压监控和失败重试或人工补偿，不在失败时丢弃事件",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "订单与待发送事件在同一本地事务内写入即 outbox",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "独立投递器重试发送并记录进度，处理发送成功但状态未标记",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "消费者用业务事件ID幂等，不能依赖消息绝不重复",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "有积压监控和失败重试或人工补偿，不在失败时丢弃事件",
+        "points": 25
+      }
+    ],
+    "source": "https://debezium.io/documentation/reference/stable/transformations/outbox-event-router.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:1:04",
+    "kind": "engineering",
+    "title": "千万行数据怎么稳定分页",
+    "topic": "场景题",
+    "prompt": "订单按created_at倒序且同一时间可能有多行。设计可继续翻页的接口，讨论并发新增。",
+    "answer": "1. 使用 created_at 与唯一 id 组成稳定复合排序\n2. 采用游标/keyset 条件而非越来越大的 OFFSET\n3. 提供与过滤排序匹配的复合索引并控制每页大小\n4. 说明新增或修改数据的边界，要求严格一致时使用快照或截止时间",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "使用 created_at 与唯一 id 组成稳定复合排序",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "采用游标/keyset 条件而非越来越大的 OFFSET",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "提供与过滤排序匹配的复合索引并控制每页大小",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "说明新增或修改数据的边界，要求严格一致时使用快照或截止时间",
+        "points": 25
+      }
+    ],
+    "source": "https://www.postgresql.org/docs/current/queries-limit.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:1:05",
+    "kind": "engineering",
+    "title": "热点接口突发流量如何保护下游",
+    "topic": "场景题",
+    "prompt": "接口平时100QPS，突然涨到1万QPS，数据库容量有限。说明接入层到存储层的处理。",
+    "answer": "1. 限流与有界排队，过载快速拒绝，不能无界堆积\n2. 为热点数据缓存并合并重复回源请求\n3. 设置超时、隔离与熔断降级，避免重试风暴\n4. 按延迟、错误率、连接池和下游容量监控并做压测验证",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "限流与有界排队，过载快速拒绝，不能无界堆积",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "为热点数据缓存并合并重复回源请求",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "设置超时、隔离与熔断降级，避免重试风暴",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "按延迟、错误率、连接池和下游容量监控并做压测验证",
+        "points": 25
+      }
+    ],
+    "source": "https://learn.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:2:01",
+    "kind": "engineering",
+    "title": "volatile 能保证 count++ 吗",
+    "topic": "八股题",
+    "prompt": "Java 17中多个线程对volatile int count执行count++，是否线程安全？解释原因并给方案。比较AtomicInteger与LongAdder的适用边界。",
+    "answer": "1. volatile提供可见性及特定有序性，不保证复合操作原子性\n2. count++是读、修改、写，线程之间可能丢失更新\n3. 精确原子计数可用 AtomicInteger.incrementAndGet 或加锁\n4. 说明LongAdder适合统计且sum不是并发更新时的原子快照，不能一概等同",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "volatile提供可见性及特定有序性，不保证复合操作原子性",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "count++是读、修改、写，线程之间可能丢失更新",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "精确原子计数可用 AtomicInteger.incrementAndGet 或加锁",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "说明LongAdder适合统计且sum不是并发更新时的原子快照，不能一概等同",
+        "points": 25
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/atomic/LongAdder.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:2:02",
+    "kind": "engineering",
+    "title": "线程池满了会发生什么",
+    "topic": "八股题",
+    "prompt": "Java ThreadPoolExecutor的核心线程、队列、最大线程以及拒绝策略，提交任务时按什么顺序处理？",
+    "answer": "1. 少于corePoolSize时优先创建核心线程\n2. 达到核心数后尝试放入队列，队列满才扩展到maximumPoolSize\n3. 到最大线程且队列满或关闭时执行拒绝策略\n4. 说明有界队列与拒绝策略的取舍，不能无界队列配巨大最大线程就声称可控",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "少于corePoolSize时优先创建核心线程",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "达到核心数后尝试放入队列，队列满才扩展到maximumPoolSize",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "到最大线程且队列满或关闭时执行拒绝策略",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "说明有界队列与拒绝策略的取舍，不能无界队列配巨大最大线程就声称可控",
+        "points": 25
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ThreadPoolExecutor.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:2:03",
+    "kind": "engineering",
+    "title": "Spring 自调用为什么事务失效",
+    "topic": "八股题",
+    "prompt": "默认代理模式下，同一对象中普通方法通过this调用标记@Transactional的方法，为什么事务可能没生效？如何修复？还应区分哪些事务边界？",
+    "answer": "1. 默认事务依赖代理拦截外部方法调用\n2. this自调用没有经过代理，因此不会触发该处事务拦截\n3. 可把事务方法移到独立Bean并经注入代理调用或使用TransactionTemplate\n4. 区分已有外部事务与该方法注解未生效，说明回滚异常类型和传播规则另需检查",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "默认事务依赖代理拦截外部方法调用",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "this自调用没有经过代理，因此不会触发该处事务拦截",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "可把事务方法移到独立Bean并经注入代理调用或使用TransactionTemplate",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "区分已有外部事务与该方法注解未生效，说明回滚异常类型和传播规则另需检查",
+        "points": 25
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:2:04",
+    "kind": "engineering",
+    "title": "equals 与 hashCode 的约定",
+    "topic": "八股题",
+    "prompt": "自定义对象作为HashMap键，只重写equals会怎样？键对象被放入后改变参与hashCode的字段又会怎样？",
+    "answer": "1. equals相等的对象必须有相同hashCode\n2. 只改equals可能导致相等键落到不同桶无法按预期覆盖或检索\n3. 可变键的哈希字段改变后可能找不到原条目\n4. 使用不可变键并同时重写equals和hashCode，哈希相同不代表equals相等",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "equals相等的对象必须有相同hashCode",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "只改equals可能导致相等键落到不同桶无法按预期覆盖或检索",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "可变键的哈希字段改变后可能找不到原条目",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "使用不可变键并同时重写equals和hashCode，哈希相同不代表equals相等",
+        "points": 25
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/Object.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:2:05",
+    "kind": "engineering",
+    "title": "读已提交与可重复读",
+    "topic": "八股题",
+    "prompt": "以MySQL InnoDB为例，对比RC/RR快照读，说明不能只用隔离级别解释所有加锁行为。",
+    "answer": "1. RC一致性读通常每个语句建立新快照\n2. RR一致性读通常复用事务中首次一致性读建立的快照\n3. SELECT FOR UPDATE或UPDATE为当前读，不是普通快照读\n4. 锁范围还受索引、语句和访问路径影响，RR并不表示所有读都不发生变化",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "RC一致性读通常每个语句建立新快照",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "RR一致性读通常复用事务中首次一致性读建立的快照",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "SELECT FOR UPDATE或UPDATE为当前读，不是普通快照读",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "锁范围还受索引、语句和访问路径影响，RR并不表示所有读都不发生变化",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-consistent-read.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:3:01",
+    "kind": "engineering",
+    "title": "统计每个部门薪资前三档",
+    "topic": "SQL 命令",
+    "prompt": "MySQL 8，employees(id,dept_id,salary)。返回每部门薪资最高的前三个不同薪资档的员工，并列都保留，salary为NULL的排除。请写SQL。",
+    "answer": "1. 窗口函数按dept_id分区\n2. 薪资降序使用DENSE_RANK而非ROW_NUMBER\n3. 在排名前过滤 salary IS NOT NULL\n4. 外层筛选排名<=3，保留同薪资并列；示例 WITH r AS (SELECT e.*,DENSE_RANK() OVER(PARTITION BY dept_id ORDER BY salary DESC) rk FROM employees e WHERE salary IS NOT NULL) SELECT * FROM r WHERE rk<=3",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "窗口函数按dept_id分区",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "薪资降序使用DENSE_RANK而非ROW_NUMBER",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "在排名前过滤 salary IS NOT NULL",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "外层筛选排名<=3，保留同薪资并列；示例 WITH r AS (SELECT e.*,DENSE_RANK() OVER(PARTITION BY dept_id ORDER BY salary DESC) rk FROM employees e WHERE salary IS NOT NULL) SELECT * FROM r WHERE rk<=3",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/window-function-descriptions.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:3:02",
+    "kind": "engineering",
+    "title": "LEFT JOIN 后统计包含零订单的用户",
+    "topic": "SQL 命令",
+    "prompt": "MySQL 8，users(id)，orders(id,user_id)。查询所有用户及订单数，没下单的用户显示0。",
+    "answer": "1. 从users LEFT JOIN orders ON orders.user_id=users.id\n2. 按users.id分组\n3. 使用COUNT(orders.id)，不能用COUNT(*)把补出的空行计为1\n4. SELECT u.id,COUNT(o.id) n FROM users u LEFT JOIN orders o ON o.user_id=u.id GROUP BY u.id",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "从users LEFT JOIN orders ON orders.user_id=users.id",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "按users.id分组",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "使用COUNT(orders.id)，不能用COUNT(*)把补出的空行计为1",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "SELECT u.id,COUNT(o.id) n FROM users u LEFT JOIN orders o ON o.user_id=u.id GROUP BY u.id",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/aggregate-functions.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:3:03",
+    "kind": "engineering",
+    "title": "WHERE 与 HAVING 的位置",
+    "topic": "SQL 命令",
+    "prompt": "MySQL 8，orders(id,user_id,status,amount)。查已支付订单总金额超过1000的用户，返回user_id和总金额。",
+    "answer": "1. WHERE status筛出已支付订单，再聚合\n2. 按user_id GROUP BY\n3. SUM(amount)算总额并HAVING SUM(amount)>1000\n4. 完整SQL SELECT user_id,SUM(amount) total FROM orders WHERE status='paid' GROUP BY user_id HAVING SUM(amount)>1000",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "WHERE status筛出已支付订单，再聚合",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "按user_id GROUP BY",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "SUM(amount)算总额并HAVING SUM(amount)>1000",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "完整SQL SELECT user_id,SUM(amount) total FROM orders WHERE status='paid' GROUP BY user_id HAVING SUM(amount)>1000",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/select.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:3:04",
+    "kind": "engineering",
+    "title": "NOT IN 遇到 NULL 怎么办",
+    "topic": "SQL 命令",
+    "prompt": "MySQL 8，users(id)，blocked(user_id可能为NULL)。查不在blocked中的用户，请避免NULL陷阱并解释。",
+    "answer": "1. NOT IN子查询含NULL可能使比较成为UNKNOWN，WHERE不保留UNKNOWN\n2. 可用相关NOT EXISTS；正确过滤子查询NULL的NOT IN或等价反连接也可\n3. 子查询按b.user_id=u.id关联当前用户\n4. SELECT u.* FROM users u WHERE NOT EXISTS(SELECT 1 FROM blocked b WHERE b.user_id=u.id)；blocked的NULL行不会匹配普通用户id",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "NOT IN子查询含NULL会使部分比较成为UNKNOWN，不能直接套用",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "选择可避开NULL陷阱的方案：相关NOT EXISTS、排除NULL的NOT IN或等价的正确反连接均可",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "正确关联blocked.user_id与users.id，而不是只检查blocked是否存在任意行",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "给出可用SQL，返回未封禁用户；blocked中的NULL不能使其他用户被误排除",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/exists-and-not-exists-subqueries.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:3:05",
+    "kind": "engineering",
+    "title": "只更新有足够余额的一行",
+    "topic": "SQL 命令",
+    "prompt": "MySQL InnoDB，accounts(id,balance)。扣减指定账户100元，不允许负余额，并让调用方判断是否成功。还要保存扣款流水并应对请求重试，说明事务边界。",
+    "answer": "1. UPDATE accounts SET balance=balance-100 WHERE id=? AND balance>=100\n2. 检查受影响行数，1成功0失败，不能先查余额后裸更新\n3. 若还需记录流水，则更新和流水写入一个事务\n4. 用业务流水唯一键防止请求重试重复扣款，并处理失败回滚",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "UPDATE accounts SET balance=balance-100 WHERE id=? AND balance>=100",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "检查受影响行数，1成功0失败，不能先查余额后裸更新",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "若还需记录流水，则更新和流水写入一个事务",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "用业务流水唯一键防止请求重试重复扣款，并处理失败回滚",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/update.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:4:01",
+    "kind": "engineering",
+    "title": "只看日志末尾 200 行中的 ERROR",
+    "topic": "Linux 命令",
+    "prompt": "Linux，日志路径可能有空格，查看现有日志最后200行中包含字面量ERROR的行。不要求持续跟踪。",
+    "answer": "1. 使用tail -n 200先取末尾200行\n2. 再通过grep -F ERROR过滤字面量\n3. 路径正确引用，如 tail -n 200 -- \"/var/log/my app/app.log\" | grep -F -- ERROR\n4. 不能先grep全文件再tail，这会变成最后200条ERROR而不是末尾200行里的ERROR",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "使用tail -n 200先取末尾200行",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "再通过grep -F ERROR过滤字面量",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "路径正确引用，如 tail -n 200 -- \"/var/log/my app/app.log\" | grep -F -- ERROR",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "不能先grep全文件再tail，这会变成最后200条ERROR而不是末尾200行里的ERROR",
+        "points": 25
+      }
+    ],
+    "source": "https://www.gnu.org/software/coreutils/manual/html_node/tail-invocation.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:4:02",
+    "kind": "engineering",
+    "title": "磁盘显示满但文件不大",
+    "topic": "Linux 命令",
+    "prompt": "Linux，df显示根分区满，du统计的可见文件却不大，如何排查？",
+    "answer": "1. df -h查看分区容量并确认挂载点\n2. du -xhd1等逐层定位且避免跨文件系统误判\n3. df -i检查inode是否耗尽\n4. lsof +L1检查已删除但被进程持有的文件，确认后让相关进程正常释放，不直接乱删",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "df -h查看分区容量并确认挂载点",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "du -xhd1等逐层定位且避免跨文件系统误判",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "df -i检查inode是否耗尽",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "lsof +L1检查已删除但被进程持有的文件，确认后让相关进程正常释放，不直接乱删",
+        "points": 25
+      }
+    ],
+    "source": "https://man7.org/linux/man-pages/man8/lsof.8.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:4:03",
+    "kind": "engineering",
+    "title": "谁监听了 8080 端口",
+    "topic": "Linux 命令",
+    "prompt": "Linux上确定TCP 8080监听进程，给出命令并说明权限影响。",
+    "answer": "1. ss -ltnp 'sport = :8080'\n2. 或 lsof -nP -iTCP:8080 -sTCP:LISTEN；任一正确方案即可\n3. -l或LISTEN条件区分监听与普通连接\n4. 进程归属可能需要sudo权限，权限不足时不能仅凭没显示PID就断言没有监听",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "用ss或lsof等工具查询TCP套接字，任意一种正确命令即可",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "准确过滤本地8080端口，如ss过滤sport = :8080，或lsof -iTCP:8080",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "筛选LISTEN监听状态而不是把普通已建立连接当作监听；ss -l或lsof -sTCP:LISTEN均可",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "进程归属信息可能需sudo，单看连接列表不能说明是谁监听",
+        "points": 25
+      }
+    ],
+    "source": "https://man7.org/linux/man-pages/man8/ss.8.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:4:04",
+    "kind": "engineering",
+    "title": "设置文件权限为 640",
+    "topic": "Linux 命令",
+    "prompt": "解释chmod 640 report.txt后谁能读写执行；文件所在目录权限会不会影响访问？",
+    "answer": "1. 属主6表示读写，不含执行\n2. 同组4表示只读，不含写和执行\n3. 其他用户0表示无权限\n4. chmod 640 -- report.txt；路径访问还需要目录搜索执行权限，不能只看文件位",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "属主6表示读写，不含执行",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "同组4表示只读，不含写和执行",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "其他用户0表示无权限",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "chmod 640 -- report.txt；路径访问还需要目录搜索执行权限，不能只看文件位",
+        "points": 25
+      }
+    ],
+    "source": "https://man7.org/linux/man-pages/man1/chmod.1.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:4:05",
+    "kind": "engineering",
+    "title": "定位 Java 高 CPU 线程",
+    "topic": "Linux 命令",
+    "prompt": "Linux上已知Java进程PID=1234，如何把高CPU线程对应到Java线程栈？",
+    "answer": "1. top -H -p 1234或ps -L定位高CPU线程TID\n2. 把十进制TID转换为十六进制，例如printf %x\n3. jcmd 1234 Thread.print或jstack 1234获取线程栈\n4. 在栈中匹配nid十六进制线程号，连续采样而非凭单次快照下结论",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "top -H -p 1234或ps -L定位高CPU线程TID",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "把十进制TID转换为十六进制，例如printf %x",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "jcmd 1234 Thread.print或jstack 1234获取线程栈",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "在栈中匹配nid十六进制线程号，连续采样而非凭单次快照下结论",
+        "points": 25
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/specs/man/jcmd.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:5:01",
+    "kind": "engineering",
+    "title": "接口偶发空指针怎么办",
+    "topic": "Bug 排查",
+    "prompt": "线上接口偶发NPE，重启后暂时消失。给出从证据到验证修复的排查流程。",
+    "answer": "1. 拿到完整异常堆栈并定位具体代码行及请求关联ID\n2. 检查该行每个可能为null的来源、初始化与并发可见性\n3. 构造触发条件并最小复现，保留输入边界和时序证据\n4. 修复根因并加入针对性回归，不能只catch后吞异常或仅重启",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "拿到完整异常堆栈并定位具体代码行及请求关联ID",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "检查该行每个可能为null的来源、初始化与并发可见性",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "构造触发条件并最小复现，保留输入边界和时序证据",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "修复根因并加入针对性回归，不能只catch后吞异常或仅重启",
+        "points": 25
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/NullPointerException.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:5:02",
+    "kind": "engineering",
+    "title": "连接池耗尽但 CPU 不高",
+    "topic": "Bug 排查",
+    "prompt": "数据库连接池等待时间高、活跃数打满，服务CPU不高。如何区分慢SQL、长事务和连接泄漏？",
+    "answer": "1. 查看连接池活跃/空闲/等待/获取耗时和请求耗时\n2. 查数据库运行SQL、锁等待与事务时长\n3. 核对连接归还、异常分支和泄漏检测，使用规范资源关闭\n4. 先确认瓶颈再调整池大小，避免盲目扩容压垮数据库，修复后压测验证",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "查看连接池活跃/空闲/等待/获取耗时和请求耗时",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "查数据库运行SQL、锁等待与事务时长",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "核对连接归还、异常分支和泄漏检测，使用规范资源关闭",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "先确认瓶颈再调整池大小，避免盲目扩容压垮数据库，修复后压测验证",
+        "points": 25
+      }
+    ],
+    "source": "https://github.com/brettwooldridge/HikariCP",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:5:03",
+    "kind": "engineering",
+    "title": "Java 线程死锁如何确认",
+    "topic": "Bug 排查",
+    "prompt": "线上Java请求卡住，怀疑死锁。你会收集什么证据，如何确认并修复？",
+    "answer": "1. 多次获取线程dump，不能只看CPU\n2. 查线程等待的锁及锁持有者，识别互相等待环\n3. 区分死锁与慢IO或线程池饥饿，可用jcmd Thread.print\n4. 统一锁顺序或缩短持锁范围并增加并发回归，重启仅缓解不算根因修复",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "多次获取线程dump，不能只看CPU",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "查线程等待的锁及锁持有者，识别互相等待环",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "区分死锁与慢IO或线程池饥饿，可用jcmd Thread.print",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "统一锁顺序或缩短持锁范围并增加并发回归，重启仅缓解不算根因修复",
+        "points": 25
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.management/java/lang/management/ThreadMXBean.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:5:04",
+    "kind": "engineering",
+    "title": "唯一索引偶发冲突",
+    "topic": "Bug 排查",
+    "prompt": "并发注册时先查账号不存在再插入，偶发唯一索引冲突。为什么，如何正确处理？",
+    "answer": "1. 先查再插不是原子操作，两个请求都可能查到不存在\n2. 数据库唯一约束作为最终一致性仲裁不能删掉\n3. 捕获特定唯一冲突并返回业务上的已存在或幂等结果\n4. 以事务/原子insert语义配合约束，增加并发同账号测试并避免泛化吞所有异常",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "先查再插不是原子操作，两个请求都可能查到不存在",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "数据库唯一约束作为最终一致性仲裁不能删掉",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "捕获特定唯一冲突并返回业务上的已存在或幂等结果",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "以事务/原子insert语义配合约束，增加并发同账号测试并避免泛化吞所有异常",
+        "points": 25
+      }
+    ],
+    "source": "https://www.postgresql.org/docs/current/ddl-constraints.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:5:05",
+    "kind": "engineering",
+    "title": "日志中的时间差八小时",
+    "topic": "Bug 排查",
+    "prompt": "服务与数据库时间相差8小时，不能直接在代码里加8小时。给出排查方法。",
+    "answer": "1. 核对OS/JVM/数据库会话/连接器/序列化的时区\n2. 区分时间点Instant与不带时区的本地日期时间及字段类型\n3. 统一存储与传输的时间点约定，展示时明确时区\n4. 用带偏移时间、跨日期和夏令时样例验证，避免手工固定加8小时",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "核对OS/JVM/数据库会话/连接器/序列化的时区",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "区分时间点Instant与不带时区的本地日期时间及字段类型",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "统一存储与传输的时间点约定，展示时明确时区",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "用带偏移时间、跨日期和夏令时样例验证，避免手工固定加8小时",
+        "points": 25
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/Instant.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:6:01",
+    "kind": "engineering",
+    "title": "慢 SQL 怎么判断索引有效",
+    "topic": "性能调优",
+    "prompt": "MySQL8某SQL响应2秒。添加索引前后如何证明有效，而不是只看到走了索引就结束？",
+    "answer": "1. 记录SQL参数、数据规模、耗时分布和基线\n2. 查看EXPLAIN/受控EXPLAIN ANALYZE的访问路径、估计/实际行数和回表等\n3. 按过滤、连接和排序设计索引，考虑选择性及写入成本\n4. 相同条件对照验证延迟、扫描量和资源消耗，不能仅以使用索引作为优化成功",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "记录SQL参数、数据规模、耗时分布和基线",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "查看EXPLAIN/受控EXPLAIN ANALYZE的访问路径、估计/实际行数和回表等",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "按过滤、连接和排序设计索引，考虑选择性及写入成本",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "相同条件对照验证延迟、扫描量和资源消耗，不能仅以使用索引作为优化成功",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/explain.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:6:02",
+    "kind": "engineering",
+    "title": "一次查列表触发 N 次查询",
+    "topic": "性能调优",
+    "prompt": "返回100个订单及其用户信息时执行了101条SQL。如何优化并保留分页语义？",
+    "answer": "1. 用SQL计数和链路定位确认N+1来源\n2. 批量收集用户ID一次IN查询再映射，或采用合适JOIN\n3. 避免一对多JOIN导致分页行数膨胀，必要时先分页主表再补齐\n4. 对照验证SQL次数、结果完整性、延迟和内存，并考虑批量大小",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "用SQL计数和链路定位确认N+1来源",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "批量收集用户ID一次IN查询再映射，或采用合适JOIN",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "避免一对多JOIN导致分页行数膨胀，必要时先分页主表再补齐",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "对照验证SQL次数、结果完整性、延迟和内存，并考虑批量大小",
+        "points": 25
+      }
+    ],
+    "source": "https://docs.hibernate.org/orm/6.6/userguide/html_single/Hibernate_User_Guide.html#fetching",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:6:03",
+    "kind": "engineering",
+    "title": "热点缓存过期导致数据库尖峰",
+    "topic": "性能调优",
+    "prompt": "同一个热点key过期后大量请求同时回源，提出解决办法和异常处理。",
+    "answer": "1. 确认是单key击穿而非大量key同时失效或不存在key穿透\n2. 单飞请求合并或互斥回源，并设置合理等待与超时\n3. 可用逻辑过期与后台刷新，允许时返回旧值\n4. 回源失败的退避/降级和锁释放要完整，并验证数据库尖峰下降",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "确认是单key击穿而非大量key同时失效或不存在key穿透",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "单飞请求合并或互斥回源，并设置合理等待与超时",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "可用逻辑过期与后台刷新，允许时返回旧值",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "回源失败的退避/降级和锁释放要完整，并验证数据库尖峰下降",
+        "points": 25
+      }
+    ],
+    "source": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:6:04",
+    "kind": "engineering",
+    "title": "批量导出百万行内存爆了",
+    "topic": "性能调优",
+    "prompt": "Java程序一次查百万行放入List后生成文件而OOM，如何改造并验证？",
+    "answer": "1. 按游标或分批读取，不一次保留全量对象\n2. 流式写出并限制缓冲和批量大小，避免下游重新聚合全量\n3. 保证稳定排序或快照边界，处理文件失败及资源关闭\n4. 对比峰值堆、GC、吞吐和输出行数，不能只靠扩大Xmx",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "按游标或分批读取，不一次保留全量对象",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "流式写出并限制缓冲和批量大小，避免下游重新聚合全量",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "保证稳定排序或快照边界，处理文件失败及资源关闭",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "对比峰值堆、GC、吞吐和输出行数，不能只靠扩大Xmx",
+        "points": 25
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.sql/java/sql/ResultSet.html",
+    "phonetic": ""
+  },
+  {
+    "id": "eng:6:05",
+    "kind": "engineering",
+    "title": "CPU 满就应该增加线程吗",
+    "topic": "性能调优",
+    "prompt": "服务CPU接近100%，请求排队。说明为什么增加线程可能更慢，以及调优步骤。",
+    "answer": "1. 先区分CPU计算热点、GC或系统内核开销\n2. 采样CPU profile或火焰图并关联真实流量\n3. CPU密集任务多线程会带来竞争和上下文切换，应控制并行度\n4. 优化主要热点后用同负载对比吞吐、p95延迟和错误率，不只看平均值",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "先区分CPU计算热点、GC或系统内核开销",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "采样CPU profile或火焰图并关联真实流量",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "CPU密集任务多线程会带来竞争和上下文切换，应控制并行度",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "优化主要热点后用同负载对比吞吐、p95延迟和错误率，不只看平均值",
+        "points": 25
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/jfapi/flight-recorder.html",
+    "phonetic": ""
+  }
+]

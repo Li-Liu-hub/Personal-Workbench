@@ -16,6 +16,8 @@ use crate::{
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Scope {
+    Practice,
+    Words,
     All,
     Credentials,
     Folders,
@@ -34,7 +36,8 @@ impl Scope {
     pub fn for_section(section: Section) -> Self {
         match section {
             Section::Books => Self::Books,
-            Section::Browser => Self::All,
+            Section::Practice => Self::Practice,
+            Section::Words => Self::Words,
             Section::Credentials => Self::Credentials,
             Section::Folders => Self::Folders,
             Section::Documents => Self::Documents,
@@ -50,6 +53,8 @@ impl Scope {
     pub fn label(self) -> &'static str {
         match self {
             Self::Books => "图书",
+            Self::Practice => "刷题王",
+            Self::Words => "每日单词",
             Self::All => "全部数据",
             Self::Credentials => "账号密码",
             Self::Folders => "快捷路径",
@@ -235,7 +240,7 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
                         "contacts" => scope == Scope::Contacts,
                         "websites" => scope == Scope::Websites,
                         "tools" => scope == Scope::Tools,
-                        "books" | "book_pages" => scope == Scope::Books,
+                        "books" | "book_pages" => scope.includes(Scope::Books),
                         _ => false,
                     }
             })
@@ -251,6 +256,29 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
                 } else {
                     package.warnings.push("主题图片尚未保存为本机副本。".into());
                 }
+            }
+        }
+        for (study_scope, kind, name) in [
+            (Scope::Practice, "engineering", "刷题王"),
+            (Scope::Words, "word", "每日单词"),
+        ] {
+            if scope.includes(study_scope) {
+                let cards = snapshot.study_cards(kind)?;
+                let attempts = snapshot.study_all_attempts(kind)?;
+                counts.insert(name, attempts.len());
+                package.json(
+                    &format!("{name}.json"),
+                    &crate::study::Bundle {
+                        version: 1,
+                        cards,
+                        attempts,
+                    },
+                )?;
+                package.json(
+                    &format!("{name}待完成.json"),
+                    &snapshot.study_pending(kind)?,
+                )?;
+                package.json("练习规则.json", &snapshot.study_rules())?;
             }
         }
         if scope.includes(Scope::Tools) {
@@ -342,6 +370,14 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
             package.json("图书.json", &books)?;
             package.json("图书页面.json", &pages)?;
             counts.insert("图书", books.len());
+            let writing = snapshot.writing_pages()?;
+            for page in &writing {
+                package.bytes(
+                    &format!("writing/{}.md", page.id),
+                    format!("# {}\n\n{}", page.title, page.body).as_bytes(),
+                )?;
+            }
+            package.json("写作文档.json", &writing)?;
         }
         if crate::tags::Scope::ALL
             .into_iter()

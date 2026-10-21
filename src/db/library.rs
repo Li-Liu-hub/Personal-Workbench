@@ -18,6 +18,7 @@ impl Database {
         Ok(self.desk.query_row("SELECT bd.book_id FROM book_documents bd JOIN books b ON b.id=bd.book_id WHERE bd.document_path IN (?1,?2,?3) AND b.deleted=0",params![path.to_string_lossy().as_ref(),normalized.to_string_lossy().as_ref(),display.to_string_lossy().as_ref()],|r|r.get(0)).optional()?)
     }
     /// Group by reference, never move or rewrite the document files.
+    #[cfg(test)]
     pub fn group_documents(
         &mut self,
         paths: &[std::path::PathBuf],
@@ -97,7 +98,6 @@ impl Database {
         Ok(result)
     }
 
-    #[cfg(test)]
     pub fn save_book_draft(&mut self, writer: &str, page: &Page) -> Result<()> {
         let key = format!("{writer}:{}", page.id);
         self.desk.execute("INSERT INTO book_page_drafts(id,book_id,writer,page_json) VALUES(?1,?2,?3,?4) ON CONFLICT(id) DO UPDATE SET page_json=excluded.page_json",params![key,page.book_id,writer,serde_json::to_string(page)?])?;
@@ -120,7 +120,7 @@ impl Database {
     }
 
     pub fn books(&self) -> Result<Vec<Book>> {
-        let mut statement=self.desk.prepare("SELECT id,title,tags_json FROM books WHERE deleted=0 ORDER BY updated_at DESC,rowid DESC")?;
+        let mut statement=self.desk.prepare("SELECT id,title,tags_json FROM books WHERE deleted=0 AND id<>'__personal_writing__' ORDER BY updated_at DESC,rowid DESC")?;
         Ok(statement
             .query_map([], |r| {
                 Ok(Book {
@@ -158,7 +158,6 @@ impl Database {
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?)
     }
-    #[cfg(test)]
     pub fn save_book_page(&mut self, page: &mut Page) -> Result<()> {
         if page.title.trim().is_empty() {
             return Err(DeskError::InvalidPath("请填写页面名称".into()));

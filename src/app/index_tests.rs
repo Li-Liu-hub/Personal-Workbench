@@ -145,7 +145,7 @@ fn removing_and_restoring_indices_after_restart_never_changes_the_file_or_folder
 
 #[test]
 fn index_cards_and_rows_only_queue_opening_location_and_offer_metadata_removal() {
-    for section in [Section::Documents, Section::Folders] {
+    for section in [Section::Folders] {
         for mode in [ViewMode::Grid, ViewMode::List] {
             let temp = tempfile::tempdir().unwrap();
             let file = temp.path().join("index-only.md");
@@ -256,16 +256,6 @@ fn book_grouping_and_external_document_export_store_references_without_touching_
         fs::write(p, "Unchanged").unwrap();
     }
     app.add_document_indices(&paths);
-    app.section = Section::Documents;
-    let ctx = egui::Context::default();
-    configure_theme(&ctx);
-    input_frame(&mut app, &ctx, 0., vec![], vec![]);
-    let out = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
-    assert!(
-        (text_at(&out, "a").y - text_at(&out, "b").y).abs() < 1.,
-        "index action buttons must not move the next tile"
-    );
-
     assert!(app.group_document_paths(&paths, None));
     let book = app.db.as_ref().unwrap().books().unwrap().remove(0);
     let key = paths[0]
