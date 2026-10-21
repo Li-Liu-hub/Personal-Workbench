@@ -18,7 +18,7 @@ impl PersonalDeskApp {
                     0.0
                 };
             let width = (ui.available_width() - actions_width).clamp(120.0, 320.0);
-            crate::ui_components::toolbar_title(ui, &title, width, 22.0);
+            crate::ui_components::toolbar_title(ui, &title, width, 24.0);
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if !self.add_label().is_empty()
                     && ui
@@ -49,7 +49,7 @@ impl PersonalDeskApp {
                 }
             });
         });
-        ui.add_space(6.0);
+        ui.add_space(10.0);
         ui.horizontal(|ui| {
             ui.set_min_height(32.0);
             let has_filter = TagScope::for_section(self.section).is_some();

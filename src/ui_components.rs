@@ -1,5 +1,6 @@
 use eframe::egui::{self, Color32, Response, Ui};
 
+pub mod chrome;
 mod collection;
 mod credentials;
 pub mod table;
@@ -181,17 +182,13 @@ pub fn navigation_item(
 ) -> Response {
     let (rect, response) =
         ui.allocate_exact_size(egui::vec2(ui.available_width(), 38.0), egui::Sense::click());
-    let color = if selected {
-        button_text()
-    } else {
-        sidebar_text()
-    };
+    let color = if selected { ink() } else { sidebar_text() };
     if selected || response.hovered() {
         ui.painter().rect_filled(
             rect,
             10,
             if selected {
-                accent()
+                sidebar().lerp_to_gamma(accent(), 0.11)
             } else {
                 sidebar().lerp_to_gamma(ink(), 0.05)
             },
@@ -204,7 +201,7 @@ pub fn navigation_item(
             egui::vec2(18.0, 18.0),
         ),
         kind,
-        color,
+        if selected { accent() } else { color },
     );
     ui.painter().text(
         rect.left_center() + egui::vec2(39.0, 0.0),
@@ -213,13 +210,13 @@ pub fn navigation_item(
         egui::FontId::proportional(14.0),
         color,
     );
-    if let Some(count) = count {
+    if let Some(count) = count.filter(|&n| n > 0) {
         ui.painter().text(
             rect.right_center() - egui::vec2(15.0, 0.0),
             egui::Align2::RIGHT_CENTER,
             count.to_string(),
             egui::FontId::proportional(12.0),
-            color,
+            muted(),
         );
     }
     response.on_hover_cursor(egui::CursorIcon::PointingHand)
@@ -227,6 +224,8 @@ pub fn navigation_item(
 
 #[derive(Clone, Copy)]
 pub enum TileKind {
+    Practice,
+    Word,
     Game,
     Contact,
     Folder,
@@ -271,7 +270,7 @@ pub fn tile(
     let hover = ui
         .ctx()
         .animate_bool(response.id.with("hover"), response.hovered());
-    let (icon_color, _tint) = match kind {
+    let (icon_color, tint) = match kind {
         TileKind::Folder => (
             Color32::from_rgb(64, 156, 255),
             Color32::from_rgb(231, 242, 255),
@@ -291,17 +290,12 @@ pub fn tile(
         _ => (accent(), Color32::from_rgb(239, 237, 252)),
     };
     painter.rect_filled(
-        rect.translate(egui::vec2(0.0, 3.0)),
-        16,
-        Color32::from_black_alpha(4 + (hover * 5.0) as u8),
-    );
-    painter.rect_filled(
         rect,
         16,
         if is_add {
-            surface().lerp_to_gamma(accent(), 0.07)
+            surface().lerp_to_gamma(accent(), 0.035)
         } else {
-            surface()
+            surface().lerp_to_gamma(accent(), hover * 0.015)
         },
     );
     painter.rect_stroke(
@@ -310,7 +304,7 @@ pub fn tile(
         egui::Stroke::new(
             1.0,
             if response.hovered() {
-                accent()
+                border().lerp_to_gamma(accent(), 0.4)
             } else if is_add {
                 border().lerp_to_gamma(accent(), 0.18)
             } else {
@@ -333,6 +327,9 @@ pub fn tile(
             28.0,
             surface().lerp_to_gamma(accent(), 0.10),
         );
+    }
+    if !is_add {
+        painter.rect_filled(icon_rect.expand(10.), 12, tint);
     }
     paint_icon(&painter, icon_rect, kind, icon_color);
     let text_origin = rect.left_bottom() + egui::vec2(20.0, -68.0);
@@ -454,6 +451,30 @@ pub fn paint_icon(painter: &egui::Painter, rect: egui::Rect, kind: TileKind, col
     let box_rect =
         |x, y, w, h| egui::Rect::from_min_size(point(x, y), egui::vec2(w * scale, h * scale));
     match kind {
+        TileKind::Practice => {
+            painter.rect_stroke(
+                box_rect(4., 2., 16., 20.),
+                3,
+                stroke,
+                egui::StrokeKind::Inside,
+            );
+            line((8., 8.), (10., 10.));
+            line((10., 10.), (15., 5.));
+            line((8., 15.), (16., 15.));
+            line((8., 18.), (14., 18.));
+        }
+        TileKind::Word => {
+            painter.rect_stroke(
+                box_rect(3., 3., 18., 18.),
+                3,
+                stroke,
+                egui::StrokeKind::Inside,
+            );
+            line((7., 17.), (11., 7.));
+            line((11., 7.), (15., 17.));
+            line((8.5, 13.), (13.5, 13.));
+            line((18., 3.), (18., 21.));
+        }
         TileKind::Game => {
             painter.rect_stroke(
                 box_rect(2.0, 6.0, 20.0, 13.0),

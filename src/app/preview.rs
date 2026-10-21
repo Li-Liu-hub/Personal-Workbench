@@ -13,6 +13,42 @@ impl PersonalDeskApp {
             return;
         };
         fs::create_dir_all(&output).unwrap();
+        for (title, user) in [
+            ("工作邮箱", "hello@example.test"),
+            ("设计工具", "studio@example.test"),
+            ("代码仓库", "developer@example.test"),
+        ] {
+            let mut item = Credential::new();
+            item.title = title.into();
+            item.username = user.into();
+            item.password = "Sample-Only-2026".into();
+            item.tags = vec!["工作".into()];
+            self.db.as_mut().unwrap().save_credential(&item).unwrap();
+        }
+        let mut contact = Contact::new();
+        contact.name = "示例联系人".into();
+        contact.school = "示例大学".into();
+        contact.work = "产品设计".into();
+        self.db
+            .as_mut()
+            .unwrap()
+            .save_contact_with_tags(&contact, &[])
+            .unwrap();
+        let mut item = InventoryItem::new();
+        item.name = "笔记本电脑".into();
+        item.brand = "示例品牌".into();
+        item.model = "Pro 14".into();
+        item.location = "书房".into();
+        item.tags = vec!["数码".into()];
+        self.db
+            .as_mut()
+            .unwrap()
+            .save_inventory_item(&item)
+            .unwrap();
+        self.load_summaries();
+        self.load_contacts();
+        self.load_inventory();
+        self.load_tags();
         self.new_writing(false);
         self.writing.page.as_mut().unwrap().title = "让写作回到简单".into();
         self.writing.page.as_mut().unwrap().body="## 今天，写点什么\n\n把想法、工作和生活记录在这里。\n\n- 专注一件重要的事\n- 留下值得记住的瞬间\n\n> 少一点打扰，多一点专注。".into();
@@ -59,6 +95,28 @@ impl PersonalDeskApp {
                     5 => self.prepare_study_preview(false),
                     6 => self.section = Section::Words,
                     7 => self.prepare_study_preview(true),
+                    8 => {
+                        self.close_study_preview();
+                        self.section = Section::Credentials;
+                    }
+                    9 => {
+                        self.section = Section::Contacts;
+                        self.view_modes.set(Section::Contacts, ViewMode::List);
+                    }
+                    10 => {
+                        self.section = Section::Inventory;
+                        self.view_modes.set(Section::Inventory, ViewMode::List);
+                    }
+                    11 => {
+                        self.section = Section::Practice;
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1000., 680.,
+                        )));
+                        self.reset_study_preview();
+                    }
+                    12 => {
+                        self.section = Section::Words;
+                    }
                     _ => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
                 }
             }
@@ -77,6 +135,11 @@ impl PersonalDeskApp {
             "engineering-notebook",
             "daily-words",
             "practice-settings",
+            "accounts-grid",
+            "contacts-list",
+            "inventory-list",
+            "practice-small",
+            "words-small",
         ][c.step];
         let path = c.output.join(format!("{name}.png"));
         let completed = c.completed.clone();

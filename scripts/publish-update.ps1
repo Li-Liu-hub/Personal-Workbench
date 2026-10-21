@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '新增刷题王与5040词IELTS练习、本地Spark模型批改、双记录本及掌握降频；恢复简约台内写作、日期日志、Markdown预览；移除大模型聊天页面，保留已有数据和导出'
+    [string]$Notes = '统一浅色分组导航与分段切换；重排刷题、单词和记录本；练习底部操作固定，记录整行可点击，支持Ctrl+Enter提交；保留全部数据和自定义主题'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

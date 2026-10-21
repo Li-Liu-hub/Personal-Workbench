@@ -298,6 +298,160 @@ fn ui_accepts_answer_handles_background_grade_and_shows_notebook_history() {
     );
 }
 
+#[test]
+fn long_answers_scroll_without_moving_practice_and_word_actions_at_window_sizes() {
+    for (section, kind) in [(Section::Practice, "engineering"), (Section::Words, "word")] {
+        for size in [[1000., 680.], [1280., 800.], [1920., 1080.]] {
+            let dir = tempfile::tempdir().unwrap();
+            let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+            app.section = section;
+            let card = app
+                .db
+                .as_ref()
+                .unwrap()
+                .draw_study(kind, "", &[], 42)
+                .unwrap()
+                .unwrap();
+            let answer = "一段很长的解答。\n".repeat(100);
+            *app.study.session_mut(kind) = Session {
+                pending: Some(pending(&card, &answer)),
+                card: Some(card),
+                answer,
+                ..Default::default()
+            };
+            let ctx = egui::Context::default();
+            configure_theme(&ctx);
+            let mut frame = |time, events| {
+                let mut output = ctx.run_ui(
+                    egui::RawInput {
+                        screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, size.into())),
+                        time: Some(time),
+                        events,
+                        ..Default::default()
+                    },
+                    |ui| app.render_workspace(ui),
+                );
+                output.textures_delta.clear();
+                output
+            };
+            frame(0., vec![]);
+            let out = frame(0.1, vec![]);
+            let before = position(&out, "提交 · AI 批改");
+            let out = frame(
+                0.2,
+                vec![
+                    egui::Event::PointerMoved(egui::pos2(size[0] * 0.6, size[1] * 0.5)),
+                    egui::Event::MouseWheel {
+                        unit: egui::MouseWheelUnit::Point,
+                        delta: egui::vec2(0., -1800.),
+                        phase: egui::TouchPhase::Move,
+                        source: egui::MouseWheelSource::Unknown,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ],
+            );
+            let after = position(&out, "提交 · AI 批改");
+            assert!(
+                (before.y - after.y).abs() < 1.
+                    && after.y > size[1] - 100.
+                    && after.y < size[1] - 20.,
+                "footer {section:?} {size:?}: {before:?} {after:?}"
+            );
+            assert!(after.x > 184. && after.x < size[0] - 100.);
+        }
+    }
+}
+
+#[test]
+fn notebook_selects_latest_details_and_accepts_clicks_in_row_padding() {
+    use crate::app::editor_tests::{input_frame, pointer};
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+    app.section = Section::Practice;
+    let first = sample();
+    let mut second = sample();
+    second.id = "test:second".into();
+    second.title = "另一道练习".into();
+    let db = app.db.as_mut().unwrap();
+    db.import_study_cards(&[first.clone(), second.clone()])
+        .unwrap();
+    db.record_study_attempt(&draft(&first), grade(&first, 40), "fixture", 1)
+        .unwrap();
+    db.record_study_attempt(&draft(&second), grade(&second, 80), "fixture", 1)
+        .unwrap();
+    app.study.practice.notebook = true;
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0., vec![], vec![]);
+    let out = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    assert_eq!(
+        app.study.practice.selected.as_deref(),
+        Some(first.id.as_str())
+    );
+    let padding = position(&out, &second.title) + egui::vec2(90., 37.);
+    input_frame(&mut app, &ctx, 0.2, pointer(padding, true), vec![]);
+    input_frame(&mut app, &ctx, 0.3, pointer(padding, false), vec![]);
+    assert_eq!(
+        app.study.practice.selected.as_deref(),
+        Some(second.id.as_str())
+    );
+    assert_eq!(app.study.practice.history.len(), 1);
+    assert_eq!(app.study.practice.history[0].completion, 80);
+}
+
+#[test]
+fn ctrl_enter_submits_the_focused_answer_without_adding_a_newline() {
+    use crate::app::editor_tests::{input_frame, pointer};
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+    app.section = Section::Words;
+    app.study.config.model = dir.path().join("not-installed.gguf");
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0., vec![], vec![]);
+    let out = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    let field = position(&out, "回忆中文含义…");
+    input_frame(&mut app, &ctx, 0.2, pointer(field, true), vec![]);
+    input_frame(&mut app, &ctx, 0.3, pointer(field, false), vec![]);
+    input_frame(
+        &mut app,
+        &ctx,
+        0.4,
+        vec![egui::Event::Paste("能力".into())],
+        vec![],
+    );
+    input_frame(
+        &mut app,
+        &ctx,
+        0.5,
+        vec![egui::Event::Key {
+            key: egui::Key::Enter,
+            physical_key: None,
+            pressed: true,
+            repeat: false,
+            modifiers: egui::Modifiers {
+                ctrl: true,
+                command: true,
+                ..Default::default()
+            },
+        }],
+        vec![],
+    );
+    assert_eq!(app.study.words.answer, "能力");
+    assert!(app.study.busy);
+    let started = std::time::Instant::now();
+    while app.study.busy && started.elapsed().as_secs() < 3 {
+        app.poll_background();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    assert!(!app.study.busy);
+    assert!(app.study.error.contains("未找到"));
+    assert_eq!(
+        app.db.as_ref().unwrap().study_pending("word").unwrap()[0].answer,
+        "能力"
+    );
+}
+
 /// Explicitly run against real local weights; uses its own isolated data directory.
 #[test]
 #[ignore = "requires installed local Spark weights and GPU runtime"]
