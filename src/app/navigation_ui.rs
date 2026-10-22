@@ -3,6 +3,7 @@ use super::*;
 impl PersonalDeskApp {
     pub(super) fn page_title(&self) -> String {
         match self.section {
+            Section::Essays => "每日随笔".into(),
             Section::Reference => "指令大全".into(),
             Section::Folders => "快捷路径".into(),
             Section::Documents => "文档写作".into(),
@@ -39,10 +40,11 @@ impl PersonalDeskApp {
         {
             self.undo_index_removal();
         }
-        if self.section == Section::Documents
+        if matches!(self.section, Section::Documents | Section::Essays)
             && ctx.input_mut(|i| i.consume_key(egui::Modifiers::ALT, egui::Key::ArrowLeft))
             && self.flush_writing()
         {
+            self.essay.active = None;
             self.writing.page = None;
             self.library.book = None;
         }
@@ -51,7 +53,7 @@ impl PersonalDeskApp {
     pub(super) fn save_visible_rows(&mut self) -> bool {
         let mut saved = true;
         match self.section {
-            Section::Documents => saved = self.flush_writing(),
+            Section::Documents | Section::Essays => saved = self.flush_writing(),
             Section::Contacts => {
                 for id in self.inline_contacts.keys().cloned().collect::<Vec<_>>() {
                     saved &= self.save_inline_contact(&id);
@@ -107,6 +109,7 @@ impl PersonalDeskApp {
                         Some(self.credentials.len()),
                     ),
                     (Section::Documents, "文档写作", TileKind::Document, None),
+                    (Section::Essays, "每日随笔", TileKind::Document, None),
                     (
                         Section::Contacts,
                         "联系人",
@@ -211,6 +214,7 @@ impl PersonalDeskApp {
 
     pub(super) fn add_label(&self) -> &'static str {
         match self.section {
+            Section::Essays => "今日随笔",
             Section::Reference => "添加指令",
             Section::Books => "新增图书",
             Section::Credentials => "添加账号",
@@ -227,6 +231,7 @@ impl PersonalDeskApp {
 
     pub(super) fn add_current_item(&mut self) {
         match self.section {
+            Section::Essays => self.start_daily_essay(),
             Section::Reference => self.add_reference(),
             Section::Books => self.library.dialog = Some(crate::library::Book::new()),
             Section::Credentials => {

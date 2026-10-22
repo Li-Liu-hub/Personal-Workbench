@@ -16,6 +16,7 @@ use crate::{
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Scope {
+    Essays,
     Reference,
     Practice,
     Words,
@@ -36,6 +37,7 @@ pub enum Scope {
 impl Scope {
     pub fn for_section(section: Section) -> Self {
         match section {
+            Section::Essays => Self::Essays,
             Section::Reference => Self::Reference,
             Section::Books => Self::Books,
             Section::Practice => Self::Practice,
@@ -54,6 +56,7 @@ impl Scope {
 
     pub fn label(self) -> &'static str {
         match self {
+            Self::Essays => "每日随笔",
             Self::Reference => "指令大全",
             Self::Books => "图书",
             Self::Practice => "刷题王",
@@ -250,6 +253,23 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
             })
             .collect::<Vec<_>>();
         package.json("收藏.json", &favorites)?;
+        if scope.includes(Scope::Essays) {
+            let records = snapshot.essay_records()?;
+            counts.insert("每日随笔", records.len());
+            for record in &records {
+                if let Some(page) = &record.page {
+                    package.bytes(
+                        &format!("essays/{}.md", record.assignment.day),
+                        format!(
+                            "# {}\n\n> {}\n\n{}",
+                            page.title, record.assignment.topic.prompt, page.body
+                        )
+                        .as_bytes(),
+                    )?;
+                }
+            }
+            package.json("每日随笔.json", &records)?;
+        }
         if scope.includes(Scope::Reference) {
             let entries = snapshot.reference_entries()?;
             counts.insert("指令大全", entries.len());

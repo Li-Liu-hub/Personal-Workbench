@@ -18,7 +18,8 @@ impl ViewMode {
     }
 }
 
-pub const SECTIONS: [Section; 12] = [
+pub const SECTIONS: [Section; 13] = [
+    Section::Essays,
     Section::Reference,
     Section::Practice,
     Section::Words,
@@ -35,6 +36,7 @@ pub const SECTIONS: [Section; 12] = [
 
 pub fn key(section: Section) -> &'static str {
     match section {
+        Section::Essays => "view.essays",
         Section::Reference => "view.reference",
         Section::Books => "view.books",
         Section::Practice => "view.practice",

@@ -9,6 +9,7 @@ mod curriculum;
 mod db;
 mod english;
 mod error;
+mod essays;
 mod export;
 mod files;
 mod games;
