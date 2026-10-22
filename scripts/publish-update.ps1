@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '新增指令大全：8类语言、128条语法和集合资料，支持分类、全文搜索、增删改查、复制、收藏及导出；按功能拆分代码并补充开发规范；优化联系人和物品列表可见行渲染与题库启动加载，保留原有数据'
+    [string]$Notes = '新增每日随笔：每日随机主题、开始前换题、页内写作与自动保存，支持记录本搜索及导出；主题和原文在重启、图书归组及更新后保留'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

@@ -9,6 +9,7 @@ use std::{
 use eframe::egui::{self, Color32, RichText};
 
 mod appearance;
+mod essay_ui;
 use appearance::configure_theme;
 mod contact_ui;
 mod credential_ui;
@@ -81,6 +82,7 @@ struct TagAssignment {
 }
 
 pub struct PersonalDeskApp {
+    essay: essay_ui::EssayState,
     reference: reference_ui::ReferenceState,
     study: study_ui::StudyState,
     credential_layout: credential_ui::CredentialLayoutCache,
@@ -222,6 +224,7 @@ impl PersonalDeskApp {
             .into_iter()
             .collect();
         let mut app = Self {
+            essay: Default::default(),
             reference: Default::default(),
             study: Default::default(),
             credential_layout: Default::default(),
@@ -543,6 +546,10 @@ impl PersonalDeskApp {
                     self.render_study(ui);
                     return;
                 }
+                if self.section == Section::Essays {
+                    self.render_essays(ui);
+                    return;
+                }
                 if self.section == Section::Reference {
                     self.render_reference(ui);
                     return;
@@ -571,6 +578,7 @@ impl PersonalDeskApp {
                         Section::Practice | Section::Words => self.render_study(ui),
                         Section::Settings => self.render_settings(ui),
                         Section::Tools => self.render_tools(ui),
+                        Section::Essays => unreachable!("essays own their scroll workspace"),
                         Section::Reference => unreachable!("reference owns its scroll workspace"),
                     });
             });

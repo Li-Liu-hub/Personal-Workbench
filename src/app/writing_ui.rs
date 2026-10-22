@@ -67,7 +67,7 @@ impl PersonalDeskApp {
             }
         }
     }
-    fn set_writing_page(&mut self, page: Page) {
+    pub(super) fn set_writing_page(&mut self, page: Page) {
         self.library.book = if page.book_id == crate::db::WRITING_ROOT {
             None
         } else {
@@ -363,7 +363,13 @@ impl PersonalDeskApp {
         let mut copy = false;
         ui.horizontal(|ui| {
             ui.set_min_height(38.);
-            back = ui.button("← 文档").clicked();
+            back = ui
+                .button(if self.section == Section::Essays {
+                    "← 随笔"
+                } else {
+                    "← 文档"
+                })
+                .clicked();
             if let Some(book) = self.library.book.as_ref() {
                 ui.add_sized(
                     [ui.available_width().min(150.), 24.],
@@ -385,10 +391,10 @@ impl PersonalDeskApp {
                     .color(muted()),
             );
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.add(primary_button("新建")).clicked() {
+                if self.section != Section::Essays && ui.add(primary_button("新建")).clicked() {
                     self.new_writing(false);
                 }
-                if ui.button("生成日志").clicked() {
+                if self.section != Section::Essays && ui.button("生成日志").clicked() {
                     self.new_writing(true);
                 }
                 crate::ui_components::chrome::segmented(
@@ -435,6 +441,7 @@ impl PersonalDeskApp {
             });
         });
         if back && self.flush_writing() {
+            self.essay.active = None;
             self.writing.page = None;
             self.library.book = None;
             return;
@@ -451,7 +458,9 @@ impl PersonalDeskApp {
         if self.writing.page.is_none() {
             return;
         }
-        if let Some(book) = self.library.book.clone() {
+        if self.section != Section::Essays
+            && let Some(book) = self.library.book.clone()
+        {
             let pages = self
                 .db
                 .as_ref()
@@ -482,6 +491,17 @@ impl PersonalDeskApp {
         }
         if !self.writing.error.is_empty() {
             ui.colored_label(Color32::from_rgb(184, 65, 71), &self.writing.error);
+        }
+        if self.section == Section::Essays
+            && let Some(a) = self.essay.active.as_ref()
+        {
+            ui.add_space(8.);
+            ui.label(
+                RichText::new(format!("{} · {}", a.day, a.topic.title))
+                    .small()
+                    .color(muted()),
+            );
+            ui.label(RichText::new(&a.topic.prompt).color(muted()));
         }
         ui.add_space(12.);
         let mut changed = false;

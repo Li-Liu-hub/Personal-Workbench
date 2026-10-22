@@ -212,6 +212,16 @@ impl PersonalDeskApp {
                         )));
                         self.preview_reference(true);
                     }
+                    28 => {
+                        self.section = Section::Essays;
+                        self.essay.active = None;
+                    }
+                    29 => {
+                        self.start_daily_essay();
+                    }
+                    30 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                        1000., 680.,
+                    ))),
                     _ => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
                 }
             }
@@ -250,6 +260,9 @@ impl PersonalDeskApp {
             "reference",
             "reference-small",
             "reference-edit",
+            "daily-essay",
+            "daily-essay-editor",
+            "daily-essay-small",
         ][c.step];
         let path = c.output.join(format!("{name}.png"));
         let completed = c.completed.clone();
