@@ -11,6 +11,9 @@ impl Database {
         self.desk.execute_batch("CREATE TABLE IF NOT EXISTS study_dialogue(id TEXT PRIMARY KEY,card_id TEXT NOT NULL REFERENCES study_cards(id),role TEXT NOT NULL,content TEXT NOT NULL,at TEXT NOT NULL); CREATE INDEX IF NOT EXISTS study_dialogue_card ON study_dialogue(card_id,at); CREATE TABLE IF NOT EXISTS study_help(pending_id TEXT PRIMARY KEY);")?;
         self.desk.execute_batch("CREATE TABLE IF NOT EXISTS study_project_code(card_id TEXT PRIMARY KEY REFERENCES study_cards(id),source_json TEXT NOT NULL,report_json TEXT);")?;
         self.import_study_cards(&[crate::challenges::card()])?;
+        let foundations: Vec<Card> =
+            serde_json::from_str(include_str!("../../assets/foundations.json"))?;
+        self.import_study_cards(&foundations)?;
         if self
             .settings()?
             .get("study.seed.version")
@@ -48,6 +51,7 @@ impl Database {
             sql: None,
             origin: None,
             project: None,
+            training: None,
         }));
         self.import_study_cards(&cards)?;
         self.set_setting("study.seed.version", "1")?;
@@ -155,8 +159,12 @@ impl Database {
                 r.get::<_, String>(0)
             })
             .optional()?;
-        json.map(|v| serde_json::from_str(&v).map_err(DeskError::from))
-            .transpose()
+        json.map(|v| {
+            serde_json::from_str(&v)
+                .map(crate::curriculum::with_profile)
+                .map_err(DeskError::from)
+        })
+        .transpose()
     }
     pub fn draw_word(&self, mode: &str, recent: &[String], roll: u64) -> Result<Option<Card>> {
         let prefix = if mode == "释义" {
@@ -276,13 +284,14 @@ impl Database {
             .query_map([kind], |r| r.get::<_, String>(0))?
             .collect::<std::result::Result<Vec<_>, _>>()?
             .into_iter()
-            .map(|v| Ok(serde_json::from_str(&v)?))
+            .map(|v| Ok(crate::curriculum::with_profile(serde_json::from_str(&v)?)))
             .collect()
     }
     #[cfg(test)]
     pub fn study_progress(&self, id: &str) -> Result<Progress> {
         Ok(self.desk.query_row("SELECT card_id,attempts,streak,mastered,latest FROM study_progress WHERE card_id=?1",[id],|r|Ok(Progress{card_id:r.get(0)?,attempts:r.get(1)?,streak:r.get(2)?,mastered:r.get(3)?,latest:r.get(4)?})).optional()?.unwrap_or_else(||Progress{card_id:id.into(),..Default::default()}))
     }
+    #[cfg(test)]
     pub fn draw_study(
         &self,
         kind: &str,
@@ -290,6 +299,11 @@ impl Database {
         recent: &[String],
         roll: u64,
     ) -> Result<Option<Card>> {
+        if kind == "engineering" {
+            return Ok(self
+                .practice_choice(topic, &crate::curriculum::Filter::default(), recent, roll)?
+                .map(|(card, _)| card));
+        }
         let rules = self.study_rules();
         let rows=self.desk.prepare("SELECT c.id,c.topic,COALESCE(p.mastered,0),COALESCE(p.attempts,0),COALESCE(p.latest,0) FROM study_cards c LEFT JOIN study_progress p ON p.card_id=c.id WHERE c.kind=?1 AND (?2='' OR c.topic=?2)")?.query_map(params![kind,topic],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,bool>(2)?,r.get::<_,u32>(3)?,r.get::<_,u8>(4)?)))?.collect::<std::result::Result<Vec<_>,_>>()?;
         let mut items = rows
@@ -541,7 +555,10 @@ mod tests {
             db.study_pending("engineering").unwrap()[0].answer,
             "历史答案"
         );
-        assert_eq!(db.study_count("engineering").unwrap(), 38);
+        assert_eq!(
+            db.study_count("engineering").unwrap(),
+            crate::curriculum::BUILTIN_COUNT
+        );
         let integrity: String = db
             .desk
             .query_row("PRAGMA integrity_check", [], |r| r.get(0))

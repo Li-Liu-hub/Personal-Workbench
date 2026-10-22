@@ -2,13 +2,13 @@ use crate::error::{DeskError, Result};
 use serde::{Deserialize, Serialize};
 
 pub const TOPICS: [&str; 7] = [
-    "场景题",
     "八股题",
-    "SQL 命令",
+    "SQL 训练",
     "Linux 命令",
-    "Bug 排查",
-    "性能调优",
-    "项目修 Bug",
+    "代码实战",
+    "排障与调优",
+    "工程设计",
+    "项目实战",
 ];
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Rubric {
@@ -34,21 +34,27 @@ pub struct Card {
     pub origin: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub training: Option<crate::curriculum::Training>,
 }
 impl Card {
     pub fn validate(&self) -> Result<()> {
+        if let Some(training) = &self.training {
+            training.validate().map_err(DeskError::InvalidPath)?;
+        }
         if let Some(sql) = &self.sql {
             sql.validate().map_err(DeskError::InvalidPath)?;
         }
         if !matches!(self.kind.as_str(), "engineering" | "word")
             || self.id.is_empty()
             || self.title.trim().is_empty()
+            || self.prompt.trim().is_empty()
             || self.answer.trim().is_empty()
             || self.rubric.is_empty()
             || self.rubric.iter().map(|r| r.points as u32).sum::<u32>() != 100
         {
             return Err(DeskError::InvalidPath(
-                "题目需要标题、参考答案及合计 100 分的评分点".into(),
+                "题目需要标题、题干、参考答案及合计 100 分的评分点".into(),
             ));
         }
         let unique = self

@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 mod contacts;
+mod curriculum;
 mod library;
 mod study;
 mod tag_cache;

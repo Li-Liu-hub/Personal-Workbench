@@ -78,6 +78,13 @@ impl LocalAi {
             *status = s.into();
         }
     }
+    pub fn is_loaded(&self) -> bool {
+        self.runtime.lock().is_ok_and(|mut r| {
+            r.child
+                .as_mut()
+                .is_some_and(|child| child.try_wait().ok() == Some(None))
+        })
+    }
     pub fn stop(&self) {
         self.cancelled.store(true, Ordering::Release);
         if let Ok(mut r) = self.runtime.lock() {

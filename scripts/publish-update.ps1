@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '修复日记与文档归组后看似消失的问题；同本图书内拖放不再另建图书，归组后自动打开原文档标签并显示图书名称；保留日记正文、标题、标签及日期关联'
+    [string]$Notes = '新增推荐训练和能力路线；7类训练、70道工程题，基础摸底后按独立成绩安排弱项与进阶；补充题目目标和作答要求，保留历史记录；修复模型空闲时不能停止，支持停止模型及停止生成'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

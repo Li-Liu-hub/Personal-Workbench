@@ -1577,7 +1577,9 @@ impl PersonalDeskApp {
     }
 
     fn detail_open(&self) -> bool {
-        self.theme_editor_open
+        self.study.route_open
+            || self.study.settings
+            || self.theme_editor_open
             || self.tool_draft.is_some()
             || self.credential_dialog_open
             || self.inventory_dialog_open

@@ -168,6 +168,21 @@ impl PersonalDeskApp {
                     19 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
                         1000., 680.,
                     ))),
+                    20 => {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1280., 800.,
+                        )));
+                        self.section = Section::Practice;
+                        self.prepare_route_preview();
+                        self.study.route_open = false;
+                    }
+                    21 => self.study.route_open = true,
+                    22 => {
+                        self.study.route_open = false;
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1000., 680.,
+                        )));
+                    }
                     _ => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
                 }
             }
@@ -198,6 +213,9 @@ impl PersonalDeskApp {
             "contacts-grid",
             "diary-in-book",
             "diary-in-book-small",
+            "training-recommendation",
+            "training-route",
+            "training-recommendation-small",
         ][c.step];
         let path = c.output.join(format!("{name}.png"));
         let completed = c.completed.clone();
