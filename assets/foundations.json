@@ -1,0 +1,1239 @@
+[
+  {
+    "id": "route:java:references",
+    "kind": "engineering",
+    "title": "两个引用为什么一起变了",
+    "topic": "八股题",
+    "prompt": "Java 17：var a = new java.util.ArrayList<String>(); a.add(\"A\"); var b=a; b.add(\"B\");\n问 a 和 b 的内容是什么？a==b 是否为 true？若希望 b 的增删不影响 a，如何复制？若列表元素是可变对象，浅复制还有什么限制？",
+    "answer": "a 和 b 都是 [A, B]，a==b 为 true，两个变量指向同一个列表。new ArrayList<>(a) 创建新的列表容器；列表内元素仍是原引用，可变元素的内部修改仍可能同时可见。需要独立元素时按业务复制对象。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "指出两者内容均为 [A, B]",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "解释 a==b 为 true 且共享同一个列表",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "用新列表容器隔离增删",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "说明浅复制仍共享元素引用",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "Java 与并发",
+      "level": 1,
+      "goal": "区分对象、引用、内容相等与引用相同",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:java:exceptions",
+    "kind": "engineering",
+    "title": "读文件失败时资源会关闭吗",
+    "topic": "八股题",
+    "prompt": "Java 17 方法用 Files.newBufferedReader(path) 读取一行，readLine 可能抛出 IOException。请写出 try-with-resources 的方法骨架；说明读取出错、正常返回时各如何关闭资源，以及调用方如何知道失败。",
+    "answer": "String first(Path p) throws IOException { try (var r=Files.newBufferedReader(p)) { return r.readLine(); } }。正常返回和异常退出都会关闭已成功创建的 reader；空文件可返回 null。将 IOException 继续抛出或转换为保留 cause 的业务异常，调用方据此处理，不能吞错并假称成功。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "给出正确的 try-with-resources 结构",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "说明正常返回和异常均关闭已创建资源",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "保留异常信息或向调用方传播失败",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "考虑空文件或打开失败的边界",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "Java 与并发",
+      "level": 1,
+      "goal": "理解异常传播与资源释放",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:os:process-thread",
+    "kind": "engineering",
+    "title": "进程和线程到底共享什么",
+    "topic": "八股题",
+    "prompt": "同一 Linux 服务有一个进程和 4 个工作线程，线程会修改同一个堆中的计数器。解释进程与线程的关系、哪些内存共享、哪些栈独立、为什么递增仍需要同步。另起一个进程是否天然访问同一普通堆对象？",
+    "answer": "一个进程可包含多个线程；线程共享该进程的地址空间、全局数据和堆，各有自己的执行栈等线程状态。读改写计数器会竞争，需要锁或原子操作。另一个普通进程拥有独立地址空间，需要显式 IPC 或共享内存才能交换数据，不能直接拿同一对象引用访问。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "说明进程包含线程且共享进程地址空间",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "说明各线程有自己的栈",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "说明共享计数器读改写存在竞争并需同步",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "说明跨进程需 IPC 或显式共享内存",
+        "points": 25
+      }
+    ],
+    "source": "https://man7.org/linux/man-pages/man7/pthreads.7.html",
+    "phonetic": "",
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 1,
+      "goal": "建立进程、线程和共享状态的基本模型",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:os:cpu-wait",
+    "kind": "engineering",
+    "title": "CPU 不高为什么接口仍然慢",
+    "topic": "八股题",
+    "prompt": "服务响应由 80ms 升到 3s，CPU 只有 15%。监控显示数据库连接池 active=20/max=20，pending=150。给出首先要验证的假设、需要采集的证据，解释为什么不能只凭低 CPU 判断服务健康。",
+    "answer": "请求可能在等连接、慢查询或未释放连接，低 CPU 不排除等待造成的延迟。看连接获取耗时、持有时长、数据库耗时、超时和线程栈，确认连接是否在所有路径释放。先定位瓶颈再评估池大小；还要对照请求量、错误率和尾延迟。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "识别连接等待或持有过久的假设",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "采集连接获取及持有时长证据",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "检查查询和资源释放路径",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "解释低 CPU 不排除等待与排队",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 1,
+      "goal": "区分计算、等待和资源排队",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:web:request-path",
+    "kind": "engineering",
+    "title": "打开 HTTPS 地址经历哪些步骤",
+    "topic": "八股题",
+    "prompt": "第一次访问一个 HTTPS 接口，假定 HTTP/1.1、TCP、新连接、无 DNS 缓存。按顺序说明从域名到收到响应的主要过程，并说明域名解析失败、TCP 连接超时、TLS 校验失败分别该去哪里排查。",
+    "answer": "先 DNS 获得地址，再建立 TCP 连接，进行 TLS 握手及证书和主机名校验，然后发送 HTTP 请求并接收状态码、头和正文。分别检查解析配置与结果、地址端口和连接路径、证书链/有效期/域名及系统时间。此题限定新建 HTTP/1.1 连接，复用连接或其他协议步骤可能不同。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "给出 DNS、TCP、TLS、HTTP 的正确主要顺序",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "说明 HTTP 响应包含状态与内容",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "分别对应三类失败的排查位置",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "尊重题设并说明连接复用或协议变化的边界",
+        "points": 25
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc9110.html",
+    "phonetic": "",
+    "training": {
+      "area": "网络与 Web",
+      "level": 1,
+      "goal": "建立端到端请求链路的基本概念",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:web:status",
+    "kind": "engineering",
+    "title": "400、401、403 和 500 应该怎么分",
+    "topic": "八股题",
+    "prompt": "某订单接口依次遇到：JSON 格式错误；没有提供有效登录凭据；已登录但无权访问订单；数据库连接异常。请分别建议 HTTP 状态码、客户端下一步，以及服务端该保留什么排查信息。",
+    "answer": "依次通常为 400、401、403、500（临时服务不可用也可结合契约用 503）。401 要按认证方案返回适当挑战；403 重新登录不一定解决。客户端修正输入、完成认证、检查权限或重试/报错。服务端保留请求关联 ID、失败环节及内部异常，响应不直接暴露敏感内部堆栈。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "区分错误输入与缺少有效认证",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "区分已认证但无权访问的 403",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "将数据库内部失败映射为服务端错误并说明契约",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "给出对应处理和可关联的诊断信息",
+        "points": 25
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc9110.html",
+    "phonetic": "",
+    "training": {
+      "area": "网络与 Web",
+      "level": 1,
+      "goal": "理解输入校验、认证、授权和内部错误",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:db:relationships",
+    "kind": "engineering",
+    "title": "学生选课应该用几张表",
+    "topic": "八股题",
+    "prompt": "学生可选多门课程，一门课程也可被多人选择。设计 students、courses、enrollments 的主要字段和约束，禁止同一学生重复选同一课程；解释删除有选课记录的课程时如何处理。写 SQLite 建表 SQL 或清晰结构说明。",
+    "answer": "学生和课程各有主键 id；选课表含 student_id、course_id，并建立复合主键或联合唯一约束及两个外键。课程删除可明确采用 RESTRICT 阻止删除或按业务选择级联，不能留下悬空记录；在 SQLite 执行外键约束时启用 foreign_keys。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "使用关联表表示多对多而非逗号拼接",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "给出学生与课程的稳定主键",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "联合唯一及外键防重复和悬空引用",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "说明删除策略及 SQLite 外键启用",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "training": {
+      "area": "数据库",
+      "level": 1,
+      "goal": "理解实体、主键、外键与唯一约束",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:db:parameters",
+    "kind": "engineering",
+    "title": "搜索用户名为什么不能直接拼接 SQL",
+    "topic": "八股题",
+    "prompt": "Java JDBC：sql=\"SELECT id FROM users WHERE name='\"+input+\"'\"。输入可能是 O'Reilly。说明故障和注入风险，写参数化查询骨架；若用户还能选择排序列，排序列也能直接用 ? 替代吗？",
+    "answer": "字符串拼接会破坏引号边界并可能改变 SQL 结构。使用 PreparedStatement 的 WHERE name=? 并 setString 绑定值。绑定用于数据值，不能把列名或 ASC/DESC 当普通值参数替代；排序字段及方向应映射到受控白名单。单纯删除单引号不是通用方案。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "指出引号输入及拼接改变结构的问题",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "使用 PreparedStatement 与占位参数",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "绑定字符串值而非手工转义拼接",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "排序标识符或方向采用受控映射",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "数据库",
+      "level": 1,
+      "goal": "理解数据参数与 SQL 结构的边界",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:code:complexity",
+    "kind": "engineering",
+    "title": "两段循环的工作量是多少",
+    "topic": "代码实战",
+    "prompt": "n 为非负整数：先循环 i=0..n-1 做常数工作，再双层循环 i=0..n-1、j=0..n-1 每次加一。写出双层加一次数、总工作量量级；n 从 100 变 200 时双层次数变几倍？不要把两个顺序执行的循环直接相乘。",
+    "answer": "双层为 n² 次，前一段约 n 次，总量为 n+n²，对较大 n 为 O(n²)。100 到 200 双层从 10000 到 40000，为 4 倍。n=0 没有循环；此分析假设循环体常数成本，实际耗时还受实现和环境影响。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "双层次数为 n²",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "顺序段相加得到 n+n²",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "量级 O(n²) 且翻倍约四倍工作量",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "说明 n=0 或成本模型边界",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "编程与算法",
+      "level": 1,
+      "goal": "从代码推演时间复杂度",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:code:trace",
+    "kind": "engineering",
+    "title": "循环中更新的到底是哪一个值",
+    "topic": "代码实战",
+    "prompt": "Java：int sum=0; int[] a={2,-1,3}; for(int i=0;i<a.length;i++){ if(a[i]>0) sum+=a[i]; }\n逐轮写出 i、a[i]、sum，最终输出是什么？若数组为空、全负数、或 a 为 null 各会怎样？",
+    "answer": "三轮 sum 依次为 2、2、5，最终 5。空数组和全负数返回 0；null 在读取 length 时触发 NullPointerException。可以按契约拒绝 null 或明确视为空，不能默默假设所有输入都合法。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "逐轮状态为 2、2、5",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "最终输出 5",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "说明空数组及全负数为 0",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "说明 null 行为及可选明确契约",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "编程与算法",
+      "level": 1,
+      "goal": "精确推演状态变化并发现边界",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:code:frequencies",
+    "kind": "engineering",
+    "title": "统计单词频率",
+    "topic": "代码实战",
+    "prompt": "实现 Java 方法 Map<String,Integer> count(List<String> words)。输入 [\"a\",\"b\",\"a\"] 应得到 a=2、b=1；空列表返回空 Map；本题 null 列表或 null 元素应抛 IllegalArgumentException。说明预期时间和额外空间。",
+    "answer": "先校验列表及元素，再逐个用 HashMap.merge(w,1,Integer::sum) 或 getOrDefault 计数。空列表返回空 Map。通常哈希操作的预期时间为 O(n)，不同词个数 k 对应 O(k) 额外空间；测试重复、空和非法输入。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "正确累加重复单词频次",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "满足空输入返回空 Map",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "按契约拒绝 null 列表及元素",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "给出预期 O(n)、O(k) 及测试",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "把遍历与哈希表用于实际需求",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:code:binary-search",
+    "kind": "engineering",
+    "title": "二分查找第一个匹配位置",
+    "topic": "代码实战",
+    "prompt": "升序 int 数组允许重复。实现 firstIndex(int[] a,int target)，不存在返回 -1。示例 [1,3,3,7] 查 3 返回 1，查 2 返回 -1。给出循环边界、mid 更新方式，以及空数组和重复值的测试。null 可按契约拒绝。",
+    "answer": "使用半开区间 [lo,hi)，初始 hi=a.length；mid=lo+(hi-lo)/2；若 a[mid]<target 则 lo=mid+1，否则 hi=mid。结束后 lo 在界内且 a[lo]==target 才返回 lo，否则 -1。它寻找第一个不小于 target 的位置，时间 O(log n)、额外空间 O(1)。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "正确寻找首个匹配而非任意匹配",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "保持边界并避免停滞或越界",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "不存在及空数组返回 -1",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "解释不变量、复杂度或重复值测试",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "实现有明确不变量的边界查找",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:code:queue",
+    "kind": "engineering",
+    "title": "按到达顺序处理任务",
+    "topic": "代码实战",
+    "prompt": "实现一个单线程 FIFO 任务队列的 Java 用法：依次加入 A、B，取一个，再加入 C，再取到空。写出每次取出的结果，选择合适的容器和空队列处理；不要用每次删除 ArrayList 头部的方案。",
+    "answer": "用 ArrayDeque，offer/addLast 入队，poll/pollFirst 出队。依次得到 A、B、C，空队列 poll 返回 null；ArrayDeque 不允许 null 元素，恰好可以区分无任务。本题是单线程，跨线程要另选并发队列或同步。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "使用队列首尾操作实现 FIFO",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "取出顺序 A、B、C",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "说明空队列和 null 元素约束",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "说明单线程边界或头部数组删除成本",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "选择合适的数据结构并验证顺序",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:code:equals",
+    "kind": "engineering",
+    "title": "字符串相同为什么判断失败",
+    "topic": "代码实战",
+    "prompt": "Java 17：String a=new String(\"desk\"); String b=new String(\"desk\");\n分别推演 a==b、a.equals(b)、Objects.equals(a,b)。若 a 为 null，如何比较而不抛空指针？写出适合业务内容比较的方式。",
+    "answer": "a==b 为 false，因为是两个对象；a.equals(b) 和 Objects.equals(a,b) 为 true。a 为 null 时 a.equals 会抛异常，而 Objects.equals 能处理 null；也可在非空字面量上调用 equals。业务字符串内容比较使用 equals 系列，不依赖驻留偶然性。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "正确推演引用比较为 false",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "内容比较为 true",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "使用 null 安全的内容比较",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "解释对象标识与内容不同",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "Java 与并发",
+      "level": 1,
+      "goal": "区分字符串内容相等与对象标识",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:code:remove",
+    "kind": "engineering",
+    "title": "删除列表元素为什么漏了一个",
+    "topic": "代码实战",
+    "prompt": "可修改 ArrayList 初始为 [2,4,5]：for(int i=0;i<xs.size();i++){if(xs.get(i)%2==0)xs.remove(i);}\n最终列表是什么？修复为删除全部偶数，并说明空列表和全部偶数如何测试。",
+    "answer": "原代码留下 [4,5]：删除 2 后 4 左移，i 递增跳过它。可使用 removeIf(x -> x%2==0)，或迭代器 remove，或倒序按索引删除；修复后 [5]，空输入保持空，全部偶数删除后为空。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "原结果 [4,5]",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "说明索引左移造成漏处理",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "提供能正确删除全部偶数的实现",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "验证空列表和全部偶数",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "Java 与并发",
+      "level": 2,
+      "goal": "定位修改集合时的索引变化",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:code:money",
+    "kind": "engineering",
+    "title": "价格计算为什么多出小数尾巴",
+    "topic": "代码实战",
+    "prompt": "商品单价字符串 \"0.10\"，数量 3，另加运费字符串 \"0.20\"。用 Java BigDecimal 计算总额，应输出 0.50。说明构造方式、乘加、保留两位的规则，并解释为什么不先转 double。",
+    "answer": "new BigDecimal(\"0.10\").multiply(BigDecimal.valueOf(3)).add(new BigDecimal(\"0.20\"))，按约定用 setScale(2,RoundingMode.HALF_UP).toPlainString() 得 0.50。直接从十进制字符串构造避免先引入二进制浮点误差；数量等输入按契约校验，舍入规则由业务决定。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "从字符串或准确十进制值构造金额",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "乘加计算总额正确",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "输出 0.50 并明确舍入规则",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "说明避免先转 double 或输入边界",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "Java 与并发",
+      "level": 2,
+      "goal": "按业务规则精确计算金额",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:code:atomic",
+    "kind": "engineering",
+    "title": "两个线程各加一千次",
+    "topic": "代码实战",
+    "prompt": "两个 Java 线程共享计数器，各递增 1000 次。主线程必须在两者结束后读取 2000。写实现骨架，说明仅加 volatile 为什么不足；测试中应如何等待线程结束，不能用随意 sleep 代替。",
+    "answer": "使用 AtomicInteger.incrementAndGet 或锁保护读改写。启动两个线程后对两个线程 join，再读取计数。volatile 不能把复合递增变为原子操作。重复执行并断言 2000，等待完成保证读取时工作已经结束；单次通过不证明所有并发代码正确。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "原子递增或正确同步",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "两个线程各循环 1000 次",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "join 等待全部结束再读 2000",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "解释 volatile 不保证复合操作原子性并给出验证",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "Java 与并发",
+      "level": 2,
+      "goal": "实现并验证一个正确的并发计数器",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:code:api-validation",
+    "kind": "engineering",
+    "title": "分页参数怎样校验才清楚",
+    "topic": "代码实战",
+    "prompt": "写 Java 校验函数 validate(Integer page,Integer size)。page>=1，1<=size<=100，null 不合法；不合法抛 IllegalArgumentException。列出最少覆盖边界的测试值。若后续计算 (page-1)*size，还需考虑什么？",
+    "answer": "先判 null，再判 page<1、size<1 或 size>100。测试 page 的 null/0/1 与 size 的 null/0/1/100/101；合法组合通过。偏移乘法使用 long 并按业务限制最大页或偏移，避免 int 溢出，参数校验不能替代数据访问约束。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "null 检查在解引用之前",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "正确约束 page 和 size 范围",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "覆盖合法与非法边界",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "考虑分页乘法溢出或最大范围",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "把接口输入约束写成可测试代码",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:sql:filter",
+    "kind": "engineering",
+    "title": "找出最优先的两个待办",
+    "topic": "SQL 训练",
+    "prompt": "任务表 tasks(id,title,done,priority)。done=0 为未完成。查询优先级最高的两个未完成任务，只返回 id、title；优先级相同时按 id 升序。仅写 SQLite SQL。",
+    "answer": "SELECT id,title FROM tasks WHERE done=0 ORDER BY priority DESC,id ASC LIMIT 2;\n先 WHERE 排除已完成，再按优先级降序与 id 升序排序，最后 LIMIT 2，得到 (3,C)、(4,D)。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "筛选 done=0",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "优先级降序",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "并列按 id 升序",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "只返回 id/title 并限制 2 条",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "training": {
+      "area": "数据库",
+      "level": 1,
+      "goal": "把筛选、排序与限制条数组合起来",
+      "deliverable": "提交可执行 SQLite SQL；可用 -- 注释说明；运行样例确认列和顺序。"
+    },
+    "sql": {
+      "setup": "CREATE TABLE tasks(id INTEGER PRIMARY KEY,title TEXT NOT NULL,done INTEGER NOT NULL,priority INTEGER NOT NULL); INSERT INTO tasks VALUES(1,'A',0,1),(2,'B',1,9),(3,'C',0,3),(4,'D',0,3);",
+      "tables": [
+        "tasks"
+      ],
+      "reference": "SELECT id,title FROM tasks WHERE done=0 ORDER BY priority DESC,id ASC LIMIT 2;",
+      "ordered": true,
+      "runnable": true,
+      "explanation": "WHERE 决定参与排序的行，ORDER BY 决定先后，LIMIT 决定最多返回多少行。"
+    }
+  },
+  {
+    "id": "route:sql:update",
+    "kind": "engineering",
+    "title": "只完成指定的待办",
+    "topic": "SQL 训练",
+    "prompt": "任务表与样例已给出。只将 id=3 且尚未完成的任务标记 done=1，其他行及列不得改变。仅写 SQLite SQL；可说明为什么必须写 WHERE。",
+    "answer": "UPDATE tasks SET done=1 WHERE id=3 AND done=0;\nWHERE 同时限制目标编号和当前状态；漏写条件可能批量修改其他任务。当前样例应只改变 id=3 的 done。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "将 done 设置为 1",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "按 id=3 精确限定目标",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "仅匹配 done=0",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "不改变其他任务或无关字段",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "training": {
+      "area": "数据库",
+      "level": 1,
+      "goal": "通过条件修改控制影响范围",
+      "deliverable": "提交可执行 SQLite SQL；运行后检查实际影响和还原结果。"
+    },
+    "sql": {
+      "setup": "CREATE TABLE tasks(id INTEGER PRIMARY KEY,title TEXT NOT NULL,done INTEGER NOT NULL,priority INTEGER NOT NULL); INSERT INTO tasks VALUES(1,'A',0,1),(2,'B',1,9),(3,'C',0,3),(4,'D',0,3);",
+      "tables": [
+        "tasks"
+      ],
+      "reference": "UPDATE tasks SET done=1 WHERE id=3 AND done=0;",
+      "verify": "SELECT id,title,done,priority FROM tasks ORDER BY id;",
+      "ordered": true,
+      "runnable": true,
+      "explanation": "UPDATE 的 WHERE 限定修改行，不能只看到命令执行成功就认为范围正确。每次练习后样例自动还原。"
+    }
+  },
+  {
+    "id": "route:linux:path",
+    "kind": "engineering",
+    "title": "路径中有空格如何查看日志",
+    "topic": "Linux 命令",
+    "prompt": "Linux Bash，文件为 /var/log/my app/service.log。写一条命令查看最后 50 行，并解释路径中空格为什么需要处理。若显示 Permission denied，应先确认什么？本题仅提交命令和解释，不会在个人机器执行。",
+    "answer": "tail -n 50 -- \"/var/log/my app/service.log\"。双引号使路径作为一个参数，-- 结束选项。权限不足时检查自身用户、目录访问权限、文件读取权限和授权方式，不默认把整个目录改成 777。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "正确用 tail -n 50",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "将带空格路径作为单个参数",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "解释参数和引用的作用",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "按文件与目录权限定位拒绝访问",
+        "points": 25
+      }
+    ],
+    "source": "https://www.gnu.org/software/coreutils/manual/coreutils.html",
+    "phonetic": "",
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 1,
+      "goal": "正确引用路径并组合只读命令",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:linux:pipes",
+    "kind": "engineering",
+    "title": "筛出日志中的错误而不修改文件",
+    "topic": "Linux 命令",
+    "prompt": "Linux Bash，app.log 是 UTF-8 文本。只检查最后 100 行，筛出包含大小写敏感字面量 ERROR 的行。给出命令，解释顺序；若需要不区分大小写怎么改？",
+    "answer": "tail -n 100 -- app.log | grep -F -- ERROR。先取最后 100 行再过滤，不能先找全文件 ERROR 再取 100 条。grep -F 匹配字面量，-i 可忽略大小写；没有匹配时 grep 退出码 1 不一定代表运行故障。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "先 tail 最后 100 行",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "使用管道再 grep ERROR",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "区分字面量、正则和大小写规则",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "解释无匹配退出状态或顺序差异",
+        "points": 25
+      }
+    ],
+    "source": "https://www.gnu.org/software/grep/manual/grep.html",
+    "phonetic": "",
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 1,
+      "goal": "理解管道的数据流与大小写约定",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:debug:reproduce",
+    "kind": "engineering",
+    "title": "错误报告只有一句无法保存",
+    "topic": "排障与调优",
+    "prompt": "用户说“点保存没反应”，只在名称为空时出现。你能在测试环境使用该页面，但尚不知道根因。列出复现步骤、期望与实际结果、最少需要的日志/请求信息和下一步定位顺序。",
+    "answer": "记录环境版本、进入页面、清空名称、点击保存的步骤；对照非空名称成功案例。区分校验提示缺失、前端未发请求、接口拒绝或保存失败。采集时间、请求关联 ID、状态码和对应错误日志，再定位具体失败环节，修复后回归空白、空格、正常值及重复操作。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "给出可重复步骤和成功对照",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "分清期望与实际且不先猜定根因",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "获取请求或日志等可关联证据",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "提出定位顺序和修复后边界回归",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "测试与排障",
+      "level": 1,
+      "goal": "把模糊现象变成可复现问题",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:debug:boundaries",
+    "kind": "engineering",
+    "title": "折扣函数该测哪些边界",
+    "topic": "排障与调优",
+    "prompt": "函数 discount(total)：total<0 应报错，0<=total<100 原价，total>=100 返回 total*0.9。写测试表：输入、期望、理由。至少覆盖负值、零、临界点两侧和典型值。金额按十进制两位处理。",
+    "answer": "例如 -0.01 报错、0.00->0.00、99.99->99.99、100.00->90.00、100.01->90.01（按 HALF_UP 两位）、200.00->180.00。每行说明负区间、零、临界两侧或普通折扣。测试应有断言并明确舍入契约，不能仅打印结果。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "覆盖负值和零",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "覆盖 100 临界点及两侧",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "正确计算折扣与两位金额",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "给出断言或输入分区理由",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "测试与排障",
+      "level": 1,
+      "goal": "用输入分区和边界发现错误",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:debug:isolation",
+    "kind": "engineering",
+    "title": "测试单独通过一起运行就失败",
+    "topic": "排障与调优",
+    "prompt": "测试 A 插入订单 id=1 后通过；测试 B 也插入 id=1，单独通过、整组失败。两者共用同一测试数据库。给出可能原因、验证方式、隔离修复及回归检查。不得通过改动个人办公台数据来验证。",
+    "answer": "优先检查上个测试留下的数据或事务未结束，按执行顺序及反序运行、查看测试库状态验证。使用独立临时数据库、每测试事务回滚或可靠清理；数据库连接和后台任务也需结束。确认并行/反序运行、失败退出时都不泄漏状态，不只随机换主键掩盖污染。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "提出共享测试数据或未结束事务的原因",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "给出顺序与状态证据",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "使用独立测试库或可靠事务隔离",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "验证并行、反序及失败清理",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "测试与排障",
+      "level": 2,
+      "goal": "排查共享状态与测试隔离",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:perf:latency",
+    "kind": "engineering",
+    "title": "平均延迟很好为什么仍有人超时",
+    "topic": "排障与调优",
+    "prompt": "100 个请求，95 个耗时 20ms，5 个耗时 2000ms。求平均值；按最近秩定义（排序后第 ceil(p*N) 个值）求 p95 和 p99。解释仅看平均值遗漏了什么，并列出还要观测的两个指标。",
+    "answer": "平均 (95*20+5*2000)/100=119ms；最近秩 p95 为第95个值20ms，p99 为第99个值2000ms。少量慢请求会被平均掩盖，p95 在此也看不到最慢5个。还需错误/超时率、吞吐、样本量和分时间段尾延迟等指标。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "平均值 119ms",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "按给定定义 p95=20ms",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "按给定定义 p99=2000ms",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "解释尾部问题并补充至少两个指标",
+        "points": 25
+      }
+    ],
+    "source": "https://opentelemetry.io/docs/specs/otel/metrics/data-model/",
+    "phonetic": "",
+    "training": {
+      "area": "性能与交付",
+      "level": 1,
+      "goal": "理解分布与尾延迟",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:perf:baseline",
+    "kind": "engineering",
+    "title": "改完代码如何证明真的变快",
+    "topic": "排障与调优",
+    "prompt": "A 版本本地跑一次 50ms，B 版本线上跑一次 20ms，开发者宣称优化 60%。请指出比较中缺少什么，并设计一套可执行的前后对照，说明正确性如何同时保证。",
+    "answer": "环境、负载、数据规模、缓存和预热状态不一致，单样本不能证明收益。固定环境与输入、预热、重复采样并记录分布，交替或受控比较 A/B，同时记录吞吐、资源、错误率。先回归输出与边界，再评估耗时差异及波动，避免靠少做业务变快。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "指出环境与输入不一致",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "控制数据、负载、预热等条件",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "重复采样并比较分布及资源",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "验证业务结果和错误率不回退",
+        "points": 25
+      }
+    ],
+    "source": "https://openjdk.org/projects/code-tools/jmh/",
+    "phonetic": "",
+    "training": {
+      "area": "性能与交付",
+      "level": 1,
+      "goal": "建立可比较的性能实验",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:delivery:revert",
+    "kind": "engineering",
+    "title": "已推送的错误提交如何撤回",
+    "topic": "排障与调优",
+    "prompt": "共享 main 上刚推送提交 abc123，随后别人又提交了正常代码。你需要撤销 abc123 的业务改动且保留后续工作。说明先检查什么，采用什么 Git 操作，冲突如何处理，最后如何验证。这里只写方案，不实际执行。",
+    "answer": "先用 status/log/show/diff 确认工作区、提交范围和依赖，再 git revert abc123 产生新的反向提交；若发生冲突按当前业务语义处理并继续或中止，不能盲目选择一侧。检查 diff 和相关测试，再正常推送，保留原历史与他人后续提交。涉及合并提交需另明确主线。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "先检查工作区和提交差异/依赖",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "采用 revert 创建反向提交",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "说明冲突处理和保留后续工作",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "检查差异并运行相关验证再推送",
+        "points": 25
+      }
+    ],
+    "source": "https://git-scm.com/docs/git-revert",
+    "phonetic": "",
+    "training": {
+      "area": "性能与交付",
+      "level": 2,
+      "goal": "用可审查方式修复共享分支",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:design:invariant",
+    "kind": "engineering",
+    "title": "转账需要守住什么条件",
+    "topic": "工程设计",
+    "prompt": "两个账户 A=100、B=50，A 向 B 转 20，不考虑手续费。写出成功后的余额和必须始终成立的业务不变量；若 A 已扣款、B 加款失败，系统应怎样处理？先讨论同一数据库内的情形。",
+    "answer": "成功后 A=80、B=70，总额150不变；金额合法、余额不为负、两次修改要么都成功要么都不生效。在同数据库事务中完成校验、条件扣款和入账，失败回滚；检查更新结果并测试失败路径，不能只做完第一个 UPDATE 就返回成功。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "结果 80、70 且总额150",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "定义非负、合法金额及成对修改不变量",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "在同库事务内保证整体成功或回滚",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "验证余额不足、第二步失败等情况",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "training": {
+      "area": "工程可靠性",
+      "level": 1,
+      "goal": "先明确业务不变量再讨论技术方案",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:design:failure",
+    "kind": "engineering",
+    "title": "写数据库前先想失败会怎样",
+    "topic": "工程设计",
+    "prompt": "一个单实例服务创建订单，只有本地数据库写入，不调用远程系统。列出参数不合法、数据库写入失败、已提交但响应丢失三种情况的期望行为；说明如何避免客户端重试产生第二个订单。",
+    "answer": "输入不合法应明确拒绝且无写入；写入失败回滚并返回失败；提交后响应丢失不代表业务没成功。客户端用稳定请求键重试，服务端以持久化唯一约束关联原订单并返回相同结果；测试每种失败和重复请求，不用每次随机生成新键。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "非法参数不产生订单",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "写入失败整体回滚并返回失败",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "识别响应丢失与业务失败不同",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "稳定请求键及唯一约束避免重复订单",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "phonetic": "",
+    "training": {
+      "area": "工程可靠性",
+      "level": 1,
+      "goal": "按失败点设计清楚的状态与结果",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:design:retry",
+    "kind": "engineering",
+    "title": "请求超时后能不能直接重试",
+    "topic": "工程设计",
+    "prompt": "HTTP 客户端对查询订单 GET 和创建支付 POST 都遇到读取超时。分别设计重试条件与边界；解释幂等键、总超时预算、退避和重试次数应如何配合。不能假定所有 POST 天生可重试。",
+    "answer": "超时只说明客户端没及时收到结果，服务端可能已经执行。GET 按其查询语义可在有限预算内重试；支付 POST 需业务幂等契约、稳定幂等键和结果查询/对账策略。限制总次数及总时间、退避并考虑抖动与 Retry-After，避免重试放大故障。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "指出客户端超时不代表服务端没执行",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "区分 GET 与有副作用 POST 的重试契约",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "稳定幂等键及结果确认",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "限制总预算、次数并合理退避",
+        "points": 25
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc9110.html",
+    "phonetic": "",
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "理解超时不等于服务端未执行",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  },
+  {
+    "id": "route:design:release",
+    "kind": "engineering",
+    "title": "发版前怎样确认能上线也能回退",
+    "topic": "工程设计",
+    "prompt": "准备发布一个增加可空 remark 列的新版本，旧版本不读取该列。列出发布前检查、数据库变更顺序、上线观测、程序回退与数据保留策略。不要把删除新增列当成默认回退步骤。",
+    "answer": "先验证旧/新版本读取和写入兼容、备份可恢复与迁移脚本幂等。通常先扩展可兼容的表结构，再发布新程序并观察错误、延迟和业务指标；程序回退保留新增列和已写数据，评估后续处置。回退预演使用副本，明确触发条件与责任。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "验证新旧版本与迁移兼容",
+        "points": 25
+      },
+      {
+        "id": "r2",
+        "text": "合理安排兼容的表结构和程序发布顺序",
+        "points": 25
+      },
+      {
+        "id": "r3",
+        "text": "明确上线观测与回退触发条件",
+        "points": 25
+      },
+      {
+        "id": "r4",
+        "text": "保留新增数据并验证备份恢复策略",
+        "points": 25
+      }
+    ],
+    "source": "https://www.sqlite.org/lang.html",
+    "phonetic": "",
+    "training": {
+      "area": "性能与交付",
+      "level": 2,
+      "goal": "把验证、可观测和数据兼容带入交付",
+      "deliverable": "先给出结论或实现，再解释过程，列出至少一个边界案例及验证方法。"
+    }
+  }
+]

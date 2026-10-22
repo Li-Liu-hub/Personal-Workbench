@@ -21,6 +21,7 @@ fn sample() -> Card {
         sql: None,
         origin: None,
         project: None,
+        training: None,
     }
 }
 fn grade(card: &Card, score: u8) -> Grade {
@@ -58,21 +59,27 @@ fn draft(card: &Card) -> Pending {
 fn seeds_are_complete_and_invalid_import_rolls_back() {
     let dir = tempfile::tempdir().unwrap();
     let mut db = Database::open(dir.path()).unwrap();
-    assert_eq!(db.study_count("engineering").unwrap(), 38);
+    assert_eq!(
+        db.study_count("engineering").unwrap(),
+        crate::curriculum::BUILTIN_COUNT
+    );
     assert_eq!(db.study_count("word").unwrap(), 5040);
     for topic in study::TOPICS {
         assert_eq!(
             db.study_cards("engineering")
                 .unwrap()
                 .iter()
-                .filter(|c| c.topic == topic)
+                .filter(|c| crate::curriculum::category(&c.topic) == topic)
                 .count(),
-            if topic == "SQL 命令" {
-                12
-            } else if topic == "项目修 Bug" {
-                1
-            } else {
-                5
+            match topic {
+                "八股题" => 13,
+                "SQL 训练" => 14,
+                "Linux 命令" => 7,
+                "代码实战" => 10,
+                "排障与调优" => 16,
+                "工程设计" => 9,
+                "项目实战" => 1,
+                _ => unreachable!(),
             }
         );
     }

@@ -5,6 +5,7 @@ mod autostart;
 mod challenges;
 mod contacts;
 mod crypto;
+mod curriculum;
 mod db;
 mod english;
 mod error;

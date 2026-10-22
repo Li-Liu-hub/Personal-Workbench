@@ -6,6 +6,7 @@ use crate::{
 use std::sync::Arc;
 mod learning;
 mod project;
+mod training;
 #[derive(Clone, Copy)]
 struct StatsCache {
     at: std::time::Instant,
@@ -40,6 +41,9 @@ pub(super) struct Session {
     stats: Option<StatsCache>,
     generating: Option<(Card, String)>,
     project: Option<crate::challenges::Saved>,
+    filter: crate::curriculum::Filter,
+    recommendation: String,
+    draw_attempted: bool,
 }
 pub(super) struct StudyState {
     practice: Session,
@@ -47,13 +51,14 @@ pub(super) struct StudyState {
     pub ai: Arc<LocalAi>,
     pub busy: bool,
     running_sql: bool,
-    settings: bool,
+    pub(super) settings: bool,
     rules: Rules,
     config: Config,
     error: String,
     tutor_open: bool,
     operation: String,
     markdown: egui_commonmark::CommonMarkCache,
+    pub(super) route_open: bool,
 }
 impl Default for StudyState {
     fn default() -> Self {
@@ -70,6 +75,7 @@ impl Default for StudyState {
             tutor_open: true,
             operation: String::new(),
             markdown: Default::default(),
+            route_open: false,
         }
     }
 }
@@ -197,6 +203,12 @@ impl PersonalDeskApp {
     }
 
     #[cfg(debug_assertions)]
+    pub(super) fn prepare_route_preview(&mut self) {
+        self.study.practice = Session::default();
+        self.study.settings = false;
+    }
+
+    #[cfg(debug_assertions)]
     pub(super) fn prepare_study_preview(&mut self, settings: bool) {
         if settings {
             self.study.settings = true;
@@ -225,6 +237,20 @@ impl PersonalDeskApp {
         if let Some(db) = self.db.as_ref() {
             self.study.rules = db.study_rules();
             if let Ok(settings) = db.settings() {
+                self.study.practice.topic = settings
+                    .get("study.practice.topic")
+                    .cloned()
+                    .unwrap_or_default();
+                self.study.practice.filter = settings
+                    .get("study.practice.filter")
+                    .and_then(|v| serde_json::from_str(v).ok())
+                    .unwrap_or_default();
+                if !crate::curriculum::AREAS.contains(&self.study.practice.filter.area.as_str()) {
+                    self.study.practice.filter.area.clear();
+                }
+                if self.study.practice.filter.level > 3 {
+                    self.study.practice.filter.level = 0;
+                }
                 self.study.tutor_open = settings
                     .get("study.tutor.visible")
                     .is_none_or(|v| v != "false");
@@ -292,10 +318,15 @@ impl PersonalDeskApp {
             .db
             .as_ref()
             .ok_or(DeskError::UnsupportedFormat)
-            .and_then(|db| db.draw_study(kind, &s.topic, &s.recent, roll()))
+            .and_then(|db| db.practice_choice(&s.topic, &s.filter, &s.recent, roll()))
         {
-            Ok(card) => {
-                s.card = card;
+            Ok(choice) => {
+                s.draw_attempted = true;
+                s.recommendation = choice
+                    .as_ref()
+                    .map(|(_, reason)| reason.clone())
+                    .unwrap_or_default();
+                s.card = choice.map(|(card, _)| card);
                 s.answer.clear();
                 s.result = None;
                 s.sql_preview = None;
@@ -304,7 +335,7 @@ impl PersonalDeskApp {
                 s.pending = s.card.as_ref().map(|c| pending(c, ""));
                 if let Some(c) = &s.card {
                     s.recent.push(c.id.clone());
-                    if s.recent.len() > 5 {
+                    if s.recent.len() > 16 {
                         s.recent.remove(0);
                     }
                 }
@@ -482,7 +513,12 @@ impl PersonalDeskApp {
             "engineering"
         };
         let mut s = std::mem::take(self.study.session_mut(kind));
-        if s.card.is_none() && s.generating.is_none() && !s.notebook && !self.study.busy {
+        if s.card.is_none()
+            && s.generating.is_none()
+            && !s.notebook
+            && !self.study.busy
+            && (kind == "word" || !s.draw_attempted)
+        {
             let resume = self
                 .db
                 .as_ref()
@@ -495,6 +531,7 @@ impl PersonalDeskApp {
                     .and_then(|db| db.study_card(&p.card_id).ok().flatten());
                 s.answer = p.answer.clone();
                 s.pending = Some(p);
+                s.recommendation = "继续上次未完成的练习，原答案已恢复".into();
             } else {
                 self.next_study(kind, &mut s);
             }
@@ -514,6 +551,9 @@ impl PersonalDeskApp {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button("练习设置").clicked() {
                     self.study.settings = true;
+                }
+                if kind == "engineering" && ui.button("训练路线").clicked() {
+                    self.study.route_open = true;
                 }
                 if ui.button("导出").clicked() {
                     self.export_dialog_open = true;
@@ -543,27 +583,9 @@ impl PersonalDeskApp {
             });
         });
         ui.add_space(14.);
-        ui.horizontal(|ui| {
+        ui.horizontal_wrapped(|ui| {
             if kind == "engineering" {
-                let before = s.topic.clone();
-                ui.add_enabled_ui(!self.study.busy, |ui| {
-                    egui::ComboBox::from_id_salt("study-topic")
-                        .width(140.)
-                        .selected_text(if s.topic.is_empty() {
-                            "混合训练"
-                        } else {
-                            &s.topic
-                        })
-                        .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut s.topic, String::new(), "混合训练");
-                            for topic in study::TOPICS {
-                                ui.selectable_value(&mut s.topic, topic.to_string(), topic);
-                            }
-                        });
-                });
-                if s.topic != before {
-                    self.next_study(kind, &mut s);
-                }
+                self.render_practice_selector(ui, &mut s);
             } else {
                 let before = s.word_mode.clone();
                 ui.add_enabled_ui(!self.study.busy, |ui| {
@@ -661,6 +683,7 @@ impl PersonalDeskApp {
         }
         *self.study.session_mut(kind) = s;
         self.render_study_settings(ui.ctx());
+        self.render_training_route(ui.ctx());
     }
     fn render_study_question(&mut self, ui: &mut egui::Ui, kind: &str, s: &mut Session) {
         use crate::ui_components::chrome;
@@ -670,9 +693,9 @@ impl PersonalDeskApp {
                 if self.study.busy {
                     "正在准备练习"
                 } else {
-                    "这一组已全部掌握"
+                    "当前筛选下暂无可练题"
                 },
-                "可以在记录本中选择题目复习",
+                "可清除筛选、查看训练路线，或从记录本选择题目复习",
                 if kind == "word" {
                     TileKind::Word
                 } else {
@@ -846,9 +869,39 @@ impl PersonalDeskApp {
                 ui.add_space(16.);
             }
         } else {
-            ui.horizontal(|ui| chrome::badge(ui, &card.topic, accent()));
+            let training = crate::curriculum::profile(card);
+            ui.horizontal_wrapped(|ui| {
+                chrome::badge(ui, crate::curriculum::category(&card.topic), accent());
+                ui.label(
+                    RichText::new(crate::curriculum::level_name(training.level))
+                        .small()
+                        .color(muted()),
+                );
+                ui.label(RichText::new(&training.area).small().color(muted()));
+            });
             ui.add_space(16.);
             ui.label(RichText::new(&card.title).size(25.).strong());
+            if !s.recommendation.is_empty() {
+                ui.label(RichText::new(&s.recommendation).small().color(accent()));
+            }
+            ui.add(
+                egui::Label::new(
+                    RichText::new(format!("目标：{}", training.goal))
+                        .small()
+                        .color(muted()),
+                )
+                .wrap(),
+            );
+            egui::CollapsingHeader::new("作答要求")
+                .id_salt(("training-goal", &card.id))
+                .show(ui, |ui| {
+                    ui.label(format!("提交：{}", training.deliverable));
+                    if crate::curriculum::category(&card.topic) == "代码实战" {
+                        ui.label(
+                            "代码题由 AI 按评分点批改；只有项目实战会实际编译运行 Java 测试。",
+                        );
+                    }
+                });
             ui.add_space(12.);
             ui.add(egui::Label::new(RichText::new(&card.prompt).size(16.)).wrap());
             ui.add_space(24.);
@@ -975,7 +1028,10 @@ impl PersonalDeskApp {
             return;
         }
         ui.add_enabled_ui(s.result.is_none() && !self.study.busy, |ui| {
-            let font = if matches!(card.topic.as_str(), "SQL 命令" | "Linux 命令") {
+            let font = if matches!(
+                crate::curriculum::category(&card.topic),
+                "SQL 训练" | "Linux 命令" | "代码实战"
+            ) {
                 egui::FontId::monospace(15.)
             } else {
                 egui::FontId::proportional(16.)
@@ -1124,7 +1180,9 @@ impl PersonalDeskApp {
                                                                 format!(
                                                                     "{} · {}",
                                                                     entry.card.title,
-                                                                    entry.card.topic
+                                                                    crate::curriculum::category(
+                                                                        &entry.card.topic
+                                                                    )
                                                                 )
                                                             } else {
                                                                 entry.card.title.clone()
@@ -1208,7 +1266,11 @@ impl PersonalDeskApp {
                             if let Some(entry) = s.entries.iter().find(|e| &e.card.id == id) {
                                 ui.label(
                                     RichText::new(if entry.card.origin.is_some() {
-                                        format!("{} · {}", entry.card.title, entry.card.topic)
+                                        format!(
+                                            "{} · {}",
+                                            entry.card.title,
+                                            crate::curriculum::category(&entry.card.topic)
+                                        )
                                     } else {
                                         entry.card.title.clone()
                                     })
@@ -1319,6 +1381,7 @@ impl PersonalDeskApp {
             s.selected = Some(id);
         }
         if let Some((id, p)) = retry {
+            s.recommendation = "从记录本再次练习".into();
             s.card = self
                 .db
                 .as_ref()
@@ -1454,7 +1517,11 @@ impl PersonalDeskApp {
                     .import_study_cards(&bundle.cards)
             })();
             self.notice = match result {
-                Ok(n) => format!("已导入 {n} 道新题目，已有题目和记录保留"),
+                Ok(n) => {
+                    self.study.practice.draw_attempted = false;
+                    self.study.practice.stats = None;
+                    format!("已导入 {n} 道新题目，已有题目和记录保留")
+                }
                 Err(e) => e.to_string(),
             };
         }

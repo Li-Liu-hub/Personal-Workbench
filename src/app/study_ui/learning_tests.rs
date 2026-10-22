@@ -385,3 +385,153 @@ fn live_learning_tutor_english_modes_and_real_token_metrics() {
     ai.warmup(&config, &log).unwrap();
     ai.stop();
 }
+
+#[test]
+#[ignore = "requires installed local model and GPU runtime"]
+fn live_model_controls_stop_idle_and_generating_models_without_losing_answers() {
+    use crate::app::editor_tests::{input_frame, pointer};
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+    let card = app
+        .db
+        .as_ref()
+        .unwrap()
+        .study_card("route:code:trace")
+        .unwrap()
+        .unwrap();
+    let answer = "尚未提交的原答案";
+    let p = pending(&card, answer);
+    app.db.as_mut().unwrap().save_study_pending(&p).unwrap();
+    app.study.practice = Session {
+        card: Some(card),
+        answer: answer.into(),
+        pending: Some(p),
+        ..Default::default()
+    };
+    app.section = Section::Practice;
+    let config = Config::default();
+    let log = dir.path().join("model.log");
+    app.study.ai.warmup(&config, &log).unwrap();
+    assert!(app.study.ai.is_loaded());
+    assert!(!app.study.ai.busy.load(std::sync::atomic::Ordering::Acquire));
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0., vec![], vec![]);
+    let out = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    let position = |out: &egui::FullOutput, label: &str| {
+        out.shapes
+            .iter()
+            .rev()
+            .find_map(|s| match &s.shape {
+                egui::Shape::Text(t) if t.galley.text() == label => {
+                    Some(t.pos + egui::vec2(4., 5.))
+                }
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("missing {label}"))
+    };
+    let at = position(&out, "停止模型");
+    input_frame(&mut app, &ctx, 0.2, pointer(at, true), vec![]);
+    input_frame(&mut app, &ctx, 0.3, pointer(at, false), vec![]);
+    assert!(
+        !app.study.ai.is_loaded(),
+        "idle model must stop from its visible button"
+    );
+    assert_eq!(app.study.practice.answer, answer);
+    app.study.ai.warmup(&config, &log).unwrap();
+    let mut s = std::mem::take(&mut app.study.practice);
+    app.ask_tutor("engineering", &mut s, "详细讲解此题并举例。".into());
+    app.study.practice = s;
+    let started = std::time::Instant::now();
+    while !app.study.ai.busy.load(std::sync::atomic::Ordering::Acquire) {
+        assert!(started.elapsed() < Duration::from_secs(3));
+        thread::sleep(Duration::from_millis(5));
+    }
+    let out = input_frame(&mut app, &ctx, 0.4, vec![], vec![]);
+    let at = position(&out, "停止生成");
+    input_frame(&mut app, &ctx, 0.5, pointer(at, true), vec![]);
+    input_frame(&mut app, &ctx, 0.6, pointer(at, false), vec![]);
+    wait(&mut app);
+    assert!(!app.study.ai.is_loaded());
+    assert_eq!(app.study.practice.answer, answer);
+    assert!(
+        app.db
+            .as_ref()
+            .unwrap()
+            .study_all_attempts("engineering")
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(
+        app.db
+            .as_ref()
+            .unwrap()
+            .study_pending("engineering")
+            .unwrap()[0]
+            .answer,
+        answer
+    );
+    app.study.ai.warmup(&config, &log).unwrap();
+    assert!(app.study.ai.is_loaded());
+    app.study.ai.stop();
+    assert!(!app.study.ai.is_loaded());
+}
+
+#[test]
+fn practice_selector_uses_seven_categories_keeps_old_answers_and_persists_filters() {
+    use crate::app::editor_tests::{input_frame, pointer};
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+    app.section = Section::Practice;
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0., vec![], vec![]);
+    let out = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    let position = |out: &egui::FullOutput, label: &str| {
+        out.shapes
+            .iter()
+            .rev()
+            .find_map(|s| match &s.shape {
+                egui::Shape::Text(t) if t.galley.text() == label => {
+                    Some(t.pos + egui::vec2(4., 5.))
+                }
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("missing {label}"))
+    };
+    assert_eq!(
+        crate::curriculum::profile(app.study.practice.card.as_ref().unwrap()).level,
+        1
+    );
+    let old = app.study.practice.pending.as_mut().unwrap();
+    old.answer = "切换前的作答".into();
+    let old_id = old.id.clone();
+    app.study.practice.answer = "切换前的作答".into();
+    let at = position(&out, "推荐训练");
+    input_frame(&mut app, &ctx, 0.2, pointer(at, true), vec![]);
+    input_frame(&mut app, &ctx, 0.3, pointer(at, false), vec![]);
+    let out = input_frame(&mut app, &ctx, 0.31, vec![], vec![]);
+    for topic in crate::study::TOPICS {
+        position(&out, topic);
+    }
+    let at = position(&out, "代码实战");
+    input_frame(&mut app, &ctx, 0.4, pointer(at, true), vec![]);
+    input_frame(&mut app, &ctx, 0.5, pointer(at, false), vec![]);
+    assert_eq!(app.study.practice.topic, "代码实战");
+    assert_eq!(
+        crate::curriculum::category(&app.study.practice.card.as_ref().unwrap().topic),
+        "代码实战"
+    );
+    assert!(
+        app.db
+            .as_ref()
+            .unwrap()
+            .study_pending("engineering")
+            .unwrap()
+            .iter()
+            .any(|p| p.id == old_id && p.answer == "切换前的作答")
+    );
+    drop(app);
+    let app = PersonalDeskApp::open_data_directory(dir.path().into());
+    assert_eq!(app.study.practice.topic, "代码实战");
+}

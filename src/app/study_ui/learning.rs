@@ -244,8 +244,15 @@ impl PersonalDeskApp {
             .inner_margin(8)
             .show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
+                    let loaded = self.study.ai.is_loaded();
+                    let generating = self
+                        .study
+                        .ai
+                        .busy
+                        .load(std::sync::atomic::Ordering::Acquire);
+                    let starting = self.study.operation == "启动模型";
                     if ui
-                        .add_enabled(!self.study.busy, egui::Button::new("启动模型"))
+                        .add_enabled(!self.study.busy && !loaded, egui::Button::new("启动模型"))
                         .clicked()
                     {
                         self.study.busy = true;
@@ -264,17 +271,17 @@ impl PersonalDeskApp {
                     }
                     if ui
                         .add_enabled(
-                            self.study
-                                .ai
-                                .busy
-                                .load(std::sync::atomic::Ordering::Acquire),
-                            egui::Button::new("停止"),
+                            loaded || generating,
+                            egui::Button::new(if starting {
+                                "取消启动"
+                            } else if generating {
+                                "停止生成"
+                            } else {
+                                "停止模型"
+                            }),
                         )
                         .clicked()
                     {
-                        self.study.ai.stop();
-                    }
-                    if !self.study.busy && ui.small_button("卸载").clicked() {
                         self.study.ai.stop();
                     }
                     ui.label(RichText::new(self.study.ai.status()).size(12.));
