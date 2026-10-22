@@ -49,7 +49,7 @@ impl PersonalDeskApp {
         }
     }
 
-    pub(super) fn render_inventory_rows(&mut self, ui: &mut egui::Ui, items: &[InventoryItem]) {
+    pub(super) fn render_inventory_rows(&mut self, ui: &mut egui::Ui, items: &[usize]) {
         use crate::ui_components::table;
         let options = self.inventory_tags.clone();
         const C: &[f32] = &[135., 80., 105., 50., 90., 108., 90., 108., 95., 140.];
@@ -76,34 +76,38 @@ impl PersonalDeskApp {
                         "操作",
                     ],
                 );
-                for item in items {
-                    let mut draft = self.inline_inventory.get(&item.id).unwrap_or(item).clone();
-                    let mut changed = false;
-                    let (response, cells) = table::row(ui, ("inventory-row", &item.id), columns);
-                    for (index, value) in [
-                        (0, &mut draft.name),
-                        (1, &mut draft.brand),
-                        (2, &mut draft.model),
-                        (4, &mut draft.location),
-                        (5, &mut draft.purchase_date),
-                        (7, &mut draft.disposal_date),
-                    ] {
-                        changed |= table::text(ui, cells[index], (&item.id, index), value);
-                        if matches!(index, 5 | 7) {
-                            table::date_hint(ui, cells[index], value);
+                table::virtual_rows(ui, items.len(), |ui, range| {
+                    for &index in &items[range] {
+                        let item = self.inventory_items[index].clone();
+                        let mut draft =
+                            self.inline_inventory.get(&item.id).unwrap_or(&item).clone();
+                        let mut changed = false;
+                        let (response, cells) =
+                            table::row(ui, ("inventory-row", &item.id), columns);
+                        for (index, value) in [
+                            (0, &mut draft.name),
+                            (1, &mut draft.brand),
+                            (2, &mut draft.model),
+                            (4, &mut draft.location),
+                            (5, &mut draft.purchase_date),
+                            (7, &mut draft.disposal_date),
+                        ] {
+                            changed |= table::text(ui, cells[index], (&item.id, index), value);
+                            if matches!(index, 5 | 7) {
+                                table::date_hint(ui, cells[index], value);
+                            }
                         }
-                    }
-                    let mut quantity = self
-                        .inventory_quantities
-                        .get(&item.id)
-                        .cloned()
-                        .unwrap_or_else(|| draft.quantity.to_string());
-                    if table::text(ui, cells[3], (&item.id, "quantity"), &mut quantity) {
-                        self.inventory_quantities.insert(item.id.clone(), quantity);
-                        changed = true;
-                    }
-                    let mut price =
-                        self.inventory_prices
+                        let mut quantity = self
+                            .inventory_quantities
+                            .get(&item.id)
+                            .cloned()
+                            .unwrap_or_else(|| draft.quantity.to_string());
+                        if table::text(ui, cells[3], (&item.id, "quantity"), &mut quantity) {
+                            self.inventory_quantities.insert(item.id.clone(), quantity);
+                            changed = true;
+                        }
+                        let mut price = self
+                            .inventory_prices
                             .get(&item.id)
                             .cloned()
                             .unwrap_or_else(|| {
@@ -112,59 +116,60 @@ impl PersonalDeskApp {
                                     .map(|c| format!("{}.{:02}", c / 100, c % 100))
                                     .unwrap_or_default()
                             });
-                    if table::text(ui, cells[6], (&item.id, "price"), &mut price) {
-                        self.inventory_prices.insert(item.id.clone(), price);
-                        changed = true;
-                    }
-                    table::cell_ui(ui, cells[8], |ui| {
-                        changed |= crate::ui_components::classification_dropdown(
+                        if table::text(ui, cells[6], (&item.id, "price"), &mut price) {
+                            self.inventory_prices.insert(item.id.clone(), price);
+                            changed = true;
+                        }
+                        table::cell_ui(ui, cells[8], |ui| {
+                            changed |= crate::ui_components::classification_dropdown(
+                                ui,
+                                (&item.id, "row-tags"),
+                                &mut draft.tags,
+                                &options,
+                                cells[8].width(),
+                            );
+                        });
+                        let (save, cancel, detail) = table::actions(
                             ui,
-                            (&item.id, "row-tags"),
-                            &mut draft.tags,
-                            &options,
-                            cells[8].width(),
+                            &item.id,
+                            cells[9],
+                            changed || self.inline_inventory.contains_key(&item.id),
                         );
-                    });
-                    let (save, cancel, detail) = table::actions(
-                        ui,
-                        &item.id,
-                        cells[9],
-                        changed || self.inline_inventory.contains_key(&item.id),
-                    );
-                    self.favorite_control(ui, &response, "inventory", &item.id);
-                    response.context_menu(|ui| {
-                        self.record_tag_menu(ui, TagScope::Inventory, &item.id);
-                        if ui.button("删除物品记录").clicked() {
-                            self.delete_inventory_record(&item.id);
-                            ui.close();
+                        self.favorite_control(ui, &response, "inventory", &item.id);
+                        response.context_menu(|ui| {
+                            self.record_tag_menu(ui, TagScope::Inventory, &item.id);
+                            if ui.button("删除物品记录").clicked() {
+                                self.delete_inventory_record(&item.id);
+                                ui.close();
+                            }
+                        });
+                        if changed {
+                            self.inline_inventory.insert(item.id.clone(), draft.clone());
                         }
-                    });
-                    if changed {
-                        self.inline_inventory.insert(item.id.clone(), draft.clone());
-                    }
-                    if cancel {
-                        self.inline_inventory.remove(&item.id);
-                        self.inventory_prices.remove(&item.id);
-                        self.inventory_quantities.remove(&item.id);
-                    } else if save {
-                        self.save_inline_inventory(&item.id);
-                    }
-                    if detail {
-                        // Commit pending row fields before opening another editor for this record.
-                        if !self.inline_inventory.contains_key(&item.id)
-                            || self.save_inline_inventory(&item.id)
-                        {
-                            self.inventory_draft = self
-                                .inventory_items
-                                .iter()
-                                .find(|i| i.id == item.id)
-                                .cloned()
-                                .unwrap_or(draft);
-                            self.selected_inventory = Some(item.id.clone());
-                            self.inventory_dialog_open = true;
+                        if cancel {
+                            self.inline_inventory.remove(&item.id);
+                            self.inventory_prices.remove(&item.id);
+                            self.inventory_quantities.remove(&item.id);
+                        } else if save {
+                            self.save_inline_inventory(&item.id);
+                        }
+                        if detail {
+                            // Commit pending row fields before opening another editor for this record.
+                            if !self.inline_inventory.contains_key(&item.id)
+                                || self.save_inline_inventory(&item.id)
+                            {
+                                self.inventory_draft = self
+                                    .inventory_items
+                                    .iter()
+                                    .find(|i| i.id == item.id)
+                                    .cloned()
+                                    .unwrap_or(draft);
+                                self.selected_inventory = Some(item.id.clone());
+                                self.inventory_dialog_open = true;
+                            }
                         }
                     }
-                }
+                });
                 if table::add_row(ui, columns, "add-inventory-row", "添加物品").clicked() {
                     self.add_current_item();
                 }
@@ -199,4 +204,166 @@ fn parse_price(value: &str) -> Result<Option<i64>, String> {
         .and_then(|n| n.checked_add(fraction))
         .map(Some)
         .ok_or_else(|| "购买价格过大".into())
+}
+
+impl PersonalDeskApp {
+    pub(super) fn save_inventory_item(&mut self) -> bool {
+        self.inventory_draft.category = self.inventory_draft.tags.join(" · ");
+        if self.inventory_draft.name.trim().is_empty() {
+            self.notice = "请先填写物品名称".into();
+            return false;
+        }
+        let result = self
+            .db
+            .as_mut()
+            .ok_or(DeskError::UnsupportedFormat)
+            .and_then(|db| db.save_inventory_item(&self.inventory_draft));
+        match result {
+            Ok(()) => {
+                self.notice = format!("已保存物品：{}", self.inventory_draft.name.trim());
+                self.inline_inventory.remove(&self.inventory_draft.id);
+                self.selected_inventory = Some(self.inventory_draft.id.clone());
+                self.load_inventory();
+                self.load_tags();
+                true
+            }
+            Err(error) => {
+                self.notice = format!("保存物品失败：{error}");
+                false
+            }
+        }
+    }
+}
+
+impl PersonalDeskApp {
+    pub(super) fn delete_inventory_record(&mut self, id: &str) {
+        let result = self
+            .db
+            .as_mut()
+            .ok_or(DeskError::UnsupportedFormat)
+            .and_then(|db| db.delete_inventory_item(id));
+        match result {
+            Ok(()) => {
+                self.inline_inventory.remove(id);
+                self.inventory_prices.remove(id);
+                if self.selected_inventory.as_deref() == Some(id) {
+                    self.inventory_dialog_open = false;
+                    self.selected_inventory = None;
+                    self.inventory_draft = InventoryItem::new();
+                }
+                self.load_inventory();
+                self.notice = "物品记录已删除".into();
+            }
+            Err(error) => self.notice = format!("删除失败：{error}"),
+        }
+    }
+}
+
+impl PersonalDeskApp {
+    pub(super) fn render_inventory(&mut self, ui: &mut egui::Ui) {
+        let query = self.search_query.trim().to_lowercase();
+        let mut visible = self
+            .inventory_items
+            .iter()
+            .enumerate()
+            .filter(|(_, item)| {
+                self.inventory_filter.matches(&item.tags)
+                    && matches_query(
+                        &query,
+                        &[
+                            &item.name,
+                            &item.category,
+                            &item.brand,
+                            &item.model,
+                            &item.location,
+                            &item.notes,
+                            &item.tags.join(" "),
+                            &item.quantity.to_string(),
+                        ],
+                    )
+            })
+            .map(|(index, _)| index)
+            .collect::<Vec<_>>();
+        let mut selected = None;
+        let mut delete = None;
+        let mut add = false;
+        visible
+            .sort_by_key(|&index| !self.is_favorite("inventory", &self.inventory_items[index].id));
+        if self.view_mode() == ViewMode::List {
+            self.render_inventory_rows(ui, &visible);
+            return;
+        }
+        collection(ui, "inventory-gallery", self.view_mode(), |ui, side| {
+            for &index in &visible {
+                let item = self.inventory_items[index].clone();
+                let response = tagged_entry(
+                    ui,
+                    &item.id,
+                    &item.name,
+                    (
+                        format!(
+                            "{} · {} 件{}",
+                            [item.brand.as_str(), item.model.as_str()]
+                                .into_iter()
+                                .filter(|v| !v.is_empty())
+                                .collect::<Vec<_>>()
+                                .join(" "),
+                            item.quantity,
+                            if item.location.is_empty() {
+                                String::new()
+                            } else {
+                                format!(" · {}", item.location)
+                            }
+                        )
+                        .trim_start_matches(" · "),
+                        &item.tags,
+                    ),
+                    TileKind::Item,
+                    side,
+                );
+                self.favorite_control(ui, &response, "inventory", &item.id);
+                self.record_classification_dropdown(ui, &response, TagScope::Inventory, &item.id);
+                if response.clicked() {
+                    selected = Some(item.clone());
+                }
+                response.context_menu(|ui| {
+                    if ui.button("设置分类").clicked() {
+                        self.tag_assignment = Some(TagAssignment {
+                            scope: TagScope::Inventory,
+                            id: item.id.clone(),
+                            selected: item.tags.clone(),
+                        });
+                        self.tag_error.clear();
+                        ui.close();
+                    }
+                    if ui.button("删除物品记录").clicked() {
+                        delete = Some(item.id.clone());
+                        ui.close();
+                    }
+                });
+            }
+            if entry(
+                ui,
+                "add",
+                "点击添加物品",
+                "记录拥有的物品",
+                TileKind::Add,
+                side,
+            )
+            .clicked()
+            {
+                add = true;
+            }
+        });
+        if let Some(id) = delete {
+            self.delete_inventory_record(&id);
+        } else if let Some(item) = selected {
+            self.selected_inventory = Some(item.id.clone());
+            self.inventory_draft = item;
+            self.inventory_dialog_open = true;
+        }
+        if add {
+            self.add_current_item();
+        }
+    }
 }

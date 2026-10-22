@@ -1,6 +1,92 @@
 use super::*;
 
 #[test]
+#[ignore = "Manual synthetic list rendering measurement"]
+fn record_list_render_measurement() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().join("data"));
+    app.contact_items = (0..1000)
+        .map(|i| Contact {
+            id: format!("measure-{i}"),
+            name: format!("Contact {i}"),
+            gender: "X".into(),
+            school: "University".into(),
+            ..Contact::new()
+        })
+        .collect();
+    app.section = Section::Contacts;
+    app.set_view_mode(ViewMode::List);
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    editor_tests::input_frame(&mut app, &ctx, 0., vec![], vec![]);
+    let start = std::time::Instant::now();
+    for i in 0..30 {
+        editor_tests::input_frame(&mut app, &ctx, 1. + i as f64 / 60., vec![], vec![]);
+    }
+    println!(
+        "CONTACT_LIST_1000 average_ms={:.3}",
+        start.elapsed().as_secs_f64() * 1000. / 30.
+    );
+}
+
+#[test]
+fn large_contact_and_inventory_lists_skip_offscreen_widgets_and_reach_the_last_record() {
+    for section in [Section::Contacts, Section::Inventory] {
+        let dir = tempfile::tempdir().unwrap();
+        let mut app = PersonalDeskApp::open_data_directory(dir.path().join("data"));
+        app.contact_items = (0..1000)
+            .map(|i| Contact {
+                id: format!("virtual-{i}"),
+                name: format!("Visible {i}"),
+                ..Contact::new()
+            })
+            .collect();
+        app.inventory_items = (0..1000)
+            .map(|i| InventoryItem {
+                id: format!("virtual-{i}"),
+                name: format!("Visible {i}"),
+                ..InventoryItem::new()
+            })
+            .collect();
+        app.section = section;
+        app.set_view_mode(ViewMode::List);
+        let ctx = egui::Context::default();
+        configure_theme(&ctx);
+        for i in 0..4 {
+            editor_tests::input_frame(&mut app, &ctx, i as f64 / 10., vec![], vec![]);
+        }
+        let output = editor_tests::input_frame(&mut app, &ctx, 0.5, vec![], vec![]);
+        let drawn=output.shapes.iter().filter(|s|matches!(&s.shape,egui::Shape::Text(t) if t.galley.text().starts_with("Visible "))).count();
+        assert!(drawn > 0 && drawn < 20, "{section:?}: {drawn}");
+        let mut last = output;
+        for i in 0..5 {
+            last = editor_tests::input_frame(
+                &mut app,
+                &ctx,
+                1. + i as f64,
+                vec![
+                    egui::Event::PointerMoved(egui::pos2(700., 500.)),
+                    egui::Event::MouseWheel {
+                        unit: egui::MouseWheelUnit::Point,
+                        delta: egui::vec2(0., -100_000.),
+                        phase: egui::TouchPhase::Move,
+                        source: egui::MouseWheelSource::Unknown,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ],
+                vec![],
+            );
+        }
+        assert!(
+            last.shapes
+                .iter()
+                .any(|s| matches!(&s.shape,egui::Shape::Text(t) if t.galley.text()=="Visible 999")),
+            "{section:?}"
+        );
+    }
+}
+
+#[test]
 fn account_grid_fills_width_aligns_rows_and_only_draws_visible_cards_after_resize_and_zoom() {
     let dir = tempfile::tempdir().unwrap();
     let mut app = PersonalDeskApp::open_data_directory(dir.path().join("data"));

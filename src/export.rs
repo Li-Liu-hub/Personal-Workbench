@@ -16,6 +16,7 @@ use crate::{
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Scope {
+    Reference,
     Practice,
     Words,
     All,
@@ -35,6 +36,7 @@ pub enum Scope {
 impl Scope {
     pub fn for_section(section: Section) -> Self {
         match section {
+            Section::Reference => Self::Reference,
             Section::Books => Self::Books,
             Section::Practice => Self::Practice,
             Section::Words => Self::Words,
@@ -52,6 +54,7 @@ impl Scope {
 
     pub fn label(self) -> &'static str {
         match self {
+            Self::Reference => "指令大全",
             Self::Books => "图书",
             Self::Practice => "刷题王",
             Self::Words => "每日单词",
@@ -240,12 +243,18 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
                         "contacts" => scope == Scope::Contacts,
                         "websites" => scope == Scope::Websites,
                         "tools" => scope == Scope::Tools,
+                        "reference" => scope == Scope::Reference,
                         "books" | "book_pages" => scope.includes(Scope::Books),
                         _ => false,
                     }
             })
             .collect::<Vec<_>>();
         package.json("收藏.json", &favorites)?;
+        if scope.includes(Scope::Reference) {
+            let entries = snapshot.reference_entries()?;
+            counts.insert("指令大全", entries.len());
+            package.json("指令大全.json", &entries)?;
+        }
         if scope.includes(Scope::Theme) {
             let theme = crate::theme::ThemeSettings::load(&snapshot.settings()?);
             package.json("主题.json", &theme)?;

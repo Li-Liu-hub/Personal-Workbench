@@ -1,5 +1,34 @@
 //! Shared geometry for editable table headers and rows.
 use super::*;
+pub const ROW_HEIGHT: f32 = 62.;
+
+/// Reserve all row space, but create widgets only inside the scroll viewport.
+/// Callers must use stable record IDs for interactive cells.
+pub fn virtual_rows(
+    ui: &mut Ui,
+    count: usize,
+    render: impl FnOnce(&mut Ui, std::ops::Range<usize>),
+) {
+    let origin = ui.cursor().min.y;
+    let start = (((ui.clip_rect().top() - origin) / ROW_HEIGHT)
+        .floor()
+        .max(0.) as usize)
+        .saturating_sub(1)
+        .min(count);
+    let end = (((ui.clip_rect().bottom() - origin) / ROW_HEIGHT)
+        .ceil()
+        .max(0.) as usize
+        + 1)
+    .min(count)
+    .max(start);
+    if start > 0 {
+        ui.allocate_space(egui::vec2(0., start as f32 * ROW_HEIGHT));
+    }
+    render(ui, start..end);
+    if end < count {
+        ui.allocate_space(egui::vec2(0., (count - end) as f32 * ROW_HEIGHT));
+    }
+}
 
 pub fn add_row(ui: &mut Ui, columns: &[f32], id: &str, label: &str) -> Response {
     let (_, rect) = ui.allocate_space(egui::vec2(width(columns), 40.0));
@@ -69,7 +98,7 @@ pub fn row(
     id: impl std::hash::Hash + std::fmt::Debug,
     columns: &[f32],
 ) -> (Response, Vec<egui::Rect>) {
-    let (_, allocated) = ui.allocate_space(egui::vec2(width(columns), 62.0));
+    let (_, allocated) = ui.allocate_space(egui::vec2(width(columns), ROW_HEIGHT));
     let rect = allocated.shrink2(egui::vec2(0., 3.));
     let response = ui.interact(rect, ui.scope_id().with(id), egui::Sense::click());
     let painter = ui.painter().with_clip_rect(ui.clip_rect());

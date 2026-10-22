@@ -22,11 +22,11 @@ impl PersonalDeskApp {
                     ui.separator();
                     ui.selectable_value(&mut s.topic, curriculum::MIXED.into(), "自由混合");
                     if let Some(db) = self.db.as_ref()
-                        && let Ok(cards) = db.study_cards("engineering")
+                        && let Ok(topics) = db.study_topics()
                     {
-                        let topics = cards
+                        let topics = topics
                             .iter()
-                            .map(|c| curriculum::category(&c.topic))
+                            .map(|topic| curriculum::category(topic))
                             .collect::<std::collections::BTreeSet<_>>();
                         for topic in topics {
                             if !study::TOPICS.contains(&topic) {
