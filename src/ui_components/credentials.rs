@@ -3,6 +3,16 @@ use crate::{model::CredentialSummary, views::ViewMode};
 use std::sync::Arc;
 
 fn layout(ui: &Ui, value: &str, width: f32, size: f32) -> Arc<egui::Galley> {
+    aligned_layout(ui, value, width, size, egui::Align::Min)
+}
+
+fn aligned_layout(
+    ui: &Ui,
+    value: &str,
+    width: f32,
+    size: f32,
+    align: egui::Align,
+) -> Arc<egui::Galley> {
     let mut job = egui::text::LayoutJob::simple(
         value.to_owned(),
         egui::FontId::proportional(size),
@@ -10,6 +20,7 @@ fn layout(ui: &Ui, value: &str, width: f32, size: f32) -> Arc<egui::Galley> {
         width.max(20.0),
     );
     job.wrap.break_anywhere = true;
+    job.halign = align;
     ui.painter().layout_job(job)
 }
 
@@ -19,25 +30,24 @@ pub fn credential_list_header(ui: &mut Ui, mode: ViewMode) {
     }
     let (_, rect) = ui.allocate_space(egui::vec2(ui.available_width(), 28.0));
     let inner = (rect.width() - 108.0).max(1.0);
-    let mut x = rect.left() + 20.0;
-    for (value, weight) in [
-        ("名称", 0.22),
-        ("账号", 0.27),
-        ("密码", 0.34),
-        ("分类", 0.17),
+    let left = rect.left() + 20.;
+    for (value, x) in [
+        ("名称", left + (inner * 0.22 - 12.) / 2.),
+        ("账号", left + inner * 0.22 + (inner * 0.27 - 62.) / 2.),
+        ("密码", left + inner * 0.49 + (inner * 0.34 - 62.) / 2.),
+        ("分类", left + inner * 0.83 + (inner * 0.17 - 8.) / 2.),
     ] {
         ui.painter().text(
             egui::pos2(x, rect.center().y),
-            egui::Align2::LEFT_CENTER,
+            egui::Align2::CENTER_CENTER,
             value,
             egui::FontId::proportional(12.0),
             muted(),
         );
-        x += inner * weight;
     }
     ui.painter().text(
-        egui::pos2(rect.right() - 68.0, rect.center().y),
-        egui::Align2::LEFT_CENTER,
+        egui::pos2(rect.right() - 44.0, rect.center().y),
+        egui::Align2::CENTER_CENTER,
         "操作",
         egui::FontId::proportional(12.0),
         muted(),
@@ -69,11 +79,12 @@ fn editable_field(
         egui::TextEdit::singleline(value)
     };
     let mut layouter = |ui: &Ui, text: &dyn egui::TextBuffer, width: f32| {
-        layout(
+        aligned_layout(
             ui,
             text.as_str(),
             if multiline { width } else { f32::INFINITY },
             size,
+            egui::Align::Center,
         )
     };
     if ui.rect_contains_pointer(rect) || ui.ctx().memory(|m| m.has_focus(id)) {
@@ -94,6 +105,8 @@ fn editable_field(
             .frame(egui::Frame::NONE)
             .layouter(&mut layouter)
             .margin(0)
+            .align(egui::Align2::CENTER_CENTER)
+            .min_size(rect.size())
             .desired_width(rect.width()),
     )
 }
@@ -237,17 +250,17 @@ pub fn credential_entry(
     } else {
         let center = top + body_height / 2.0;
         (
-            egui::Rect::from_min_size(
-                egui::pos2(left, center - 11.0),
-                egui::vec2(inner * 0.22 - 12.0, 24.0),
+            egui::Rect::from_center_size(
+                egui::pos2(left + (inner * 0.22 - 12.0) / 2., center),
+                egui::vec2(inner * 0.22 - 12.0, 32.0),
             ),
-            egui::Rect::from_min_size(
-                egui::pos2(left + inner * 0.22, center - username_height / 2.0),
-                egui::vec2(inner * 0.27 - 62.0, username_height.max(22.0)),
+            egui::Rect::from_center_size(
+                egui::pos2(left + inner * 0.22 + (inner * 0.27 - 62.) / 2., center),
+                egui::vec2(inner * 0.27 - 62.0, username_height.max(32.0)),
             ),
-            egui::Rect::from_min_size(
-                egui::pos2(left + inner * 0.49, center - password_height / 2.0),
-                egui::vec2(inner * 0.34 - 62.0, password_height.max(22.0)),
+            egui::Rect::from_center_size(
+                egui::pos2(left + inner * 0.49 + (inner * 0.34 - 62.) / 2., center),
+                egui::vec2(inner * 0.34 - 62.0, password_height.max(32.0)),
             ),
             egui::Rect::from_center_size(
                 egui::pos2(rect.right() - 44.0, center),
@@ -288,11 +301,13 @@ pub fn credential_entry(
             egui::vec2(inner * 0.17 - 8.0, 28.0),
         )
     };
-    let mut category_ui = ui.new_child(
-        egui::UiBuilder::new()
-            .max_rect(category_rect)
-            .layout(egui::Layout::top_down(egui::Align::Min)),
-    );
+    let mut category_ui = ui.new_child(egui::UiBuilder::new().max_rect(category_rect).layout(
+        if grid {
+            egui::Layout::top_down(egui::Align::Min)
+        } else {
+            egui::Layout::left_to_right(egui::Align::Center)
+        },
+    ));
     let classification_changed = if grid {
         category_ui.label(
             egui::RichText::new(if item.tags.is_empty() {
@@ -459,6 +474,13 @@ mod tests {
                             .contains_rect(egui::Rect::from_min_size(text.pos, text.galley.size())),
                         "{mode:?} at {scale}"
                     );
+                    if mode == ViewMode::List {
+                        let text_rect = text.galley.rect.translate(text.pos.to_vec2());
+                        assert!(
+                            (text_rect.center().y - bounds.center().y).abs() < 1.5,
+                            "list value not vertically centered at {scale}: {text_rect:?} {bounds:?}"
+                        );
+                    }
                 }
             }
         }

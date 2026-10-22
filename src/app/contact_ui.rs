@@ -638,18 +638,12 @@ impl PersonalDeskApp {
                             cells[10].width(),
                         );
                     });
-                    let mut save = false;
-                    let mut cancel = false;
-                    let mut detail = false;
-                    table::cell_ui(ui, cells[11], |ui| {
-                        if changed || self.inline_contacts.contains_key(&item.id) {
-                            save = ui.small_button("保存").clicked();
-                            cancel = ui.small_button("取消").clicked();
-                        }
-                        if !changed && !self.inline_contacts.contains_key(&item.id) {
-                            detail = ui.small_button("详情").clicked();
-                        }
-                    });
+                    let (save, cancel, detail) = table::actions(
+                        ui,
+                        &item.id,
+                        cells[11],
+                        changed || self.inline_contacts.contains_key(&item.id),
+                    );
                     self.favorite_control(ui, &response, "contacts", &item.id);
                     response.context_menu(|ui| {
                         if ui.button("删除联系人").clicked() {
