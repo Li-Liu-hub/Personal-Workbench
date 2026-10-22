@@ -1,6 +1,15 @@
 use super::*;
 use crate::study::{self, Attempt, Card, Grade, NotebookEntry, Pending, Progress, Rules};
 impl Database {
+    pub fn study_topics(&self) -> Result<Vec<String>> {
+        Ok(self
+            .desk
+            .prepare_cached(
+                "SELECT DISTINCT topic FROM study_cards WHERE kind='engineering' ORDER BY topic",
+            )?
+            .query_map([], |r| r.get(0))?
+            .collect::<std::result::Result<_, _>>()?)
+    }
     pub(super) fn prepare_study(&mut self) -> Result<()> {
         self.desk.execute_batch("CREATE TABLE IF NOT EXISTS study_cards(id TEXT PRIMARY KEY,kind TEXT NOT NULL,topic TEXT NOT NULL,card_json TEXT NOT NULL);
           CREATE INDEX IF NOT EXISTS study_cards_kind_topic ON study_cards(kind,topic);
@@ -10,15 +19,15 @@ impl Database {
           CREATE TABLE IF NOT EXISTS study_pending(id TEXT PRIMARY KEY,card_id TEXT NOT NULL REFERENCES study_cards(id),answer TEXT NOT NULL,at TEXT NOT NULL);")?;
         self.desk.execute_batch("CREATE TABLE IF NOT EXISTS study_dialogue(id TEXT PRIMARY KEY,card_id TEXT NOT NULL REFERENCES study_cards(id),role TEXT NOT NULL,content TEXT NOT NULL,at TEXT NOT NULL); CREATE INDEX IF NOT EXISTS study_dialogue_card ON study_dialogue(card_id,at); CREATE TABLE IF NOT EXISTS study_help(pending_id TEXT PRIMARY KEY);")?;
         self.desk.execute_batch("CREATE TABLE IF NOT EXISTS study_project_code(card_id TEXT PRIMARY KEY REFERENCES study_cards(id),source_json TEXT NOT NULL,report_json TEXT);")?;
-        self.import_study_cards(&[crate::challenges::card()])?;
-        let foundations: Vec<Card> =
-            serde_json::from_str(include_str!("../../assets/foundations.json"))?;
-        self.import_study_cards(&foundations)?;
-        if self
-            .settings()?
-            .get("study.seed.version")
-            .is_some_and(|v| v == "1")
-        {
+        if self.setting("study.extension.seed.version")?.as_deref() != Some("1") {
+            self.import_study_cards(&[crate::challenges::card()])?;
+            let foundations: Vec<Card> =
+                serde_json::from_str(include_str!("../../assets/foundations.json"))?;
+            self.import_study_cards(&foundations)?;
+            // Imports commit first; replay after an interrupted startup only skips existing IDs.
+            self.set_setting("study.extension.seed.version", "1")?;
+        }
+        if self.setting("study.seed.version")?.as_deref() == Some("1") {
             return self.prepare_sql_study();
         }
         let mut cards: Vec<Card> =
@@ -58,11 +67,7 @@ impl Database {
         self.prepare_sql_study()
     }
     fn prepare_sql_study(&mut self) -> Result<()> {
-        if self
-            .settings()?
-            .get("study.sqlite.seed.version")
-            .is_some_and(|v| v == "1")
-        {
+        if self.setting("study.sqlite.seed.version")?.as_deref() == Some("1") {
             return Ok(());
         }
         let previous: Vec<Card> =

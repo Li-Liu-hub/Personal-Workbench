@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '统一联系人、物品和账号列表的表头与文字居中；修复编辑文字及光标贴顶；行内操作和收藏按钮居中，保留直接编辑与原有数据'
+    [string]$Notes = '新增指令大全：8类语言、128条语法和集合资料，支持分类、全文搜索、增删改查、复制、收藏及导出；按功能拆分代码并补充开发规范；优化联系人和物品列表可见行渲染与题库启动加载，保留原有数据'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

@@ -114,6 +114,7 @@ pub struct SearchResult {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Section {
+    Reference,
     Practice,
     Words,
     Books,

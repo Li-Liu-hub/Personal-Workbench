@@ -199,6 +199,19 @@ impl PersonalDeskApp {
                             egui::Id::unique(("contact-field", &self.contact_items[0].id, 1usize));
                         ctx.memory_mut(|m| m.request_focus(id));
                     }
+                    25 => {
+                        self.section = Section::Reference;
+                        self.preview_reference(false);
+                    }
+                    26 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                        1000., 680.,
+                    ))),
+                    27 => {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1280., 800.,
+                        )));
+                        self.preview_reference(true);
+                    }
                     _ => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
                 }
             }
@@ -234,6 +247,9 @@ impl PersonalDeskApp {
             "training-recommendation-small",
             "accounts-list",
             "contacts-focused",
+            "reference",
+            "reference-small",
+            "reference-edit",
         ][c.step];
         let path = c.output.join(format!("{name}.png"));
         let completed = c.completed.clone();

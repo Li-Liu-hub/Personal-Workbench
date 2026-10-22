@@ -3,6 +3,9 @@ use std::path::{Path, PathBuf};
 mod contacts;
 mod curriculum;
 mod library;
+mod reference;
+#[cfg(test)]
+mod reference_tests;
 mod study;
 mod tag_cache;
 mod writing;
@@ -279,6 +282,7 @@ impl Database {
         };
         database.prepare_writing(data_dir)?;
         database.prepare_study()?;
+        database.prepare_reference()?;
         Ok(database)
     }
 
@@ -625,6 +629,14 @@ impl Database {
         self.desk
             .execute("DELETE FROM app_tools WHERE id=?1", [id])?;
         Ok(())
+    }
+
+    pub fn setting(&self, key: &str) -> Result<Option<String>> {
+        Ok(self
+            .desk
+            .prepare_cached("SELECT value FROM settings WHERE key=?1")?
+            .query_row([key], |r| r.get(0))
+            .optional()?)
     }
 
     pub fn settings(&self) -> Result<std::collections::BTreeMap<String, String>> {

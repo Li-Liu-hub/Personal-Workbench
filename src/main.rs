@@ -19,6 +19,7 @@ mod legacy_credentials;
 mod library;
 mod local_ai;
 mod model;
+mod reference;
 #[cfg(test)]
 mod search;
 mod sql_practice;
