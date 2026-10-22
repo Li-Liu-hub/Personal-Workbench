@@ -55,8 +55,8 @@ pub fn header(ui: &mut Ui, columns: &[f32], labels: &[&str]) {
     );
     for (cell, label) in cells(rect, columns).iter().zip(labels) {
         ui.painter().text(
-            cell.left_center(),
-            egui::Align2::LEFT_CENTER,
+            cell.center(),
+            egui::Align2::CENTER_CENTER,
             label,
             egui::FontId::proportional(12.0),
             muted(),
@@ -123,12 +123,43 @@ pub fn text(
         egui::TextEdit::singleline(value)
             .id(field)
             .frame(egui::Frame::NONE)
-            .margin(egui::Margin::symmetric(0, 10))
+            .margin(0)
+            .align(egui::Align2::CENTER_CENTER)
+            .min_size(rect.size())
             .font(egui::FontId::proportional(14.))
             .hint_text("—")
             .desired_width(rect.width()),
     );
     response.on_hover_text(value.as_str()).changed()
+}
+
+/// Keep one or two row actions centered beneath their shared column heading.
+pub fn actions(ui: &mut Ui, id: &str, rect: egui::Rect, editing: bool) -> (bool, bool, bool) {
+    let labels: &[&str] = if editing {
+        &["保存", "取消"]
+    } else {
+        &["详情"]
+    };
+    let button_size = egui::vec2(42., 26.);
+    let gap = 6.;
+    let width = labels.len() as f32 * button_size.x + (labels.len() - 1) as f32 * gap;
+    let left = rect.center().x - width / 2.;
+    let mut clicked = [false; 2];
+    for (index, label) in labels.iter().enumerate() {
+        let area = egui::Rect::from_center_size(
+            egui::pos2(
+                left + index as f32 * (button_size.x + gap) + button_size.x / 2.,
+                rect.center().y,
+            ),
+            button_size,
+        );
+        clicked[index] = quick_action(ui, ("table-action", id, label), area, label).clicked();
+    }
+    (
+        editing && clicked[0],
+        editing && clicked[1],
+        !editing && clicked[0],
+    )
 }
 
 pub fn cell_ui(ui: &mut Ui, rect: egui::Rect, content: impl FnOnce(&mut Ui)) {

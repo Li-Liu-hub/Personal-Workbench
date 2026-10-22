@@ -125,18 +125,12 @@ impl PersonalDeskApp {
                             cells[8].width(),
                         );
                     });
-                    let mut save = false;
-                    let mut cancel = false;
-                    let mut detail = false;
-                    table::cell_ui(ui, cells[9], |ui| {
-                        if changed || self.inline_inventory.contains_key(&item.id) {
-                            save = ui.small_button("保存").clicked();
-                            cancel = ui.small_button("取消").clicked();
-                        }
-                        if !changed && !self.inline_inventory.contains_key(&item.id) {
-                            detail = ui.small_button("详情").clicked();
-                        }
-                    });
+                    let (save, cancel, detail) = table::actions(
+                        ui,
+                        &item.id,
+                        cells[9],
+                        changed || self.inline_inventory.contains_key(&item.id),
+                    );
                     self.favorite_control(ui, &response, "inventory", &item.id);
                     response.context_menu(|ui| {
                         self.record_tag_menu(ui, TagScope::Inventory, &item.id);

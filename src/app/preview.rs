@@ -29,6 +29,8 @@ impl PersonalDeskApp {
         contact.name = "示例联系人".into();
         contact.school = "示例大学".into();
         contact.work = "产品设计".into();
+        contact.gender = "男".into();
+        contact.major = "计算机科学".into();
         contact.birthday = "2005-05-20".into();
         contact.phone = "13800000000".into();
         self.db
@@ -183,6 +185,20 @@ impl PersonalDeskApp {
                             1000., 680.,
                         )));
                     }
+                    23 => {
+                        self.section = Section::Credentials;
+                        self.view_modes.set(Section::Credentials, ViewMode::List);
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1280., 800.,
+                        )));
+                    }
+                    24 => {
+                        self.section = Section::Contacts;
+                        self.view_modes.set(Section::Contacts, ViewMode::List);
+                        let id =
+                            egui::Id::unique(("contact-field", &self.contact_items[0].id, 1usize));
+                        ctx.memory_mut(|m| m.request_focus(id));
+                    }
                     _ => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
                 }
             }
@@ -216,6 +232,8 @@ impl PersonalDeskApp {
             "training-recommendation",
             "training-route",
             "training-recommendation-small",
+            "accounts-list",
+            "contacts-focused",
         ][c.step];
         let path = c.output.join(format!("{name}.png"));
         let completed = c.completed.clone();

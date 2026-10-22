@@ -1149,6 +1149,69 @@ fn contact_list_edits_preserve_photos_chat_files_and_notes() {
 }
 
 #[test]
+fn contact_cells_stay_centered_when_focused_and_save_edits_at_display_scales() {
+    for scale in [1., 1.25, 1.5] {
+        let dir = tempfile::tempdir().unwrap();
+        let mut app = PersonalDeskApp::open_data_directory(dir.path().join("data"));
+        let mut contact = Contact::new();
+        contact.name = "居中联系人".into();
+        contact.gender = "男".into();
+        app.db.as_mut().unwrap().save_contact(&contact).unwrap();
+        app.load_contacts();
+        app.section = Section::Contacts;
+        app.set_view_mode(ViewMode::List);
+        let ctx = egui::Context::default();
+        configure_theme(&ctx);
+        ctx.set_pixels_per_point(scale);
+        let field = egui::Id::unique(("contact-field", &contact.id, 1usize));
+        input_frame(&mut app, &ctx, -0.2, vec![], vec![]);
+        input_frame(&mut app, &ctx, -0.1, vec![], vec![]);
+        let center = |output: &egui::FullOutput, value: &str| {
+            output
+                .shapes
+                .iter()
+                .find_map(|shape| match &shape.shape {
+                    egui::Shape::Text(text) if text.galley.text() == value => {
+                        Some(text.galley.rect.translate(text.pos.to_vec2()).center())
+                    }
+                    _ => None,
+                })
+                .unwrap_or_else(|| panic!("missing text {value}"))
+        };
+        input_frame(&mut app, &ctx, 0., vec![], vec![]);
+        let output = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+        let rect = ctx.read_response(field).unwrap().rect;
+        assert!(
+            (center(&output, "性别").x - rect.center().x).abs() < 1.5,
+            "scale {scale}: header {:?}, field {rect:?}",
+            center(&output, "性别")
+        );
+        assert!(center(&output, "男").distance(rect.center()) < 1.5);
+        assert!((center(&output, "☆").y - rect.center().y).abs() < 1.5);
+        input_frame(&mut app, &ctx, 0.2, pointer(rect.center(), true), vec![]);
+        let output = input_frame(&mut app, &ctx, 0.3, pointer(rect.center(), false), vec![]);
+        assert!(ctx.memory(|m| m.has_focus(field)));
+        assert_eq!(ctx.read_response(field).unwrap().rect, rect);
+        assert!(center(&output, "男").distance(rect.center()) < 1.5);
+        let output = input_frame(&mut app, &ctx, 0.4, replace_focused_text("女"), vec![]);
+        assert!(center(&output, "女").distance(rect.center()) < 1.5);
+        let save = center(&output, "保存");
+        input_frame(&mut app, &ctx, 0.5, pointer(save, true), vec![]);
+        input_frame(&mut app, &ctx, 0.6, pointer(save, false), vec![]);
+        assert_eq!(
+            app.db
+                .as_ref()
+                .unwrap()
+                .contact(&contact.id)
+                .unwrap()
+                .unwrap()
+                .gender,
+            "女"
+        );
+    }
+}
+
+#[test]
 fn inventory_table_headers_align_and_brand_model_location_price_persist() {
     let dir = tempfile::tempdir().unwrap();
     let data = dir.path().join("data");
@@ -1171,12 +1234,21 @@ fn inventory_table_headers_align_and_brand_model_location_price_persist() {
         (4, "存放位置"),
         (5, "购买日期"),
     ] {
-        let header = position(&output, label);
+        let header = output
+            .shapes
+            .iter()
+            .find_map(|shape| match &shape.shape {
+                egui::Shape::Text(text) if text.galley.text() == label => {
+                    Some(text.galley.rect.translate(text.pos.to_vec2()).center())
+                }
+                _ => None,
+            })
+            .unwrap();
         let field = ctx
             .read_response(egui::Id::unique((&item.id, index)))
             .unwrap();
         assert!(
-            (header.x - field.rect.left()).abs() < 2.,
+            (header.x - field.rect.center().x).abs() < 2.,
             "{label}: {header:?} {:?}",
             field.rect
         );

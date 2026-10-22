@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '新增推荐训练和能力路线；7类训练、70道工程题，基础摸底后按独立成绩安排弱项与进阶；补充题目目标和作答要求，保留历史记录；修复模型空闲时不能停止，支持停止模型及停止生成'
+    [string]$Notes = '统一联系人、物品和账号列表的表头与文字居中；修复编辑文字及光标贴顶；行内操作和收藏按钮居中，保留直接编辑与原有数据'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
