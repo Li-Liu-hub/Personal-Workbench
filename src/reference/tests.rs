@@ -36,7 +36,10 @@ fn builtin_reference_has_eight_languages_with_valid_original_examples() {
 fn reference_search_combines_language_category_literals_and_multiple_terms() {
     let dir = tempfile::tempdir().unwrap();
     let mut db = Database::open(dir.path()).unwrap();
-    assert_eq!(db.search_reference(&Filter::default()).unwrap().len(), 358);
+    assert_eq!(
+        db.search_reference(&Filter::default()).unwrap().len(),
+        BUILTIN_COUNT
+    );
     for (alias, language) in [("JS", "JavaScript"), ("CPP", "C++"), ("golang", "Go")] {
         let rows = db
             .search_reference(&Filter {
@@ -153,7 +156,7 @@ fn customized_and_deleted_builtins_survive_restart_and_seed_replay() {
     let db = Database::open(dir.path()).unwrap();
     assert_eq!(db.reference_entry(&saved.id).unwrap(), Some(saved));
     assert!(db.reference_entry(&removed.id).unwrap().is_none());
-    assert_eq!(db.reference_entries().unwrap().len(), 357);
+    assert_eq!(db.reference_entries().unwrap().len(), BUILTIN_COUNT - 1);
 }
 
 #[test]
@@ -172,7 +175,7 @@ fn reference_export_keeps_custom_fields_and_excludes_deleted_entries() {
         crate::export::write(dir.path(), &path, scope).unwrap();
         let mut zip = zip::ZipArchive::new(std::fs::File::open(path).unwrap()).unwrap();
         let entries: Vec<Entry> =
-            serde_json::from_reader(zip.by_name("指令大全.json").unwrap()).unwrap();
+            serde_json::from_reader(zip.by_name("百科全书.json").unwrap()).unwrap();
         assert!(entries.contains(&item));
         assert!(!entries.iter().any(|e| e.id == removed.id));
         let favorites: Vec<(String, String)> =

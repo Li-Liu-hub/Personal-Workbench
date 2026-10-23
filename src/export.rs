@@ -57,7 +57,7 @@ impl Scope {
     pub fn label(self) -> &'static str {
         match self {
             Self::Essays => "每日随笔",
-            Self::Reference => "指令大全",
+            Self::Reference => "百科全书",
             Self::Books => "图书",
             Self::Practice => "刷题王",
             Self::Words => "每日单词",
@@ -272,15 +272,15 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
         }
         if scope.includes(Scope::Reference) {
             let entries = snapshot.reference_entries()?;
-            counts.insert("指令大全", entries.len());
-            package.json("指令大全.json", &entries)?;
+            counts.insert("百科全书", entries.len());
+            package.json("百科全书.json", &entries)?;
             let cards = snapshot
                 .study_cards("engineering")?
                 .into_iter()
                 .filter(|card| !card.knowledge_ids.is_empty())
                 .collect::<Vec<_>>();
             package.json(
-                "指令练习.json",
+                "百科练习.json",
                 &crate::study::Bundle {
                     version: 1,
                     cards,

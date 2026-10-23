@@ -20,8 +20,8 @@ fn reference_workspace_searches_edits_saves_and_preserves_unfinished_drafts() {
     configure_theme(&ctx);
     input_frame(&mut app, &ctx, 0., vec![], vec![]);
     let output = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
-    assert_eq!(app.reference.rows.len(), 358);
-    let add = center(&output, "+ 添加指令");
+    assert_eq!(app.reference.rows.len(), crate::reference::BUILTIN_COUNT);
+    let add = center(&output, "+ 添加条目");
     input_frame(&mut app, &ctx, 0.2, pointer(add, true), vec![]);
     input_frame(&mut app, &ctx, 0.3, pointer(add, false), vec![]);
     let id = egui::Id::unique(("reference-field", "标题"));
@@ -94,7 +94,7 @@ fn reference_workspace_controls_and_preview_fit_supported_window_sizes() {
             );
             out.textures_delta.clear();
         }
-        for label in ["+ 添加指令", "全部语言", "全部分类", "编辑", "复制示例"] {
+        for label in ["+ 添加条目", "全部语言", "全部分类", "编辑", "复制示例"] {
             let pos = center(&out, label);
             assert!(
                 pos.x > 184. && pos.x < size[0] - 16. && pos.y > 0. && pos.y < size[1] - 24.,
@@ -111,4 +111,54 @@ fn reference_workspace_controls_and_preview_fit_supported_window_sizes() {
                 < 35
         );
     }
+}
+
+#[test]
+fn resetting_facets_keeps_language_and_search_and_cancel_refreshes_selection() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().join("data"));
+    app.section = Section::Reference;
+    app.reference.filter.language = "Java".into();
+    app.reference.filter.category = "类型系统".into();
+    app.reference.filter.entry_type = "概念".into();
+    app.reference.filter.tag = "不存在的标签".into();
+    app.search_query = "Spring".into();
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0., vec![], vec![]);
+    let out = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    assert!(app.reference.rows.is_empty());
+    let reset = center(&out, "重置筛选");
+    input_frame(&mut app, &ctx, 0.2, pointer(reset, true), vec![]);
+    input_frame(&mut app, &ctx, 0.3, pointer(reset, false), vec![]);
+    assert_eq!(app.reference.filter.language, "Java");
+    assert_eq!(app.search_query, "Spring");
+    assert!(app.reference.filter.category.is_empty());
+    assert!(app.reference.filter.entry_type.is_empty());
+    assert!(app.reference.filter.tag.is_empty());
+    assert!(!app.reference.rows.is_empty());
+    assert_eq!(app.reference.total, 173);
+
+    let original_id = app.reference.selected.as_ref().unwrap().id.clone();
+    let original_tags = app.reference.selected.as_ref().unwrap().tags.clone();
+    assert!(!original_tags.is_empty());
+    let out = input_frame(&mut app, &ctx, 0.31, vec![], vec![]);
+    let edit = center(&out, "编辑");
+    input_frame(&mut app, &ctx, 0.32, pointer(edit, true), vec![]);
+    input_frame(&mut app, &ctx, 0.33, pointer(edit, false), vec![]);
+    assert_eq!(app.reference.draft_tags, original_tags.join(", "));
+    input_frame(&mut app, &ctx, 0.34, vec![], vec![]);
+    assert_eq!(app.reference.draft.as_ref().unwrap().tags, original_tags);
+    app.search_query = "HashMap".into();
+    let out = input_frame(&mut app, &ctx, 0.4, vec![], vec![]);
+    assert!(app.reference.draft.is_some());
+    assert!(!app.reference.rows.iter().any(|e| e.id == original_id));
+    let cancel = center(&out, "取消");
+    input_frame(&mut app, &ctx, 0.5, pointer(cancel, true), vec![]);
+    input_frame(&mut app, &ctx, 0.6, pointer(cancel, false), vec![]);
+    input_frame(&mut app, &ctx, 0.7, vec![], vec![]);
+    assert!(app.reference.draft.is_none());
+    let id = &app.reference.selected.as_ref().unwrap().id;
+    assert!(app.reference.rows.iter().any(|e| &e.id == id));
+    assert_ne!(id, &original_id);
 }

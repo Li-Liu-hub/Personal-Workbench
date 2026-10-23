@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 impl Database {
     pub(super) fn prepare_learning_quality(&mut self) -> Result<()> {
         if self.setting("reference.learning.version")?.as_deref() == Some("1") {
-            return Ok(());
+            return self.prepare_encyclopedia();
         }
         let additions: Vec<Card> =
             serde_json::from_str(include_str!("../../assets/learning_variants.json"))?;
@@ -41,7 +41,7 @@ impl Database {
         }
         tx.execute("INSERT INTO settings(key,value) VALUES('reference.learning.version','1') ON CONFLICT(key) DO UPDATE SET value='1'", [])?;
         tx.commit()?;
-        Ok(())
+        self.prepare_encyclopedia()
     }
 }
 
