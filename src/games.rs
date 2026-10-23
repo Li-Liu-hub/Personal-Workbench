@@ -1,12 +1,15 @@
 //! Game rules are independent of egui, file operations and account data.
+use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
+pub mod records;
+pub mod tetris;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Cell {
     pub x: i32,
     pub y: i32,
 }
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Direction {
     Up,
     Down,
@@ -23,15 +26,17 @@ impl Direction {
         }
     }
 }
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Status {
     Ready,
     Running,
     Paused,
     Over,
     Filled,
+    Cleared,
 }
 
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Snake {
     pub width: i32,
     pub height: i32,
@@ -40,6 +45,10 @@ pub struct Snake {
     pub direction: Direction,
     pub status: Status,
     pub score: u32,
+    #[serde(default)]
+    pub level: u8,
+    #[serde(default)]
+    pub obstacles: Vec<Cell>,
     pending: VecDeque<Direction>,
     random: u64,
     elapsed: f64,
@@ -58,12 +67,89 @@ impl Snake {
             direction: Direction::Right,
             status: Status::Ready,
             score: 0,
+            level: 0,
+            obstacles: vec![],
             pending: VecDeque::new(),
             random: seed.max(1),
             elapsed: 0.0,
         };
         game.spawn_food();
         game
+    }
+    /// Level zero preserves the original endless, wraparound game.
+    pub fn stage(seed: u64, level: u8) -> Self {
+        let mut game = Self::new(seed);
+        game.level = level.clamp(1, 12);
+        game.obstacles = Self::walls(game.level);
+        game.spawn_food();
+        game
+    }
+    fn walls(level: u8) -> Vec<Cell> {
+        let mut walls = Vec::new();
+        if level >= 3 {
+            for y in 3..8 {
+                walls.push(Cell { x: 14, y });
+            }
+            for y in 13..17 {
+                walls.push(Cell { x: 14, y });
+            }
+        }
+        if level >= 6 {
+            for x in 3..10 {
+                walls.push(Cell { x, y: 5 });
+            }
+            for x in 19..25 {
+                walls.push(Cell { x, y: 15 });
+            }
+        }
+        if level >= 9 {
+            for y in 12..17 {
+                walls.push(Cell { x: 5, y });
+            }
+            for y in 3..8 {
+                walls.push(Cell { x: 23, y });
+            }
+        }
+        walls
+    }
+    pub fn goal(&self) -> u32 {
+        if self.level == 0 {
+            0
+        } else {
+            (4 + u32::from(self.level)) * 10
+        }
+    }
+    pub fn interval(&self) -> f64 {
+        if self.level == 0 {
+            0.14
+        } else {
+            (0.20 - f64::from(self.level) * 0.011).max(0.068)
+        }
+    }
+    pub fn valid(&self) -> bool {
+        self.width == 28
+            && self.height == 20
+            && self.level <= 12
+            && self.body.len() >= 3
+            && self.body.len() <= 560
+            && self.body.iter().all(|c| {
+                (0..28).contains(&c.x) && (0..20).contains(&c.y) && !self.obstacles.contains(c)
+            })
+            && self
+                .body
+                .iter()
+                .collect::<std::collections::HashSet<_>>()
+                .len()
+                == self.body.len()
+            && self.obstacles == Self::walls(self.level)
+            && self.food.is_none_or(|c| {
+                (0..28).contains(&c.x)
+                    && (0..20).contains(&c.y)
+                    && !self.body.contains(&c)
+                    && !self.obstacles.contains(&c)
+            })
+            && self.pending.len() <= 2
+            && self.elapsed.is_finite()
     }
     pub fn toggle(&mut self) {
         self.status = match self.status {
@@ -96,8 +182,8 @@ impl Snake {
             return;
         }
         self.elapsed += seconds.clamp(0.0, 0.25);
-        while self.elapsed >= 0.14 && self.status == Status::Running {
-            self.elapsed -= 0.14;
+        while self.elapsed >= self.interval() && self.status == Status::Running {
+            self.elapsed -= self.interval();
             self.step();
         }
     }
@@ -110,19 +196,33 @@ impl Snake {
         }
         let head = self.body[0];
         let (x, y) = self.direction.delta();
-        let next = Cell {
-            x: (head.x + x).rem_euclid(self.width),
-            y: (head.y + y).rem_euclid(self.height),
+        let mut next = Cell {
+            x: head.x + x,
+            y: head.y + y,
         };
+        if self.level == 0 {
+            next.x = next.x.rem_euclid(self.width);
+            next.y = next.y.rem_euclid(self.height);
+        } else if !(0..self.width).contains(&next.x) || !(0..self.height).contains(&next.y) {
+            self.status = Status::Over;
+            return;
+        }
         let eating = self.food == Some(next);
         let occupied = self.body.len() - usize::from(!eating);
-        if self.body.iter().take(occupied).any(|cell| *cell == next) {
+        if self.obstacles.contains(&next)
+            || self.body.iter().take(occupied).any(|cell| *cell == next)
+        {
             self.status = Status::Over;
             return;
         }
         self.body.push_front(next);
         if eating {
             self.score += 10;
+            if self.level > 0 && self.score >= self.goal() {
+                self.status = Status::Cleared;
+                self.food = None;
+                return;
+            }
             self.spawn_food();
         } else {
             self.body.pop_back();
@@ -131,7 +231,7 @@ impl Snake {
     fn spawn_food(&mut self) {
         let free = (0..self.height)
             .flat_map(|y| (0..self.width).map(move |x| Cell { x, y }))
-            .filter(|cell| !self.body.contains(cell))
+            .filter(|cell| !self.body.contains(cell) && !self.obstacles.contains(cell))
             .collect::<Vec<_>>();
         if free.is_empty() {
             self.food = None;
@@ -152,6 +252,42 @@ pub fn random_game() -> Snake {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn campaign_has_obstacles_goals_and_walls_while_endless_still_wraps() {
+        for level in 1..=12 {
+            for seed in 1..=12 {
+                let g = Snake::stage(seed, level);
+                assert!(g.valid());
+                assert_eq!(g.goal(), (4 + u32::from(level)) * 10);
+            }
+        }
+        let mut g = Snake::stage(2, 1);
+        g.status = Status::Running;
+        g.score = g.goal() - 10;
+        g.food = Some(Cell { x: 9, y: 10 });
+        g.step();
+        assert_eq!(g.status, Status::Cleared);
+        assert!(g.valid());
+        let mut g = Snake::stage(2, 1);
+        g.toggle();
+        g.body = VecDeque::from([
+            Cell { x: 27, y: 4 },
+            Cell { x: 26, y: 4 },
+            Cell { x: 25, y: 4 },
+        ]);
+        g.step();
+        assert_eq!(g.status, Status::Over);
+        let mut g = Snake::stage(2, 3);
+        g.toggle();
+        g.body = VecDeque::from([
+            Cell { x: 13, y: 4 },
+            Cell { x: 12, y: 4 },
+            Cell { x: 11, y: 4 },
+        ]);
+        g.step();
+        assert_eq!(g.status, Status::Over);
+        assert!(Snake::stage(1, 12).interval() < Snake::stage(1, 1).interval());
+    }
     #[test]
     fn endless_snake_wraps_eats_grows_and_pauses_without_a_level_timer() {
         let mut g = Snake::new(7);

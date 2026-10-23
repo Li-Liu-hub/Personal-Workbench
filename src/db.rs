@@ -3,6 +3,9 @@ use std::path::{Path, PathBuf};
 mod contacts;
 mod curriculum;
 mod essays;
+mod games;
+#[cfg(test)]
+mod knowledge_tests;
 mod library;
 mod reference;
 #[cfg(test)]
@@ -285,6 +288,7 @@ impl Database {
         database.prepare_study()?;
         database.prepare_reference()?;
         database.prepare_essays()?;
+        database.prepare_games()?;
         Ok(database)
     }
 

@@ -119,7 +119,7 @@ impl PersonalDeskApp {
                 self.updates.status = "请先保存或取消物品修改".into();
             } else if self.export_busy || self.contact_import_busy || self.study.busy {
                 self.updates.status = "当前操作完成后即可更新".into();
-            } else if !self.flush_writing() || !self.flush_study_answer() {
+            } else if !self.flush_writing() || !self.flush_study_answer() || !self.flush_games() {
                 self.updates.status = "文档尚未保存，请先处理保存提示".into();
             } else if let Some(release) = self.updates.release.as_ref() {
                 match crate::updater::launch(release, &self.data_dir) {

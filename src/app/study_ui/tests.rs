@@ -18,6 +18,8 @@ fn sample() -> Card {
             .collect(),
         source: String::new(),
         phonetic: String::new(),
+        tags: vec![],
+        knowledge_ids: vec![],
         sql: None,
         origin: None,
         project: None,
@@ -69,7 +71,8 @@ fn seeds_are_complete_and_invalid_import_rolls_back() {
             db.study_cards("engineering")
                 .unwrap()
                 .iter()
-                .filter(|c| crate::curriculum::category(&c.topic) == topic)
+                .filter(|c| c.knowledge_ids.is_empty()
+                    && crate::curriculum::category(&c.topic) == topic)
                 .count(),
             match topic {
                 "八股题" => 13,

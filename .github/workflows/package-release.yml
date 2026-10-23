@@ -1,0 +1,75 @@
+name: Package tested Windows release
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing draft release tag (for example v0.12.0)
+        required: true
+        type: string
+permissions:
+  contents: write
+jobs:
+  installer:
+    runs-on: windows-2025
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - name: Validate release tag
+        shell: pwsh
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+$') { throw 'Invalid release tag' }
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - name: Download the tested binary and verify its checksum
+        shell: pwsh
+        run: |
+          $dest = Join-Path $env:RUNNER_TEMP 'release-input'
+          New-Item -ItemType Directory -Path $dest -Force | Out-Null
+          gh release download $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --pattern PersonalDesk.exe --pattern SHA256SUMS.txt --dir $dest
+          if ($LASTEXITCODE -ne 0) { throw 'Release download failed' }
+          $expected = Get-Content (Join-Path $dest SHA256SUMS.txt) | Where-Object { $_ -match '^([a-f0-9]{64})  PersonalDesk\.exe$' }
+          if (-not $expected) { throw 'Missing binary checksum' }
+          $expected = ($expected -split '  ')[0]
+          if ((Get-FileHash (Join-Path $dest PersonalDesk.exe) -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) { throw 'Binary checksum mismatch' }
+          $version = (Get-Content Cargo.toml | Select-String '^version = "([^"]+)"').Matches[0].Groups[1].Value
+          if ("v$version" -ne $env:RELEASE_TAG) { throw 'Tag and source version disagree' }
+      - name: Build the installer using the runner compiler
+        shell: pwsh
+        run: |
+          $compiler = 'C:/Program Files (x86)/Inno Setup 6/ISCC.exe'
+          if (-not (Test-Path -LiteralPath $compiler)) { throw 'Runner Inno Setup compiler is missing' }
+          ./scripts/package-release.ps1 -Executable (Join-Path $env:RUNNER_TEMP 'release-input/PersonalDesk.exe') -OutputDirectory (Join-Path $env:RUNNER_TEMP release-output) -Compiler $compiler
+      - name: Check isolated install, upgrade, payload and uninstall preservation
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP release-output
+          $setup = (Get-ChildItem $out -Filter '*Setup-x64.exe').FullName
+          $app = Join-Path $env:RUNNER_TEMP 'install-check/app'
+          $data = Join-Path $env:RUNNER_TEMP 'install-check/preserved-data'
+          New-Item -ItemType Directory -Path $data -Force | Out-Null
+          [IO.File]::WriteAllText((Join-Path $data 'keep-user-data.txt'),'keep-existing-data')
+          $args = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=$app","/DATADIR=$data",'/TASKS=')
+          foreach ($pass in 1..2) {
+            $passArgs = $args.Clone()
+            if ($pass -eq 2) { $passArgs[4] = "/DATADIR=$env:RUNNER_TEMP/unused-data-directory" }
+            $p = Start-Process -FilePath $setup -ArgumentList $passArgs -WindowStyle Hidden -Wait -PassThru
+            if ($p.ExitCode -ne 0) { throw "Installer failed: $($p.ExitCode)" }
+            if ((Get-FileHash (Join-Path $app '个人办公台.exe')).Hash -ne (Get-FileHash (Join-Path $out 'PersonalDesk.exe')).Hash) { throw 'Installed payload differs' }
+            if ([IO.File]::ReadAllText((Join-Path $app 'personal-desk-data-path.txt')) -ne $data) { throw 'Data directory pointer changed' }
+            $archive = Join-Path $env:RUNNER_TEMP "installed-export-$pass.zip"
+            $p = Start-Process -FilePath (Join-Path $app '个人办公台.exe') -ArgumentList '--export-all',$archive -WindowStyle Hidden -Wait -PassThru
+            if ($p.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $archive)) { throw 'Installed app export failed' }
+          }
+          $p = Start-Process -FilePath (Join-Path $app unins000.exe) -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -WindowStyle Hidden -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw 'Uninstall failed' }
+          if ([IO.File]::ReadAllText((Join-Path $data keep-user-data.txt)) -ne 'keep-existing-data') { throw 'Uninstall changed user data' }
+          if (-not (Test-Path -LiteralPath (Join-Path $data desk.db))) { throw 'Uninstall removed the database' }
+      - name: Attach packages to the draft release
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP release-output
+          $assets = @(Get-ChildItem $out -File | Where-Object { $_.Name -match 'Setup-x64\.exe$|Windows-x64\.zip$|^SHA256SUMS\.txt$' } | ForEach-Object FullName)
+          gh release upload $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY @assets --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Asset upload failed' }

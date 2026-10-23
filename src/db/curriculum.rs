@@ -2,7 +2,19 @@ use super::*;
 use crate::curriculum::{self, Candidate, Filter};
 use crate::study::Card;
 impl Database {
+    pub(crate) fn knowledge_totals(&self, id: &str) -> Result<(u32, u32, u32, u32)> {
+        Ok(self.desk.prepare_cached("SELECT COUNT(*),COALESCE(SUM(p.attempts>0),0),COALESCE(SUM(p.mastered=1),0),COALESCE(SUM(p.attempts>0 AND p.latest<?2 AND p.mastered=0),0) FROM study_knowledge k LEFT JOIN study_progress p ON p.card_id=k.card_id WHERE k.knowledge_id=?1")?
+            .query_row(params![id,self.study_rules().threshold],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?)))?)
+    }
     pub(crate) fn practice_candidates(&self, topic: &str) -> Result<Vec<Candidate>> {
+        self.practice_candidates_for(topic, "")
+    }
+    pub(crate) fn practice_candidates_for(
+        &self,
+        topic: &str,
+        knowledge: &str,
+    ) -> Result<Vec<Candidate>> {
+        let guided = topic.is_empty() && knowledge.is_empty();
         let topic = if topic == curriculum::MIXED {
             ""
         } else {
@@ -16,9 +28,9 @@ impl Database {
             WHERE c.kind='engineering' AND (?1='' OR (CASE c.topic
                 WHEN '场景题' THEN '工程设计' WHEN 'SQL 命令' THEN 'SQL 训练'
                 WHEN 'Bug 排查' THEN '排障与调优' WHEN '性能调优' THEN '排障与调优'
-                WHEN '项目修 Bug' THEN '项目实战' ELSE c.topic END)=?1) ORDER BY c.id")?;
+                WHEN '项目修 Bug' THEN '项目实战' ELSE c.topic END)=?1) AND (?2='' OR EXISTS(SELECT 1 FROM study_knowledge k WHERE k.card_id=c.id AND k.knowledge_id=?2)) AND (?3=0 OR NOT EXISTS(SELECT 1 FROM study_knowledge k WHERE k.card_id=c.id)) ORDER BY c.id")?;
         let rows = statement
-            .query_map([topic], |r| {
+            .query_map(params![topic, knowledge, guided], |r| {
                 Ok((
                     r.get::<_, String>(0)?,
                     r.get::<_, bool>(1)?,
@@ -40,6 +52,7 @@ impl Database {
             })
             .collect()
     }
+    #[cfg(test)]
     pub(crate) fn practice_choice(
         &self,
         topic: &str,
@@ -47,7 +60,17 @@ impl Database {
         recent: &[String],
         roll: u64,
     ) -> Result<Option<(Card, String)>> {
-        let candidates = self.practice_candidates(topic)?;
+        self.practice_choice_for(topic, filter, recent, roll, "")
+    }
+    pub(crate) fn practice_choice_for(
+        &self,
+        topic: &str,
+        filter: &Filter,
+        recent: &[String],
+        roll: u64,
+        knowledge: &str,
+    ) -> Result<Option<(Card, String)>> {
+        let candidates = self.practice_candidates_for(topic, knowledge)?;
         Ok(curriculum::choose(
             &candidates,
             topic,
@@ -113,6 +136,7 @@ mod tests {
             .unwrap()
             .into_iter()
             .filter(|r| r.training.area == curriculum::AREAS[0] && r.training.level == 1)
+            .take(2)
             .map(|r| r.card)
             .collect::<Vec<_>>();
         let mut saved = Vec::new();
@@ -204,7 +228,7 @@ mod tests {
             curriculum::BUILTIN_COUNT
         );
         let sql = db.practice_candidates("SQL 命令").unwrap();
-        assert_eq!(sql.len(), 14);
+        assert_eq!(sql.len(), 88);
         assert!(
             sql.iter()
                 .all(|r| curriculum::category(&r.card.topic) == "SQL 训练")

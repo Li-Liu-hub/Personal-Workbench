@@ -422,7 +422,7 @@ fn snake_keyboard_pause_high_score_and_games_export_work_through_the_app() {
     for mode in [ViewMode::Grid, ViewMode::List] {
         app.set_view_mode(mode);
         let output = input_frame(&mut app, &ctx, 0.0, vec![], vec![]);
-        position(&output, "无尽贪吃蛇");
+        position(&output, "贪吃蛇");
     }
     app.snake_open = true;
     input_frame(&mut app, &ctx, 1.0, vec![], vec![]);

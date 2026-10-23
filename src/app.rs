@@ -112,6 +112,7 @@ pub struct PersonalDeskApp {
     snake_open: bool,
     snake_last_time: Option<f64>,
     snake_best: u32,
+    games: game_ui::GameState,
     view_modes: Preferences,
     contact_items: Vec<Contact>,
     contact_draft: Contact,
@@ -251,6 +252,7 @@ impl PersonalDeskApp {
             tool_error: String::new(),
             tool_launch_request: None,
             website_open_request: None,
+            games: Default::default(),
             snake: crate::games::random_game(),
             snake_open: false,
             snake_last_time: None,
@@ -328,6 +330,7 @@ impl PersonalDeskApp {
             app.load_contacts();
             app.load_tags();
             app.initialize_study();
+            app.initialize_games();
         }
         app
     }
@@ -537,6 +540,14 @@ impl PersonalDeskApp {
                     .inner_margin(egui::Margin::symmetric(24, 14)),
             )
             .show(ui, |ui| {
+                if self.section == Section::Games {
+                    self.search_field = None;
+                    self.render_header(ui, &ctx);
+                    self.handle_workspace_shortcuts(&ctx);
+                    ui.add_space(10.);
+                    self.render_games(ui);
+                    return;
+                }
                 if self.section == Section::Documents && self.writing.page.is_some() {
                     self.render_writing_editor(ui);
                     self.handle_workspace_shortcuts(&ctx);
@@ -673,11 +684,13 @@ pub fn data_directory() -> PathBuf {
         .and_then(|path| fs::read_to_string(path).ok())
         .map(|text| PathBuf::from(text.trim().trim_start_matches('\u{feff}')))
         .filter(|path| path.is_absolute());
-    configured.unwrap_or_else(|| {
-        directories::BaseDirs::new()
-            .map(|base| base.data_local_dir().join("PersonalDesk"))
-            .unwrap_or_else(|| PathBuf::from("PersonalDesk-data"))
-    })
+    configured
+        .or_else(crate::install::remembered_data_directory)
+        .unwrap_or_else(|| {
+            directories::BaseDirs::new()
+                .map(|base| base.data_local_dir().join("PersonalDesk"))
+                .unwrap_or_else(|| PathBuf::from("PersonalDesk-data"))
+        })
 }
 
 impl eframe::App for PersonalDeskApp {
@@ -686,7 +699,8 @@ impl eframe::App for PersonalDeskApp {
         self.poll_background();
         self.study.ai.unload_if_idle();
         if ctx.input(|input| input.viewport().close_requested()) {
-            let mut records_saved = self.flush_writing() && self.flush_study_answer();
+            let mut records_saved =
+                self.flush_writing() && self.flush_study_answer() && self.flush_games();
             if self.export_busy || self.contact_import_busy {
                 records_saved = false;
                 self.notice = "当前文件操作完成后即可退出".into();

@@ -7,6 +7,84 @@ use windows_sys::Win32::{Foundation::*, System::Threading::*, UI::WindowsAndMess
 fn wide(value: &str) -> Vec<u16> {
     value.encode_utf16().chain(Some(0)).collect()
 }
+
+/// A launcher moved to another folder still finds the user's chosen data directory.
+/// This stores only a path; the database and documents never enter the registry.
+pub fn remembered_data_directory() -> Option<PathBuf> {
+    use windows_sys::Win32::System::Registry::*;
+    unsafe {
+        let mut size = 0;
+        let key = wide("Software\\PersonalDesk");
+        let name = wide("DataDirectory");
+        if RegGetValueW(
+            HKEY_CURRENT_USER,
+            key.as_ptr(),
+            name.as_ptr(),
+            RRF_RT_REG_SZ,
+            ptr::null_mut(),
+            ptr::null_mut(),
+            &mut size,
+        ) != ERROR_SUCCESS
+            || size == 0
+            || size > 65536
+            || !size.is_multiple_of(2)
+        {
+            return None;
+        }
+        let mut buffer = vec![0u16; size as usize / 2];
+        if RegGetValueW(
+            HKEY_CURRENT_USER,
+            key.as_ptr(),
+            name.as_ptr(),
+            RRF_RT_REG_SZ,
+            ptr::null_mut(),
+            buffer.as_mut_ptr().cast(),
+            &mut size,
+        ) != ERROR_SUCCESS
+        {
+            return None;
+        }
+        buffer.truncate(size as usize / 2);
+        while buffer.last() == Some(&0) {
+            buffer.pop();
+        }
+        let path = PathBuf::from(String::from_utf16(&buffer).ok()?);
+        path.is_absolute().then_some(path)
+    }
+}
+pub fn remember_data_directory(path: &Path) {
+    use windows_sys::Win32::System::Registry::*;
+    if !path.is_absolute() {
+        return;
+    }
+    unsafe {
+        let mut key = ptr::null_mut();
+        if RegCreateKeyExW(
+            HKEY_CURRENT_USER,
+            wide("Software\\PersonalDesk").as_ptr(),
+            0,
+            ptr::null(),
+            REG_OPTION_NON_VOLATILE,
+            KEY_SET_VALUE,
+            ptr::null(),
+            &mut key,
+            ptr::null_mut(),
+        ) != ERROR_SUCCESS
+        {
+            return;
+        }
+        let value = wide(&path.to_string_lossy());
+        RegSetValueExW(
+            key,
+            wide("DataDirectory").as_ptr(),
+            0,
+            REG_SZ,
+            value.as_ptr().cast(),
+            (value.len() * 2) as u32,
+        );
+        RegCloseKey(key);
+    }
+}
 pub struct Instance(HANDLE);
 impl Instance {
     pub fn acquire(data: &Path) -> Option<Self> {

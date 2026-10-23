@@ -12,7 +12,7 @@ pub const LANGUAGES: [&str; 8] = [
     "Linux",
     "MySQL",
 ];
-pub const SEED_VERSION: &str = "1";
+pub const SEED_VERSION: &str = "2";
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Entry {
@@ -25,8 +25,15 @@ pub struct Entry {
     pub example: String,
     pub notes: String,
     pub source: String,
+    #[serde(default = "default_type")]
+    pub entry_type: String,
+    #[serde(default)]
+    pub tags: Vec<String>,
     #[serde(default)]
     pub revision: i64,
+}
+pub fn default_type() -> String {
+    "语法".into()
 }
 impl Entry {
     pub fn new() -> Self {
@@ -34,6 +41,7 @@ impl Entry {
             id: uuid::Uuid::new_v4().to_string(),
             language: "Java".into(),
             category: "基础语法".into(),
+            entry_type: default_type(),
             ..Default::default()
         }
     }
@@ -49,6 +57,12 @@ impl Entry {
                     "{label}不能为空，且不能超过 {max} 字"
                 )));
             }
+        }
+        validate_tags(&self.tags)?;
+        if self.entry_type.trim().is_empty() || self.entry_type.chars().count() > 40 {
+            return Err(DeskError::InvalidInput(
+                "类型需要填写，且不能超过 40 字".into(),
+            ));
         }
         if self.summary.chars().count() > 800
             || self.syntax.len() > 32_768
@@ -80,12 +94,17 @@ impl Entry {
             &self.syntax,
             &self.example,
             &self.notes,
+            &self.entry_type,
         ]
         .into_iter()
         .map(String::as_str)
         .collect::<Vec<_>>()
         .join("\n")
-        .to_lowercase()
+            + "\n"
+            + &self.tags.join("\n")
+    }
+    pub fn indexed_text(&self) -> String {
+        self.search_text().to_lowercase()
     }
     pub fn markdown(&self) -> String {
         let language = match self.language.as_str() {
@@ -127,6 +146,8 @@ pub struct Filter {
     pub language: String,
     pub category: String,
     pub query: String,
+    pub entry_type: String,
+    pub tag: String,
 }
 impl Filter {
     pub fn terms(&self) -> Vec<String> {
@@ -146,5 +167,17 @@ impl Filter {
     }
 }
 
+pub fn validate_tags(tags: &[String]) -> Result<()> {
+    if tags.len() > 24
+        || tags
+            .iter()
+            .any(|s| s.trim().is_empty() || s.chars().count() > 80)
+    {
+        return Err(DeskError::InvalidInput(
+            "最多 24 个标签，每个标签需要 1–80 字".into(),
+        ));
+    }
+    Ok(())
+}
 #[cfg(test)]
 mod tests;

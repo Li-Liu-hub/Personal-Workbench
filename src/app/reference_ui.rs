@@ -3,14 +3,17 @@ use crate::reference::{Entry, Filter, Summary};
 
 #[derive(Default)]
 pub(super) struct ReferenceState {
-    filter: Filter,
-    loaded: Option<Filter>,
+    pub(in crate::app) filter: Filter,
+    pub(in crate::app) loaded: Option<Filter>,
     rows: Vec<Summary>,
     facets: Vec<(String, String)>,
-    selected: Option<Entry>,
+    types: Vec<String>,
+    tags: Vec<String>,
+    draft_tags: String,
+    pub(in crate::app) selected: Option<Entry>,
     markdown: String,
     cache: egui_commonmark::CommonMarkCache,
-    draft: Option<Entry>,
+    pub(in crate::app) draft: Option<Entry>,
     error: String,
 }
 impl PersonalDeskApp {
@@ -38,10 +41,11 @@ impl PersonalDeskApp {
         if !self.reference.filter.category.is_empty() {
             draft.category = self.reference.filter.category.clone();
         }
+        self.reference.draft_tags.clear();
         self.reference.draft = Some(draft);
         self.reference.error.clear();
     }
-    fn select_reference(&mut self, s: &mut ReferenceState, id: &str) {
+    pub(in crate::app) fn select_reference(&mut self, s: &mut ReferenceState, id: &str) {
         match self
             .db
             .as_ref()
@@ -63,10 +67,16 @@ impl PersonalDeskApp {
     fn refresh_reference(&mut self, s: &mut ReferenceState) {
         let result = (|| -> crate::error::Result<_> {
             let db = self.db.as_ref().ok_or(DeskError::UnsupportedFormat)?;
-            Ok((db.search_reference(&s.filter)?, db.reference_facets()?))
+            Ok((
+                db.search_reference(&s.filter)?,
+                db.reference_facets()?,
+                db.reference_metadata(&s.filter.language)?,
+            ))
         })();
         match result {
-            Ok((mut rows, facets)) => {
+            Ok((mut rows, facets, (types, tags))) => {
+                s.types = types;
+                s.tags = tags;
                 rows.sort_by_key(|r| !self.is_favorite("reference", &r.id));
                 s.rows = rows;
                 s.facets = facets;
@@ -103,6 +113,7 @@ impl PersonalDeskApp {
                         if !s.filter.category.is_empty() {
                             draft.category = s.filter.category.clone();
                         }
+                        s.draft_tags.clear();
                         s.draft = Some(draft);
                         s.error.clear();
                     }
@@ -133,7 +144,7 @@ impl PersonalDeskApp {
             }
         });
         ui.add_space(6.);
-        ui.horizontal(|ui| {
+        ui.horizontal_wrapped(|ui| {
             egui::ComboBox::from_id_salt("reference-language")
                 .selected_text(if s.filter.language.is_empty() {
                     "全部语言"
@@ -147,6 +158,8 @@ impl PersonalDeskApp {
                         .changed()
                     {
                         s.filter.category.clear();
+                        s.filter.tag.clear();
+                        s.filter.entry_type.clear();
                     }
                     let mut languages = crate::reference::LANGUAGES
                         .iter()
@@ -163,6 +176,8 @@ impl PersonalDeskApp {
                             .changed()
                         {
                             s.filter.category.clear();
+                            s.filter.tag.clear();
+                            s.filter.entry_type.clear();
                         }
                     }
                 });
@@ -187,6 +202,32 @@ impl PersonalDeskApp {
                         ui.selectable_value(&mut s.filter.category, category.clone(), category);
                     }
                 });
+            egui::ComboBox::from_id_salt("reference-type")
+                .width(90.)
+                .selected_text(if s.filter.entry_type.is_empty() {
+                    "全部类型"
+                } else {
+                    &s.filter.entry_type
+                })
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut s.filter.entry_type, String::new(), "全部类型");
+                    for kind in &s.types {
+                        ui.selectable_value(&mut s.filter.entry_type, kind.clone(), kind);
+                    }
+                });
+            egui::ComboBox::from_id_salt("reference-tag")
+                .width(120.)
+                .selected_text(if s.filter.tag.is_empty() {
+                    "全部标签"
+                } else {
+                    &s.filter.tag
+                })
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut s.filter.tag, String::new(), "全部标签");
+                    for tag in &s.tags {
+                        ui.selectable_value(&mut s.filter.tag, tag.clone(), tag);
+                    }
+                });
             ui.label(
                 RichText::new(format!("{} 条", s.rows.len()))
                     .small()
@@ -203,6 +244,7 @@ impl PersonalDeskApp {
         }
         let height = ui.available_height().max(160.);
         let list_width = (ui.available_width() * 0.29).clamp(210., 320.);
+        let mut practice = None;
         let mut chosen = None;
         let mut deleted = None;
         ui.horizontal_top(|ui| {
@@ -288,32 +330,26 @@ impl PersonalDeskApp {
                             );
                         });
                     } else if let Some(item) = s.selected.as_ref() {
-                        ui.horizontal(|ui| {
-                            ui.label(
-                                RichText::new(format!("{} / {}", item.language, item.category))
-                                    .color(muted()),
-                            );
-                            ui.with_layout(
-                                egui::Layout::right_to_left(egui::Align::Center),
-                                |ui| {
-                                    edit = ui.button("编辑").clicked();
-                                    if ui
-                                        .button(if self.is_favorite("reference", &item.id) {
-                                            "★ 已收藏"
-                                        } else {
-                                            "☆ 收藏"
-                                        })
-                                        .clicked()
-                                    {
-                                        self.toggle_favorite("reference", &item.id);
-                                        s.loaded = None;
-                                    }
-                                    if ui.button("复制示例").clicked() {
-                                        ui.ctx().copy_text(item.example.clone());
-                                        self.notice = "示例已复制".into();
-                                    }
-                                },
-                            );
+                        ui.horizontal_wrapped(|ui| {
+                            if ui.add(primary_button("练习")).clicked() {
+                                practice = Some(item.clone());
+                            }
+                            if ui.button("复制示例").clicked() {
+                                ui.ctx().copy_text(item.example.clone());
+                                self.notice = "示例已复制".into();
+                            }
+                            edit = ui.button("编辑").clicked();
+                            if ui
+                                .button(if self.is_favorite("reference", &item.id) {
+                                    "★ 已收藏"
+                                } else {
+                                    "☆ 收藏"
+                                })
+                                .clicked()
+                            {
+                                self.toggle_favorite("reference", &item.id);
+                                s.loaded = None;
+                            }
                         });
                     }
                     ui.add_space(8.);
@@ -343,6 +379,21 @@ impl PersonalDeskApp {
                                         false,
                                     );
                                 });
+                                reference_field(ui, "类型", &mut draft.entry_type, 1, false);
+                                reference_field(
+                                    ui,
+                                    "标签（逗号分隔）",
+                                    &mut s.draft_tags,
+                                    1,
+                                    false,
+                                );
+                                draft.tags = s
+                                    .draft_tags
+                                    .split([',', '，'])
+                                    .map(str::trim)
+                                    .filter(|s| !s.is_empty())
+                                    .map(str::to_owned)
+                                    .collect();
                                 reference_field(ui, "说明", &mut draft.summary, 2, false);
                                 reference_field(ui, "语法", &mut draft.syntax, 3, true);
                                 reference_field(ui, "示例", &mut draft.example, 6, true);
@@ -350,6 +401,14 @@ impl PersonalDeskApp {
                                 reference_field(ui, "参考地址", &mut draft.source, 1, false);
                             } else if let Some(item) = s.selected.as_ref() {
                                 ui.heading(&item.title);
+                                ui.horizontal_wrapped(|ui| {
+                                    ui.label(RichText::new(&item.entry_type).color(muted()));
+                                    for tag in &item.tags {
+                                        if ui.small_button(tag).clicked() {
+                                            s.filter.tag = tag.clone();
+                                        }
+                                    }
+                                });
                                 ui.add_space(10.);
                                 egui_commonmark::CommonMarkViewer::new().show(
                                     ui,
@@ -365,6 +424,11 @@ impl PersonalDeskApp {
                             }
                         });
                     if edit {
+                        s.draft_tags = s
+                            .selected
+                            .as_ref()
+                            .map(|e| e.tags.join(", "))
+                            .unwrap_or_default();
                         s.draft = s.selected.clone();
                     }
                     if cancel {
@@ -384,6 +448,8 @@ impl PersonalDeskApp {
                                 s.draft = None;
                                 s.error.clear();
                                 // A newly chosen classification must not hide the item just saved.
+                                s.filter.entry_type.clear();
+                                s.filter.tag.clear();
                                 s.filter.language.clear();
                                 s.filter.category.clear();
                                 self.search_query.clear();
@@ -427,6 +493,9 @@ impl PersonalDeskApp {
             }
         }
         self.reference = s;
+        if let Some(item) = practice {
+            self.practice_knowledge(&item);
+        }
         self.handle_workspace_shortcuts(&ui.ctx().clone());
     }
 }

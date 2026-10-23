@@ -26,6 +26,10 @@ pub struct Card {
     pub answer: String,
     pub rubric: Vec<Rubric>,
     pub source: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub knowledge_ids: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
     #[serde(default)]
     pub phonetic: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -39,6 +43,15 @@ pub struct Card {
 }
 impl Card {
     pub fn validate(&self) -> Result<()> {
+        crate::reference::validate_tags(&self.tags)?;
+        if self.knowledge_ids.len() > 16
+            || self
+                .knowledge_ids
+                .iter()
+                .any(|id| id.trim().is_empty() || id.len() > 128)
+        {
+            return Err(DeskError::InvalidInput("知识点编号格式无效".into()));
+        }
         if let Some(training) = &self.training {
             training.validate().map_err(DeskError::InvalidPath)?;
         }
