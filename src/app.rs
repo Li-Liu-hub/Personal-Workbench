@@ -697,7 +697,9 @@ impl eframe::App for PersonalDeskApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
         self.poll_background();
-        self.study.ai.unload_if_idle();
+        self.study
+            .ai
+            .unload_if_idle(matches!(self.section, Section::Practice | Section::Words));
         if ctx.input(|input| input.viewport().close_requested()) {
             let mut records_saved =
                 self.flush_writing() && self.flush_study_answer() && self.flush_games();

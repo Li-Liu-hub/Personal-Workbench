@@ -1,0 +1,1017 @@
+[
+  {
+    "id": "learning:v3:01",
+    "kind": "engineering",
+    "title": "删除属性后为什么又出现了",
+    "topic": "代码实战",
+    "prompt": "const proto={role:\"guest\"}; const u=Object.create(proto); u.role=\"admin\"; delete u.role; console.log(u.role, Object.hasOwn(u,\"role\"));\n给出输出；解释删除前后从哪里取 role；怎样判断取到的是自身属性还是继承属性？",
+    "answer": "输出 guest false。赋值创建自身属性遮蔽原型；删除自身属性后继续沿原型链查找。Object.hasOwn 只判断自身属性，in 包含继承属性。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "给出 guest 与 false 两个结果",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "解释自身属性遮蔽、删除后原型链查找",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "区分自身属性检测与包含继承的检测",
+        "points": 25
+      }
+    ],
+    "source": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference",
+    "knowledge_ids": [
+      "ref:js:prototype-shadow"
+    ],
+    "tags": [
+      "JavaScript",
+      "对象与原型",
+      "结果推演",
+      "自有属性遮蔽与删除"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "解释自身属性遮蔽、删除后原型链查找",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:02",
+    "kind": "engineering",
+    "title": "默认值为什么没有救回 null",
+    "topic": "代码实战",
+    "prompt": "const raw={name:null}; const {name=\"anonymous\"}=raw; console.log(name.toUpperCase());\n指出结果与原因。要求 null 和 undefined 都回退到 anonymous，而空字符串保持不变，请给出修复。",
+    "answer": "访问 null.toUpperCase 会抛 TypeError。解构默认值只处理 undefined；可用 const name=raw.name ?? \"anonymous\" 再调用 toUpperCase。空串不能用 || 替代，否则会被错误回退。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "指出 null 不触发解构默认值并导致异常",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "用空值合并或等价判断同时处理 null/undefined",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "说明保留空串，不能无条件使用 ||",
+        "points": 25
+      }
+    ],
+    "source": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference",
+    "knowledge_ids": [
+      "ref:js:destructure-object"
+    ],
+    "tags": [
+      "JavaScript",
+      "解构与展开",
+      "修复错误",
+      "对象解构：重命名、默认值与嵌套"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "用空值合并或等价判断同时处理 null/undefined",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:03",
+    "kind": "engineering",
+    "title": "await 的异常到底交给谁",
+    "topic": "代码实战",
+    "prompt": "async function f(){return await Promise.reject(new Error(\"network\"));}\nf().then(()=>console.log(\"ok\")).catch(()=>console.log(\"fail\"));\n输出是什么？如果想在 f 内记录失败后仍把失败交给调用方，怎样写？仅 catch 后不 throw 会怎样？",
+    "answer": "输出 fail。f 返回 rejected Promise。f 内 try/await/catch 记录错误再 throw，调用方继续收到拒绝；catch 后正常 return 会使 Promise fulfilled，可能走成功分支。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "判断输出 fail 且 f 返回拒绝的 Promise",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "给出捕获、记录并重新抛出的实现",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "说明吞掉异常会改变调用方看到的完成状态",
+        "points": 25
+      }
+    ],
+    "source": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference",
+    "knowledge_ids": [
+      "ref:js:12"
+    ],
+    "tags": [
+      "JavaScript",
+      "异步与并发",
+      "行为辨析",
+      "async / await 与异常"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "给出捕获、记录并重新抛出的实现",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:04",
+    "kind": "engineering",
+    "title": "复制列表后哪些变化会相互影响",
+    "topic": "代码实战",
+    "prompt": "Java 17：var a=new java.util.ArrayList<String>(); a.add(\"A\"); var b=new java.util.ArrayList<>(a); b.add(\"B\");\n写出 a、b 的内容和 a==b 的结果。把元素换成可变对象后，b.get(0).setName(\"X\") 是否可能影响从 a 读取的对象？",
+    "answer": "a 为 [A]，b 为 [A,B]，a==b 为 false。新列表容器隔离增删，但复制的元素引用相同；可变元素的内部修改可能从两边观察到。需要对象也独立时复制元素。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "正确给出两个列表内容及 false",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "区分独立容器与共享元素引用",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "说明可变元素内部修改及按需复制元素的边界",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "knowledge_ids": [
+      "ref:java:06"
+    ],
+    "tags": [
+      "Java",
+      "集合与容器",
+      "结果推演",
+      "List / ArrayList"
+    ],
+    "training": {
+      "area": "Java 与并发",
+      "level": 2,
+      "goal": "区分独立容器与共享元素引用",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:05",
+    "kind": "engineering",
+    "title": "计数为什么在第一条就报错",
+    "topic": "代码实战",
+    "prompt": "Map<String,Integer> counts=new HashMap<>(); counts.put(\"api\",counts.get(\"api\")+1);\n首次出现 api 时发生什么？用一行修复计数。若多个线程共享普通 HashMap，仅改成 merge 就足够线程安全吗？",
+    "answer": "get 返回 null，拆箱加一抛 NPE。counts.merge(\"api\",1,Integer::sum) 或 getOrDefault 加 put 可完成单线程计数。普通 HashMap 的 merge 不提供并发安全；并发时使用 ConcurrentHashMap.merge 或适当同步。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "指出缺键返回 null 和拆箱 NPE",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "给出首次为1且能递增的正确代码",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "指出普通 HashMap 的 merge 并不自动线程安全",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "knowledge_ids": [
+      "ref:java:map-compute"
+    ],
+    "tags": [
+      "Java",
+      "集合框架",
+      "修复错误",
+      "Map 的 getOrDefault、merge 与 computeIfAbsent"
+    ],
+    "training": {
+      "area": "Java 与并发",
+      "level": 2,
+      "goal": "给出首次为1且能递增的正确代码",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:06",
+    "kind": "engineering",
+    "title": "能看到不代表不会丢计数",
+    "topic": "代码实战",
+    "prompt": "两个线程各执行 10000 次 volatile int count 的 count++，最终 count 一定是20000吗？要求精确总数且等待两个线程完成后读取，给出合适实现；只需要高并发统计时可考虑什么？",
+    "answer": "不一定，count++是读改写复合操作，volatile保证可见性而非复合原子性。AtomicInteger.incrementAndGet 或加锁并在 join 后读取可精确计数。LongAdder 适合统计，活动更新期间 sum 不是原子快照。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "指出可能丢失更新并解释复合操作非原子",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "给出精确计数和等待线程结束的方案",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "区分统计方案与活动期间原子快照要求",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.java/learn/",
+    "knowledge_ids": [
+      "ref:java:14"
+    ],
+    "tags": [
+      "Java",
+      "异步与并发",
+      "方案选择",
+      "ConcurrentHashMap 原子更新"
+    ],
+    "training": {
+      "area": "Java 与并发",
+      "level": 2,
+      "goal": "给出精确计数和等待线程结束的方案",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:07",
+    "kind": "engineering",
+    "title": "数组长度为什么进函数就变了",
+    "topic": "代码实战",
+    "prompt": "C17：void f(int a[]){ printf(\"%zu\", sizeof(a)); } int main(void){int a[6]={0}; f(a);}\nsizeof(a) 在 f 内计算的是哪种类型的大小？能断言输出24吗？请设计一个能正确遍历全部元素的参数接口。",
+    "answer": "数组形参调整为 int*，sizeof 得到指针大小，依实现而变，不能断言24。传入指针和 size_t n，由调用方以 sizeof a / sizeof a[0] 计算6，再按 n 遍历。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "说明形参调整为指针，sizeof 不是数组总字节数",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "指出指针大小依实现且不能固定断言24",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "设计同时传入指针和元素数的接口",
+        "points": 25
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c:array-pointer"
+    ],
+    "tags": [
+      "C",
+      "数组与指针",
+      "边界解释",
+      "数组、指针与 sizeof"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "指出指针大小依实现且不能固定断言24",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:08",
+    "kind": "engineering",
+    "title": "释放以后把指针设空就都安全了吗",
+    "topic": "代码实战",
+    "prompt": "C17：int *p=malloc(sizeof *p); if(!p) return; *p=7; int *q=p; free(p); p=NULL; printf(\"%d\",*q);\n最后一次访问是否合法？为什么 p=NULL 没解决问题？请改写所有权或访问顺序来避免此错误。",
+    "answer": "q 仍指向已释放对象，解引用是未定义行为。把 p 置空不会改变 q。可在 free 前完成读取，或只由一个拥有者释放且不再使用所有别名；不能靠观察一次打印结果证明安全。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "识别释放后使用及未定义行为",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "解释别名 q 不会随 p 置空",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "给出不在释放后访问对象的有效修复",
+        "points": 25
+      }
+    ],
+    "source": "https://www.gnu.org/software/gnu-c-manual/gnu-c-manual.html",
+    "knowledge_ids": [
+      "ref:c:09"
+    ],
+    "tags": [
+      "C",
+      "字符串与内存",
+      "修复错误",
+      "malloc / calloc / free"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "解释别名 q 不会随 p 置空",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:09",
+    "kind": "engineering",
+    "title": "缓冲区没越界是否代表输出完整",
+    "topic": "代码实战",
+    "prompt": "C17：char buf[4]; int n=snprintf(buf,sizeof buf,\"%s\",\"hello\");\n正常实现下 buf 保存什么字符串，n 是多少？如何区分错误、成功完整输出与截断？",
+    "answer": "buf 是 hel 加终止空字节；n 为5（若完整输出所需的字符数，不含终止符）。n<0表示错误；非负且 (size_t)n >= sizeof buf 为截断，否则完整。转换 size_t 前先判断负值。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "正确指出 hel 和所需长度5",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "判断非负返回值大于等于容量时截断",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "先处理负返回值并理解终止符不计入所需字符数",
+        "points": 25
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c:snprintf"
+    ],
+    "tags": [
+      "C",
+      "字符串与标准库",
+      "边界解释",
+      "snprintf 与截断检测"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "判断非负返回值大于等于容量时截断",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:10",
+    "kind": "engineering",
+    "title": "reserve 以后引用还一定有效吗",
+    "topic": "代码实战",
+    "prompt": "C++17：std::vector<int> v{1,2}; int& r=v[0]; v.reserve(v.capacity()+1); std::cout<<r;\n最后一步是否合法？怎样保留对第一个元素的访问而不保留悬空引用？",
+    "answer": "reserve 请求超过旧容量会重分配，原引用失效，再读 r 是未定义行为。保留索引0并在重分配后重新访问 v[0]，或在取得引用前完成所需 reserve，并防止后续重分配。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "指出保证触发重分配且旧引用失效",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "解释使用失效引用是未定义行为",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "给出索引重取或预留后取引用的有效方案",
+        "points": 25
+      }
+    ],
+    "source": "https://eel.is/c++draft/",
+    "knowledge_ids": [
+      "ref:cpp:vector-invalidation"
+    ],
+    "tags": [
+      "C++",
+      "集合与容器",
+      "代码审查",
+      "vector 扩容与迭代器失效"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "解释使用失效引用是未定义行为",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:11",
+    "kind": "engineering",
+    "title": "移交资源之后原指针还能读吗",
+    "topic": "代码实战",
+    "prompt": "C++17：auto p=std::make_unique<int>(7); auto q=std::move(p);\n此时 p、q 的拥有关系是什么？可以复制 q 得到另一个 unique_ptr 吗？若只需临时观察该整数，怎样传给函数？",
+    "answer": "资源转移给 q，p 为空。unique_ptr 不可复制，可移动。临时非拥有观察可传 const int&、int& 或生命周期受约束的裸指针；不要构造第二个拥有同一裸指针的 unique_ptr。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "说明 q 拥有资源且 p 为空",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "区分不可复制和允许移动",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "给出不产生重复所有权的临时借用方式",
+        "points": 25
+      }
+    ],
+    "source": "https://eel.is/c++draft/",
+    "knowledge_ids": [
+      "ref:cpp:unique-ptr"
+    ],
+    "tags": [
+      "C++",
+      "内存与资源",
+      "结果推演",
+      "unique_ptr 与独占所有权"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "区分不可复制和允许移动",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:12",
+    "kind": "engineering",
+    "title": "只是查询，map 怎么多了一条",
+    "topic": "代码实战",
+    "prompt": "std::map<std::string,int> m; bool exists=m[\"missing\"]!=0;\n运行后 m.size() 是多少，exists 是什么？若键值本来就可能是0，如何区分缺键与存在且值为0，且不插入新条目？",
+    "answer": "operator[] 对缺键插入值初始化的 int 0，size 为1，exists 为false。查询用 find 与 end 比较；C++20可用 contains，但本题C++17用find。不能把值是否为0当成是否存在。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "给出 size=1 和 exists=false",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "解释 operator[] 缺键时插入默认值",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "使用 find 区分缺失和零值且不插入",
+        "points": 25
+      }
+    ],
+    "source": "https://eel.is/c++draft/containers",
+    "knowledge_ids": [
+      "ref:cpp:08"
+    ],
+    "tags": [
+      "C++",
+      "集合与容器",
+      "行为辨析",
+      "map 有序键值表"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "解释 operator[] 缺键时插入默认值",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:13",
+    "kind": "engineering",
+    "title": "打印一行为什么还要克隆",
+    "topic": "代码实战",
+    "prompt": "Rust：fn show(s:String){println!(\"{s}\");} fn main(){let name=String::from(\"Ada\"); show(name); println!(\"{name}\");}\n编译能通过吗？若 show 只读取字符串，给出不克隆内容的修复，并说明何时才需要 clone。",
+    "answer": "name 被 move 到 show，之后不能继续使用。改为 show(s:&str)，调用 show(&name) 即可借用，main 保留所有权。只有需要独立拥有一份字符串时才按需 clone，不为只读临时访问盲目复制。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "指出 move 后继续使用导致编译错误",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "给出 &str 参数和借用调用的有效代码",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "区分借用读取与独立拥有时复制",
+        "points": 25
+      }
+    ],
+    "source": "https://doc.rust-lang.org/book/",
+    "knowledge_ids": [
+      "ref:rust:ownership-move"
+    ],
+    "tags": [
+      "Rust",
+      "所有权与借用",
+      "修复错误",
+      "所有权、移动与 Copy"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "给出 &str 参数和借用调用的有效代码",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:14",
+    "kind": "engineering",
+    "title": "UTF-8 的第二个字符在哪儿",
+    "topic": "代码实战",
+    "prompt": "Rust：let s=\"你好\"; let first=&s[0..1];\n会得到第一个汉字吗？若只需要第一个 Unicode 标量值如何读取？为什么这仍不完全等于用户看到的第一个字形？",
+    "answer": "字节索引0..1切在UTF-8字符内部，会panic。可用 s.chars().next() 返回Option<char>，处理空串。char是Unicode标量值，组合附加符或emoji序列可能由多个标量构成，字形簇需专门处理。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "指出字节边界非法会panic而非得到汉字",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "用 chars().next() 并考虑空串",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "区分Unicode标量与字形簇",
+        "points": 25
+      }
+    ],
+    "source": "https://doc.rust-lang.org/book/",
+    "knowledge_ids": [
+      "ref:rust:slice-str"
+    ],
+    "tags": [
+      "Rust",
+      "集合与容器",
+      "边界解释",
+      "切片、str 与 UTF-8 边界"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "用 chars().next() 并考虑空串",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:15",
+    "kind": "engineering",
+    "title": "一遍查找完成词频累计",
+    "topic": "代码实战",
+    "prompt": "Rust：let mut counts=std::collections::HashMap::<String,u32>::new();\n补全循环，统计 [\"api\",\"db\",\"api\"] 的频次，优先使用 entry，给出最终键值。不要为每次递增先删除再插入。",
+    "answer": "for word in [\"api\",\"db\",\"api\"] { *counts.entry(word.to_owned()).or_insert(0)+=1; } 最终 api:2、db:1。entry 的 or_insert 返回可变引用；解引用后修改计数，HashMap 不保证遍历顺序。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "给出 entry/or_insert 加解引用递增的可行代码",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "正确处理首次出现与重复词并给出2和1",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "说明返回可变引用或无序输出等相关边界",
+        "points": 25
+      }
+    ],
+    "source": "https://doc.rust-lang.org/book/",
+    "knowledge_ids": [
+      "ref:rust:hashmap-entry"
+    ],
+    "tags": [
+      "Rust",
+      "集合与容器",
+      "补全代码",
+      "HashMap Entry 原地更新"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "正确处理首次出现与重复词并给出2和1",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:16",
+    "kind": "engineering",
+    "title": "切片只有两格，为什么改了原数组",
+    "topic": "代码实战",
+    "prompt": "Go：a:=[]int{1,2,3}; b:=a[:2]; b[0]=9\n给出 a 和 b 的内容。要求 b 后续的元素修改不影响 a，如何复制？如果元素含指针，新切片是否也深复制了指针指向的数据？",
+    "answer": "a为[9 2 3]，b为[9 2]，二者共享底层数组。使用 make 创建新切片再 copy，或 append([]int(nil),b...)。复制元素本身，不自动深复制其指针指向的对象。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "给出 a与b的正确内容",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "说明共享底层数组并给出独立存储的复制",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "区分元素复制与递归深复制",
+        "points": 25
+      }
+    ],
+    "source": "https://go.dev/ref/spec",
+    "knowledge_ids": [
+      "ref:go:slice-array"
+    ],
+    "tags": [
+      "Go",
+      "集合与容器",
+      "结果推演",
+      "数组、切片与共享底层存储"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "说明共享底层数组并给出独立存储的复制",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:17",
+    "kind": "engineering",
+    "title": "map 的零值能表示查无此人吗",
+    "topic": "代码实战",
+    "prompt": "Go：m:=map[string]int{\"Alice\":0}; fmt.Println(m[\"Alice\"],m[\"Bob\"])\n输出什么？业务需要区分已登记的零分与未登记，请给查询方式。nil map 读取和写入各怎样？",
+    "answer": "均输出0。v,ok:=m[key]区分是否存在，Alice的ok为true，Bob为false。nil map读取返回零值和false，写入panic，应先make初始化。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "给出两个0并说明单值读取无法区分",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "用 comma ok 正确区分存在与缺失",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "区分 nil map 可读和不可直接写",
+        "points": 25
+      }
+    ],
+    "source": "https://go.dev/ref/spec",
+    "knowledge_ids": [
+      "ref:go:map-comma-ok"
+    ],
+    "tags": [
+      "Go",
+      "集合与容器",
+      "方案选择",
+      "map、缺失零值与 comma ok"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "用 comma ok 正确区分存在与缺失",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:18",
+    "kind": "engineering",
+    "title": "关掉 channel 后还有数据吗",
+    "topic": "代码实战",
+    "prompt": "Go：ch:=make(chan int,2); ch<-5; close(ch); a,ok1:=<-ch; b,ok2:=<-ch\n四个变量分别是什么？range ch 何时结束？能再向已关闭channel发送吗？",
+    "answer": "a=5,ok1=true；b=0,ok2=false。已缓冲数据先读完，随后接收返回零值和false；range在缓冲耗尽且已关闭后结束。向已关闭channel发送会panic，关闭通常由发送方负责。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "给出5/true与0/false",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "解释关闭后先排空缓冲及range结束条件",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "指出关闭后发送panic及合理关闭责任",
+        "points": 25
+      }
+    ],
+    "source": "https://go.dev/tour/",
+    "knowledge_ids": [
+      "ref:go:15"
+    ],
+    "tags": [
+      "Go",
+      "异步与并发",
+      "结果推演",
+      "channel 与 select"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "解释关闭后先排空缓冲及range结束条件",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:19",
+    "kind": "engineering",
+    "title": "重定向的两个顺序等价吗",
+    "topic": "Linux 命令",
+    "prompt": "Bash：command >all.log 2>&1 与 command 2>&1 >out.log 是否等价？假设原stdout/stderr都接终端，分别说明两路输出去向。给出把两路都追加到同一文件的写法。",
+    "answer": "不等价，重定向按从左到右生效。第一条stdout/stderr都进all.log；第二条stderr先复制原stdout所以仍到终端，stdout进out.log。追加可用 command >>all.log 2>&1。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "正确区分两条命令的输出去向",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "解释从左到右且2>&1复制当时的描述符目标",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "给出同时追加两路的正确命令",
+        "points": 25
+      }
+    ],
+    "source": "https://www.gnu.org/software/coreutils/manual/",
+    "knowledge_ids": [
+      "ref:linux:09"
+    ],
+    "tags": [
+      "Linux",
+      "查找与文本",
+      "行为辨析",
+      "管道、重定向与排序计数"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "解释从左到右且2>&1复制当时的描述符目标",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:20",
+    "kind": "engineering",
+    "title": "空格文件名怎么被拆成了两个",
+    "topic": "Linux 命令",
+    "prompt": "只需列出当前目录下名称以 .log 结尾的普通文件并交给 wc -l。为什么 find . -type f -name \"*.log\" | xargs wc -l 可能出错？给出支持空格、换行文件名的 GNU/Linux 写法，且零文件时不误读标准输入。",
+    "answer": "默认按空白分隔会拆坏文件名。GNU find . -maxdepth 1 -type f -name \"*.log\" -print0 | xargs -0 -r wc -l；也可用安全的 -exec wc -l {} +，并说明范围。-0配对NUL，-r避免空输入启动。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "指出默认空白分隔破坏文件名",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "给出NUL配对或正确-exec参数边界",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "限定当前目录且零匹配时不启动误读输入",
+        "points": 25
+      }
+    ],
+    "source": "https://www.gnu.org/software/coreutils/manual/coreutils.html",
+    "knowledge_ids": [
+      "ref:linux:xargs-null"
+    ],
+    "tags": [
+      "Linux",
+      "文本与管道",
+      "修复错误",
+      "xargs、零分隔与参数边界"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "给出NUL配对或正确-exec参数边界",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:21",
+    "kind": "engineering",
+    "title": "文件可读，为什么目录里还是打不开",
+    "topic": "Linux 命令",
+    "prompt": "用户能读取某文件的权限位，但该文件某个父目录对其没有 x 权限。为什么仍可能打不开？目录 r、x、w 分别意味着什么？如何只检查问题而不直接递归 chmod 777？",
+    "answer": "遍历每一层路径需要目录搜索x权限。目录r用于列出名字，x用于按名字访问/遍历，w与x配合影响目录项增删。可用 namei -l 路径、ls -ld 各层及id检查身份，结合ACL等；按最小需要修复，不盲目777。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "指出父路径逐层搜索权限要求",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "区分目录r/x/w用途",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "提供只读检查路径权限和身份的办法",
+        "points": 25
+      }
+    ],
+    "source": "https://www.gnu.org/software/coreutils/manual/",
+    "knowledge_ids": [
+      "ref:linux:10"
+    ],
+    "tags": [
+      "Linux",
+      "权限与用户",
+      "排障验证",
+      "chmod 权限修改"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "区分目录r/x/w用途",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    }
+  },
+  {
+    "id": "learning:v3:22",
+    "kind": "engineering",
+    "title": "LEFT JOIN 怎么漏掉了零订单用户",
+    "topic": "SQL 训练",
+    "prompt": "users(id)有1、2；orders(id,user_id,status)只有(10,1,\"paid\")。查询 SELECT u.id,COUNT(o.id) FROM users u LEFT JOIN orders o ON o.user_id=u.id WHERE o.status=\"paid\" GROUP BY u.id; 为什么缺少用户2？写出保留所有用户、统计已付订单数的查询，按用户id排序。\nSQL在独立SQLite中运行；请提交可执行SQL，把概念解释写入--注释。",
+    "answer": "WHERE把右侧补NULL的行过滤掉。把状态条件放ON：SELECT u.id,COUNT(o.id) FROM users u LEFT JOIN orders o ON o.user_id=u.id AND o.status='paid' GROUP BY u.id ORDER BY u.id; 返回(1,1),(2,0)。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "说明WHERE过滤右侧补NULL行",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "在ON中限制paid并保留所有用户",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "用COUNT右表非空键统计零订单而不是COUNT(*)",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/",
+    "knowledge_ids": [
+      "ref:mysql:join-null"
+    ],
+    "tags": [
+      "MySQL",
+      "连接与子查询",
+      "修复查询",
+      "LEFT JOIN 与 WHERE 的过滤位置"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "在ON中限制paid并保留所有用户",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    },
+    "sql": {
+      "setup": "CREATE TABLE users(id INTEGER PRIMARY KEY); INSERT INTO users VALUES(1),(2); CREATE TABLE orders(id INTEGER PRIMARY KEY,user_id INTEGER,status TEXT); INSERT INTO orders VALUES(10,1,'paid');",
+      "tables": [
+        "users",
+        "orders"
+      ],
+      "reference": "SELECT u.id,COUNT(o.id) FROM users u LEFT JOIN orders o ON o.user_id=u.id AND o.status='paid' GROUP BY u.id ORDER BY u.id;",
+      "ordered": true,
+      "runnable": true,
+      "explanation": "SQLite独立内存库执行并回滚，样例验证结果；概念解释由AI批改。提交可执行SQL，说明可写在SQL注释中。"
+    }
+  },
+  {
+    "id": "learning:v3:23",
+    "kind": "engineering",
+    "title": "平均分的分母到底是谁",
+    "topic": "SQL 训练",
+    "prompt": "scores(id,score)有(1,80),(2,NULL),(3,100)。写一条查询返回 total、known、mean_score，即总行数、有分数行数、非空分数均值；说明不能直接把NULL都当作0的原因。\nSQL在独立SQLite中运行；请提交可执行SQL，把概念解释写入--注释。",
+    "answer": "SELECT COUNT(*) AS total,COUNT(score) AS known,AVG(score) AS mean_score FROM scores; 结果3、2、90。NULL表示未知/缺失，直接COALESCE为0会改变均值为60，不是相同业务口径。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "正确选择COUNT(*)和COUNT(score)",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "使用AVG并给出3/2/90的结果",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "解释NULL缺失与零分的业务差别",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/sql-statements.html",
+    "knowledge_ids": [
+      "ref:mysql:14"
+    ],
+    "tags": [
+      "MySQL",
+      "字符串与空值",
+      "写查询并解释",
+      "NULL / COALESCE / COUNT"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "使用AVG并给出3/2/90的结果",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    },
+    "sql": {
+      "setup": "CREATE TABLE scores(id INTEGER PRIMARY KEY,score REAL); INSERT INTO scores VALUES(1,80),(2,NULL),(3,100);",
+      "tables": [
+        "scores"
+      ],
+      "reference": "SELECT COUNT(*) AS total,COUNT(score) AS known,AVG(score) AS mean_score FROM scores;",
+      "ordered": true,
+      "runnable": true,
+      "explanation": "SQLite独立内存库执行并回滚，样例验证结果；概念解释由AI批改。提交可执行SQL，说明可写在SQL注释中。"
+    }
+  },
+  {
+    "id": "learning:v3:24",
+    "kind": "engineering",
+    "title": "并列第一，到底保留几个人",
+    "topic": "SQL 训练",
+    "prompt": "results(id,score)有(1,100),(2,100),(3,90)。要查“分数最高的前两个名次，包含并列”，给出窗口函数查询，输出id与score并按score降序、id升序。ROW_NUMBER<=2和DENSE_RANK<=2会返回同样人员吗？\nSQL在独立SQLite中运行；请提交可执行SQL，把概念解释写入--注释。",
+    "answer": "WITH ranked AS (SELECT id,score,DENSE_RANK() OVER(ORDER BY score DESC) AS r FROM results) SELECT id,score FROM ranked WHERE r<=2 ORDER BY score DESC,id; 返回全部三人。ROW_NUMBER<=2只取两个，且只按score排序时并列顺序不确定；DENSE_RANK按分数保留并列且不跳号。",
+    "rubric": [
+      {
+        "id": "r1",
+        "text": "按分数使用DENSE_RANK而不是把id放入排名排序键",
+        "points": 40
+      },
+      {
+        "id": "r2",
+        "text": "在外层过滤r<=2并给出三人结果",
+        "points": 35
+      },
+      {
+        "id": "r3",
+        "text": "区分取行数与取分数名次及并列问题",
+        "points": 25
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/sql-statements.html",
+    "knowledge_ids": [
+      "ref:mysql:13"
+    ],
+    "tags": [
+      "MySQL",
+      "查询与聚合",
+      "排名应用",
+      "窗口函数 ROW_NUMBER"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "在外层过滤r<=2并给出三人结果",
+      "deliverable": "回答题干的具体问题；只有明确要求实现的部分需要写代码，接受合理等价的解释与实现。"
+    },
+    "sql": {
+      "setup": "CREATE TABLE results(id INTEGER PRIMARY KEY,score INTEGER); INSERT INTO results VALUES(1,100),(2,100),(3,90);",
+      "tables": [
+        "results"
+      ],
+      "reference": "WITH ranked AS (SELECT id,score,DENSE_RANK() OVER(ORDER BY score DESC) AS r FROM results) SELECT id,score FROM ranked WHERE r<=2 ORDER BY score DESC,id;",
+      "ordered": true,
+      "runnable": true,
+      "explanation": "SQLite独立内存库执行并回滚，样例验证结果；概念解释由AI批改。提交可执行SQL，说明可写在SQL注释中。"
+    }
+  }
+]

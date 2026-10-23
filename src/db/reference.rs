@@ -61,7 +61,7 @@ impl Database {
                 self.import_study_cards(&cards)?;
                 self.set_setting("reference.practice.version", crate::reference::SEED_VERSION)?;
             }
-            return Ok(());
+            return self.prepare_learning_quality();
         }
         let entries: Vec<Entry> =
             serde_json::from_str(include_str!("../../assets/reference.json"))?;
@@ -97,7 +97,7 @@ impl Database {
         self.import_study_cards(&cards)?;
         // The marker follows both imports, so a crash can replay without duplicating anything.
         self.set_setting("reference.practice.version", crate::reference::SEED_VERSION)?;
-        Ok(())
+        self.prepare_learning_quality()
     }
     pub fn reference_entry(&self, id: &str) -> Result<Option<Entry>> {
         Ok(self

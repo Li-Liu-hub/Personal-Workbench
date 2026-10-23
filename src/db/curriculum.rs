@@ -149,6 +149,7 @@ mod tests {
             };
             db.mark_study_help(&p.id).unwrap();
             let g = Grade {
+                assessment: None,
                 checks: card
                     .rubric
                     .iter()
@@ -228,7 +229,7 @@ mod tests {
             curriculum::BUILTIN_COUNT
         );
         let sql = db.practice_candidates("SQL 命令").unwrap();
-        assert_eq!(sql.len(), 88);
+        assert_eq!(sql.len(), 91);
         assert!(
             sql.iter()
                 .all(|r| curriculum::category(&r.card.topic) == "SQL 训练")

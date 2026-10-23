@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '扩充指令大全至 358 个知识点、376 道对应练习；新增贪吃蛇与俄罗斯方块关卡、续玩存档和完整成绩记录，保留原有文档、账号和练习历史'
+    [string]$Notes = '修复语义部分分与零分复核，学习时保持模型加载；扩展英语8种练习、24语法知识点和具体知识点任务，保留旧数据与作答记录'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

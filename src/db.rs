@@ -8,6 +8,7 @@ mod games;
 mod knowledge_tests;
 mod library;
 mod reference;
+mod reference_learning;
 #[cfg(test)]
 mod reference_tests;
 mod study;

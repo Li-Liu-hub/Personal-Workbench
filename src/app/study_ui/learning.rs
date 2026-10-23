@@ -19,10 +19,20 @@ impl PersonalDeskApp {
             .ok_or(DeskError::UnsupportedFormat)
             .and_then(|db| {
                 db.import_study_cards(std::slice::from_ref(&card))?;
+                if let Some(sequence) = card.tags.iter().find_map(|t| {
+                    t.strip_prefix("练习序号:")
+                        .and_then(|v| v.parse::<u64>().ok())
+                }) {
+                    db.set_setting(
+                        &format!("study.word.sequence.{}", crate::english::slug(&card.topic)),
+                        &sequence.saturating_add(1).to_string(),
+                    )?;
+                }
                 db.study_card(&card.id)?.ok_or(DeskError::UnsupportedFormat)
             });
         match result {
             Ok(card) => {
+                self.study.error.clear();
                 s.answer.clear();
                 s.result = None;
                 s.sql_preview = None;
@@ -45,14 +55,13 @@ impl PersonalDeskApp {
                     self.study.error = error.to_string();
                 }
                 s.stats = None;
-                self.study.error.clear();
             }
             Err(error) => self.study.error = error.to_string(),
         }
     }
     pub(in crate::app) fn next_english(&mut self, s: &mut Session) {
         let mut mode = if s.word_mode.is_empty() {
-            crate::english::MODES[s.mixed_draws % 5]
+            crate::english::MODES[s.mixed_draws % crate::english::MODES.len()]
         } else {
             &s.word_mode
         }
@@ -63,12 +72,12 @@ impl PersonalDeskApp {
             .ok_or(DeskError::UnsupportedFormat)
             .and_then(|db| db.draw_word(&mode, &s.recent, roll()));
         if s.word_mode.is_empty() {
-            for _ in 0..4 {
+            for _ in 1..crate::english::MODES.len() {
                 if !matches!(result, Ok(None)) {
                     break;
                 }
                 s.mixed_draws += 1;
-                mode = crate::english::MODES[s.mixed_draws % 5].into();
+                mode = crate::english::MODES[s.mixed_draws % crate::english::MODES.len()].into();
                 result = self
                     .db
                     .as_ref()
@@ -85,16 +94,50 @@ impl PersonalDeskApp {
             Err(error) => self.study.error = error.to_string(),
         }
     }
-    fn prepare_english_base(&mut self, s: &mut Session, base: Card, mode: String) {
-        let id = crate::english::id(&base.id, &mode);
+    pub(super) fn prepare_english_base(&mut self, s: &mut Session, base: Card, mode: String) {
+        if mode == "语法" {
+            if base.id.starts_with("english:grammar:v3:") {
+                self.install_english(s, base);
+            } else {
+                match self
+                    .db
+                    .as_ref()
+                    .map(|db| db.draw_word("语法", &s.recent, roll()))
+                {
+                    Some(Ok(Some(card))) => self.install_english(s, card),
+                    Some(Ok(None)) => {
+                        s.card = None;
+                        self.study.error = "基础语法已掌握，可切换其他方式".into();
+                    }
+                    Some(Err(error)) => self.study.error = error.to_string(),
+                    None => self.study.error = "数据库未打开".into(),
+                }
+            }
+            return;
+        }
+        s.english_sequence = self
+            .db
+            .as_ref()
+            .and_then(|db| {
+                db.setting(&format!(
+                    "study.word.sequence.{}",
+                    crate::english::slug(&mode)
+                ))
+                .ok()
+                .flatten()
+            })
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0);
+        let plan = crate::english::plan(&mode, s.english_sequence);
+        let id = crate::english::variant_id(&base.id, &mode, s.english_sequence);
         let cached = self
             .db
             .as_ref()
             .and_then(|db| db.study_card(&id).ok().flatten());
         if let Some(card) = cached {
             self.install_english(s, card);
-        } else if matches!(mode.as_str(), "造句" | "语法") {
-            match crate::english::exercise(&base, &mode, None) {
+        } else if mode == "造句" {
+            match plan.exercise(&base, &mode, None) {
                 Ok(card) => self.install_english(s, card),
                 Err(error) => self.study.error = error,
             }
@@ -154,8 +197,9 @@ impl PersonalDeskApp {
         let config = self.study.config.clone();
         let log = self.data_dir.join("study-model.log");
         let sender = self.sender.clone();
+        let plan = crate::english::plan(&mode, s.english_sequence);
         thread::spawn(move || {
-            let result = ai.english_exercise(&config, &log, &base, &mode);
+            let result = ai.english_variant(&config, &log, &base, &mode, &plan);
             let _ = sender.send(BackgroundMessage::Learning(LearningMessage::Generated(
                 Box::new(result),
             )));
@@ -282,7 +326,11 @@ impl PersonalDeskApp {
                         )
                         .clicked()
                     {
-                        self.study.ai.stop();
+                        if generating && !starting {
+                            self.study.ai.cancel_generation();
+                        } else {
+                            self.study.ai.stop();
+                        }
                     }
                     ui.label(RichText::new(self.study.ai.status()).size(12.));
                     let state = self.study.ai.snapshot();

@@ -3,6 +3,7 @@ use crate::{english, local_ai::Dialogue, study::Check};
 
 fn full(card: &Card, answer: &str) -> Grade {
     Grade {
+        assessment: None,
         checks: card
             .rubric
             .iter()
@@ -17,6 +18,144 @@ fn full(card: &Card, answer: &str) -> Grade {
         weak_points: vec![],
         sql: None,
         project: None,
+    }
+}
+#[test]
+fn grammar_is_offline_switchable_and_mastery_follows_the_skill_across_tasks() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+    app.study.config.model = dir.path().join("not-installed.gguf");
+    let base = app
+        .db
+        .as_ref()
+        .unwrap()
+        .study_card("ielts:benefit")
+        .unwrap()
+        .unwrap();
+    let mut s = Session {
+        card: Some(base.clone()),
+        answer: "原来的答案".into(),
+        pending: Some(pending(&base, "原来的答案")),
+        word_mode: "语法".into(),
+        ..Default::default()
+    };
+    app.switch_english_mode(&mut s);
+    let first = s.card.clone().unwrap();
+    assert!(first.id.starts_with("english:grammar:v3:"));
+    assert!(!app.study.busy);
+    assert!(!app.study.ai.is_loaded());
+    assert!(
+        app.db
+            .as_ref()
+            .unwrap()
+            .study_pending("word")
+            .unwrap()
+            .iter()
+            .any(|p| p.answer == "原来的答案")
+    );
+    let db = app.db.as_mut().unwrap();
+    let origin = first.origin.clone().unwrap();
+    let index = origin
+        .strip_prefix("grammar:skill:")
+        .unwrap()
+        .parse::<u64>()
+        .unwrap();
+    for n in 0..5 {
+        let card = english::grammar_card(index + (n % 2) * 24).unwrap();
+        db.import_study_cards(std::slice::from_ref(&card)).unwrap();
+        db.record_study_attempt(
+            &pending(&card, "fixture"),
+            full(&card, "fixture"),
+            "fixture",
+            1,
+        )
+        .unwrap();
+    }
+    assert!(
+        db.english_progress("语法")
+            .unwrap()
+            .iter()
+            .find(|p| p.card_id == origin)
+            .unwrap()
+            .mastered
+    );
+    db.save_study_rules(&Rules {
+        mastered: crate::study::MasteredMode::Stop,
+        ..Default::default()
+    })
+    .unwrap();
+    for n in 0..48 {
+        assert_ne!(
+            db.draw_word("语法", &[], n * 100)
+                .unwrap()
+                .unwrap()
+                .origin
+                .as_deref(),
+            Some(origin.as_str())
+        );
+    }
+    s.word_mode = "造句".into();
+    app.switch_english_mode(&mut s);
+    assert_eq!(s.card.as_ref().unwrap().topic, "造句");
+    assert!(!app.study.busy);
+    assert!(
+        s.card
+            .as_ref()
+            .unwrap()
+            .origin
+            .as_ref()
+            .unwrap()
+            .starts_with("ielts:")
+    );
+}
+#[test]
+fn grammar_leaves_visible_writing_space_in_small_and_standard_windows() {
+    for size in [[1000., 680.], [1280., 800.]] {
+        let dir = tempfile::tempdir().unwrap();
+        let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+        app.section = Section::Words;
+        app.study.tutor_open = false;
+        let card = english::grammar_card(12).unwrap();
+        app.db
+            .as_mut()
+            .unwrap()
+            .import_study_cards(std::slice::from_ref(&card))
+            .unwrap();
+        app.study.words = Session {
+            word_mode: "语法".into(),
+            pending: Some(pending(&card, "")),
+            card: Some(card),
+            ..Default::default()
+        };
+        let ctx = egui::Context::default();
+        configure_theme(&ctx);
+        let mut output = egui::FullOutput::default();
+        for _ in 0..3 {
+            output = ctx.run_ui(
+                egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, size.into())),
+                    ..Default::default()
+                },
+                |ui| app.render_workspace(ui),
+            );
+            output.textures_delta.clear();
+        }
+        let at = |label: &str| {
+            output
+                .shapes
+                .iter()
+                .find_map(|s| match &s.shape {
+                    egui::Shape::Text(t) if t.galley.text() == label => Some(t.pos),
+                    _ => None,
+                })
+                .unwrap_or_else(|| panic!("missing {label}"))
+        };
+        let hint = at("写下你的思路、命令或代码…");
+        let submit = at("提交 · AI 批改");
+        assert!(
+            hint.y + 100. < submit.y,
+            "writing space {size:?}: {hint:?}, {submit:?}"
+        );
     }
 }
 fn wait(app: &mut PersonalDeskApp) {
@@ -324,14 +463,21 @@ fn live_learning_tutor_english_modes_and_real_token_metrics() {
     assert!(stats.tokens.is_some_and(|n| n > 0));
     assert!(stats.speed.is_some_and(|n| n > 0.));
     let base = db.study_card("ielts:benefit").unwrap().unwrap();
-    for mode in ["中译英", "英译中", "语法"] {
+    for mode in [
+        "中译英",
+        "英译中",
+        "语法",
+        "搭配填空",
+        "句式改写",
+        "短文理解",
+    ] {
         let exercise = ai.english_exercise(&config, &log, &base, mode).unwrap();
         println!("ENGLISH {mode}: {} | {}", exercise.prompt, exercise.answer);
         db.import_study_cards(std::slice::from_ref(&exercise))
             .unwrap();
         let answer = exercise
             .answer
-            .lines()
+            .split("\n\n词义参考：")
             .next()
             .unwrap()
             .trim_start_matches("参考解答：");
@@ -356,6 +502,16 @@ fn live_learning_tutor_english_modes_and_real_token_metrics() {
         db.record_study_attempt(&pending(&exercise, answer), grade, "live", 1)
             .unwrap();
     }
+    let first = ai
+        .english_variant(&config, &log, &base, "语法", &english::plan("语法", 12))
+        .unwrap();
+    let second = ai
+        .english_variant(&config, &log, &base, "语法", &english::plan("语法", 36))
+        .unwrap();
+    println!("VARIANTS {} | {}", first.prompt, second.prompt);
+    assert_ne!(first.prompt, second.prompt);
+    assert_ne!(first.id, second.id);
+    assert!(first.tags.iter().any(|t| t == "限定性关系从句"));
     let sentence = english::exercise(&base, "造句", None).unwrap();
     let answer = "Regular exercise can benefit our physical and mental health.";
     let grade = ai.grade(&config, &log, &sentence, answer).unwrap();
@@ -452,7 +608,10 @@ fn live_model_controls_stop_idle_and_generating_models_without_losing_answers() 
     input_frame(&mut app, &ctx, 0.5, pointer(at, true), vec![]);
     input_frame(&mut app, &ctx, 0.6, pointer(at, false), vec![]);
     wait(&mut app);
-    assert!(!app.study.ai.is_loaded());
+    assert!(
+        app.study.ai.is_loaded(),
+        "stopping generation must retain loaded weights"
+    );
     assert_eq!(app.study.practice.answer, answer);
     assert!(
         app.db
@@ -534,4 +693,54 @@ fn practice_selector_uses_seven_categories_keeps_old_answers_and_persists_filter
     drop(app);
     let app = PersonalDeskApp::open_data_directory(dir.path().into());
     assert_eq!(app.study.practice.topic, "代码实战");
+}
+
+#[test]
+fn english_variants_keep_old_snapshots_and_share_mastery_by_word_and_mode() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+    let base = app
+        .db
+        .as_ref()
+        .unwrap()
+        .study_card("ielts:benefit")
+        .unwrap()
+        .unwrap();
+    let mut s = Session::default();
+    app.prepare_english_base(&mut s, base.clone(), "造句".into());
+    let first = s.card.as_ref().unwrap().clone();
+    app.prepare_english_base(&mut s, base.clone(), "造句".into());
+    assert_ne!(first.id, s.card.as_ref().unwrap().id);
+    assert_ne!(first.prompt, s.card.as_ref().unwrap().prompt);
+    let db = app.db.as_mut().unwrap();
+    let old = english::exercise(&base, "造句", None).unwrap();
+    db.import_study_cards(std::slice::from_ref(&old)).unwrap();
+    let answer = "It can benefit everyone.";
+    let historical = db
+        .record_study_attempt(&pending(&old, answer), full(&old, answer), "previous", 1)
+        .unwrap();
+    let snapshot = serde_json::to_value(&historical).unwrap();
+    for n in 0..4 {
+        let card = english::plan("造句", n)
+            .exercise(&base, "造句", None)
+            .unwrap();
+        db.import_study_cards(std::slice::from_ref(&card)).unwrap();
+        db.record_study_attempt(&pending(&card, answer), full(&card, answer), "new", 1)
+            .unwrap();
+    }
+    let progress = db.english_progress("造句").unwrap();
+    let p = progress.iter().find(|p| p.card_id == base.id).unwrap();
+    assert_eq!(p.attempts, 5);
+    assert!(p.mastered);
+    assert!(db.english_progress("语法").unwrap().is_empty());
+    let p = pending(&first, answer);
+    db.mark_study_help(&p.id).unwrap();
+    db.record_study_attempt(&p, Grade::unknown(&first), "fixture", 1)
+        .unwrap();
+    assert!(db.english_progress("造句").unwrap()[0].mastered);
+    assert_eq!(
+        serde_json::to_value(&db.study_attempts(&old.id).unwrap()[0]).unwrap(),
+        snapshot
+    );
+    assert_eq!(db.study_today("word").unwrap(), 1);
 }

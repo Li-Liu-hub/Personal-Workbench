@@ -1,0 +1,74 @@
+[
+  {"skill":"主谓一致","tasks":[
+    ["改错并解释","改正句子并简述原因：Each of the students have a study plan.","Each of the students has a study plan.","主语是单数 each，而不是介词短语里的 students，因此用 has。"],
+    ["语境填空并解释","填写 is 或 are 并解释：The results of the experiment ___ encouraging.","The results of the experiment are encouraging.","主语 results 为复数；of the experiment 修饰主语，不改变其数。"]]},
+  {"skill":"可数与不可数名词","tasks":[
+    ["改错并解释","改正句子：She gave me several useful advices. 并说明如何表达多条建议。","She gave me several useful pieces of advice.","advice 通常不可数，不用 advices；可用 pieces of advice 计数。也接受 some useful advice。"],
+    ["比较两句并说明选择","表示讨论时间不多，选 A 或 B 并解释：A. We have few time to discuss it. B. We have little time to discuss it.","B. We have little time to discuss it.","time 在这里表示时间，为不可数名词，用 little；few 修饰复数可数名词。"]]},
+  {"skill":"冠词与限定词","tasks":[
+    ["语境填空并解释","填 a、an、the 或不填，并解释：I bought ___ book yesterday. ___ book is about climate change.","I bought a book yesterday. The book is about climate change.","首次提到一本书用 a；第二次指已提到的同一本书，用 the。"],
+    ["改错并解释","改正并说明：She is an university student.","She is a university student.","university 开头读 /j/ 辅音，a/an 按读音选择，不按字母是否元音判断。"]]},
+  {"skill":"一般过去与现在完成","tasks":[
+    ["比较两句并说明选择","上下文：旅行发生在去年，时间已结束。选 A 或 B 并解释：A. I visited London last year. B. I have visited London last year.","A. I visited London last year.","last year 是已结束的过去时间，一般用一般过去时，不能在此与现在完成时搭配。"],
+    ["语境填空并解释","钥匙现在仍找不到，填 lose 的适当形式并解释与现在的联系：I ___ my keys, so I cannot get in.","I have lost my keys, so I cannot get in.","现在完成时强调过去丢钥匙对现在造成的结果：目前无法进门。美式英语语境下 lost 也可合理表达这一结果。"]]},
+  {"skill":"现在完成与完成进行","tasks":[
+    ["比较两句并说明选择","突出持续过程且报告还没写完，选 A 或 B 并解释：A. I have written the report. B. I have been writing the report for two hours.","B. I have been writing the report for two hours.","完成进行时突出一直在进行的活动；A 通常突出报告已完成。"] ,
+    ["语境填空并解释","填 know 的适当形式：We ___ each other since 2020. 并说明为什么不用进行时。","We have known each other since 2020.","know 通常是状态动词；从过去持续到现在的状态用现在完成时，不用 have been knowing。"]]},
+  {"skill":"过去完成与叙事顺序","tasks":[
+    ["语境填空并解释","两件过去的事，火车先开走：When we arrived at the station, the train ___ already ___ (leave). 解释事件顺序。","When we arrived at the station, the train had already left.","过去完成 had left 标示发生在过去到站之前的动作。"] ,
+    ["比较两句并说明选择","解释两句在时间顺序上的不同：A. When I arrived, she left. B. When I arrived, she had left.","A 通常表示我到后她才离开，或两个动作紧接发生。B 表示我到之前她已离开。","一般过去时依上下文叙述动作；过去完成时明确回到另一个过去时间之前。"]]},
+  {"skill":"将来时间与安排","tasks":[
+    ["语境填空并解释","已订好明天的会面时间，用现在进行时填写：I ___ (meet) my tutor at ten tomorrow.","I am meeting my tutor at ten tomorrow.","现在进行时可表达已经安排好的将来活动；tomorrow 提供将来时间。"] ,
+    ["改错并解释","改正句子并说明时间从句的时态：I will call you when I will arrive.","I will call you when I arrive.","表达将来的时间状语从句 when I arrive 通常用一般现在时；主句用 will。"]]},
+  {"skill":"被动语态与施事","tasks":[
+    ["按要求改写并解释","改为被动语态，保留时间：The team fixed the bug yesterday.","The bug was fixed by the team yesterday.","一般过去时被动为 was/were + 过去分词；bug 是单数，用 was。by the team 可在施事不重要时省略。"] ,
+    ["语境填空并解释","系统维护中，强调此刻正在被修复：The server ___ (repair) now. 使用被动进行时。","The server is being repaired now.","现在进行时被动结构为 is/are being + 过去分词，表示此刻正在接受动作。"]]},
+  {"skill":"情态动词与推测强度","tasks":[
+    ["比较两句并说明选择","解释推测强度的区别：A. She might be at home. B. She must be at home.","might 表示有可能；must 表示根据证据作出很有把握的推断。","这里 must 是推测，不是命令或义务；推断仍需要语境证据，不等于已经证实。"] ,
+    ["按要求改写并解释","你确信他昨晚不可能完成所有工作。用 can't have 改写：It is impossible that he finished all the work last night.","He can't have finished all the work last night.","can't have + 过去分词表示对过去情况的否定推测，不能写成 can't finished。"]]},
+  {"skill":"动名词与不定式","tasks":[
+    ["语境填空并解释","填 read 的适当形式并说明搭配：I enjoy ___ technical articles.","I enjoy reading technical articles.","enjoy 后接动名词作宾语，通常不接 to read。"] ,
+    ["比较两句并说明选择","解释两句含义：A. He stopped smoking. B. He stopped to smoke.","A 表示他停止吸烟。B 表示他停下原来的活动去吸烟。","stop doing 表示停止正在做的事；stop to do 中不定式表达停下来做另一件事的目的。"]]},
+  {"skill":"介词与动词搭配","tasks":[
+    ["改错并解释","改正句子：We discussed about the problem yesterday.","We discussed the problem yesterday.","discuss 通常直接接宾语，不需要 about；名词 discussion 可接 about/on。"] ,
+    ["语境填空并解释","填适当介词：We need to focus ___ the main issue and listen ___ the users.","We need to focus on the main issue and listen to the users.","常用搭配为 focus on 和 listen to；注意两者介词不同。"]]},
+  {"skill":"比较级与数量比较","tasks":[
+    ["改错并解释","改正句子：This solution is more better than the old one.","This solution is better than the old one.","better 已经是 good 的比较级，前面不再加 more。可用 much better 强调程度。"] ,
+    ["按要求改写并解释","用 as ... as 改写并保留含义：The new route is shorter than the old route.","The old route is not as short as the new route.","把比较对象交换，并用 not as short as 表达旧路线没有新路线短；方向不能写反。"]]},
+  {"skill":"限定性关系从句","tasks":[
+    ["合并两句并解释","用限定性关系从句合并：1. I need a book. 2. The book explains database indexes.","I need a book that explains database indexes.","that/which 引导限定性关系从句，说明需要哪种书；关系代词在从句中作主语，不能省略。"] ,
+    ["改错并解释","改正：The tool which I installed it yesterday works well.","The tool which I installed yesterday works well.","which 已作 installed 的宾语，不再重复 it；也可用 that 或省略宾语关系代词。"]]},
+  {"skill":"非限定性关系从句","tasks":[
+    ["合并两句并解释","用非限定性关系从句补充背景：1. My laptop is five years old. 2. My laptop still works well.","My laptop, which is five years old, still works well.","逗号隔开的从句补充背景，使用 which；非限定性关系从句不使用 that。"] ,
+    ["比较两句并说明选择","解释范围不同：A. The students who passed were pleased. B. The students, who passed, were pleased.","A 指通过考试的那部分学生很高兴。B 补充说明这些学生都通过了，他们都很高兴。","限定性从句缩小指代范围；非限定性从句补充信息，逗号会改变表达范围。"]]},
+  {"skill":"名词性从句与语序","tasks":[
+    ["改错并解释","改正间接问句：Could you tell me where is the library?","Could you tell me where the library is?","嵌入的间接疑问句使用陈述语序：主语 the library 在 is 前，不再倒装。"] ,
+    ["合并两句并解释","合并成以 I don't know 开头的间接问句：Why did the service fail?","I don't know why the service failed.","间接问句用陈述语序，过去时由 failed 表示，不保留疑问句助动词 did。"]]},
+  {"skill":"真实条件与将来条件","tasks":[
+    ["语境填空并解释","真实将来条件，填 rain 和 stay：If it ___ tomorrow, we ___ at home.","If it rains tomorrow, we will stay at home.","第一条件句 if 从句一般现在时表示将来条件，主句通常 will + 动词原形。"] ,
+    ["按要求改写并解释","用 unless 保持原意：If you do not save the file, you will lose your changes.","Unless you save the file, you will lose your changes.","unless 通常相当于 if ... not，不要额外加 not 而反转条件。"]]},
+  {"skill":"虚拟条件与过去遗憾","tasks":[
+    ["按要求改写并解释","事实是昨天没有早点出门，错过了火车。用第三条件句表达相反假设。","If I had left earlier, I would have caught the train.","过去相反假设用 if + had + 过去分词，结果用 would have + 过去分词。"] ,
+    ["语境填空并解释","假设现在时间更多：If I ___ (have) more time, I ___ (learn) another language.","If I had more time, I would learn another language.","第二条件句使用过去式表示与现实有距离的现在或将来假设，结果用 would + 原形；不是在讲过去学语言。"]]},
+  {"skill":"间接引语与时间变化","tasks":[
+    ["按要求改写并解释","现在是星期五，转述星期一 Mia 说的话：I am busy today. 以 Mia said that 开头。","Mia said that she was busy that day.","过去时引述语境常发生时态后移；I 改为 she，today 随转述时间变为 that day。"] ,
+    ["改错并解释","用 reported speech 修正语序：He asked me where did I live.","He asked me where I lived.","转述问句用陈述语序；此过去转述语境中 live 常后移为 lived。"]]},
+  {"skill":"让步原因与连接词","tasks":[
+    ["合并两句并解释","用 although 合并为一句：The task was difficult. We finished it on time.","Although the task was difficult, we finished it on time.","although 引导让步从句；在这一结构中主句不要再重复 but。"] ,
+    ["语境填空并解释","填 because 或 because of：The flight was delayed ___ heavy snow. 解释选择。","The flight was delayed because of heavy snow.","because of 后接名词短语；because 后通常接有主谓的从句，如 because it was snowing heavily。"]]},
+  {"skill":"平行结构与并列","tasks":[
+    ["改错并解释","统一并列结构：The course teaches writing clearly, speaking confidently, and how to listen carefully.","The course teaches writing clearly, speaking confidently, and listening carefully.","三个并列项目采用一致的动名词结构；也可将三项整体改为一致的不定式结构。"] ,
+    ["按要求改写并解释","用 both ... and ... 合并，保留两种能力：She can analyse data. She can explain the results.","She can both analyse data and explain the results.","both 和 and 连接对等的动词短语，can 由两部分共享；也接受其他语法正确且结构平行的表达。"]]},
+  {"skill":"代词指代与歧义","tasks":[
+    ["按要求改写并解释","消除歧义，明确是 Sam 而非 Alex 迟到：Alex told Sam that he was late.","Alex told Sam that Sam was late.","he 可能指 Alex 或 Sam；重复姓名可以明确指代。自然且同样明确的改写也可。"] ,
+    ["比较两句并说明选择","The committee published its decision. 这里 its 指什么？改成 it's 是否可以？说明理由。","its 指 committee；不能替换为 it's。","its 是物主限定词，表示委员会的决定；it's 是 it is 或 it has 的缩写。"]]},
+  {"skill":"分词与修饰对象","tasks":[
+    ["改错并解释","消除悬垂修饰：Walking to work, the rain soaked me.","While I was walking to work, the rain soaked me.","Walking 的逻辑主语应为走路的人，不应是 rain。补出 I 或将主句改为 I got soaked 可消除悬垂。"] ,
+    ["比较两句并说明选择","描述报告让人感到困惑，应填 confused 还是 confusing？The report was ___. 并说明另一词形如何描述人。","The report was confusing. I was confused by the report.","confusing 描述导致困惑的事物；confused 描述感到困惑的状态。"]]},
+  {"skill":"疑问句与否定范围","tasks":[
+    ["比较两句并说明选择","解释含义区别：A. Not all the tests passed. B. None of the tests passed.","A 表示并非所有测试都通过，至少有测试没通过；B 表示没有任何测试通过。","not all 是部分否定，不等于 none 的全部否定；A 本身不保证一定有测试通过。"] ,
+    ["改错并解释","用标准书面英语表达不知道任何事情：I don't know nothing about it.","I don't know anything about it.","标准书面英语中这里用 not ... anything，避免双重否定；也接受 I know nothing about it。一些方言允许否定一致，但本题限定标准书面语。"]]},
+  {"skill":"句子衔接与信息组织","tasks":[
+    ["合并两句并解释","保持转折关系，用分号和 however 连接：The update improved speed. It increased memory use.","The update improved speed; however, it increased memory use.","however 是连接副词，不能只用逗号连接两个独立句；分号连接两句，however 后加逗号。"] ,
+    ["按要求改写并解释","修正逗号拼接，并保留因果关系：The server was overloaded, requests timed out.","The server was overloaded, so requests timed out.","两个独立句不能仅以逗号拼接；可加并列连词 so，也可用 because 引导原因从句。"]]}
+]
