@@ -1,0 +1,5100 @@
+[
+  {
+    "id": "knowledge:ref:java-eco:pass-value",
+    "kind": "engineering",
+    "title": "值传递、对象引用与参数重绑定 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：值传递、对象引用与参数重绑定\n版本：Java 17+\n示例或场景：\nstatic void change(List<String> x) { x.add(\"B\"); x = new ArrayList<>(); }\n\n任务：若调用前列表为 [A]，说明调用后内容以及重绑定为什么无效。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Java 参数始终按值传递；对象参数复制的是引用值，修改对象内容和给形参重新赋值是两件事。\n\n调用后原列表增加 B；x 的重绑定不改变调用者变量。不可把引用类型理解成按引用传递。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：值传递、对象引用与参数重绑定",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：若调用前列表为 [A]，说明调用后内容以及重绑定为什么无效。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jls/se17/html/jls-4.html",
+    "knowledge_ids": [
+      "ref:java-eco:pass-value"
+    ],
+    "tags": [
+      "Java",
+      "Java核心",
+      "类型与对象",
+      "Java 17+",
+      "值传递",
+      "对象引用",
+      "参数重绑定"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:boxing",
+    "kind": "engineering",
+    "title": "自动装箱、拆箱与包装类型比较 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：自动装箱、拆箱与包装类型比较\n版本：Java 17+\n示例或场景：\nInteger n = null;\n// int value = n; // NullPointerException\nboolean same = java.util.Objects.equals(Integer.valueOf(200), Integer.valueOf(200));\n\n任务：解释 null 拆箱的后果，并给出包装数字按值比较的方式。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "包装类型参与运算会拆箱；null 拆箱抛异常，== 对两个包装对象比较身份。\n\nObjects.equals 按值比较且可处理 null；不要依赖包装对象缓存范围写业务判断。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：自动装箱、拆箱与包装类型比较",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释 null 拆箱的后果，并给出包装数字按值比较的方式。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/Integer.html",
+    "knowledge_ids": [
+      "ref:java-eco:boxing"
+    ],
+    "tags": [
+      "Java",
+      "Java核心",
+      "类型与对象",
+      "Java 17+",
+      "自动装箱",
+      "拆箱",
+      "包装类型比较"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:immutable",
+    "kind": "engineering",
+    "title": "不可变对象与防御性复制 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：不可变对象与防御性复制\n版本：Java 17+\n示例或场景：\nrecord Team(List<String> names) { Team { names = List.copyOf(names); } }\n\n任务：说明记录类的集合字段如何避免外部增删影响，并说明浅复制限制。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "final 引用不保证对象不可变；构造与返回集合时需要阻断外部对内部状态的修改。\n\nList.copyOf 创建不可修改列表并拒绝 null；若元素可变，仍须考虑元素别名；record 不自动深复制。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：不可变对象与防御性复制",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明记录类的集合字段如何避免外部增删影响，并说明浅复制限制。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jls/se17/html/jls-4.html",
+    "knowledge_ids": [
+      "ref:java-eco:immutable"
+    ],
+    "tags": [
+      "Java",
+      "Java核心",
+      "类型与对象",
+      "Java 17+",
+      "不可变对象",
+      "防御性复制"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:exceptions",
+    "kind": "engineering",
+    "title": "受检异常、运行时异常与异常边界 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：受检异常、运行时异常与异常边界\n版本：Java 17+\n示例或场景：\ntry { return Files.readString(path); } catch (IOException e) { throw new UncheckedIOException(\"读取失败\", e); }\n\n任务：解释示例保留 cause 的作用，给出吞掉异常导致的一个业务问题。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "受检异常要求捕获或声明；异常应保留原因并在合适层转换，而不是返回无法区分失败的默认值。\n\n不要空 catch、吞掉中断或记录后假装成功；业务错误和基础设施错误应有可区分的处理方式。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：受检异常、运行时异常与异常边界",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释示例保留 cause 的作用，给出吞掉异常导致的一个业务问题。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jls/se17/html/jls-4.html",
+    "knowledge_ids": [
+      "ref:java-eco:exceptions"
+    ],
+    "tags": [
+      "Java",
+      "Java核心",
+      "类型与对象",
+      "Java 17+",
+      "受检异常",
+      "运行时异常",
+      "异常边界"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:bigdecimal",
+    "kind": "engineering",
+    "title": "BigDecimal 金额、精度与舍入 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：BigDecimal 金额、精度与舍入\n版本：Java 17+\n示例或场景：\nvar price = new BigDecimal(\"0.10\");\nvar total = price.multiply(new BigDecimal(\"3\")).setScale(2, RoundingMode.HALF_UP);\n\n任务：给出总价并解释金额构造与比较应注意什么。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "金额宜由十进制字符串创建；scale 和舍入策略需要显式约定，equals 与 compareTo 语义不同。\n\nnew BigDecimal(0.1) 会保留二进制浮点近似；1.0 与 1.00 的 equals 可为 false，compareTo 为 0。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：BigDecimal 金额、精度与舍入",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：给出总价并解释金额构造与比较应注意什么。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/math/BigDecimal.html",
+    "knowledge_ids": [
+      "ref:java-eco:bigdecimal"
+    ],
+    "tags": [
+      "Java",
+      "Java核心",
+      "类型与对象",
+      "Java 17+",
+      "BigDecimal",
+      "金额",
+      "精度",
+      "舍入"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:datetime",
+    "kind": "engineering",
+    "title": "Instant、LocalDateTime 与时区 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：Instant、LocalDateTime 与时区\n版本：Java 17+\n示例或场景：\nInstant now = Instant.parse(\"2026-01-01T00:00:00Z\");\nvar local = now.atZone(ZoneId.of(\"Asia/Shanghai\"));\n\n任务：解释为何不能把无时区的 LocalDateTime 直接当作全世界同一时刻。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Instant 表示时间线上的点，LocalDateTime 没有时区；展示时间必须结合 ZoneId。\n\n跨时区系统宜持久化时间点并明确业务时区；夏令时会让某些本地时刻不存在或重复。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Instant、LocalDateTime 与时区",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释为何不能把无时区的 LocalDateTime 直接当作全世界同一时刻。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/package-summary.html",
+    "knowledge_ids": [
+      "ref:java-eco:datetime"
+    ],
+    "tags": [
+      "Java",
+      "Java核心",
+      "类型与对象",
+      "Java 17+",
+      "Instant",
+      "LocalDateTime",
+      "时区"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:optional",
+    "kind": "engineering",
+    "title": "Optional 边界与 orElse 的求值 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：Optional 边界与 orElse 的求值\n版本：Java 17+\n示例或场景：\nString name = Optional.of(\"known\").orElseGet(() -> loadDefault());\n\n任务：说明已有值时 orElse(loadDefault()) 与 orElseGet 的行为差别。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Optional 描述可能缺失的结果，orElse 参数会先求值；昂贵或有副作用的默认值通常放在 orElseGet。\n\nOptional.of(null) 抛异常；用 ofNullable 接受 null。不宜将 Optional 当作所有字段的通用替代。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Optional 边界与 orElse 的求值",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明已有值时 orElse(loadDefault()) 与 orElseGet 的行为差别。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/Optional.html",
+    "knowledge_ids": [
+      "ref:java-eco:optional"
+    ],
+    "tags": [
+      "Java",
+      "Java核心",
+      "类型与对象",
+      "Java 17+",
+      "Optional",
+      "边界",
+      "orElse",
+      "的求值"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:stream-lazy",
+    "kind": "engineering",
+    "title": "Stream 惰性、中间操作与一次消费 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：Stream 惰性、中间操作与一次消费\n版本：Java 17+\n示例或场景：\nvar stream = List.of(1, 2, 3).stream().filter(n -> n > 1);\nvar result = stream.map(n -> n * 2).toList();\n\n任务：给出结果并说明再次消费同一 stream 的问题。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "中间操作通常惰性执行，终止操作触发遍历；流消费后不能再次使用。\n\n结果为 [4,6]；Stream.toList 返回不可修改列表。不要依赖 peek 的副作用完成必须执行的业务。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Stream 惰性、中间操作与一次消费",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：给出结果并说明再次消费同一 stream 的问题。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/stream/Stream.html",
+    "knowledge_ids": [
+      "ref:java-eco:stream-lazy"
+    ],
+    "tags": [
+      "Java",
+      "Java核心",
+      "类型与对象",
+      "Java 17+",
+      "Stream",
+      "惰性",
+      "中间操作",
+      "一次消费"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:collector",
+    "kind": "engineering",
+    "title": "Collectors 分组、重复键与归并 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：Collectors 分组、重复键与归并\n版本：Java 17+\n示例或场景：\nvar counts = List.of(\"A\", \"A\", \"B\").stream().collect(Collectors.toMap(x -> x, x -> 1, Integer::sum));\n\n任务：给出 A 与 B 的计数，并解释省略归并函数的后果。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "toMap 遇到重复键需要明确归并策略；groupingBy 表达一对多关系。\n\n没有归并函数的 toMap 在重复键时失败；Map 的遍历顺序与是否允许 null 由具体收集器决定。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Collectors 分组、重复键与归并",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：给出 A 与 B 的计数，并解释省略归并函数的后果。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/stream/Collectors.html",
+    "knowledge_ids": [
+      "ref:java-eco:collector"
+    ],
+    "tags": [
+      "Java",
+      "Java核心",
+      "类型与对象",
+      "Java 17+",
+      "Collectors",
+      "分组",
+      "重复键",
+      "归并"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:reflection",
+    "kind": "engineering",
+    "title": "反射、注解与保留策略 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：反射、注解与保留策略\n版本：Java 17+\n示例或场景：\n@Retention(RetentionPolicy.RUNTIME)\n@Target(ElementType.TYPE)\n@interface Feature { String value(); }\n\n任务：解释注解为何不会自己实现功能，以及运行时扫描需要什么保留策略。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "反射访问运行时类型；只有 RUNTIME 保留策略的注解能供运行时反射读取。\n\n模块封装会限制深反射；setAccessible 并不保证绕过所有限制。注解本身不执行逻辑，需要处理器或框架解释。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：反射、注解与保留策略",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释注解为何不会自己实现功能，以及运行时扫描需要什么保留策略。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jls/se17/html/jls-4.html",
+    "knowledge_ids": [
+      "ref:java-eco:reflection"
+    ],
+    "tags": [
+      "Java",
+      "Java核心",
+      "类型与对象",
+      "Java 17+",
+      "反射",
+      "注解",
+      "保留策略"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:spi",
+    "kind": "engineering",
+    "title": "SPI、ServiceLoader 与插件边界 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：SPI、ServiceLoader 与插件边界\n版本：Java 17+\n示例或场景：\nServiceLoader.load(Runnable.class).forEach(Runnable::run);\n\n任务：设计支付渠道扩展时说明接口、提供者注册及选择策略各自职责。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "SPI 由接口定义扩展点，通过 ServiceLoader 查找提供者，使调用方不绑定具体实现。\n\n提供者还需在模块 provides 或 META-INF/services 中声明；发现顺序不应当作为业务优先级契约。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：SPI、ServiceLoader 与插件边界",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：设计支付渠道扩展时说明接口、提供者注册及选择策略各自职责。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/ServiceLoader.html",
+    "knowledge_ids": [
+      "ref:java-eco:spi"
+    ],
+    "tags": [
+      "Java",
+      "Java核心",
+      "类型与对象",
+      "Java 17+",
+      "SPI",
+      "ServiceLoader",
+      "插件边界"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:records",
+    "kind": "engineering",
+    "title": "record、sealed 与模式边界 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：record、sealed 与模式边界\n版本：Java 17+\n示例或场景：\nsealed interface Result permits Success, Failure {}\nrecord Success(String value) implements Result {}\nrecord Failure(String reason) implements Result {}\n\n任务：解释此建模相比任意字符串状态的收益与版本前提。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "record 适合透明数据载体，sealed 限制直接子类型；它们分别约束数据表示与类型扩展范围。\n\nJava 17 支持 record 与 sealed；模式 switch 的最终版需 Java 21，不要混用不同版本的语法。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：record、sealed 与模式边界",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释此建模相比任意字符串状态的收益与版本前提。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jls/se17/html/jls-4.html",
+    "knowledge_ids": [
+      "ref:java-eco:records"
+    ],
+    "tags": [
+      "Java",
+      "Java核心",
+      "类型与对象",
+      "Java 17+",
+      "record",
+      "sealed",
+      "模式边界"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:jmm",
+    "kind": "engineering",
+    "title": "JMM、happens-before 与安全发布 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：JMM、happens-before 与安全发布\n版本：Java 17+\n示例或场景：\nvolatile boolean ready;\nint value;\n// 写线程：value = 42; ready = true;\n// 读线程：if (ready) use(value);\n\n任务：说明读线程看到 ready=true 后能否看到 value=42，以及需要的条件。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "happens-before 规定跨线程可见性和有序性保证，不等于所有机器指令的物理先后顺序。\n\n读到该 volatile 写后可见之前的 value 写入；没有建立关系时，不能依赖偶然可见。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：JMM、happens-before 与安全发布",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明读线程看到 ready=true 后能否看到 value=42，以及需要的条件。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jls/se17/html/jls-17.html",
+    "knowledge_ids": [
+      "ref:java-eco:jmm"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "锁与内存模型",
+      "Java 17+",
+      "JMM",
+      "happens-before",
+      "安全发布"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:monitor",
+    "kind": "engineering",
+    "title": "synchronized 的锁对象与可重入 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：synchronized 的锁对象与可重入\n版本：Java 17+\n示例或场景：\nsynchronized (guard) { update(); }\n// guard 必须由所有访问同一临界区的线程共享。\n\n任务：判断两个不同实例的 synchronized 实例方法是否互斥，并说明如何保护共享状态。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "实例同步方法锁 this，静态同步方法锁 Class 对象；同一线程可以再次获取已持有的内置监视器。\n\n两个不同实例上的实例锁不会自动互斥；字符串常量和可替换的锁对象会引入难察觉的共享或失锁问题。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：synchronized 的锁对象与可重入",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：判断两个不同实例的 synchronized 实例方法是否互斥，并说明如何保护共享状态。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jls/se17/html/jls-17.html",
+    "knowledge_ids": [
+      "ref:java-eco:monitor"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "锁与内存模型",
+      "Java 17+",
+      "synchronized",
+      "的锁对象",
+      "可重入"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:lock-states",
+    "kind": "engineering",
+    "title": "锁升级、偏向锁与现代 HotSpot 版本区别 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：锁升级、偏向锁与现代 HotSpot 版本区别\n版本：Java 17+\n示例或场景：\n// 比较实验应记录 java -version、JVM 参数、竞争模式。\nsynchronized (guard) { work(); }\n\n任务：解释为什么在 Java 21/24 上背诵固定四步锁升级可能误导，区分语言保证与 VM 实现。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "旧 HotSpot 教学常讲无锁、偏向、轻量级、膨胀监视器；这不是所有 JDK 都按固定顺序经历的 Java 规范。\n\nJDK 15 默认关闭并弃用偏向锁；现代 HotSpot 改变了轻量锁实现，JDK 24 的虚拟线程监视器也有变化。竞争、等待及运行时实现影响膨胀；不能声称每次必经偏向锁，或把实现细节当语言保证。\n版本前提：Java 17+。\nJDK 15 默认关闭并弃用偏向锁；现代 HotSpot 改变了轻量锁实现，JDK 24 的虚拟线程监视器也有变化。竞争、等待及运行时实现影响膨胀；不能声称每次必经偏向锁，或把实现细节当语言保证。\n历史HotSpot教学模型：无锁对象在启用偏向机制且满足条件时可记录偏向线程；其他线程竞争可能触发偏向撤销，尝试基于CAS/锁记录的轻量路径；竞争或等待等场景可能膨胀为ObjectMonitor。不是每次访问都走完四步。监视器还可在适当条件下消膨胀，因此也不要把“永不降级”当作跨版本定律。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：锁升级、偏向锁与现代 HotSpot 版本区别",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释为什么在 Java 21/24 上背诵固定四步锁升级可能误导，区分语言保证与 VM 实现。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://openjdk.org/jeps/374",
+    "knowledge_ids": [
+      "ref:java-eco:lock-states"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "锁与内存模型",
+      "Java 17+",
+      "锁升级",
+      "偏向锁",
+      "现代",
+      "HotSpot",
+      "版本区别"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:lock-classes",
+    "kind": "engineering",
+    "title": "悲观锁、乐观锁、互斥锁与读写锁 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：悲观锁、乐观锁、互斥锁与读写锁\n版本：Java 17+\n示例或场景：\n// 乐观更新示意：UPDATE item SET version=version+1 WHERE id=? AND version=?\n\n任务：分别说明版本号更新与 ReentrantReadWriteLock 属于什么机制，避免混淆分类维度。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "这些是不同维度：悲观/乐观描述冲突处理，互斥/读写描述兼容访问模式，可重入/公平描述锁的行为。\n\n乐观锁通常依靠版本条件和失败检测，不一定是一个 Java Lock 对象；数据库锁和 JVM 锁也不是同一作用域。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：悲观锁、乐观锁、互斥锁与读写锁",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：分别说明版本号更新与 ReentrantReadWriteLock 属于什么机制，避免混淆分类维度。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jls/se17/html/jls-17.html",
+    "knowledge_ids": [
+      "ref:java-eco:lock-classes"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "锁与内存模型",
+      "Java 17+",
+      "悲观锁",
+      "乐观锁",
+      "互斥锁",
+      "读写锁"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:volatile",
+    "kind": "engineering",
+    "title": "volatile 不保证复合操作原子性 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：volatile 不保证复合操作原子性\n版本：Java 17+\n示例或场景：\nvolatile int count;\n// 多线程执行 count++ 不是原子计数。\n\n任务：说明两个线程递增为何可能只增加一次，并提供正确替代。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "volatile 可提供可见性和特定排序，但 count++ 包含读、改、写，仍可能丢失更新。\n\n用 AtomicInteger.incrementAndGet 或同一锁保护复合操作；单个字段可见不等于跨多个字段不变量成立。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：volatile 不保证复合操作原子性",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明两个线程递增为何可能只增加一次，并提供正确替代。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jls/se17/html/jls-17.html",
+    "knowledge_ids": [
+      "ref:java-eco:volatile"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "锁与内存模型",
+      "Java 17+",
+      "volatile",
+      "不保证复合操作原子性"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:deadlock",
+    "kind": "engineering",
+    "title": "死锁条件、锁顺序与等待超时 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：死锁条件、锁顺序与等待超时\n版本：Java 17+\n示例或场景：\n// 所有转账按账户 ID 从小到大获取两把锁；相同账户单独处理。\n\n任务：为双账户转账设计一致锁顺序，并说明同一账户的特殊情况。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "互斥、持有并等待、不可抢占、循环等待可共同导致死锁；统一多资源锁顺序可以破坏循环等待。\n\n超时检测不自动回滚已发生的业务副作用；诊断需采集线程栈及锁拥有者，避免仅重启掩盖原因。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：死锁条件、锁顺序与等待超时",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为双账户转账设计一致锁顺序，并说明同一账户的特殊情况。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jls/se17/html/jls-17.html",
+    "knowledge_ids": [
+      "ref:java-eco:deadlock"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "锁与内存模型",
+      "Java 17+",
+      "死锁条件",
+      "锁顺序",
+      "等待超时"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:wait-notify",
+    "kind": "engineering",
+    "title": "wait、notify 与条件循环 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：wait、notify 与条件循环\n版本：Java 17+\n示例或场景：\nsynchronized (queue) { while (queue.isEmpty()) queue.wait(); return queue.remove(); }\n\n任务：解释为何 if 检查应改为 while，以及 wait 与 sleep 的锁行为差别。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "wait 要求持有同一对象监视器，等待时释放它；唤醒后重新竞争，必须循环检查条件。\n\n允许虚假唤醒，notify 不表示条件已经满足；sleep 不释放已持有的监视器。生产代码常优先用 BlockingQueue。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：wait、notify 与条件循环",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释为何 if 检查应改为 while，以及 wait 与 sleep 的锁行为差别。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jls/se17/html/jls-17.html",
+    "knowledge_ids": [
+      "ref:java-eco:wait-notify"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "锁与内存模型",
+      "Java 17+",
+      "wait",
+      "notify",
+      "条件循环"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:interrupt",
+    "kind": "engineering",
+    "title": "中断协作与取消语义 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：中断协作与取消语义\n版本：Java 17+\n示例或场景：\ntry { queue.take(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); return; }\n\n任务：说明吞掉 InterruptedException 会怎样破坏取消，并给出正确处理。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "interrupt 主要是协作取消信号；阻塞方法可能抛 InterruptedException，不能等同于强制杀线程。\n\nInterruptedException 通常清除标记，无法继续传播时应恢复并退出；忙循环需要检查 isInterrupted。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：中断协作与取消语义",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明吞掉 InterruptedException 会怎样破坏取消，并给出正确处理。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jls/se17/html/jls-17.html",
+    "knowledge_ids": [
+      "ref:java-eco:interrupt"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "锁与内存模型",
+      "Java 17+",
+      "中断协作",
+      "取消语义"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:reentrant",
+    "kind": "engineering",
+    "title": "ReentrantLock、tryLock 与公平性 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：ReentrantLock、tryLock 与公平性\n版本：Java 17+\n示例或场景：\nif (lock.tryLock(100, TimeUnit.MILLISECONDS)) { try { work(); } finally { lock.unlock(); } }\n\n任务：说明限时获取失败时应如何处理，以及为何 unlock 放在 finally。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "显式锁支持可中断或限时获取；成功获取后必须在 finally 中释放。公平配置不保证操作系统调度公平。\n\ntryLock 返回 false 时不能 unlock；无参 tryLock 不遵守公平锁的排队公平策略。可重入获取次数需对应释放。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：ReentrantLock、tryLock 与公平性",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明限时获取失败时应如何处理，以及为何 unlock 放在 finally。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/locks/ReentrantLock.html",
+    "knowledge_ids": [
+      "ref:java-eco:reentrant"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "JUC 工具",
+      "Java 17+",
+      "ReentrantLock",
+      "tryLock",
+      "公平性"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:aqs",
+    "kind": "engineering",
+    "title": "AQS、同步状态与等待队列 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：AQS、同步状态与等待队列\n版本：Java 17+\n示例或场景：\n// ReentrantLock、Semaphore、CountDownLatch 都借助同步状态与排队思想。\n\n任务：对比 ReentrantLock 与 Semaphore 的 state 含义，并说明独占与共享的差别。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "AbstractQueuedSynchronizer 为独占/共享同步器提供状态与排队骨架，子类定义获取与释放状态的规则。\n\n不能把 state 始终理解成持锁线程数量；锁重入次数、许可数和倒计数有不同含义。AQS 本身不是业务锁 API。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：AQS、同步状态与等待队列",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：对比 ReentrantLock 与 Semaphore 的 state 含义，并说明独占与共享的差别。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/locks/AbstractQueuedSynchronizer.html",
+    "knowledge_ids": [
+      "ref:java-eco:aqs"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "JUC 工具",
+      "Java 17+",
+      "AQS",
+      "同步状态",
+      "等待队列"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:cas",
+    "kind": "engineering",
+    "title": "CAS、ABA 与重试代价 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：CAS、ABA 与重试代价\n版本：Java 17+\n示例或场景：\nAtomicInteger n = new AtomicInteger();\nint value = n.incrementAndGet();\n\n任务：解释 CAS 为什么不天然解决 ABA 或跨多个变量的一致性。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "CAS 比较期望值并条件更新，成功更新单个状态；失败可重试，但高竞争会消耗 CPU。\n\nABA 指值改回原值而版本历史被忽略；可用带版本的状态。LongAdder 适合统计，sum 不是并发时严格原子快照。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：CAS、ABA 与重试代价",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释 CAS 为什么不天然解决 ABA 或跨多个变量的一致性。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/atomic/package-summary.html",
+    "knowledge_ids": [
+      "ref:java-eco:cas"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "JUC 工具",
+      "Java 17+",
+      "CAS",
+      "ABA",
+      "重试代价"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:condition",
+    "kind": "engineering",
+    "title": "Condition、await 与 signal · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：Condition、await 与 signal\n版本：Java 17+\n示例或场景：\nlock.lock();\ntry { while (!ready) condition.await(); work(); } finally { lock.unlock(); }\n\n任务：为有界队列说明 notEmpty 与 notFull 两个条件的作用。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Condition 与显式锁关联，一把锁可建立多个等待条件；await 在等待时释放关联锁，返回前重获锁。\n\nsignal 要求持有锁；唤醒不保证立即执行；条件仍需 while 检查。不要混用不同锁创建的 Condition。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Condition、await 与 signal",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为有界队列说明 notEmpty 与 notFull 两个条件的作用。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/locks/Condition.html",
+    "knowledge_ids": [
+      "ref:java-eco:condition"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "JUC 工具",
+      "Java 17+",
+      "Condition",
+      "await",
+      "signal"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:rwlock",
+    "kind": "engineering",
+    "title": "读写锁、降级与升级风险 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：读写锁、降级与升级风险\n版本：Java 17+\n示例或场景：\nrw.writeLock().lock();\ntry { refresh(); rw.readLock().lock(); } finally { rw.writeLock().unlock(); }\ntry { read(); } finally { rw.readLock().unlock(); }\n\n任务：解释降级顺序为何先取读锁，指出持读锁直接升级的风险。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "读锁间可兼容，写锁排他；从写锁获取读锁后释放写锁可降级，持读锁直接等写锁可能死锁。\n\n读多不意味着一定更快；写饥饿、锁开销与临界区长度都需测量。不要把线程读到的引用在解锁后任意修改。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：读写锁、降级与升级风险",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释降级顺序为何先取读锁，指出持读锁直接升级的风险。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/locks/ReentrantReadWriteLock.html",
+    "knowledge_ids": [
+      "ref:java-eco:rwlock"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "JUC 工具",
+      "Java 17+",
+      "读写锁",
+      "降级",
+      "升级风险"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:stamped",
+    "kind": "engineering",
+    "title": "StampedLock 乐观读与校验 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：StampedLock 乐观读与校验\n版本：Java 17+\n示例或场景：\nlong s = lock.tryOptimisticRead();\nint a = x, b = y;\nif (!lock.validate(s)) { s = lock.readLock(); try { a=x; b=y; } finally { lock.unlockRead(s); } }\n\n任务：说明校验失败为何必须重读字段，而不能只补一次 validate。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "乐观读先取得 stamp，读取字段后验证；验证失败回退到读锁，才能避免返回不一致快照。\n\nStampedLock 不可重入；未验证的多个字段可能来自不同写入阶段，不能执行需要一致状态的副作用。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：StampedLock 乐观读与校验",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明校验失败为何必须重读字段，而不能只补一次 validate。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/locks/StampedLock.html",
+    "knowledge_ids": [
+      "ref:java-eco:stamped"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "JUC 工具",
+      "Java 17+",
+      "StampedLock",
+      "乐观读",
+      "校验"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:latch-barrier",
+    "kind": "engineering",
+    "title": "CountDownLatch、CyclicBarrier 与阶段协作 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：CountDownLatch、CyclicBarrier 与阶段协作\n版本：Java 17+\n示例或场景：\nvar done = new CountDownLatch(2);\n// 每个任务 finally 中 done.countDown();\ndone.await(1, TimeUnit.SECONDS);\n\n任务：等待两项初始化时如何防止任务异常导致永久等待，并比较两类同步器。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Latch 等待计数归零且一次性使用；Barrier 让固定参与者在多轮屏障会合，失败可打破屏障。\n\nawait 超时不代表任务已取消；任务异常也要释放倒计数。Phaser 适合动态参与者和多阶段协作。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：CountDownLatch、CyclicBarrier 与阶段协作",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：等待两项初始化时如何防止任务异常导致永久等待，并比较两类同步器。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/locks/package-summary.html",
+    "knowledge_ids": [
+      "ref:java-eco:latch-barrier"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "JUC 工具",
+      "Java 17+",
+      "CountDownLatch",
+      "CyclicBarrier",
+      "阶段协作"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:semaphore",
+    "kind": "engineering",
+    "title": "Semaphore 限制并发资源 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：Semaphore 限制并发资源\n版本：Java 17+\n示例或场景：\npermits.acquire();\ntry { callRemote(); } finally { permits.release(); }\n\n任务：说明限制同时请求数与限制每秒请求数的区别。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "许可用于限制同时执行或访问稀缺资源的数量，可跨线程释放；它不负责记录业务对象的所有权。\n\n只有成功取得许可后才能释放；限流速率与并发上限不同，不能用 10 个许可断言每秒只执行 10 次。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Semaphore 限制并发资源",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明限制同时请求数与限制每秒请求数的区别。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/locks/package-summary.html",
+    "knowledge_ids": [
+      "ref:java-eco:semaphore"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "JUC 工具",
+      "Java 17+",
+      "Semaphore",
+      "限制并发资源"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:threadlocal",
+    "kind": "engineering",
+    "title": "ThreadLocal、线程池污染与上下文 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：ThreadLocal、线程池污染与上下文\n版本：Java 17+\n示例或场景：\ntry { context.set(userId); work(); } finally { context.remove(); }\n\n任务：解释任务 A 的用户信息如何泄露给任务 B，并给出生命周期边界。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "ThreadLocal 为线程保存局部值，线程池复用线程时旧上下文可能残留，任务结束应 remove。\n\n异步任务和 Reactor 不会自动继承正确的请求上下文；InheritableThreadLocal 也不是线程池传播的通用解法。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：ThreadLocal、线程池污染与上下文",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释任务 A 的用户信息如何泄露给任务 B，并给出生命周期边界。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/ThreadLocal.html",
+    "knowledge_ids": [
+      "ref:java-eco:threadlocal"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "JUC 工具",
+      "Java 17+",
+      "ThreadLocal",
+      "线程池污染",
+      "上下文"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:pool-sizing",
+    "kind": "engineering",
+    "title": "线程池参数、队列与拒绝策略 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：线程池参数、队列与拒绝策略\n版本：Java 17+\n示例或场景：\nnew ThreadPoolExecutor(4, 8, 30, TimeUnit.SECONDS, new ArrayBlockingQueue<>(100), new ThreadPoolExecutor.AbortPolicy());\n\n任务：说明该池第 5 个并发任务通常先去哪里，以及为什么队列必须有界。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "任务先使用核心线程，再入队，队列满后才扩展到最大线程；达到上限需执行明确的拒绝策略。\n\n无界队列使 maximumPoolSize 往往失去扩容意义，并可能堆积内存；CallerRunsPolicy 会让提交方承担耗时。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：线程池参数、队列与拒绝策略",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明该池第 5 个并发任务通常先去哪里，以及为什么队列必须有界。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/ThreadPoolExecutor.html",
+    "knowledge_ids": [
+      "ref:java-eco:pool-sizing"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "JUC 工具",
+      "Java 17+",
+      "线程池参数",
+      "队列",
+      "拒绝策略"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:future-errors",
+    "kind": "engineering",
+    "title": "CompletableFuture 超时、异常与线程池 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：CompletableFuture 超时、异常与线程池\n版本：Java 17+\n示例或场景：\nCompletableFuture.supplyAsync(this::load, executor).orTimeout(1, TimeUnit.SECONDS).exceptionally(e -> fallback());\n\n任务：说明超时后远端请求是否一定停止，并设计合理的 I/O 超时与异常处理。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "thenApply 在完成链的线程上执行或直接执行；Async 版本可指定执行器，避免阻塞公共池。\n\norTimeout 使 Future 超时完成，不保证底层 I/O 已停止；join 的异常包装、恢复默认值的业务含义也应明确。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：CompletableFuture 超时、异常与线程池",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明超时后远端请求是否一定停止，并设计合理的 I/O 超时与异常处理。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/CompletableFuture.html",
+    "knowledge_ids": [
+      "ref:java-eco:future-errors"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "JUC 工具",
+      "Java 17+",
+      "CompletableFuture",
+      "超时",
+      "异常",
+      "线程池"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:virtual-threads",
+    "kind": "engineering",
+    "title": "虚拟线程、阻塞 I/O 与资源约束 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：虚拟线程、阻塞 I/O 与资源约束\n版本：Java 21+；监视器改进需 JDK 24+\n示例或场景：\ntry (var executor = Executors.newVirtualThreadPerTaskExecutor()) { executor.submit(() -> fetch()); }\n\n任务：解释一万条虚拟线程为何仍可能把 20 个连接的数据库池压满。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Java 21 正式提供虚拟线程，适合大量等待型任务；它不会增加 CPU 核心数或数据库连接数。\n\n虚拟线程通常按任务创建，不应套用平台线程池缓存思路；CPU 密集任务仍需控制并行度，访问数据库应限制并发。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：虚拟线程、阻塞 I/O 与资源约束",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释一万条虚拟线程为何仍可能把 20 个连接的数据库池压满。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://openjdk.org/jeps/444",
+    "knowledge_ids": [
+      "ref:java-eco:virtual-threads"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "现代 Java",
+      "Java 21+；监视器改进需 JDK 24+",
+      "虚拟线程",
+      "阻塞",
+      "I/O",
+      "资源约束"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:virtual-monitor",
+    "kind": "engineering",
+    "title": "虚拟线程 pinning 与 JDK 版本 · 应用与边界",
+    "topic": "代码实战",
+    "prompt": "知识点：虚拟线程 pinning 与 JDK 版本\n版本：Java 21+；监视器改进需 JDK 24+\n示例或场景：\n// 对相同负载记录 JDK 版本，并结合 JFR 的虚拟线程事件定位等待。\n\n任务：说明为何应先确认 JDK 版本和实际等待证据，再决定是否替换内置锁。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "JDK 21/22 中 synchronized 内阻塞可能固定载体线程；JDK 24 的 JEP 491 改善监视器引起的固定，不能沿用旧版结论。\n\n原生调用等情况仍有边界；不能声称升级后所有 pinning 都消失，也不应机械地把全部 synchronized 改为 ReentrantLock。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：虚拟线程 pinning 与 JDK 版本",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明为何应先确认 JDK 版本和实际等待证据，再决定是否替换内置锁。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/24/core/virtual-threads.html",
+    "knowledge_ids": [
+      "ref:java-eco:virtual-monitor"
+    ],
+    "tags": [
+      "Java",
+      "并发",
+      "现代 Java",
+      "Java 21+；监视器改进需 JDK 24+",
+      "虚拟线程",
+      "pinning",
+      "JDK",
+      "版本"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:jvm-areas",
+    "kind": "engineering",
+    "title": "堆、线程栈、方法区与元空间 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：堆、线程栈、方法区与元空间\n版本：Java 17+\n示例或场景：\n// Java heap space、Metaspace、unable to create native thread 是不同资源故障。\n\n任务：区分堆溢出、元空间溢出和无法创建线程各自先查什么。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "JVM 规范定义运行时数据区；HotSpot 的元空间是方法区相关元数据的一种实现，堆外还包括直接缓冲区等。\n\n不能只加 -Xmx 处理全部内存错误；进程 RSS 不等于 Java 堆已用量，线程栈和原生分配也会占用内存。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：堆、线程栈、方法区与元空间",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：区分堆溢出、元空间溢出和无法创建线程各自先查什么。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-2.html",
+    "knowledge_ids": [
+      "ref:java-eco:jvm-areas"
+    ],
+    "tags": [
+      "Java",
+      "JVM",
+      "运行时与诊断",
+      "Java 17+",
+      "堆",
+      "线程栈",
+      "方法区",
+      "元空间"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:classloading",
+    "kind": "engineering",
+    "title": "类加载、初始化与双亲委派 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：类加载、初始化与双亲委派\n版本：Java 17+\n示例或场景：\nClass.forName(\"com.example.Service\");\n// static 初始化失败可能表现为 ExceptionInInitializerError。\n\n任务：解释插件里两个同名类为何可能出现 ClassCastException。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "类的身份由二进制名与定义它的加载器共同决定；加载、链接和初始化是不同阶段。\n\n双亲委派是常见加载器策略，不是所有自定义加载器都必须按固定实现执行。不要把同名类视为必然可相互转换。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：类加载、初始化与双亲委派",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释插件里两个同名类为何可能出现 ClassCastException。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-2.html",
+    "knowledge_ids": [
+      "ref:java-eco:classloading"
+    ],
+    "tags": [
+      "Java",
+      "JVM",
+      "运行时与诊断",
+      "Java 17+",
+      "类加载",
+      "初始化",
+      "双亲委派"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:gc-roots",
+    "kind": "engineering",
+    "title": "GC Roots、可达性与引用类型 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：GC Roots、可达性与引用类型\n版本：Java 17+\n示例或场景：\nvar cache = new WeakHashMap<Object, String>();\nObject key = new Object(); cache.put(key, \"value\");\n\n任务：解释互相引用的两个对象能否被回收，并列出一个实际泄漏根源。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "垃圾回收主要依据可达性，不是简单引用计数；循环引用本身不阻止回收。\n\n弱引用条目何时移除不能作为业务定时保证；静态集合、线程本地值和监听器注册可能长期持有对象。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：GC Roots、可达性与引用类型",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释互相引用的两个对象能否被回收，并列出一个实际泄漏根源。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-2.html",
+    "knowledge_ids": [
+      "ref:java-eco:gc-roots"
+    ],
+    "tags": [
+      "Java",
+      "JVM",
+      "运行时与诊断",
+      "Java 17+",
+      "GC",
+      "Roots",
+      "可达性",
+      "引用类型"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:gc-collectors",
+    "kind": "engineering",
+    "title": "G1、ZGC 与吞吐延迟目标 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：G1、ZGC 与吞吐延迟目标\n版本：Java 17+\n示例或场景：\njava -Xlog:gc*:file=gc.log:time,uptime,level,tags -jar app.jar\n\n任务：给出为延迟敏感服务比较两个收集器时需要的至少三类证据。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "收集器选择应匹配暂停、吞吐和内存目标；G1 的区域与混合回收和低延迟收集器有不同权衡。\n\n收集器可用性与选项随 JDK 变化；不能只凭一次平均耗时判断，需测量分配率、存活集、暂停分位和 CPU。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：G1、ZGC 与吞吐延迟目标",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：给出为延迟敏感服务比较两个收集器时需要的至少三类证据。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-2.html",
+    "knowledge_ids": [
+      "ref:java-eco:gc-collectors"
+    ],
+    "tags": [
+      "Java",
+      "JVM",
+      "运行时与诊断",
+      "Java 17+",
+      "G1",
+      "ZGC",
+      "吞吐延迟目标"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:escape-jit",
+    "kind": "engineering",
+    "title": "逃逸分析、标量替换与锁消除 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：逃逸分析、标量替换与锁消除\n版本：Java 17+\n示例或场景：\nObject local = new Object();\nsynchronized (local) { compute(); }\n\n任务：说明为什么局部锁基准可能测不到真实竞争开销。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "JIT 可在满足条件时优化对象分配和局部锁，但是否优化取决于实际编译与逃逸情况。\n\n不能保证所有局部对象都分配在线程栈，也不能用源码里 new 的数量直接推断运行时分配。基准需预热并避免死代码消除。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：逃逸分析、标量替换与锁消除",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明为什么局部锁基准可能测不到真实竞争开销。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-2.html",
+    "knowledge_ids": [
+      "ref:java-eco:escape-jit"
+    ],
+    "tags": [
+      "Java",
+      "JVM",
+      "运行时与诊断",
+      "Java 17+",
+      "逃逸分析",
+      "标量替换",
+      "锁消除"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:jfr",
+    "kind": "engineering",
+    "title": "JFR、jcmd 与低干扰观测 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：JFR、jcmd 与低干扰观测\n版本：Java 17+\n示例或场景：\njcmd 1234 JFR.start name=incident settings=profile duration=60s filename=incident.jfr\n\n任务：为一次 30 秒延迟尖峰设计 JFR 采集与请求时间线对照方案。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "先保留时间窗口、进程身份及问题现场，再用事件和线程栈关联慢请求、分配与锁竞争。\n\n不同 JDK 的事件和权限有差别；JFR 是诊断证据，不应看到一个热点就立即断言根因。生产环境需评估采集开销和敏感数据。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：JFR、jcmd 与低干扰观测",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为一次 30 秒延迟尖峰设计 JFR 采集与请求时间线对照方案。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-2.html",
+    "knowledge_ids": [
+      "ref:java-eco:jfr"
+    ],
+    "tags": [
+      "Java",
+      "JVM",
+      "运行时与诊断",
+      "Java 17+",
+      "JFR",
+      "jcmd",
+      "低干扰观测"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:heap-dump",
+    "kind": "engineering",
+    "title": "堆转储、支配树与保留大小 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：堆转储、支配树与保留大小\n版本：Java 17+\n示例或场景：\njcmd 1234 GC.heap_dump /tmp/heap.hprof\n\n任务：区别 shallow size 与 retained size，并说明如何验证缓存泄漏。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "堆转储可检查对象保留关系；retained size 关注释放某对象后可能释放的对象集合，而非仅看对象自身大小。\n\n堆转储可能触发停顿并产生大文件，含业务数据；先检查空间与运行权限，不要无限循环自动采集。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：堆转储、支配树与保留大小",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：区别 shallow size 与 retained size，并说明如何验证缓存泄漏。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-2.html",
+    "knowledge_ids": [
+      "ref:java-eco:heap-dump"
+    ],
+    "tags": [
+      "Java",
+      "JVM",
+      "运行时与诊断",
+      "Java 17+",
+      "堆转储",
+      "支配树",
+      "保留大小"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:cpu-stacks",
+    "kind": "engineering",
+    "title": "CPU 高、线程栈与热点验证 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：CPU 高、线程栈与热点验证\n版本：Java 17+\n示例或场景：\njcmd 1234 Thread.print -l\n// 多次采样，再与操作系统线程 CPU 和请求指标关联。\n\n任务：设计排查 CPU 100% 的步骤，说明为什么不直接扩大线程池。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "CPU 满不等于线程太少；需要区分计算、忙等、GC 和原生开销，并在相同负载下验证改动。\n\n一次栈快照不能证明长期热点；增加线程可能引入更多竞争和上下文切换。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：CPU 高、线程栈与热点验证",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：设计排查 CPU 100% 的步骤，说明为什么不直接扩大线程池。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-2.html",
+    "knowledge_ids": [
+      "ref:java-eco:cpu-stacks"
+    ],
+    "tags": [
+      "Java",
+      "JVM",
+      "运行时与诊断",
+      "Java 17+",
+      "CPU",
+      "高",
+      "线程栈",
+      "热点验证"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:ioc-di",
+    "kind": "engineering",
+    "title": "IoC、依赖注入与构造器依赖 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：IoC、依赖注入与构造器依赖\n版本：Spring Framework 6 / Java 17+\n示例或场景：\n@Service\nclass OrderService { private final OrderRepository repository; OrderService(OrderRepository repository) { this.repository = repository; } }\n\n任务：解释手工 new OrderService 与从容器取得服务时依赖和代理的区别。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "容器管理对象定义和依赖关系；构造器注入能显式表达必需依赖并便于独立测试。\n\nnew 出来的对象不会自动获得完整容器生命周期；依赖注入不是把所有类都变成全局单例。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：IoC、依赖注入与构造器依赖",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释手工 new OrderService 与从容器取得服务时依赖和代理的区别。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/core/beans.html",
+    "knowledge_ids": [
+      "ref:java-eco:ioc-di"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "容器与扩展",
+      "Spring Framework 6 / Java 17+",
+      "IoC",
+      "依赖注入",
+      "构造器依赖"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:bean-lifecycle",
+    "kind": "engineering",
+    "title": "Bean 生命周期、后处理器与销毁 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Bean 生命周期、后处理器与销毁\n版本：Spring Framework 6 / Java 17+\n示例或场景：\n@PostConstruct void start() { /* 初始化本地资源 */ }\n@PreDestroy void stop() { /* 关闭资源 */ }\n\n任务：说明初始化阶段直接调用自身事务方法为什么可能没有预期的事务。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Bean 经实例化、依赖填充、初始化及后处理等阶段，最终暴露对象可能是代理，资源需要销毁回调。\n\n基线 Spring 6 使用 jakarta.annotation；不要依赖初始化回调里的自身事务注解已经通过代理执行。prototype 销毁通常需调用方管理。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Bean 生命周期、后处理器与销毁",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明初始化阶段直接调用自身事务方法为什么可能没有预期的事务。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/core/beans.html",
+    "knowledge_ids": [
+      "ref:java-eco:bean-lifecycle"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "容器与扩展",
+      "Spring Framework 6 / Java 17+",
+      "Bean",
+      "生命周期",
+      "后处理器",
+      "销毁"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:bean-scope",
+    "kind": "engineering",
+    "title": "singleton、prototype 与请求作用域 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：singleton、prototype 与请求作用域\n版本：Spring Framework 6 / Java 17+\n示例或场景：\n@Scope(\"prototype\")\n@Component class WorkBuffer {}\n\n任务：说明单例服务保存当前用户字段的并发风险。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Spring singleton 是每个容器、每个 Bean 定义通常一个实例，不保证对象线程安全。\n\n把 prototype 直接注入 singleton 通常在注入时取得一个实例；每次使用要新对象时可使用 ObjectProvider。请求作用域离开 Web 请求需考虑上下文。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：singleton、prototype 与请求作用域",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明单例服务保存当前用户字段的并发风险。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/core/beans/factory-scopes.html",
+    "knowledge_ids": [
+      "ref:java-eco:bean-scope"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "容器与扩展",
+      "Spring Framework 6 / Java 17+",
+      "singleton",
+      "prototype",
+      "请求作用域"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:qualifier",
+    "kind": "engineering",
+    "title": "@Primary、@Qualifier 与多实现选择 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：@Primary、@Qualifier 与多实现选择\n版本：Spring Framework 6 / Java 17+\n示例或场景：\nPaymentService(@Qualifier(\"cardGateway\") PaymentGateway gateway) { this.gateway = gateway; }\n\n任务：为两种支付实现说明静态注入选择与运行时路由的区别。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "同类型存在多个候选时，应明确定义选择规则；名称和优先级不能替代业务路由策略。\n\n@Primary 影响默认候选，不适用于运行时按渠道切换的所有场景；集合注入适合注册扩展实现。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：@Primary、@Qualifier 与多实现选择",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为两种支付实现说明静态注入选择与运行时路由的区别。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/core/beans.html",
+    "knowledge_ids": [
+      "ref:java-eco:qualifier"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "容器与扩展",
+      "Spring Framework 6 / Java 17+",
+      "@Primary",
+      "@Qualifier",
+      "多实现选择"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:configuration",
+    "kind": "engineering",
+    "title": "@Configuration、@Bean 与配置代理 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：@Configuration、@Bean 与配置代理\n版本：Spring Framework 6 / Java 17+\n示例或场景：\n@Configuration(proxyBeanMethods = false)\nclass Config { @Bean Clock clock() { return Clock.systemUTC(); } }\n\n任务：解释 proxyBeanMethods=false 下调用另一个 @Bean 方法可能创建新对象的原因。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "@Bean 声明容器对象；完整配置类的代理可截获配置方法间调用，lite 模式则是普通 Java 方法调用。\n\n关闭方法代理时，依赖通过 @Bean 参数注入更清晰；不要直接调用另一个工厂方法并期待总能复用容器单例。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：@Configuration、@Bean 与配置代理",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释 proxyBeanMethods=false 下调用另一个 @Bean 方法可能创建新对象的原因。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/core/beans.html",
+    "knowledge_ids": [
+      "ref:java-eco:configuration"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "容器与扩展",
+      "Spring Framework 6 / Java 17+",
+      "@Configuration",
+      "@Bean",
+      "配置代理"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:bean-extension",
+    "kind": "engineering",
+    "title": "BeanFactoryPostProcessor 与 BeanPostProcessor · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：BeanFactoryPostProcessor 与 BeanPostProcessor\n版本：Spring Framework 6 / Java 17+\n示例或场景：\nclass TimingProcessor implements BeanPostProcessor { public Object postProcessAfterInitialization(Object bean, String name) { return bean; } }\n\n任务：说明修改属性定义与包装成代理分别适合哪个扩展点。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "前者主要处理 Bean 定义等容器元数据，后者围绕 Bean 实例初始化过程扩展，常用于包装实例。\n\n扩展器自身创建顺序也有约束，不应在定义处理阶段随意提前实例化业务 Bean；排序与静态工厂配置需明确。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：BeanFactoryPostProcessor 与 BeanPostProcessor",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明修改属性定义与包装成代理分别适合哪个扩展点。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/core/beans/factory-extension.html",
+    "knowledge_ids": [
+      "ref:java-eco:bean-extension"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "容器与扩展",
+      "Spring Framework 6 / Java 17+",
+      "BeanFactoryPostProcessor",
+      "BeanPostProcessor"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:cycles",
+    "kind": "engineering",
+    "title": "循环依赖与职责拆分 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：循环依赖与职责拆分\n版本：Spring Framework 6 / Java 17+\n示例或场景：\n// A 构造器依赖 B，B 构造器依赖 A：应拆出共同协作组件或事件边界。\n\n任务：为订单和支付双向依赖提出一个职责拆分方案。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "构造器循环依赖无法靠普通实例化顺序解决；暴露早期引用也不能自动修正对象职责或半初始化状态。\n\n不要把允许循环依赖开关当架构修复。@Lazy/ObjectProvider 只能在合适语义下延迟取得依赖，不能解决逻辑递归。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：循环依赖与职责拆分",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为订单和支付双向依赖提出一个职责拆分方案。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/core/beans.html",
+    "knowledge_ids": [
+      "ref:java-eco:cycles"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "容器与扩展",
+      "Spring Framework 6 / Java 17+",
+      "循环依赖",
+      "职责拆分"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:events",
+    "kind": "engineering",
+    "title": "应用事件、同步监听与事务事件 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：应用事件、同步监听与事务事件\n版本：Spring Framework 6 / Java 17+\n示例或场景：\n@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)\nvoid on(OrderCreated event) { notifyUser(event); }\n\n任务：说明 AFTER_COMMIT 是否等于消息绝不丢失，以及更可靠的做法。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "默认事件发布通常在调用线程执行；事务事件可按提交阶段触发，以避免回滚事务提前发通知。\n\n提交后监听失败不撤销已提交业务；进程崩溃还可能丢通知。需要可靠外发时使用持久化 outbox 与重试。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：应用事件、同步监听与事务事件",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明 AFTER_COMMIT 是否等于消息绝不丢失，以及更可靠的做法。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/core/beans.html",
+    "knowledge_ids": [
+      "ref:java-eco:events"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "容器与扩展",
+      "Spring Framework 6 / Java 17+",
+      "应用事件",
+      "同步监听",
+      "事务事件"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:validation",
+    "kind": "engineering",
+    "title": "Bean Validation、@Valid 与校验分组 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Bean Validation、@Valid 与校验分组\n版本：Spring Framework 6 / Java 17+\n示例或场景：\nrecord CreateUser(@NotBlank String name, @Min(0) int age) {}\n// 控制器参数使用 @Valid @RequestBody。\n\n任务：解释同名用户并发创建为何还需要数据库唯一约束。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "字段约束描述输入条件；必须由 MVC、方法校验或 Validator 等入口触发，不会因写了注解就自动执行。\n\nSpring 6 基线使用 jakarta.validation；校验失败应统一映射，不能把输入校验当作并发业务约束或数据库唯一性保证。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Bean Validation、@Valid 与校验分组",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释同名用户并发创建为何还需要数据库唯一约束。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/core/beans.html",
+    "knowledge_ids": [
+      "ref:java-eco:validation"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "容器与扩展",
+      "Spring Framework 6 / Java 17+",
+      "Bean",
+      "Validation",
+      "@Valid",
+      "校验分组"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:aop-proxy",
+    "kind": "engineering",
+    "title": "AOP、JDK代理、类代理与自身调用 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：AOP、JDK代理、类代理与自身调用\n版本：Spring Framework 6；回滚全局选项需6.2+\n示例或场景：\n// 外部调用 proxy.place() 可被拦截；place() 内 this.pay() 不会重新经过代理。\n\n任务：解释自身调用为何跳过增强，并给出拆分协作 Bean 的方案。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Spring AOP 通常通过代理织入增强；调用目标对象自身方法绕过代理，final/private 等限制需按代理类型分析。\n\n接口代理依赖接口调用，类代理通常依赖可覆盖方法；不要用一次 @Transactional 标注推断所有调用路径。AspectJ 织入的机制不同。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：AOP、JDK代理、类代理与自身调用",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释自身调用为何跳过增强，并给出拆分协作 Bean 的方案。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/core/aop/proxying.html",
+    "knowledge_ids": [
+      "ref:java-eco:aop-proxy"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "AOP与事务",
+      "Spring Framework 6；回滚全局选项需6.2+",
+      "AOP",
+      "JDK代理",
+      "类代理",
+      "自身调用"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:tx-rollback",
+    "kind": "engineering",
+    "title": "@Transactional 回滚规则与异常传播 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：@Transactional 回滚规则与异常传播\n版本：Spring Framework 6；回滚全局选项需6.2+\n示例或场景：\n@Transactional(rollbackFor = Exception.class)\npublic void place() throws IOException { saveOrder(); throw new IOException(\"fail\"); }\n\n任务：说明受检异常、吞掉异常与显式 rollbackFor 对提交行为的不同影响。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "默认声明式事务通常对 RuntimeException 和 Error 回滚，对受检异常默认不回滚，可显式设置 rollbackFor。\n\n异常被捕获并正常返回可能提交事务；Spring 6.2 可全局改变默认回滚规则，因此要检查实际配置。代理入口与事务管理器也必须生效。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：@Transactional 回滚规则与异常传播",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明受检异常、吞掉异常与显式 rollbackFor 对提交行为的不同影响。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html",
+    "knowledge_ids": [
+      "ref:java-eco:tx-rollback"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "AOP与事务",
+      "Spring Framework 6；回滚全局选项需6.2+",
+      "@Transactional",
+      "回滚规则",
+      "异常传播"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:tx-propagation",
+    "kind": "engineering",
+    "title": "REQUIRED、REQUIRES_NEW 与连接资源 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：REQUIRED、REQUIRES_NEW 与连接资源\n版本：Spring Framework 6；回滚全局选项需6.2+\n示例或场景：\n// 外层事务写订单，另一个 Bean 的 REQUIRES_NEW 方法写审计。\n\n任务：解释为什么扩大 REQUIRES_NEW 使用范围可能引发连接池等待。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "REQUIRED 通常参与已有事务；REQUIRES_NEW 暂停外层并建立独立事务，内外层提交结果可以不同。\n\n独立事务通常需要额外连接；外层持有资源等待内层时，小连接池可能耗尽。只有调用经过适用代理时传播规则才生效。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：REQUIRED、REQUIRES_NEW 与连接资源",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释为什么扩大 REQUIRES_NEW 使用范围可能引发连接池等待。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html",
+    "knowledge_ids": [
+      "ref:java-eco:tx-propagation"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "AOP与事务",
+      "Spring Framework 6；回滚全局选项需6.2+",
+      "REQUIRED",
+      "REQUIRES_NEW",
+      "连接资源"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:tx-nested",
+    "kind": "engineering",
+    "title": "NESTED、保存点与 UnexpectedRollbackException · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：NESTED、保存点与 UnexpectedRollbackException\n版本：Spring Framework 6；回滚全局选项需6.2+\n示例或场景：\n// 内层 REQUIRED 失败被外层捕获，不代表共同事务已恢复为可提交。\n\n任务：解释捕获内层异常后外层仍可能回滚的原因，并区分保存点与独立事务。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "支持保存点的事务管理器可用 NESTED 局部回滚；REQUIRED 内层标记回滚会影响共同事务。\n\nNESTED 能力依赖事务管理器和底层资源，不等于每次开独立连接；外层最终提交可能抛 UnexpectedRollbackException。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：NESTED、保存点与 UnexpectedRollbackException",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释捕获内层异常后外层仍可能回滚的原因，并区分保存点与独立事务。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html",
+    "knowledge_ids": [
+      "ref:java-eco:tx-nested"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "AOP与事务",
+      "Spring Framework 6；回滚全局选项需6.2+",
+      "NESTED",
+      "保存点",
+      "UnexpectedRollbackException"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:tx-isolation",
+    "kind": "engineering",
+    "title": "隔离级别、数据库实现与只读提示 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：隔离级别、数据库实现与只读提示\n版本：Spring Framework 6；回滚全局选项需6.2+\n示例或场景：\n@Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)\npublic Report loadReport() { return query(); }\n\n任务：解释 readOnly=true 为何不能替代权限或数据库约束。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "事务隔离由数据库与驱动共同实现，readOnly 通常是优化提示，不是阻止所有写操作的安全机制。\n\n现有事务中内层的隔离配置未必重新生效；跨数据库不能假定 REPEATABLE_READ 的全部实现细节相同。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：隔离级别、数据库实现与只读提示",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释 readOnly=true 为何不能替代权限或数据库约束。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html",
+    "knowledge_ids": [
+      "ref:java-eco:tx-isolation"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "AOP与事务",
+      "Spring Framework 6；回滚全局选项需6.2+",
+      "隔离级别",
+      "数据库实现",
+      "只读提示"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:tx-boundary",
+    "kind": "engineering",
+    "title": "事务边界、远程调用与异步线程 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：事务边界、远程调用与异步线程\n版本：Spring Framework 6；回滚全局选项需6.2+\n示例或场景：\n// 在短事务中保存订单与 outbox；事务外发送消息，幂等消费。\n\n任务：设计保存订单并通知库存的失败处理，不假设一个注解覆盖所有资源。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "本地数据库事务不自动覆盖 HTTP、缓存、消息和新线程；长事务持锁与占用连接会放大故障。\n\n不要把网络重试包在长事务中；@Async 新线程一般不继承原线程本地事务。跨资源需设计补偿或可靠事件。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：事务边界、远程调用与异步线程",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：设计保存订单并通知库存的失败处理，不假设一个注解覆盖所有资源。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html",
+    "knowledge_ids": [
+      "ref:java-eco:tx-boundary"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "AOP与事务",
+      "Spring Framework 6；回滚全局选项需6.2+",
+      "事务边界",
+      "远程调用",
+      "异步线程"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:async",
+    "kind": "engineering",
+    "title": "@Async 执行器、返回值与异常 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：@Async 执行器、返回值与异常\n版本：Spring Framework 6；回滚全局选项需6.2+\n示例或场景：\n@Async(\"reportExecutor\")\npublic CompletableFuture<String> report() { return CompletableFuture.completedFuture(build()); }\n\n任务：说明自身调用异步方法与外部代理调用的差别，并设计异常可观测方式。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "异步方法需通过代理调用并选择受控执行器；返回 Future/CompletableFuture 才便于追踪结果。\n\nvoid 异步异常不会按普通返回值传给调用方；线程上下文、事务和请求作用域不能默认跨线程延续。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：@Async 执行器、返回值与异常",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明自身调用异步方法与外部代理调用的差别，并设计异常可观测方式。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html",
+    "knowledge_ids": [
+      "ref:java-eco:async"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "AOP与事务",
+      "Spring Framework 6；回滚全局选项需6.2+",
+      "@Async",
+      "执行器",
+      "返回值",
+      "异常"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:cache",
+    "kind": "engineering",
+    "title": "Spring Cache、键设计与失效 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Spring Cache、键设计与失效\n版本：Spring Framework 6；回滚全局选项需6.2+\n示例或场景：\n@Cacheable(cacheNames = \"products\", key = \"#id\")\npublic Product find(long id) { return repository.find(id); }\n\n任务：为多租户商品查询设计缓存键，并说明一次更新后如何处理失效。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "@Cacheable 基于键复用结果，@CacheEvict 失效；缓存不是数据库一致性的自动替代。\n\n相同键跨租户可能混淆数据；自身调用可能绕过代理，事务回滚与提前失效的时序也需测试。过期时间依赖缓存实现。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Spring Cache、键设计与失效",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为多租户商品查询设计缓存键，并说明一次更新后如何处理失效。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/integration/cache/annotations.html",
+    "knowledge_ids": [
+      "ref:java-eco:cache"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "AOP与事务",
+      "Spring Framework 6；回滚全局选项需6.2+",
+      "Cache",
+      "键设计",
+      "失效"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:boot-autoconfig",
+    "kind": "engineering",
+    "title": "自动配置、条件与用户配置优先 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：自动配置、条件与用户配置优先\n版本：Spring Boot 3 / Framework 6 / Java 17+\n示例或场景：\n@Configuration\nclass Config { @Bean Clock appClock() { return Clock.systemUTC(); } }\n\n任务：解释引入依赖后为什么仍未创建期待的 Bean，给出排查顺序。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Boot 自动配置按类路径、属性及已有 Bean 等条件装配常见组件，不是运行时神秘扫描所有依赖。\n\n自定义 Bean 可能使相关默认配置退让；用条件评估报告确认原因，不能通过随意排除自动配置掩盖依赖冲突。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：自动配置、条件与用户配置优先",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释引入依赖后为什么仍未创建期待的 Bean，给出排查顺序。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-boot/reference/using/index.html",
+    "knowledge_ids": [
+      "ref:java-eco:boot-autoconfig"
+    ],
+    "tags": [
+      "Java",
+      "Spring Boot",
+      "配置与运行",
+      "Spring Boot 3 / Framework 6 / Java 17+",
+      "自动配置",
+      "条件",
+      "用户配置优先",
+      "SpringBoot",
+      "Spring Boot"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:boot-starter",
+    "kind": "engineering",
+    "title": "Starter、BOM 与版本兼容 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Starter、BOM 与版本兼容\n版本：Spring Boot 3 / Framework 6 / Java 17+\n示例或场景：\n// Maven 使用 spring-boot-dependencies BOM 或 Boot parent；再引入所需 starter。\n\n任务：说明 starter 与 BOM 的区别，以及为何单独升级一个核心 jar 有风险。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "starter 聚合常用依赖；BOM 管理一组经过协调的版本，两者职责不同。\n\n不要随意覆盖传递依赖版本；Spring Cloud 发布列车还需与 Boot 版本匹配，Boot3 与 Boot4 的依赖组合不可混用。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Starter、BOM 与版本兼容",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明 starter 与 BOM 的区别，以及为何单独升级一个核心 jar 有风险。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-boot/reference/using/index.html",
+    "knowledge_ids": [
+      "ref:java-eco:boot-starter"
+    ],
+    "tags": [
+      "Java",
+      "Spring Boot",
+      "配置与运行",
+      "Spring Boot 3 / Framework 6 / Java 17+",
+      "Starter",
+      "BOM",
+      "版本兼容",
+      "SpringBoot",
+      "Spring Boot"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:properties",
+    "kind": "engineering",
+    "title": "@ConfigurationProperties 与配置校验 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：@ConfigurationProperties 与配置校验\n版本：Spring Boot 3 / Framework 6 / Java 17+\n示例或场景：\n@ConfigurationProperties(\"app.retry\")\npublic record RetryProperties(int maxAttempts, Duration delay) {}\n\n任务：给重试配置设计类型、校验和非法配置时的启动行为。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "类型化属性集中绑定配置，并可配合校验、默认值和构造器表达必填项。\n\n需要注册属性类；秘密值不要硬编码或输出日志。绑定成功不代表数值符合业务范围，应检查重试上限和延迟单位。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：@ConfigurationProperties 与配置校验",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：给重试配置设计类型、校验和非法配置时的启动行为。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-boot/reference/features/external-config.html",
+    "knowledge_ids": [
+      "ref:java-eco:properties"
+    ],
+    "tags": [
+      "Java",
+      "Spring Boot",
+      "配置与运行",
+      "Spring Boot 3 / Framework 6 / Java 17+",
+      "@ConfigurationProperties",
+      "配置校验",
+      "SpringBoot",
+      "Spring Boot"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:profiles",
+    "kind": "engineering",
+    "title": "Profile、配置优先级与环境差异 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Profile、配置优先级与环境差异\n版本：Spring Boot 3 / Framework 6 / Java 17+\n示例或场景：\nspring.profiles.active=dev\nserver.port=8081\n\n任务：本地 YAML 写8080但应用监听8081时，如何检查覆盖来源。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Profile 选择环境配置片段；外部配置来源有覆盖顺序，要确认实际生效值而非只读一个 YAML。\n\n命令行、环境变量和配置文件可能覆盖彼此；不要把生产秘密放进共享 profile 文件。明确启用的环境和来源。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Profile、配置优先级与环境差异",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：本地 YAML 写8080但应用监听8081时，如何检查覆盖来源。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-boot/reference/features/external-config.html",
+    "knowledge_ids": [
+      "ref:java-eco:profiles"
+    ],
+    "tags": [
+      "Java",
+      "Spring Boot",
+      "配置与运行",
+      "Spring Boot 3 / Framework 6 / Java 17+",
+      "Profile",
+      "配置优先级",
+      "环境差异",
+      "SpringBoot",
+      "Spring Boot"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:boot-lifecycle",
+    "kind": "engineering",
+    "title": "启动阶段、Runner 与优雅退出 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：启动阶段、Runner 与优雅退出\n版本：Spring Boot 3 / Framework 6 / Java 17+\n示例或场景：\n@Bean ApplicationRunner warmup() { return args -> loadReferenceData(); }\n\n任务：说明把十分钟数据同步放进启动 Runner 对发布有什么影响。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "初始化、应用就绪和开始接收流量不是同一个时刻；关闭时应停止接收新任务并处理在途工作。\n\nRunner 中的长任务会延迟就绪；关闭超时不是所有任务都完成的保证，需要设置资源终止策略和观测。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：启动阶段、Runner 与优雅退出",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明把十分钟数据同步放进启动 Runner 对发布有什么影响。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-boot/reference/using/index.html",
+    "knowledge_ids": [
+      "ref:java-eco:boot-lifecycle"
+    ],
+    "tags": [
+      "Java",
+      "Spring Boot",
+      "配置与运行",
+      "Spring Boot 3 / Framework 6 / Java 17+",
+      "启动阶段",
+      "Runner",
+      "优雅退出",
+      "SpringBoot",
+      "Spring Boot"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:actuator",
+    "kind": "engineering",
+    "title": "Actuator、健康检查与就绪状态 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Actuator、健康检查与就绪状态\n版本：Spring Boot 3 / Framework 6 / Java 17+\n示例或场景：\nmanagement.endpoints.web.exposure.include=health,info\nmanagement.endpoint.health.probes.enabled=true\n\n任务：数据库短暂故障时如何区分 liveness 与 readiness 的处置。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "存活检查判断进程是否应重启，就绪检查判断能否接流量；外部依赖故障不应一律触发反复重启。\n\n端点暴露与鉴权独立配置，避免公开环境或堆转储。健康返回成功不能代替真实业务请求检查。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Actuator、健康检查与就绪状态",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：数据库短暂故障时如何区分 liveness 与 readiness 的处置。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-boot/reference/using/index.html",
+    "knowledge_ids": [
+      "ref:java-eco:actuator"
+    ],
+    "tags": [
+      "Java",
+      "Spring Boot",
+      "配置与运行",
+      "Spring Boot 3 / Framework 6 / Java 17+",
+      "Actuator",
+      "健康检查",
+      "就绪状态",
+      "SpringBoot",
+      "Spring Boot"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:boot-migration",
+    "kind": "engineering",
+    "title": "Boot 2到3、javax到jakarta与版本迁移 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Boot 2到3、javax到jakarta与版本迁移\n版本：Spring Boot 3 / Framework 6 / Java 17+\n示例或场景：\n// javax.persistence.Entity → jakarta.persistence.Entity\n// 先对齐BOM和第三方兼容版本，再迁移与回归。\n\n任务：为旧服务升级制定依赖盘点、兼容验证和回退方案。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Boot3/Framework6 基线使用 Java17 与 Jakarta 命名空间；迁移包含依赖、Servlet 容器、校验及持久化API，不只是替换 import。\n\nBoot4/Framework7 是另一条版本基线，应读对应迁移文档；不把当前文档中的新API无条件抄进旧项目。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Boot 2到3、javax到jakarta与版本迁移",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为旧服务升级制定依赖盘点、兼容验证和回退方案。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-boot/reference/using/index.html",
+    "knowledge_ids": [
+      "ref:java-eco:boot-migration"
+    ],
+    "tags": [
+      "Java",
+      "Spring Boot",
+      "配置与运行",
+      "Spring Boot 3 / Framework 6 / Java 17+",
+      "Boot",
+      "2到3",
+      "javax到jakarta",
+      "版本迁移",
+      "SpringBoot",
+      "Spring Boot"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:boot-packaging",
+    "kind": "engineering",
+    "title": "可执行jar、容器镜像与运行配置 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：可执行jar、容器镜像与运行配置\n版本：Spring Boot 3 / Framework 6 / Java 17+\n示例或场景：\njava -XX:MaxRAMPercentage=70 -jar app.jar --spring.profiles.active=prod\n\n任务：解释容器限制1GB时为何不能将 -Xmx 设置为1GB。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "可执行 jar 打包程序与依赖，运行配置和数据应保持外置；镜像层和缓存不应包含用户秘密。\n\n容器内存还需给线程栈、元空间与原生分配留空间；不可把 Java 堆大小直接设成整个容器限制。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：可执行jar、容器镜像与运行配置",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释容器限制1GB时为何不能将 -Xmx 设置为1GB。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-boot/reference/using/index.html",
+    "knowledge_ids": [
+      "ref:java-eco:boot-packaging"
+    ],
+    "tags": [
+      "Java",
+      "Spring Boot",
+      "配置与运行",
+      "Spring Boot 3 / Framework 6 / Java 17+",
+      "可执行jar",
+      "容器镜像",
+      "运行配置",
+      "SpringBoot",
+      "Spring Boot"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:mvc-pipeline",
+    "kind": "engineering",
+    "title": "Servlet、Filter、Interceptor 与 Controller · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Servlet、Filter、Interceptor 与 Controller\n版本：Spring MVC 6 / Java 17+；WebFlux需响应式依赖\n示例或场景：\n// Filter → DispatcherServlet → HandlerInterceptor → Controller → response。\n\n任务：分别选择请求编码、业务鉴权与控制器参数校验的合适位置并解释。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Filter 位于 Servlet 链，Interceptor 围绕处理器调用；异常处理与异步完成还存在不同回调阶段。\n\n不要把正常响应路径当成所有异常路径；请求体读取、鉴权和日志上下文清理要有明确边界，finally 中释放线程本地状态。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Servlet、Filter、Interceptor 与 Controller",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：分别选择请求编码、业务鉴权与控制器参数校验的合适位置并解释。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/web/webmvc.html",
+    "knowledge_ids": [
+      "ref:java-eco:mvc-pipeline"
+    ],
+    "tags": [
+      "Java",
+      "Web",
+      "MVC与接口",
+      "Spring MVC 6 / Java 17+；WebFlux需响应式依赖",
+      "Servlet",
+      "Filter",
+      "Interceptor",
+      "Controller"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:request-binding",
+    "kind": "engineering",
+    "title": "@RequestParam、@PathVariable 与 @RequestBody · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：@RequestParam、@PathVariable 与 @RequestBody\n版本：Spring MVC 6 / Java 17+；WebFlux需响应式依赖\n示例或场景：\n@PostMapping(\"/orders/{id}\")\nOrder update(@PathVariable long id, @Valid @RequestBody UpdateOrder body) { return service.update(id, body); }\n\n任务：解释JSON请求无法绑定时应检查哪些信息。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "三者分别处理查询/表单参数、路径变量与经消息转换器读取的请求体，不能只看 Java 参数名称猜绑定。\n\n客户端 Content-Type 和 JSON 字段类型必须匹配；请求体通常不能重复消费，不要在日志 Filter 中无缓存地读完。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：@RequestParam、@PathVariable 与 @RequestBody",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释JSON请求无法绑定时应检查哪些信息。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/web/webmvc.html",
+    "knowledge_ids": [
+      "ref:java-eco:request-binding"
+    ],
+    "tags": [
+      "Java",
+      "Web",
+      "MVC与接口",
+      "Spring MVC 6 / Java 17+；WebFlux需响应式依赖",
+      "@RequestParam",
+      "@PathVariable",
+      "@RequestBody"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:rest-errors",
+    "kind": "engineering",
+    "title": "统一错误、状态码与 ProblemDetail · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：统一错误、状态码与 ProblemDetail\n版本：Spring MVC 6 / Java 17+；WebFlux需响应式依赖\n示例或场景：\n@ExceptionHandler(IllegalArgumentException.class)\nProblemDetail invalid(IllegalArgumentException e) { return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage()); }\n\n任务：设计参数错误与数据库不可用的不同HTTP响应和排查标识。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "错误需要稳定的机器可读字段与合适 HTTP 状态，而不是所有响应都200并拼接异常堆栈。\n\n不要把内部数据库异常或秘密直接返回客户端；业务错误、校验失败与不可用应分别处理，关联 traceId 便于定位。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：统一错误、状态码与 ProblemDetail",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：设计参数错误与数据库不可用的不同HTTP响应和排查标识。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/web/webmvc.html",
+    "knowledge_ids": [
+      "ref:java-eco:rest-errors"
+    ],
+    "tags": [
+      "Java",
+      "Web",
+      "MVC与接口",
+      "Spring MVC 6 / Java 17+；WebFlux需响应式依赖",
+      "统一错误",
+      "状态码",
+      "ProblemDetail"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:idempotency",
+    "kind": "engineering",
+    "title": "接口幂等、唯一约束与重试 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：接口幂等、唯一约束与重试\n版本：Spring MVC 6 / Java 17+；WebFlux需响应式依赖\n示例或场景：\n// 业务键上建唯一约束；同一幂等键重复请求返回已记录结果。\n\n任务：为支付创建接口设计超时重试与重复扣款防护。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "幂等需要持久化请求身份与业务结果，防止超时重试产生重复副作用；仅放一个内存标记不足。\n\n需定义相同键不同参数、进行中请求与失败重试的语义；检查后插入存在竞态，不能只先查一次。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：接口幂等、唯一约束与重试",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为支付创建接口设计超时重试与重复扣款防护。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/web/webmvc.html",
+    "knowledge_ids": [
+      "ref:java-eco:idempotency"
+    ],
+    "tags": [
+      "Java",
+      "Web",
+      "MVC与接口",
+      "Spring MVC 6 / Java 17+；WebFlux需响应式依赖",
+      "接口幂等",
+      "唯一约束",
+      "重试"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:pagination",
+    "kind": "engineering",
+    "title": "分页、稳定排序与游标 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：分页、稳定排序与游标\n版本：Spring MVC 6 / Java 17+；WebFlux需响应式依赖\n示例或场景：\nSELECT id, created_at FROM orders WHERE id > ? ORDER BY id LIMIT ?;\n\n任务：说明订单按创建时间排序时为何还需要ID作为次排序及游标字段。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "分页应有稳定且唯一的排序，游标分页可减少深 offset 扫描并减少并发插入导致的漂移。\n\n游标编码应绑定排序和筛选条件；复合排序需对应复合游标，不能只比较非唯一时间戳。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：分页、稳定排序与游标",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明订单按创建时间排序时为何还需要ID作为次排序及游标字段。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/web/webmvc.html",
+    "knowledge_ids": [
+      "ref:java-eco:pagination"
+    ],
+    "tags": [
+      "Java",
+      "Web",
+      "MVC与接口",
+      "Spring MVC 6 / Java 17+；WebFlux需响应式依赖",
+      "分页",
+      "稳定排序",
+      "游标"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:http-client",
+    "kind": "engineering",
+    "title": "HTTP客户端、连接池与超时预算 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：HTTP客户端、连接池与超时预算\n版本：Spring MVC 6 / Java 17+；WebFlux需响应式依赖\n示例或场景：\nHttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();\nHttpRequest request = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(3)).GET().build();\n\n任务：为一个总预算3秒的下游调用安排超时和重试策略。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "连接、读取和整体调用有不同超时；连接池复用降低开销，重试应受请求总预算约束。\n\n每次创建客户端浪费连接；自动重试非幂等请求可能重复业务。网络超时不代表远端没有执行。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：HTTP客户端、连接池与超时预算",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为一个总预算3秒的下游调用安排超时和重试策略。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/web/webmvc.html",
+    "knowledge_ids": [
+      "ref:java-eco:http-client"
+    ],
+    "tags": [
+      "Java",
+      "Web",
+      "MVC与接口",
+      "Spring MVC 6 / Java 17+；WebFlux需响应式依赖",
+      "HTTP客户端",
+      "连接池",
+      "超时预算"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:webflux",
+    "kind": "engineering",
+    "title": "WebFlux、Reactor 与阻塞边界 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：WebFlux、Reactor 与阻塞边界\n版本：Spring MVC 6 / Java 17+；WebFlux需响应式依赖\n示例或场景：\nMono.fromCallable(this::blockingLoad).subscribeOn(Schedulers.boundedElastic());\n\n任务：解释把JDBC查询直接放在事件循环回调里为什么会拖慢无关请求。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "响应式流支持异步组合与背压；不能在事件循环中直接执行长时间阻塞数据库或文件调用。\n\n使用响应式API不自动提高CPU吞吐；ThreadLocal上下文传播、事务模型与MVC不同，必须选择匹配的驱动与调度策略。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：WebFlux、Reactor 与阻塞边界",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释把JDBC查询直接放在事件循环回调里为什么会拖慢无关请求。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/web/webflux.html",
+    "knowledge_ids": [
+      "ref:java-eco:webflux"
+    ],
+    "tags": [
+      "Java",
+      "Web",
+      "MVC与接口",
+      "Spring MVC 6 / Java 17+；WebFlux需响应式依赖",
+      "WebFlux",
+      "Reactor",
+      "阻塞边界"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:netty",
+    "kind": "engineering",
+    "title": "Netty、事件循环与ByteBuf所有权 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Netty、事件循环与ByteBuf所有权\n版本：Spring MVC 6 / Java 17+；WebFlux需响应式依赖\n示例或场景：\n// ChannelInboundHandler 中不得执行长时间阻塞业务；转移 ByteBuf 所有权时明确 retain/release。\n\n任务：设计长度前缀协议的解码边界，并说明缓冲区释放责任。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "事件循环复用少量线程处理多连接，耗时工作需移出；引用计数缓冲区的释放责任需明确。\n\n释放后访问和遗忘释放都可能出错；TCP是字节流，需要处理消息分帧、粘包与半包，而非假定一次read是一条消息。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Netty、事件循环与ByteBuf所有权",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：设计长度前缀协议的解码边界，并说明缓冲区释放责任。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://netty.io/wiki/reference-counted-objects.html",
+    "knowledge_ids": [
+      "ref:java-eco:netty"
+    ],
+    "tags": [
+      "Java",
+      "Web",
+      "MVC与接口",
+      "Spring MVC 6 / Java 17+；WebFlux需响应式依赖",
+      "Netty",
+      "事件循环",
+      "ByteBuf所有权"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:jdbc",
+    "kind": "engineering",
+    "title": "JDBC、PreparedStatement 与资源关闭 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：JDBC、PreparedStatement 与资源关闭\n版本：Java 17+；MyBatis3 / JPA3；片段需对应框架依赖\n示例或场景：\ntry (var c = dataSource.getConnection(); var s = c.prepareStatement(\"SELECT name FROM users WHERE id=?\")) { s.setLong(1, id); try(var r=s.executeQuery()) { /* 消费结果 */ } }\n\n任务：解释参数化查询能解决什么，为什么不能直接把表名放进问号。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "参数绑定把数据与SQL结构分开；连接、语句和结果集的生命周期应及时关闭，池连接close通常表示归还。\n\n表名、排序字段等结构位置不能靠普通参数绑定，应使用白名单；不要拼接用户输入代替参数。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：JDBC、PreparedStatement 与资源关闭",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释参数化查询能解决什么，为什么不能直接把表名放进问号。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://mybatis.org/mybatis-3/sqlmap-xml.html",
+    "knowledge_ids": [
+      "ref:java-eco:jdbc"
+    ],
+    "tags": [
+      "Java",
+      "数据访问",
+      "持久化与事务",
+      "Java 17+；MyBatis3 / JPA3；片段需对应框架依赖",
+      "JDBC",
+      "PreparedStatement",
+      "资源关闭"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:mybatis-params",
+    "kind": "engineering",
+    "title": "MyBatis 的 #{}、${} 与参数绑定 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：MyBatis 的 #{}、${} 与参数绑定\n版本：Java 17+；MyBatis3 / JPA3；片段需对应框架依赖\n示例或场景：\n<select id=\"find\" resultType=\"User\">SELECT id,name FROM users WHERE id=#{id}</select>\n\n任务：设计允许name/id两种排序的安全查询，说明两类占位符的差别。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "#{} 通常产生 PreparedStatement 参数；${} 是文本替换，结构位置需校验白名单。\n\n不能声称所有动态SQL都不安全，但来自请求的排序列绝不能不经校验直接替换；IN列表应使用foreach绑定。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：MyBatis 的 #{}、${} 与参数绑定",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：设计允许name/id两种排序的安全查询，说明两类占位符的差别。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://mybatis.org/mybatis-3/sqlmap-xml.html",
+    "knowledge_ids": [
+      "ref:java-eco:mybatis-params"
+    ],
+    "tags": [
+      "Java",
+      "数据访问",
+      "持久化与事务",
+      "Java 17+；MyBatis3 / JPA3；片段需对应框架依赖",
+      "MyBatis",
+      "的",
+      "#{}",
+      "${}",
+      "参数绑定",
+      "MyBatis"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:mybatis-mapping",
+    "kind": "engineering",
+    "title": "MyBatis resultMap、嵌套映射与N+1 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：MyBatis resultMap、嵌套映射与N+1\n版本：Java 17+；MyBatis3 / JPA3；片段需对应框架依赖\n示例或场景：\n<resultMap id=\"userMap\" type=\"User\"><id property=\"id\" column=\"id\"/><result property=\"name\" column=\"user_name\"/></resultMap>\n\n任务：查询100个订单及客户时，如何识别并避免101次SQL。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "resultMap 定义列到对象的映射，关联嵌套查询便于复用但可能为每个父对象额外查一次。\n\n应统计SQL次数和总返回行数，再决定join、批量查询或延迟加载；全局开延迟加载不等于消除N+1。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：MyBatis resultMap、嵌套映射与N+1",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：查询100个订单及客户时，如何识别并避免101次SQL。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://mybatis.org/mybatis-3/sqlmap-xml.html",
+    "knowledge_ids": [
+      "ref:java-eco:mybatis-mapping"
+    ],
+    "tags": [
+      "Java",
+      "数据访问",
+      "持久化与事务",
+      "Java 17+；MyBatis3 / JPA3；片段需对应框架依赖",
+      "MyBatis",
+      "resultMap",
+      "嵌套映射",
+      "N+1",
+      "MyBatis"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:mybatis-dynamic",
+    "kind": "engineering",
+    "title": "MyBatis 动态SQL、where与foreach · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：MyBatis 动态SQL、where与foreach\n版本：Java 17+；MyBatis3 / JPA3；片段需对应框架依赖\n示例或场景：\n<where><if test=\"name != null\">AND name=#{name}</if></where>\n\n任务：说明批量删除接口传入空ID集合时应怎样保护数据。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "动态条件组合要处理空条件、括号与空列表，where/trim可帮助去掉多余前缀但不校验业务语义。\n\n空过滤条件可能变成全表更新；批量ID为空时应明确返回空集或拒绝，不要省略条件后查全表。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：MyBatis 动态SQL、where与foreach",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明批量删除接口传入空ID集合时应怎样保护数据。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://mybatis.org/mybatis-3/sqlmap-xml.html",
+    "knowledge_ids": [
+      "ref:java-eco:mybatis-dynamic"
+    ],
+    "tags": [
+      "Java",
+      "数据访问",
+      "持久化与事务",
+      "Java 17+；MyBatis3 / JPA3；片段需对应框架依赖",
+      "MyBatis",
+      "动态SQL",
+      "where",
+      "foreach",
+      "MyBatis"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:mybatis-cache",
+    "kind": "engineering",
+    "title": "MyBatis会话缓存与事务一致性 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：MyBatis会话缓存与事务一致性\n版本：Java 17+；MyBatis3 / JPA3；片段需对应框架依赖\n示例或场景：\n// 同一会话重复查询与另一会话更新的可见性，需要结合事务隔离和缓存配置测试。\n\n任务：区分会话缓存返回旧值和数据库隔离快照返回旧值的排查方法。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "一级缓存通常关联SqlSession；二级缓存按命名空间配置。多个会话、外部写入和可变返回对象会影响一致性。\n\n缓存不等于数据库的MVCC；频繁更新业务不应只凭命中率决定启用二级缓存。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：MyBatis会话缓存与事务一致性",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：区分会话缓存返回旧值和数据库隔离快照返回旧值的排查方法。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://mybatis.org/mybatis-3/sqlmap-xml.html",
+    "knowledge_ids": [
+      "ref:java-eco:mybatis-cache"
+    ],
+    "tags": [
+      "Java",
+      "数据访问",
+      "持久化与事务",
+      "Java 17+；MyBatis3 / JPA3；片段需对应框架依赖",
+      "MyBatis会话缓存",
+      "事务一致性",
+      "MyBatis"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:jpa-context",
+    "kind": "engineering",
+    "title": "JPA持久化上下文、脏检查与实体状态 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：JPA持久化上下文、脏检查与实体状态\n版本：Java 17+；MyBatis3 / JPA3；片段需对应框架依赖\n示例或场景：\n@Transactional\npublic void rename(long id) { User user = entityManager.find(User.class, id); user.setName(\"new\"); }\n\n任务：解释示例为何可能无需显式update，以及事务外游离对象有何不同。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "受管实体的变更可在flush时同步到数据库；游离对象的修改不会自动被当前上下文跟踪。\n\nflush不等于事务提交；批处理要考虑上下文内存和clear，不能在事务结束后无限依赖懒加载。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：JPA持久化上下文、脏检查与实体状态",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释示例为何可能无需显式update，以及事务外游离对象有何不同。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://mybatis.org/mybatis-3/sqlmap-xml.html",
+    "knowledge_ids": [
+      "ref:java-eco:jpa-context"
+    ],
+    "tags": [
+      "Java",
+      "数据访问",
+      "持久化与事务",
+      "Java 17+；MyBatis3 / JPA3；片段需对应框架依赖",
+      "JPA持久化上下文",
+      "脏检查",
+      "实体状态"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:jpa-fetch",
+    "kind": "engineering",
+    "title": "JPA抓取策略、N+1与分页 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：JPA抓取策略、N+1与分页\n版本：Java 17+；MyBatis3 / JPA3；片段需对应框架依赖\n示例或场景：\n// 先分页查订单ID，再按ID批量抓取订单和集合关联。\n\n任务：为订单加明细的分页接口设计查询方式，避免N+1与错误分页。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "LAZY或EAGER不保证只执行一次SQL；fetch join或EntityGraph需要结合结果基数与分页策略。\n\n对集合fetch join直接分页可能产生重复、内存分页或错误边界；先用SQL日志与统计确认行为。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：JPA抓取策略、N+1与分页",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为订单加明细的分页接口设计查询方式，避免N+1与错误分页。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://mybatis.org/mybatis-3/sqlmap-xml.html",
+    "knowledge_ids": [
+      "ref:java-eco:jpa-fetch"
+    ],
+    "tags": [
+      "Java",
+      "数据访问",
+      "持久化与事务",
+      "Java 17+；MyBatis3 / JPA3；片段需对应框架依赖",
+      "JPA抓取策略",
+      "N+1",
+      "分页"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:optimistic-db",
+    "kind": "engineering",
+    "title": "数据库乐观锁、版本列与丢失更新 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：数据库乐观锁、版本列与丢失更新\n版本：Java 17+；MyBatis3 / JPA3；片段需对应框架依赖\n示例或场景：\nUPDATE products SET stock=?, version=version+1 WHERE id=? AND version=?;\n\n任务：两个实例同时改库存时，解释版本条件与受影响行数的作用。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "更新时把已读取版本放进条件，受影响行数为0表示冲突或记录不存在，不能继续假装成功。\n\n失败重试必须重新读取并重新计算业务值；Java的synchronized无法保护多实例对同一数据库的写入。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：数据库乐观锁、版本列与丢失更新",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：两个实例同时改库存时，解释版本条件与受影响行数的作用。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://mybatis.org/mybatis-3/sqlmap-xml.html",
+    "knowledge_ids": [
+      "ref:java-eco:optimistic-db"
+    ],
+    "tags": [
+      "Java",
+      "数据访问",
+      "持久化与事务",
+      "Java 17+；MyBatis3 / JPA3；片段需对应框架依赖",
+      "数据库乐观锁",
+      "版本列",
+      "丢失更新"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:connection-pool",
+    "kind": "engineering",
+    "title": "连接池大小、泄漏与等待指标 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：连接池大小、泄漏与等待指标\n版本：Java 17+；MyBatis3 / JPA3；片段需对应框架依赖\n示例或场景：\n// 观测 active、idle、pending、acquire耗时与数据库当前会话。\n\n任务：连接池pending突增时列出需要关联的应用与数据库证据。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "连接池限制同时持有的数据库连接；排查需区分数据库慢、事务过长、未归还连接和配置过大。\n\n简单扩大池可能加重数据库压力；事务中远程等待会长时间占用连接，连接测试SQL不代表业务查询快。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：连接池大小、泄漏与等待指标",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：连接池pending突增时列出需要关联的应用与数据库证据。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://mybatis.org/mybatis-3/sqlmap-xml.html",
+    "knowledge_ids": [
+      "ref:java-eco:connection-pool"
+    ],
+    "tags": [
+      "Java",
+      "数据访问",
+      "持久化与事务",
+      "Java 17+；MyBatis3 / JPA3；片段需对应框架依赖",
+      "连接池大小",
+      "泄漏",
+      "等待指标"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:db-migration",
+    "kind": "engineering",
+    "title": "Flyway/Liquibase、模式演进与发布兼容 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Flyway/Liquibase、模式演进与发布兼容\n版本：Java 17+；MyBatis3 / JPA3；片段需对应框架依赖\n示例或场景：\n-- V2__add_status.sql\nALTER TABLE orders ADD COLUMN status VARCHAR(32);\n\n任务：为旧新应用并存的字段重命名设计渐进迁移步骤。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "结构变更要版本化且能重复部署验证；采用先扩展、迁移数据、再收缩的兼容步骤减少同时升级要求。\n\n不要修改已经在生产执行并校验过的迁移文件；大表DDL可能持锁，数据库回滚不等于文件级一键撤销。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Flyway/Liquibase、模式演进与发布兼容",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为旧新应用并存的字段重命名设计渐进迁移步骤。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://mybatis.org/mybatis-3/sqlmap-xml.html",
+    "knowledge_ids": [
+      "ref:java-eco:db-migration"
+    ],
+    "tags": [
+      "Java",
+      "数据访问",
+      "持久化与事务",
+      "Java 17+；MyBatis3 / JPA3；片段需对应框架依赖",
+      "Flyway/Liquibase",
+      "模式演进",
+      "发布兼容"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:security-chain",
+    "kind": "engineering",
+    "title": "SecurityFilterChain、认证与授权 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：SecurityFilterChain、认证与授权\n版本：Spring Security 6 / Servlet；学习资料，不给客户端增加登录校验\n示例或场景：\n@Bean SecurityFilterChain web(HttpSecurity http) throws Exception { return http.authorizeHttpRequests(a -> a.requestMatchers(\"/public/**\").permitAll().anyRequest().authenticated()).build(); }\n\n任务：区分未登录401、已认证但权限不足403与业务资源所有权检查。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "认证确认身份，授权决定访问能力；Servlet安全过滤器在控制器前处理请求，并可按链匹配规则选择配置。\n\n过滤器顺序和多链匹配会影响结果；配置登录接口放行不意味着其他接口自动具有业务对象级权限。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：SecurityFilterChain、认证与授权",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：区分未登录401、已认证但权限不足403与业务资源所有权检查。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-security/reference/servlet/architecture.html",
+    "knowledge_ids": [
+      "ref:java-eco:security-chain"
+    ],
+    "tags": [
+      "Java",
+      "安全",
+      "Spring Security",
+      "Spring Security 6 / Servlet；学习资料，不给客户端增加登录校验",
+      "SecurityFilterChain",
+      "认证",
+      "授权"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:password-hash",
+    "kind": "engineering",
+    "title": "PasswordEncoder、密码散列与升级 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：PasswordEncoder、密码散列与升级\n版本：Spring Security 6 / Servlet；学习资料，不给客户端增加登录校验\n示例或场景：\nPasswordEncoder encoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();\nString encoded = encoder.encode(raw);\nboolean ok = encoder.matches(raw, encoded);\n\n任务：解释为什么不能用encode(raw).equals(stored)验证密码。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "密码应使用带盐且有工作因子的专用散列算法；验证使用matches，不是把明文加密后直接字符串比较。\n\n每次编码结果可不同；散列不可用于找回原密码，算法迁移需要保留格式标识并在成功登录后适时升级。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：PasswordEncoder、密码散列与升级",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释为什么不能用encode(raw).equals(stored)验证密码。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-security/reference/servlet/architecture.html",
+    "knowledge_ids": [
+      "ref:java-eco:password-hash"
+    ],
+    "tags": [
+      "Java",
+      "安全",
+      "Spring Security",
+      "Spring Security 6 / Servlet；学习资料，不给客户端增加登录校验",
+      "PasswordEncoder",
+      "密码散列",
+      "升级"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:csrf-cors",
+    "kind": "engineering",
+    "title": "CSRF、CORS与浏览器凭据 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：CSRF、CORS与浏览器凭据\n版本：Spring Security 6 / Servlet；学习资料，不给客户端增加登录校验\n示例或场景：\n// Cookie会话接口保留CSRF保护；跨域来源按白名单配置。\n\n任务：解释允许CORS为何没有自动解决基于Cookie登录的CSRF。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "CORS控制跨源读取等浏览器访问规则，CSRF防护针对浏览器自动携带凭据导致的跨站请求，两者不能互相替代。\n\n把接口叫REST不等于可以关闭CSRF；Authorization头令牌与Cookie令牌的风险边界不同，需按凭据传输方式分析。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：CSRF、CORS与浏览器凭据",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释允许CORS为何没有自动解决基于Cookie登录的CSRF。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-security/reference/servlet/architecture.html",
+    "knowledge_ids": [
+      "ref:java-eco:csrf-cors"
+    ],
+    "tags": [
+      "Java",
+      "安全",
+      "Spring Security",
+      "Spring Security 6 / Servlet；学习资料，不给客户端增加登录校验",
+      "CSRF",
+      "CORS",
+      "浏览器凭据"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:jwt",
+    "kind": "engineering",
+    "title": "JWT签名、声明校验与撤销 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：JWT签名、声明校验与撤销\n版本：Spring Security 6 / Servlet；学习资料，不给客户端增加登录校验\n示例或场景：\n// Resource Server验证签名后检查iss、aud、exp；业务仍校验资源归属。\n\n任务：说明一个签名有效但aud不匹配的令牌是否应被本服务接受。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "JWT签名保护令牌完整性，不默认加密载荷；验证还需固定允许算法并检查发行方、受众和时间声明。\n\n不能只Base64解码就信任用户身份；短期令牌、刷新令牌与撤销策略是独立设计，不要在载荷放秘密。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：JWT签名、声明校验与撤销",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明一个签名有效但aud不匹配的令牌是否应被本服务接受。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-security/reference/servlet/architecture.html",
+    "knowledge_ids": [
+      "ref:java-eco:jwt"
+    ],
+    "tags": [
+      "Java",
+      "安全",
+      "Spring Security",
+      "Spring Security 6 / Servlet；学习资料，不给客户端增加登录校验",
+      "JWT签名",
+      "声明校验",
+      "撤销"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:oauth-oidc",
+    "kind": "engineering",
+    "title": "OAuth2、OIDC与授权码PKCE · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：OAuth2、OIDC与授权码PKCE\n版本：Spring Security 6 / Servlet；学习资料，不给客户端增加登录校验\n示例或场景：\n// state关联请求，PKCE校验code_verifier；OIDC还校验ID Token与nonce等上下文。\n\n任务：区分登录身份与调用API授权，并解释两种令牌用途。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "OAuth2主要解决授权委托，OIDC增加身份层；浏览器/公共客户端可用授权码与PKCE降低授权码被截获的风险。\n\naccess token不一定是JWT；ID token和access token用途不同，不能随意互换，也不应在前端嵌入客户端秘密。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：OAuth2、OIDC与授权码PKCE",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：区分登录身份与调用API授权，并解释两种令牌用途。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-security/reference/servlet/architecture.html",
+    "knowledge_ids": [
+      "ref:java-eco:oauth-oidc"
+    ],
+    "tags": [
+      "Java",
+      "安全",
+      "Spring Security",
+      "Spring Security 6 / Servlet；学习资料，不给客户端增加登录校验",
+      "OAuth2",
+      "OIDC",
+      "授权码PKCE"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:method-security",
+    "kind": "engineering",
+    "title": "方法授权与代理边界 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：方法授权与代理边界\n版本：Spring Security 6 / Servlet；学习资料，不给客户端增加登录校验\n示例或场景：\n@EnableMethodSecurity\n// @PreAuthorize(\"hasAuthority('order:read')\") 标注受保护服务方法。\n\n任务：说明有order:read权限为何不等于可读取任意租户订单。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "方法级鉴权通过拦截业务方法补充URL级检查，适合服务入口或细粒度权限规则。\n\n自身调用可能绕过代理增强；hasRole通常附带ROLE_前缀，应与实际权限字符串一致。资源归属仍需业务数据判断。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：方法授权与代理边界",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明有order:read权限为何不等于可读取任意租户订单。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-security/reference/servlet/architecture.html",
+    "knowledge_ids": [
+      "ref:java-eco:method-security"
+    ],
+    "tags": [
+      "Java",
+      "安全",
+      "Spring Security",
+      "Spring Security 6 / Servlet；学习资料，不给客户端增加登录校验",
+      "方法授权",
+      "代理边界"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:cloud-discovery",
+    "kind": "engineering",
+    "title": "服务发现、健康实例与负载均衡 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：服务发现、健康实例与负载均衡\n版本：Java服务工程；Cloud版本需与Boot发布列车匹配\n示例或场景：\n// 客户端从服务目录取得健康实例，调用设置连接/读取超时并记录选中节点。\n\n任务：解释已下线实例为何还可能收到短时请求，以及如何减轻影响。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "注册发现维护可用服务实例目录，负载均衡负责选择目标；注册成功不保证实例已经就绪。\n\n实例缓存、心跳与网络分区会造成短时旧地址；负载均衡策略不能代替幂等和限时调用。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：服务发现、健康实例与负载均衡",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释已下线实例为何还可能收到短时请求，以及如何减轻影响。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://spring.io/projects/spring-cloud",
+    "knowledge_ids": [
+      "ref:java-eco:cloud-discovery"
+    ],
+    "tags": [
+      "Java",
+      "分布式",
+      "Spring Cloud与一致性",
+      "Java服务工程；Cloud版本需与Boot发布列车匹配",
+      "服务发现",
+      "健康实例",
+      "负载均衡"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:gateway",
+    "kind": "engineering",
+    "title": "API网关、路由与限流边界 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：API网关、路由与限流边界\n版本：Java服务工程；Cloud版本需与Boot发布列车匹配\n示例或场景：\n// 按路径路由订单服务；为慢接口设置独立预算和并发上限。\n\n任务：为上传与普通查询设置不同路由预算，并说明身份信息如何可信传递。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "网关处理入口路由和横切策略，服务内部仍要维护业务校验；超时和转发头应有明确信任边界。\n\n不能信任任意客户端传来的内部用户头；网关自身也可能成为瓶颈，需要观测排队与下游耗时。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：API网关、路由与限流边界",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为上传与普通查询设置不同路由预算，并说明身份信息如何可信传递。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://spring.io/projects/spring-cloud",
+    "knowledge_ids": [
+      "ref:java-eco:gateway"
+    ],
+    "tags": [
+      "Java",
+      "分布式",
+      "Spring Cloud与一致性",
+      "Java服务工程；Cloud版本需与Boot发布列车匹配",
+      "API网关",
+      "路由",
+      "限流边界"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:circuit",
+    "kind": "engineering",
+    "title": "超时、重试、熔断与舱壁 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：超时、重试、熔断与舱壁\n版本：Java服务工程；Cloud版本需与Boot发布列车匹配\n示例或场景：\n// 总预算2秒，单次读取600ms，最多2次且仅重试可安全重复的失败。\n\n任务：为库存查询设计四种策略的配合，避免故障时请求风暴。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "超时限制等待，重试再次尝试，熔断暂时阻断持续失败的调用，舱壁限制故障占用的资源范围。\n\n多层重试会放大流量；熔断半开试探与降级结果需要清晰业务语义，不能把失败返回伪装成成功。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：超时、重试、熔断与舱壁",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为库存查询设计四种策略的配合，避免故障时请求风暴。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://spring.io/projects/spring-cloud",
+    "knowledge_ids": [
+      "ref:java-eco:circuit"
+    ],
+    "tags": [
+      "Java",
+      "分布式",
+      "Spring Cloud与一致性",
+      "Java服务工程；Cloud版本需与Boot发布列车匹配",
+      "超时",
+      "重试",
+      "熔断",
+      "舱壁"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:distributed-lock",
+    "kind": "engineering",
+    "title": "分布式锁、租约与fencing token · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：分布式锁、租约与fencing token\n版本：Java服务工程；Cloud版本需与Boot发布列车匹配\n示例或场景：\n// 下游写入同时携带单调fencing token，并拒绝小于已见token的写请求。\n\n任务：解释长GC暂停导致租约过期后的双写风险，以及fencing的作用。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "带租约的分布式锁可能过期，旧持有者仍在执行；仅唯一解锁令牌不能阻止过期持有者继续写。\n\n锁安全取决于存储和故障模型；解锁必须校验持有者。业务唯一约束与幂等通常也必须保留。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：分布式锁、租约与fencing token",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释长GC暂停导致租约过期后的双写风险，以及fencing的作用。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://spring.io/projects/spring-cloud",
+    "knowledge_ids": [
+      "ref:java-eco:distributed-lock"
+    ],
+    "tags": [
+      "Java",
+      "分布式",
+      "Spring Cloud与一致性",
+      "Java服务工程；Cloud版本需与Boot发布列车匹配",
+      "分布式锁",
+      "租约",
+      "fencing",
+      "token"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:outbox",
+    "kind": "engineering",
+    "title": "事务Outbox、可靠事件与幂等消费 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：事务Outbox、可靠事件与幂等消费\n版本：Java服务工程；Cloud版本需与Boot发布列车匹配\n示例或场景：\nBEGIN;\nINSERT INTO orders(id,status) VALUES(1,'NEW');\nINSERT INTO outbox(event_id,payload) VALUES('e1','created');\nCOMMIT;\n\n任务：说明进程在发送成功后崩溃时如何避免重复业务副作用。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "业务记录和待发送事件写入同一数据库事务，再由后台发布；重复发送由幂等消费者处理。\n\n发送成功但标记失败会重发，不能仅靠发送方承诺恰好一次；需重试、告警、保留周期与幂等键。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：事务Outbox、可靠事件与幂等消费",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明进程在发送成功后崩溃时如何避免重复业务副作用。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://spring.io/projects/spring-cloud",
+    "knowledge_ids": [
+      "ref:java-eco:outbox"
+    ],
+    "tags": [
+      "Java",
+      "分布式",
+      "Spring Cloud与一致性",
+      "Java服务工程；Cloud版本需与Boot发布列车匹配",
+      "事务Outbox",
+      "可靠事件",
+      "幂等消费"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:saga",
+    "kind": "engineering",
+    "title": "Saga补偿、状态机与最终一致 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Saga补偿、状态机与最终一致\n版本：Java服务工程；Cloud版本需与Boot发布列车匹配\n示例或场景：\n// 创建订单→预留库存→扣款；扣款失败后释放库存并记录补偿状态。\n\n任务：为库存预留成功但扣款超时的订单设计可恢复状态。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "跨服务长流程拆成多个本地事务，以状态机和补偿处理部分失败；补偿是新的业务动作，不是时间倒流。\n\n补偿本身可能失败，需要幂等和重试；已发货或外部扣费等不可逆动作要显式设计边界。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Saga补偿、状态机与最终一致",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为库存预留成功但扣款超时的订单设计可恢复状态。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://spring.io/projects/spring-cloud",
+    "knowledge_ids": [
+      "ref:java-eco:saga"
+    ],
+    "tags": [
+      "Java",
+      "分布式",
+      "Spring Cloud与一致性",
+      "Java服务工程；Cloud版本需与Boot发布列车匹配",
+      "Saga补偿",
+      "状态机",
+      "最终一致"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:config-refresh",
+    "kind": "engineering",
+    "title": "集中配置、动态刷新与配置快照 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：集中配置、动态刷新与配置快照\n版本：Java服务工程；Cloud版本需与Boot发布列车匹配\n示例或场景：\n// 为计费规则保存配置版本；一次业务请求读取并使用同一份不可变快照。\n\n任务：解释动态更新折扣参数为何需要请求内一致快照和版本记录。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "配置中心使发布与配置解耦，但不同节点可能短时使用不同版本；刷新也未必重建所有资源。\n\n不能在请求中途多次读取会变化的关键参数；连接池、线程池等组件是否支持刷新需单独验证。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：集中配置、动态刷新与配置快照",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释动态更新折扣参数为何需要请求内一致快照和版本记录。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://spring.io/projects/spring-cloud",
+    "knowledge_ids": [
+      "ref:java-eco:config-refresh"
+    ],
+    "tags": [
+      "Java",
+      "分布式",
+      "Spring Cloud与一致性",
+      "Java服务工程；Cloud版本需与Boot发布列车匹配",
+      "集中配置",
+      "动态刷新",
+      "配置快照"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:api-evolution",
+    "kind": "engineering",
+    "title": "接口演进、兼容性与契约测试 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：接口演进、兼容性与契约测试\n版本：Java服务工程；Cloud版本需与Boot发布列车匹配\n示例或场景：\n// 新增可选deliveryNote；先支持新旧字段，再迁移调用方，最后删除旧字段。\n\n任务：为订单状态新增枚举值设计消费者兼容策略。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "新旧消费者并存时，新增可选字段通常比移除或改变字段类型更易兼容；错误语义同样是契约。\n\n枚举新增也可能破坏穷尽处理；消费者契约、灰度指标与回退验证比单方单元测试更能发现兼容问题。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：接口演进、兼容性与契约测试",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为订单状态新增枚举值设计消费者兼容策略。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://spring.io/projects/spring-cloud",
+    "knowledge_ids": [
+      "ref:java-eco:api-evolution"
+    ],
+    "tags": [
+      "Java",
+      "分布式",
+      "Spring Cloud与一致性",
+      "Java服务工程；Cloud版本需与Boot发布列车匹配",
+      "接口演进",
+      "兼容性",
+      "契约测试"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:cache-pattern",
+    "kind": "engineering",
+    "title": "Cache Aside、过期与缓存一致性 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Cache Aside、过期与缓存一致性\n版本：服务工程概念；具体命令按中间件版本核对\n示例或场景：\n// DB提交成功→删除cache:product:42；删除失败写重试任务或事件。\n\n任务：分析读请求回填旧值与更新删除缓存交错时的风险。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "旁路缓存先读缓存，未命中再读数据库并回填；更新常先写数据库再失效缓存，但仍需处理竞争和失败。\n\n延迟双删不是所有故障模型下的一致性证明；缓存键、TTL、版本与失败重试需结合业务可接受陈旧度设计。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Cache Aside、过期与缓存一致性",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：分析读请求回填旧值与更新删除缓存交错时的风险。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://redis.io/docs/latest/develop/",
+    "knowledge_ids": [
+      "ref:java-eco:cache-pattern"
+    ],
+    "tags": [
+      "Java",
+      "中间件",
+      "缓存与消息",
+      "服务工程概念；具体命令按中间件版本核对",
+      "Cache",
+      "Aside",
+      "过期",
+      "缓存一致性"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:cache-failures",
+    "kind": "engineering",
+    "title": "缓存穿透、击穿、雪崩与热点 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：缓存穿透、击穿、雪崩与热点\n版本：服务工程概念；具体命令按中间件版本核对\n示例或场景：\n// 短期负缓存+输入校验；热点请求合并；TTL抖动；回源并发上限。\n\n任务：区分三类问题，并为热点过期瞬时流量给出有界回源方案。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "不存在键反复回源、热点过期并发回源、大批键集中失效是不同问题，应采用不同治理手段。\n\n负缓存也需过期且考虑新数据创建；互斥回填应有超时，不能把缓存故障直接扩散成数据库故障。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：缓存穿透、击穿、雪崩与热点",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：区分三类问题，并为热点过期瞬时流量给出有界回源方案。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://redis.io/docs/latest/develop/",
+    "knowledge_ids": [
+      "ref:java-eco:cache-failures"
+    ],
+    "tags": [
+      "Java",
+      "中间件",
+      "缓存与消息",
+      "服务工程概念；具体命令按中间件版本核对",
+      "缓存穿透",
+      "击穿",
+      "雪崩",
+      "热点"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:redis-data",
+    "kind": "engineering",
+    "title": "Redis数据类型、TTL与原子边界 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Redis数据类型、TTL与原子边界\n版本：服务工程概念；具体命令按中间件版本核对\n示例或场景：\nSET job:42 token NX PX 30000\n// 这是带过期的条件写，释放时仍应比较token。\n\n任务：说明SET NX PX能保证什么，以及为何不能直接DEL任意锁键。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "字符串、哈希、集合、有序集合和流有不同访问模型；单命令原子不等于多个往返调用原子。\n\n过期键可能早于业务结束；大key、长Lua和跨槽访问影响延迟。Redis事务不是关系数据库的回滚事务。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Redis数据类型、TTL与原子边界",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明SET NX PX能保证什么，以及为何不能直接DEL任意锁键。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://redis.io/docs/latest/develop/",
+    "knowledge_ids": [
+      "ref:java-eco:redis-data"
+    ],
+    "tags": [
+      "Java",
+      "中间件",
+      "缓存与消息",
+      "服务工程概念；具体命令按中间件版本核对",
+      "Redis数据类型",
+      "TTL",
+      "原子边界"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:kafka-delivery",
+    "kind": "engineering",
+    "title": "Kafka分区顺序、offset与消费确认 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Kafka分区顺序、offset与消费确认\n版本：服务工程概念；具体命令按中间件版本核对\n示例或场景：\n// 处理并持久化幂等结果后提交offset；失败保留可重试记录。\n\n任务：解释消费者处理成功后崩溃为什么会重复消费，以及如何幂等。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Kafka主要保证分区内记录顺序；业务处理与提交offset的先后决定重放和丢处理风险。\n\n先提交再处理可能丢业务处理；处理后崩溃但未提交会重放。Kafka内部恰好一次不自动覆盖任意外部数据库副作用。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Kafka分区顺序、offset与消费确认",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释消费者处理成功后崩溃为什么会重复消费，以及如何幂等。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://kafka.apache.org/documentation/#semantics",
+    "knowledge_ids": [
+      "ref:java-eco:kafka-delivery"
+    ],
+    "tags": [
+      "Java",
+      "中间件",
+      "缓存与消息",
+      "服务工程概念；具体命令按中间件版本核对",
+      "Kafka分区顺序",
+      "offset",
+      "消费确认"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:rabbit-acks",
+    "kind": "engineering",
+    "title": "RabbitMQ确认、重投与死信 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：RabbitMQ确认、重投与死信\n版本：服务工程概念；具体命令按中间件版本核对\n示例或场景：\n// basicAck在业务成功后；不可恢复消息拒绝并送死信，而非无限requeue。\n\n任务：说明publisher confirm是否保证消费者已完成业务。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "生产确认与消费确认是不同方向的机制；消费者完成持久化处理后再确认，失败需有界重试或死信。\n\n连接中断可能触发重复投递；自动确认不保证业务完成，死信队列还需告警和人工/程序回放。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：RabbitMQ确认、重投与死信",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明publisher confirm是否保证消费者已完成业务。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.rabbitmq.com/docs/confirms",
+    "knowledge_ids": [
+      "ref:java-eco:rabbit-acks"
+    ],
+    "tags": [
+      "Java",
+      "中间件",
+      "缓存与消息",
+      "服务工程概念；具体命令按中间件版本核对",
+      "RabbitMQ确认",
+      "重投",
+      "死信"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:search-index",
+    "kind": "engineering",
+    "title": "Elasticsearch倒排索引、映射与近实时 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Elasticsearch倒排索引、映射与近实时\n版本：服务工程概念；具体命令按中间件版本核对\n示例或场景：\n// 订单事件更新索引，以业务版本过滤乱序旧事件；全量重建使用新索引后切alias。\n\n任务：设计搜索索引丢失后的重建与增量追平流程。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "搜索索引通常是业务数据的派生视图，mapping与分词影响检索；写入确认与搜索可见存在刷新时序。\n\ntext与keyword用途不同；不要把近实时搜索当作强一致的资金依据，深分页和聚合也要控制资源。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Elasticsearch倒排索引、映射与近实时",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：设计搜索索引丢失后的重建与增量追平流程。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.elastic.co/guide/en/elasticsearch/reference/current/near-real-time.html",
+    "knowledge_ids": [
+      "ref:java-eco:search-index"
+    ],
+    "tags": [
+      "Java",
+      "中间件",
+      "缓存与消息",
+      "服务工程概念；具体命令按中间件版本核对",
+      "Elasticsearch倒排索引",
+      "映射",
+      "近实时"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:maven",
+    "kind": "engineering",
+    "title": "Maven生命周期、依赖树与聚合 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Maven生命周期、依赖树与聚合\n版本：Java 17+；测试示例需JUnit5/Mockito/JMH等对应依赖\n示例或场景：\nmvn -pl order-service -am test\nmvn dependency:tree\n\n任务：说明-pl与-am如何帮助只验证受影响服务及其依赖模块。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "生命周期阶段按顺序执行，插件目标绑定阶段；多模块聚合和依赖继承是不同关系。\n\ndependencyManagement管理版本不自动引入依赖；跳过测试运行与跳过编译测试不同，需明确发布验证范围。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Maven生命周期、依赖树与聚合",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明-pl与-am如何帮助只验证受影响服务及其依赖模块。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html",
+    "knowledge_ids": [
+      "ref:java-eco:maven"
+    ],
+    "tags": [
+      "Java",
+      "工程",
+      "构建与测试",
+      "Java 17+；测试示例需JUnit5/Mockito/JMH等对应依赖",
+      "Maven生命周期",
+      "依赖树",
+      "聚合"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:gradle",
+    "kind": "engineering",
+    "title": "Gradle任务图、配置缓存与依赖约束 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Gradle任务图、配置缓存与依赖约束\n版本：Java 17+；测试示例需JUnit5/Mockito/JMH等对应依赖\n示例或场景：\n./gradlew test --tests '*OrderServiceTest'\n./gradlew dependencies\n\n任务：说明为什么本机缓存命中不能证明CI一定能复现构建。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Gradle以任务依赖图调度构建；构建缓存与配置缓存分别复用任务结果和配置模型。\n\n缓存正确性依赖完整声明输入输出；动态版本和未声明的外部状态会破坏可复现构建。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Gradle任务图、配置缓存与依赖约束",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明为什么本机缓存命中不能证明CI一定能复现构建。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.gradle.org/current/userguide/build_cache.html",
+    "knowledge_ids": [
+      "ref:java-eco:gradle"
+    ],
+    "tags": [
+      "Java",
+      "工程",
+      "构建与测试",
+      "Java 17+；测试示例需JUnit5/Mockito/JMH等对应依赖",
+      "Gradle任务图",
+      "配置缓存",
+      "依赖约束"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:junit",
+    "kind": "engineering",
+    "title": "JUnit5测试分层、参数化与断言 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：JUnit5测试分层、参数化与断言\n版本：Java 17+；测试示例需JUnit5/Mockito/JMH等对应依赖\n示例或场景：\n@ParameterizedTest\n@ValueSource(ints={0,-1})\nvoid rejectsInvalidQuantity(int quantity) { assertThrows(IllegalArgumentException.class, () -> order(quantity)); }\n\n任务：为库存扣减选择边界、正常和并发冲突三类测试。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "单元测试聚焦局部规则，集成测试检查真实边界；参数化案例覆盖不同输入类别而不是复制相同路径。\n\n只测试实现细节易使重构困难；异常测试应验证对应操作，不要用过大的try范围误吞其他错误。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：JUnit5测试分层、参数化与断言",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为库存扣减选择边界、正常和并发冲突三类测试。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.junit.org/5.10.5/user-guide/",
+    "knowledge_ids": [
+      "ref:java-eco:junit"
+    ],
+    "tags": [
+      "Java",
+      "工程",
+      "构建与测试",
+      "Java 17+；测试示例需JUnit5/Mockito/JMH等对应依赖",
+      "JUnit5测试分层",
+      "参数化",
+      "断言"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:mockito",
+    "kind": "engineering",
+    "title": "Mockito、行为验证与过度模拟 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Mockito、行为验证与过度模拟\n版本：Java 17+；测试示例需JUnit5/Mockito/JMH等对应依赖\n示例或场景：\nwhen(repository.findById(42L)).thenReturn(Optional.of(order));\nverify(repository).save(any());\n\n任务：区分应mock的外部支付与应使用真实数据库验证的唯一约束。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "模拟用于隔离依赖并控制边界行为，不应通过把所有内部调用都mock掉来证明集成正确。\n\n数据库约束、序列化和框架代理需要集成验证；只验证某方法被调用不能证明持久化结果正确。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Mockito、行为验证与过度模拟",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：区分应mock的外部支付与应使用真实数据库验证的唯一约束。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html",
+    "knowledge_ids": [
+      "ref:java-eco:mockito"
+    ],
+    "tags": [
+      "Java",
+      "工程",
+      "构建与测试",
+      "Java 17+；测试示例需JUnit5/Mockito/JMH等对应依赖",
+      "Mockito",
+      "行为验证",
+      "过度模拟"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:spring-test",
+    "kind": "engineering",
+    "title": "@WebMvcTest、@SpringBootTest与测试切片 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：@WebMvcTest、@SpringBootTest与测试切片\n版本：Java 17+；测试示例需JUnit5/Mockito/JMH等对应依赖\n示例或场景：\n// @WebMvcTest(OrderController.class) 验证绑定/状态码；完整集成测试验证真实事务和数据。\n\n任务：设计同时验证HTTP校验和事务回滚的两层测试。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "切片测试加载某一层的必要环境，完整上下文测试验证更广装配；两者都应清楚模拟与真实依赖范围。\n\n测试事务可能掩盖懒加载错误；只在测试方法回滚成功不能证明业务自身事务边界正确。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：@WebMvcTest、@SpringBootTest与测试切片",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：设计同时验证HTTP校验和事务回滚的两层测试。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html",
+    "knowledge_ids": [
+      "ref:java-eco:spring-test"
+    ],
+    "tags": [
+      "Java",
+      "工程",
+      "构建与测试",
+      "Java 17+；测试示例需JUnit5/Mockito/JMH等对应依赖",
+      "@WebMvcTest",
+      "@SpringBootTest",
+      "测试切片"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:testcontainers",
+    "kind": "engineering",
+    "title": "Testcontainers、真实依赖与隔离 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Testcontainers、真实依赖与隔离\n版本：Java 17+；测试示例需JUnit5/Mockito/JMH等对应依赖\n示例或场景：\n// 启动固定版本数据库容器→执行迁移→准备数据→调用业务→检查结果。\n\n任务：为什么本机H2通过仍不能确认MySQL锁与JSON方言正确？\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "容器测试使用真实数据库或中间件暴露方言、事务和驱动差异，测试数据与容器生命周期需隔离。\n\nSQLite/H2不等于MySQL或PostgreSQL；镜像版本、时区、排序规则和网络可用性应固定并记录。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Testcontainers、真实依赖与隔离",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为什么本机H2通过仍不能确认MySQL锁与JSON方言正确？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://java.testcontainers.org/",
+    "knowledge_ids": [
+      "ref:java-eco:testcontainers"
+    ],
+    "tags": [
+      "Java",
+      "工程",
+      "构建与测试",
+      "Java 17+；测试示例需JUnit5/Mockito/JMH等对应依赖",
+      "Testcontainers",
+      "真实依赖",
+      "隔离"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:contract-test",
+    "kind": "engineering",
+    "title": "契约测试、序列化与兼容回归 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：契约测试、序列化与兼容回归\n版本：Java 17+；测试示例需JUnit5/Mockito/JMH等对应依赖\n示例或场景：\n// 旧消费者解析新增字段；新消费者仍能读取旧事件缺省字段。\n\n任务：给订单事件添加字段时如何证明旧消费者仍可工作。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "跨服务接口需要验证请求响应与事件模式，包含可选字段、错误状态和未知枚举处理。\n\n两端都使用同一个错误DTO假设可能让单元测试一起通过；需独立契约样本与版本边界。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：契约测试、序列化与兼容回归",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：给订单事件添加字段时如何证明旧消费者仍可工作。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html",
+    "knowledge_ids": [
+      "ref:java-eco:contract-test"
+    ],
+    "tags": [
+      "Java",
+      "工程",
+      "构建与测试",
+      "Java 17+；测试示例需JUnit5/Mockito/JMH等对应依赖",
+      "契约测试",
+      "序列化",
+      "兼容回归"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:jmh",
+    "kind": "engineering",
+    "title": "JMH、预热、黑洞与基准误区 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：JMH、预热、黑洞与基准误区\n版本：Java 17+；测试示例需JUnit5/Mockito/JMH等对应依赖\n示例或场景：\n@Benchmark\npublic int lookup() { return map.get(lookupKey); }\n\n任务：解释局部字符串拼接基准为何可能被编译器完全优化掉。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "微基准需处理JIT预热、死代码消除与常量折叠；JMH提供基准生命周期与结果消费工具。\n\n一次nanoTime测量不可靠；需多fork、合理状态作用域和真实数据分布。微基准收益不等于服务端到端收益。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：JMH、预热、黑洞与基准误区",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释局部字符串拼接基准为何可能被编译器完全优化掉。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/openjdk/jmh",
+    "knowledge_ids": [
+      "ref:java-eco:jmh"
+    ],
+    "tags": [
+      "Java",
+      "工程",
+      "构建与测试",
+      "Java 17+；测试示例需JUnit5/Mockito/JMH等对应依赖",
+      "JMH",
+      "预热",
+      "黑洞",
+      "基准误区"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:logs",
+    "kind": "engineering",
+    "title": "SLF4J、结构化日志与MDC清理 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：SLF4J、结构化日志与MDC清理\n版本：Java工程实践；观测API依所选框架版本\n示例或场景：\ntry (var ignored = MDC.putCloseable(\"traceId\", traceId)) { log.info(\"order created id={}\", orderId); }\n\n任务：设计一次请求跨线程后的日志关联与上下文清理。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "日志应包含可关联的请求与业务标识，结构化字段便于检索；线程复用前清理MDC，避免请求串号。\n\n不要记录密码、token或完整敏感请求体；日志级别和异步队列满时的行为需要观测。日志输出不是可靠业务事件存储。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：SLF4J、结构化日志与MDC清理",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：设计一次请求跨线程后的日志关联与上下文清理。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-boot/reference/actuator/observability.html",
+    "knowledge_ids": [
+      "ref:java-eco:logs"
+    ],
+    "tags": [
+      "Java",
+      "工程",
+      "可观测与交付",
+      "Java工程实践；观测API依所选框架版本",
+      "SLF4J",
+      "结构化日志",
+      "MDC清理"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:metrics-traces",
+    "kind": "engineering",
+    "title": "指标、日志、追踪与高基数 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：指标、日志、追踪与高基数\n版本：Java工程实践；观测API依所选框架版本\n示例或场景：\n// 指标标签用route=/orders/{id}；把具体orderId放日志或trace属性。\n\n任务：为P99突增选择指标、追踪和日志证据，解释标签基数风险。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "指标看趋势与分位，追踪看调用链，日志看事件细节；高基数标签会放大存储和内存成本。\n\n平均响应时间会掩盖长尾；用户ID和原始URL不宜直接作为无限集合的指标标签。采样也可能漏掉个别请求。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：指标、日志、追踪与高基数",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为P99突增选择指标、追踪和日志证据，解释标签基数风险。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-boot/reference/actuator/observability.html",
+    "knowledge_ids": [
+      "ref:java-eco:metrics-traces"
+    ],
+    "tags": [
+      "Java",
+      "工程",
+      "可观测与交付",
+      "Java工程实践；观测API依所选框架版本",
+      "指标",
+      "日志",
+      "追踪",
+      "高基数"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:containers",
+    "kind": "engineering",
+    "title": "容器资源、PID1与优雅关闭 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：容器资源、PID1与优雅关闭\n版本：Java工程实践；观测API依所选框架版本\n示例或场景：\nENTRYPOINT [\"java\", \"-jar\", \"/app/app.jar\"]\n\n任务：解释直接终止容器时如何减少丢任务与截断请求。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "容器是进程隔离和资源限制环境，不自动解决应用关闭和数据持久化；持久数据应明确挂载。\n\nshell形式可能影响信号转发；应用需接收终止信号并在平台宽限期内处理在途请求，避免把日志与数据只写可删除层。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：容器资源、PID1与优雅关闭",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释直接终止容器时如何减少丢任务与截断请求。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-boot/reference/actuator/observability.html",
+    "knowledge_ids": [
+      "ref:java-eco:containers"
+    ],
+    "tags": [
+      "Java",
+      "工程",
+      "可观测与交付",
+      "Java工程实践；观测API依所选框架版本",
+      "容器资源",
+      "PID1",
+      "优雅关闭"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:ci-release",
+    "kind": "engineering",
+    "title": "CI、制品不可变与回退验证 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：CI、制品不可变与回退验证\n版本：Java工程实践；观测API依所选框架版本\n示例或场景：\n// 构建→测试→生成SHA256→制品存储→灰度→指标验证→全量。\n\n任务：为有数据库变更的服务制定制品发布与回退检查。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "同一经过测试的制品应晋升到发布，而不是每个环境重新编译产生不同内容；保留版本与哈希便于追踪。\n\n回退程序不一定兼容已经改变的数据库结构；发布需验证新旧版本和数据迁移边界，而非只保证容器能启动。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：CI、制品不可变与回退验证",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为有数据库变更的服务制定制品发布与回退检查。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-boot/reference/actuator/observability.html",
+    "knowledge_ids": [
+      "ref:java-eco:ci-release"
+    ],
+    "tags": [
+      "Java",
+      "工程",
+      "可观测与交付",
+      "Java工程实践；观测API依所选框架版本",
+      "CI",
+      "制品不可变",
+      "回退验证"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:perf-budget",
+    "kind": "engineering",
+    "title": "性能预算、瓶颈定位与容量验证 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：性能预算、瓶颈定位与容量验证\n版本：Java工程实践；观测API依所选框架版本\n示例或场景：\n// 同一数据集/并发/缓存状态测量改动前后，并检查CPU、分配率、连接池等待。\n\n任务：为列表接口优化建立可复现的验收实验并说明混杂因素。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "优化要有工作负载、基线和成功标准，先确认瓶颈再改变实现，比较吞吐、P95/P99和错误率。\n\n更低单次耗时不保证高并发更稳定；压力工具自身也可能限流，避免只报最优一次结果。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：性能预算、瓶颈定位与容量验证",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为列表接口优化建立可复现的验收实验并说明混杂因素。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-boot/reference/actuator/observability.html",
+    "knowledge_ids": [
+      "ref:java-eco:perf-budget"
+    ],
+    "tags": [
+      "Java",
+      "工程",
+      "可观测与交付",
+      "Java工程实践；观测API依所选框架版本",
+      "性能预算",
+      "瓶颈定位",
+      "容量验证"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:modularity",
+    "kind": "engineering",
+    "title": "模块边界、单体与微服务权衡 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：模块边界、单体与微服务权衡\n版本：Java工程实践；观测API依所选框架版本\n示例或场景：\n// 订单模块拥有订单状态；支付通过明确接口/事件协作，不直接修改订单内部表。\n\n任务：说明何时应保留模块化单体，何时拆出独立支付服务。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "按业务能力和不变量划分模块，先明确契约与数据所有权；微服务增加网络、发布和一致性成本。\n\n不要按Controller/Service/Mapper各拆一个服务；稳定模块化单体往往比无边界微服务更易交付。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：模块边界、单体与微服务权衡",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明何时应保留模块化单体，何时拆出独立支付服务。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-boot/reference/actuator/observability.html",
+    "knowledge_ids": [
+      "ref:java-eco:modularity"
+    ],
+    "tags": [
+      "Java",
+      "工程",
+      "可观测与交付",
+      "Java工程实践；观测API依所选框架版本",
+      "模块边界",
+      "单体",
+      "微服务权衡"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:ai-integration",
+    "kind": "engineering",
+    "title": "Java AI集成、结构化输出与工具边界 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Java AI集成、结构化输出与工具边界\n版本：Java工程实践；观测API依所选框架版本\n示例或场景：\n// 输入→模型JSON→Schema/业务校验→必要的真实执行验证→保存原始证据。\n\n任务：设计AI代码点评功能，区分模型推断与真实编译测试证据。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "模型输出是待校验数据，结构化格式不能证明内容真实；工具调用需明确输入约束与执行结果。\n\n模型超时、拒答、格式错误与业务失败应区分；不能把模型建议直接当成已执行SQL或测试通过的结果。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Java AI集成、结构化输出与工具边界",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：设计AI代码点评功能，区分模型推断与真实编译测试证据。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-boot/reference/actuator/observability.html",
+    "knowledge_ids": [
+      "ref:java-eco:ai-integration"
+    ],
+    "tags": [
+      "Java",
+      "工程",
+      "可观测与交付",
+      "Java工程实践；观测API依所选框架版本",
+      "AI集成",
+      "结构化输出",
+      "工具边界"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:jackson",
+    "kind": "engineering",
+    "title": "Jackson、DTO与序列化边界 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Jackson、DTO与序列化边界\n版本：Java17+；库示例需对应依赖与注解处理器\n示例或场景：\nrecord UserResponse(long id, String displayName) {}\n// ObjectMapper需统一日期、命名、未知字段等策略。\n\n任务：为包含密码摘要和订单关联的User实体设计安全响应DTO。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "JSON序列化是对外数据契约，应显式区分请求DTO、响应DTO和持久化实体，避免意外暴露字段。\n\n双向实体关联可能递归序列化；Long ID传给JavaScript可能丢精度，不应把数据库实体无限透出。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Jackson、DTO与序列化边界",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为包含密码摘要和订单关联的User实体设计安全响应DTO。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/FasterXML/jackson-databind",
+    "knowledge_ids": [
+      "ref:java-eco:jackson"
+    ],
+    "tags": [
+      "Java",
+      "Java生态",
+      "常用库与数据接口",
+      "Java17+；库示例需对应依赖与注解处理器",
+      "Jackson",
+      "DTO",
+      "序列化边界"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:lombok",
+    "kind": "engineering",
+    "title": "Lombok生成代码、equals与实体风险 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Lombok生成代码、equals与实体风险\n版本：Java17+；库示例需对应依赖与注解处理器\n示例或场景：\n@Getter\n@RequiredArgsConstructor\nclass Client { private final Clock clock; }\n\n任务：解释实体id在保存后改变时，依赖该字段的hashCode可能引起什么问题。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Lombok在编译期生成样板代码，评审仍需知道实际生成的构造器、equals和toString。\n\n不要对含关联的JPA实体盲用@Data；可变字段参与hashCode可能让HashSet元素无法正确检索，toString也可能泄露秘密或触发懒加载。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Lombok生成代码、equals与实体风险",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释实体id在保存后改变时，依赖该字段的hashCode可能引起什么问题。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://projectlombok.org/features/",
+    "knowledge_ids": [
+      "ref:java-eco:lombok"
+    ],
+    "tags": [
+      "Java",
+      "Java生态",
+      "常用库与数据接口",
+      "Java17+；库示例需对应依赖与注解处理器",
+      "Lombok生成代码",
+      "equals",
+      "实体风险"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:mapstruct",
+    "kind": "engineering",
+    "title": "MapStruct、显式映射与更新语义 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：MapStruct、显式映射与更新语义\n版本：Java17+；库示例需对应依赖与注解处理器\n示例或场景：\n@Mapper(componentModel = \"spring\")\ninterface UserMapper { UserResponse toResponse(User user); }\n\n任务：给用户局部更新设计字段白名单和null处理规则。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "编译期映射减少手写转换，但必须定义忽略字段、类型转换以及null是清空还是保持不变。\n\n默认按属性名映射不代表业务正确；局部更新应明确null语义，不能无意覆盖版本列、身份字段或审计信息。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：MapStruct、显式映射与更新语义",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：给用户局部更新设计字段白名单和null处理规则。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://mapstruct.org/documentation/stable/reference/html/",
+    "knowledge_ids": [
+      "ref:java-eco:mapstruct"
+    ],
+    "tags": [
+      "Java",
+      "Java生态",
+      "常用库与数据接口",
+      "Java17+；库示例需对应依赖与注解处理器",
+      "MapStruct",
+      "显式映射",
+      "更新语义"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:spring-data-repo",
+    "kind": "engineering",
+    "title": "Spring Data Repository、派生查询与分页 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Spring Data Repository、派生查询与分页\n版本：Java17+；库示例需对应依赖与注解处理器\n示例或场景：\ninterface UserRepository extends JpaRepository<User, Long> { Slice<User> findByActiveTrue(Pageable pageable); }\n\n任务：列表只需要下一页按钮时，为什么Slice可能比Page更适合。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "Repository抽象提供查询方法等约定，分页返回Page可能额外执行count，Slice只需判断是否还有下一页。\n\n派生方法名不是任意SQL；集合抓取、排序与分页仍需检查实际SQL。超长方法名可改为显式查询并保留参数绑定。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Spring Data Repository、派生查询与分页",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：列表只需要下一页按钮时，为什么Slice可能比Page更适合。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-data/commons/reference/repositories.html",
+    "knowledge_ids": [
+      "ref:java-eco:spring-data-repo"
+    ],
+    "tags": [
+      "Java",
+      "Java生态",
+      "常用库与数据接口",
+      "Java17+；库示例需对应依赖与注解处理器",
+      "Spring",
+      "Data",
+      "Repository",
+      "派生查询",
+      "分页"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:mybatis-plus",
+    "kind": "engineering",
+    "title": "MyBatis-Plus、条件构造器与逻辑删除 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：MyBatis-Plus、条件构造器与逻辑删除\n版本：Java17+；库示例需对应依赖与注解处理器\n示例或场景：\n// 更新业务必须要求主键/租户条件；空Wrapper不等于安全的空操作。\n\n任务：解释逻辑删除用户后重用手机号可能遇到的唯一约束问题。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "条件构造器减少重复SQL，但逻辑删除、租户条件、乐观锁和批量操作仍有独立的配置与业务边界。\n\n禁止直接接受前端任意列名或SQL片段；逻辑删除不自动处理唯一键复用、关联查询和历史统计。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：MyBatis-Plus、条件构造器与逻辑删除",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释逻辑删除用户后重用手机号可能遇到的唯一约束问题。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://baomidou.com/en/guides/logic-delete/",
+    "knowledge_ids": [
+      "ref:java-eco:mybatis-plus"
+    ],
+    "tags": [
+      "Java",
+      "Java生态",
+      "常用库与数据接口",
+      "Java17+；库示例需对应依赖与注解处理器",
+      "MyBatis-Plus",
+      "条件构造器",
+      "逻辑删除",
+      "MyBatis"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:caffeine",
+    "kind": "engineering",
+    "title": "Caffeine本地缓存、容量与多实例 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Caffeine本地缓存、容量与多实例\n版本：Java17+；库示例需对应依赖与注解处理器\n示例或场景：\nCache<Long, Product> cache = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(Duration.ofMinutes(5)).build();\n\n任务：同一商品在两台应用上价格不同，如何排查本地缓存并设计失效机制。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "进程内缓存访问快，可按大小和过期策略约束资源；多个应用实例各有独立副本。\n\n容量不是按字节精准限制；本地失效不会自动广播到其他节点，缓存值可变还可能被调用方污染。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Caffeine本地缓存、容量与多实例",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：同一商品在两台应用上价格不同，如何排查本地缓存并设计失效机制。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/ben-manes/caffeine/wiki/Eviction",
+    "knowledge_ids": [
+      "ref:java-eco:caffeine"
+    ],
+    "tags": [
+      "Java",
+      "Java生态",
+      "常用库与数据接口",
+      "Java17+；库示例需对应依赖与注解处理器",
+      "Caffeine本地缓存",
+      "容量",
+      "多实例"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:scheduled",
+    "kind": "engineering",
+    "title": "@Scheduled、cron时区与重复执行 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：@Scheduled、cron时区与重复执行\n版本：Spring6调度 / Spring Batch5；需持久化作业仓库\n示例或场景：\n@Scheduled(cron = \"0 0 2 * * *\", zone = \"Asia/Shanghai\")\nvoid reconcile() { /* 幂等对账 */ }\n\n任务：两台应用都启动定时对账时，如何避免重复结算并保留失败重跑能力。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "定时调度通常在每个应用实例各自触发，fixedDelay、fixedRate与cron表达不同时间语义。\n\nSpring cron含秒字段；多实例运行、任务耗时、时区与夏令时都需设计，单机注解不自动提供分布式恰好一次。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：@Scheduled、cron时区与重复执行",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：两台应用都启动定时对账时，如何避免重复结算并保留失败重跑能力。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/integration/scheduling.html",
+    "knowledge_ids": [
+      "ref:java-eco:scheduled"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "调度与批处理",
+      "Spring6调度 / Spring Batch5；需持久化作业仓库",
+      "@Scheduled",
+      "cron时区",
+      "重复执行"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:batch",
+    "kind": "engineering",
+    "title": "Spring Batch、chunk事务与断点重启 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Spring Batch、chunk事务与断点重启\n版本：Spring6调度 / Spring Batch5；需持久化作业仓库\n示例或场景：\n// 每批100条：ItemReader→ItemProcessor→ItemWriter；chunk作为事务边界。\n\n任务：第5批写入失败后如何重启，说明外部通知为何还需幂等。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "批处理将读取、处理和写入按chunk组织，并持久化作业执行元数据以支持重启与状态追踪。\n\n失败重试与skip要有明确策略；外部HTTP副作用不随数据库chunk自动回滚，reader/writer重启状态也必须正确保存。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Spring Batch、chunk事务与断点重启",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：第5批写入失败后如何重启，说明外部通知为何还需幂等。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-batch/reference/step/chunk-oriented-processing.html",
+    "knowledge_ids": [
+      "ref:java-eco:batch"
+    ],
+    "tags": [
+      "Java",
+      "Spring",
+      "调度与批处理",
+      "Spring6调度 / Spring Batch5；需持久化作业仓库",
+      "Batch",
+      "chunk事务",
+      "断点重启"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:nacos",
+    "kind": "engineering",
+    "title": "Nacos注册配置、命名空间与环境隔离 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Nacos注册配置、命名空间与环境隔离\n版本：服务工程；各中间件需独立核对版本和故障模型\n示例或场景：\n// 配置键例：namespace=production, group=order, dataId=order-service.yaml。\n\n任务：为开发和生产两个订单服务设计隔离命名与误连防护。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "注册发现与配置管理是不同用途，namespace/group/dataId等维度应明确规划并与环境隔离。\n\n不要把不同环境只靠服务名碰巧区分；配置刷新、一致性模式、认证与客户端兼容需按所用版本核对。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Nacos注册配置、命名空间与环境隔离",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为开发和生产两个订单服务设计隔离命名与误连防护。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://nacos.io/en/docs/quick-start/",
+    "knowledge_ids": [
+      "ref:java-eco:nacos"
+    ],
+    "tags": [
+      "Java",
+      "分布式",
+      "注册与RPC",
+      "服务工程；各中间件需独立核对版本和故障模型",
+      "Nacos注册配置",
+      "命名空间",
+      "环境隔离"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:zookeeper",
+    "kind": "engineering",
+    "title": "ZooKeeper会话、临时节点与watch · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：ZooKeeper会话、临时节点与watch\n版本：服务工程；各中间件需独立核对版本和故障模型\n示例或场景：\n// 服务注册用会话临时节点；会话过期后重新注册并重新建立监听。\n\n任务：说明网络短暂断开与会话过期对临时节点的不同影响。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "临时节点与会话相关，不是与某一次TCP连接瞬断直接等价；watch用于感知变化，仍需读取并重建状态。\n\n标准watch常为一次性触发，现代版本也有持久watch；不能假设每次变化都有独立可靠业务通知，需考虑版本与断线窗口。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：ZooKeeper会话、临时节点与watch",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：说明网络短暂断开与会话过期对临时节点的不同影响。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://zookeeper.apache.org/doc/current/zookeeperProgrammers.html",
+    "knowledge_ids": [
+      "ref:java-eco:zookeeper"
+    ],
+    "tags": [
+      "Java",
+      "分布式",
+      "注册与RPC",
+      "服务工程；各中间件需独立核对版本和故障模型",
+      "ZooKeeper会话",
+      "临时节点",
+      "watch"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:dubbo",
+    "kind": "engineering",
+    "title": "Dubbo接口契约、RPC超时与泛化调用 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Dubbo接口契约、RPC超时与泛化调用\n版本：服务工程；各中间件需独立核对版本和故障模型\n示例或场景：\n// 消费者设置总超时和重试次数；非幂等写接口明确禁止无条件自动重试。\n\n任务：一次扣款RPC超时后，为什么不能直接重试三次？\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "RPC把本地调用形式包装成网络交互，仍存在超时、重试、序列化兼容与部分失败。\n\n服务端可能已提交但响应丢失；相同接口名不保证DTO二进制兼容，升级需验证旧消费者与新提供者。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Dubbo接口契约、RPC超时与泛化调用",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：一次扣款RPC超时后，为什么不能直接重试三次？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://dubbo.apache.org/en/overview/mannual/java-sdk/",
+    "knowledge_ids": [
+      "ref:java-eco:dubbo"
+    ],
+    "tags": [
+      "Java",
+      "分布式",
+      "注册与RPC",
+      "服务工程；各中间件需独立核对版本和故障模型",
+      "Dubbo接口契约",
+      "RPC超时",
+      "泛化调用"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:rocketmq",
+    "kind": "engineering",
+    "title": "RocketMQ重试、顺序与事务消息 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：RocketMQ重试、顺序与事务消息\n版本：服务工程；各中间件需独立核对版本和故障模型\n示例或场景：\n// 按订单ID分组有序消费；以事件ID建立幂等处理记录。\n\n任务：解释事务消息本地事务成功但发送状态不明时，回查应依据什么事实。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "生产发送、消费者处理和确认各有故障窗口；顺序通常受消息组或队列约束，事务消息还需回查本地状态。\n\n不能把事务消息理解为跨任意数据库和消费者的全局回滚；毒消息需有界重试、死信与修复回放。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：RocketMQ重试、顺序与事务消息",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：解释事务消息本地事务成功但发送状态不明时，回查应依据什么事实。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://rocketmq.apache.org/docs/featureBehavior/04transactionmessage/",
+    "knowledge_ids": [
+      "ref:java-eco:rocketmq"
+    ],
+    "tags": [
+      "Java",
+      "分布式",
+      "注册与RPC",
+      "服务工程；各中间件需独立核对版本和故障模型",
+      "RocketMQ重试",
+      "顺序",
+      "事务消息"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:rag",
+    "kind": "engineering",
+    "title": "Spring AI、RAG检索与引用验证 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：Spring AI、RAG检索与引用验证\n版本：Spring AI示例为流程；具体API按所选BOM版本\n示例或场景：\n// 文档导入→分块与元数据→检索过滤→重排→生成带引用的回答→评测。\n\n任务：设计知识问答的召回率、引用正确性与拒答能力评测。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "RAG先检索相关资料再把证据带给模型；分块、向量索引与重排影响召回，生成仍需核对引用。\n\n相似度不是事实置信度；租户和文档权限必须在检索层过滤，离线评测避免用训练/索引泄漏的重复问题高估效果。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：Spring AI、RAG检索与引用验证",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：设计知识问答的召回率、引用正确性与拒答能力评测。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-ai/reference/",
+    "knowledge_ids": [
+      "ref:java-eco:rag"
+    ],
+    "tags": [
+      "Java",
+      "Java AI",
+      "检索与工具",
+      "Spring AI示例为流程；具体API按所选BOM版本",
+      "Spring",
+      "AI",
+      "RAG检索",
+      "引用验证"
+    ]
+  },
+  {
+    "id": "knowledge:ref:java-eco:ai-tools",
+    "kind": "engineering",
+    "title": "工具调用、结构化输出与提示注入 · 应用与边界",
+    "topic": "工程设计",
+    "prompt": "知识点：工具调用、结构化输出与提示注入\n版本：Spring AI示例为流程；具体API按所选BOM版本\n示例或场景：\n// 模型提出查询→程序校验允许表、参数、行数与时间预算→真实执行→返回结果。\n\n任务：为只读知识库查询设计工具边界，并说明如何处理资料中的恶意指令。\n解释所用机制，并指出一个与本场景有关的失败条件或边界。接受其他正确做法，不要求复述示例。",
+    "answer": "模型可以提出工具参数，但执行权与参数校验必须由程序控制；外部资料不能改变系统授权规则。\n\n只返回JSON不等于可安全执行；工具要有最小必要范围、超时和失败反馈，不能声称模型生成的SQL已经执行。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制：工具调用、结构化输出与提示注入",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为只读知识库查询设计工具边界，并说明如何处理资料中的恶意指令。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.spring.io/spring-ai/reference/",
+    "knowledge_ids": [
+      "ref:java-eco:ai-tools"
+    ],
+    "tags": [
+      "Java",
+      "Java AI",
+      "检索与工具",
+      "Spring AI示例为流程；具体API按所选BOM版本",
+      "工具调用",
+      "结构化输出",
+      "提示注入"
+    ]
+  }
+]

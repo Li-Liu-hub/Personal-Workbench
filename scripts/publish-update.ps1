@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '修复语义部分分与零分复核，学习时保持模型加载；扩展英语8种练习、24语法知识点和具体知识点任务，保留旧数据与作答记录'
+    [string]$Notes = '百科全书扩充 Java 主流生态与关联练习，修复列表覆盖输入和筛选交互，保留既有数据与作答记录'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

@@ -14,6 +14,20 @@ pub use crate::theme::{
     accent, border, button_text, canvas, content_fill, ink, muted, sidebar, sidebar_text, surface,
 };
 
+/// Entering a compact cell selects its current value; focusing never mutates data.
+/// A second click while focused can still place the caret for a partial edit.
+pub fn select_on_focus(response: &Response, value: &str) {
+    if response.gained_focus()
+        && let Some(mut state) = egui::TextEdit::load_state(&response.ctx, response.id)
+    {
+        state
+            .cursor
+            .set_char_range(Some(egui::text::CCursorRange::select_all_str(value)));
+        state.store(&response.ctx, response.id);
+        response.ctx.request_repaint();
+    }
+}
+
 pub fn primary_button(label: &str) -> egui::Button<'_> {
     egui::Button::new(egui::RichText::new(label).color(button_text()))
         .fill(accent())

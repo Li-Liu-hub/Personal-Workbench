@@ -48,7 +48,7 @@ impl PersonalDeskApp {
             return;
         }
         if self.reference.draft.is_some() {
-            self.notice = "请先保存指令草稿".into();
+            self.notice = "请先保存百科条目草稿".into();
             return;
         }
         let mut state = std::mem::take(&mut self.reference);

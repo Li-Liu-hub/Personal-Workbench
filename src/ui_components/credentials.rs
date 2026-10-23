@@ -97,7 +97,7 @@ fn editable_field(
             egui::StrokeKind::Inside,
         );
     }
-    ui.place(
+    let response = ui.place(
         rect,
         field
             .id(id)
@@ -108,7 +108,9 @@ fn editable_field(
             .align(egui::Align2::CENTER_CENTER)
             .min_size(rect.size())
             .desired_width(rect.width()),
-    )
+    );
+    super::select_on_focus(&response, value);
+    response
 }
 
 fn readonly_value(ui: &mut Ui, value: &str, rect: egui::Rect, size: f32) -> Response {

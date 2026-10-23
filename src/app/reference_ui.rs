@@ -9,6 +9,7 @@ pub(super) struct ReferenceState {
     facets: Vec<(String, String)>,
     types: Vec<String>,
     tags: Vec<String>,
+    total: usize,
     draft_tags: String,
     pub(in crate::app) selected: Option<Entry>,
     markdown: String,
@@ -21,9 +22,10 @@ impl PersonalDeskApp {
     pub(super) fn preview_reference(&mut self, edit: bool) {
         let mut s = ReferenceState::default();
         s.filter.language = "Java".into();
-        s.filter.category = "集合与容器".into();
-        self.select_reference(&mut s, "ref:java:07");
+        s.filter.category = "并发 / 锁与内存模型".into();
+        self.select_reference(&mut s, "ref:java-eco:lock-states");
         if edit {
+            s.draft_tags = s.selected.as_ref().unwrap().tags.join(", ");
             s.draft = s.selected.clone();
         }
         self.reference = s;
@@ -53,6 +55,9 @@ impl PersonalDeskApp {
             .and_then(|db| db.reference_entry(id))
         {
             Ok(Some(item)) => {
+                if s.selected.as_ref().is_none_or(|old| old.id != item.id) {
+                    s.cache = Default::default();
+                }
                 s.markdown = item.markdown();
                 s.selected = Some(item);
                 s.error.clear();
@@ -71,10 +76,12 @@ impl PersonalDeskApp {
                 db.search_reference(&s.filter)?,
                 db.reference_facets()?,
                 db.reference_metadata(&s.filter.language)?,
+                db.reference_count(&s.filter.language)?,
             ))
         })();
         match result {
-            Ok((mut rows, facets, (types, tags))) => {
+            Ok((mut rows, facets, (types, tags), total)) => {
+                s.total = total;
                 s.types = types;
                 s.tags = tags;
                 rows.sort_by_key(|r| !self.is_favorite("reference", &r.id));
@@ -100,9 +107,9 @@ impl PersonalDeskApp {
     pub(super) fn render_reference(&mut self, ui: &mut egui::Ui) {
         let mut s = std::mem::take(&mut self.reference);
         ui.horizontal(|ui| {
-            ui.heading("指令大全");
+            ui.heading("百科全书");
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.add(primary_button("+ 添加指令")).clicked() {
+                if ui.add(primary_button("+ 添加条目")).clicked() {
                     if s.draft.is_some() {
                         s.error = "请先保存或取消当前编辑".into();
                     } else {
@@ -228,16 +235,29 @@ impl PersonalDeskApp {
                         ui.selectable_value(&mut s.filter.tag, tag.clone(), tag);
                     }
                 });
-            ui.label(
-                RichText::new(format!("{} 条", s.rows.len()))
-                    .small()
-                    .color(muted()),
-            );
+            if ui
+                .add_enabled(
+                    !s.filter.category.is_empty()
+                        || !s.filter.entry_type.is_empty()
+                        || !s.filter.tag.is_empty(),
+                    egui::Button::new("重置筛选"),
+                )
+                .clicked()
+            {
+                s.filter.category.clear();
+                s.filter.entry_type.clear();
+                s.filter.tag.clear();
+            }
         });
         s.filter.query = self.search_query.trim().to_owned();
         if s.loaded.as_ref() != Some(&s.filter) {
             self.refresh_reference(&mut s);
         }
+        ui.label(
+            RichText::new(format!("匹配 {} / {} 条", s.rows.len(), s.total))
+                .small()
+                .color(muted()),
+        );
         ui.add_space(10.);
         if !s.error.is_empty() {
             ui.colored_label(Color32::from_rgb(190, 68, 68), &s.error);
@@ -295,7 +315,7 @@ impl PersonalDeskApp {
                                     chosen = Some(item.id.clone());
                                 }
                                 response.context_menu(|ui| {
-                                    if ui.button("删除指令").clicked() {
+                                    if ui.button("删除条目").clicked() {
                                         deleted = Some(item.id.clone());
                                         ui.close();
                                     }
@@ -317,9 +337,9 @@ impl PersonalDeskApp {
                     if let Some(draft) = s.draft.as_ref() {
                         ui.horizontal(|ui| {
                             ui.label(if draft.revision == 0 {
-                                "添加指令"
+                                "添加条目"
                             } else {
-                                "编辑指令"
+                                "编辑条目"
                             });
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),
@@ -434,6 +454,7 @@ impl PersonalDeskApp {
                     if cancel {
                         s.draft = None;
                         s.error.clear();
+                        s.loaded = None;
                     }
                     if save && let Some(draft) = s.draft.as_ref() {
                         match self
@@ -455,7 +476,7 @@ impl PersonalDeskApp {
                                 self.search_query.clear();
                                 s.filter.query.clear();
                                 s.loaded = None;
-                                self.notice = "指令已保存".into();
+                                self.notice = "条目已保存".into();
                             }
                             Err(e) => s.error = e.to_string(),
                         }
@@ -487,7 +508,7 @@ impl PersonalDeskApp {
                         s.draft = None;
                     }
                     s.loaded = None;
-                    self.notice = "指令已删除".into();
+                    self.notice = "条目已删除".into();
                 }
                 Err(e) => s.error = e.to_string(),
             }

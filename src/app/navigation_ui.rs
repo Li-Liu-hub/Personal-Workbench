@@ -4,7 +4,7 @@ impl PersonalDeskApp {
     pub(super) fn page_title(&self) -> String {
         match self.section {
             Section::Essays => "每日随笔".into(),
-            Section::Reference => "指令大全".into(),
+            Section::Reference => "百科全书".into(),
             Section::Folders => "快捷路径".into(),
             Section::Documents => "文档写作".into(),
             Section::Books => "图书".into(),
@@ -130,7 +130,7 @@ impl PersonalDeskApp {
                     ),
                     (Section::Practice, "刷题王", TileKind::Practice, None),
                     (Section::Words, "每日单词", TileKind::Word, None),
-                    (Section::Reference, "指令大全", TileKind::Document, None),
+                    (Section::Reference, "百科全书", TileKind::Document, None),
                     (Section::Tools, "小工具", TileKind::Setting, None),
                     (Section::Games, "小游戏", TileKind::Game, Some(2)),
                     (Section::Settings, "设置", TileKind::Setting, None),
@@ -218,7 +218,7 @@ impl PersonalDeskApp {
     pub(super) fn add_label(&self) -> &'static str {
         match self.section {
             Section::Essays => "今日随笔",
-            Section::Reference => "添加指令",
+            Section::Reference => "添加条目",
             Section::Books => "新增图书",
             Section::Credentials => "添加账号",
             Section::Folders => "添加快捷路径",

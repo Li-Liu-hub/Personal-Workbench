@@ -2,6 +2,9 @@ use std::path::{Path, PathBuf};
 
 mod contacts;
 mod curriculum;
+mod encyclopedia;
+#[cfg(test)]
+mod encyclopedia_tests;
 mod essays;
 mod games;
 #[cfg(test)]

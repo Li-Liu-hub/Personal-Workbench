@@ -159,6 +159,7 @@ pub fn text(
             .hint_text("—")
             .desired_width(rect.width()),
     );
+    super::select_on_focus(&response, value);
     response.on_hover_text(value.as_str()).changed()
 }
 
@@ -215,5 +216,50 @@ pub fn date_hint(ui: &mut Ui, rect: egui::Rect, value: &str) {
             egui::Sense::hover(),
         )
         .on_hover_text(error.to_string());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn entering_a_cell_selects_without_mutating_and_typing_replaces_the_value() {
+        for original in ["1", "7799.00", "原来的中文姓名"] {
+            let ctx = egui::Context::default();
+            let mut value = original.to_string();
+            let rect = egui::Rect::from_min_size(egui::pos2(30., 30.), egui::vec2(180., 40.));
+            let mut frame = |events| {
+                let mut out = ctx.run_ui(
+                    egui::RawInput {
+                        events,
+                        screen_rect: Some(egui::Rect::from_min_size(
+                            egui::Pos2::ZERO,
+                            egui::vec2(400., 200.),
+                        )),
+                        ..Default::default()
+                    },
+                    |ui| {
+                        text(ui, rect, "cell", &mut value);
+                    },
+                );
+                out.textures_delta.clear();
+            };
+            frame(vec![]);
+            for pressed in [true, false] {
+                frame(vec![
+                    egui::Event::PointerMoved(rect.center()),
+                    egui::Event::PointerButton {
+                        pos: rect.center(),
+                        button: egui::PointerButton::Primary,
+                        pressed,
+                        modifiers: egui::Modifiers::NONE,
+                    },
+                ]);
+            }
+            let state = egui::TextEdit::load_state(&ctx, egui::Id::unique("cell")).unwrap();
+            assert!(!state.cursor.char_range().unwrap().is_empty());
+            frame(vec![egui::Event::Text("12".into())]);
+            assert_eq!(value, "12", "first input must replace {original}");
+        }
     }
 }

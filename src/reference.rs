@@ -13,6 +13,8 @@ pub const LANGUAGES: [&str; 8] = [
     "MySQL",
 ];
 pub const SEED_VERSION: &str = "2";
+#[cfg(test)]
+pub const BUILTIN_COUNT: usize = 491;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Entry {
@@ -125,6 +127,12 @@ impl Entry {
             .max()
             .unwrap_or(0);
         let fence = "`".repeat((longest + 1).max(3));
+        if self.syntax == self.example {
+            return format!(
+                "{}\n\n## 示例与场景\n\n{fence}{language}\n{}\n{fence}\n\n## 理解与边界\n\n{}",
+                self.summary, self.example, self.notes
+            );
+        }
         format!(
             "{}\n\n## 语法\n\n{fence}{language}\n{}\n{fence}\n\n## 示例\n\n{fence}{language}\n{}\n{fence}\n\n## 要点\n\n{}",
             self.summary, self.syntax, self.example, self.notes
