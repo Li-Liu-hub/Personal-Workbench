@@ -222,6 +222,51 @@ impl PersonalDeskApp {
                     30 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
                         1000., 680.,
                     ))),
+                    31 => {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1280., 800.,
+                        )));
+                        self.section = Section::Reference;
+                        self.reference.draft = None;
+                        self.reference.filter = Default::default();
+                        self.reference.loaded = None;
+                        self.search_query = "原型对象".into();
+                        let mut state = std::mem::take(&mut self.reference);
+                        self.select_reference(&mut state, "ref:js:prototype-object");
+                        self.reference = state;
+                    }
+                    32 => {
+                        self.search_query = "LAST_VALUE".into();
+                        let mut state = std::mem::take(&mut self.reference);
+                        self.select_reference(&mut state, "ref:mysql:last-value");
+                        self.reference = state;
+                    }
+                    33 => {
+                        let entry = self
+                            .db
+                            .as_ref()
+                            .unwrap()
+                            .reference_entry("ref:mysql:last-value")
+                            .unwrap()
+                            .unwrap();
+                        self.practice_knowledge(&entry);
+                        self.study.tutor_open = false;
+                    }
+                    34 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                        1000., 680.,
+                    ))),
+                    35 => {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1280., 800.,
+                        )));
+                        self.preview_game("", 0, false);
+                    }
+                    36 => self.preview_game("snake", 1, false),
+                    37 => self.preview_game("snake", 6, true),
+                    38 => self.preview_game("tetris", 6, true),
+                    39 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                        1000., 680.,
+                    ))),
                     _ => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
                 }
             }
@@ -263,6 +308,15 @@ impl PersonalDeskApp {
             "daily-essay",
             "daily-essay-editor",
             "daily-essay-small",
+            "reference-prototypes",
+            "reference-windows",
+            "knowledge-practice",
+            "knowledge-practice-small",
+            "games-gallery",
+            "snake-levels",
+            "snake-game",
+            "tetris-game",
+            "tetris-game-small",
         ][c.step];
         let path = c.output.join(format!("{name}.png"));
         let completed = c.completed.clone();

@@ -274,6 +274,21 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
             let entries = snapshot.reference_entries()?;
             counts.insert("指令大全", entries.len());
             package.json("指令大全.json", &entries)?;
+            let cards = snapshot
+                .study_cards("engineering")?
+                .into_iter()
+                .filter(|card| !card.knowledge_ids.is_empty())
+                .collect::<Vec<_>>();
+            package.json(
+                "指令练习.json",
+                &crate::study::Bundle {
+                    version: 1,
+                    cards,
+                    attempts: vec![],
+                    dialogue: vec![],
+                    projects: vec![],
+                },
+            )?;
         }
         if scope.includes(Scope::Theme) {
             let theme = crate::theme::ThemeSettings::load(&snapshot.settings()?);
@@ -338,9 +353,9 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
                 .unwrap_or(0);
             package.json(
                 "小游戏.json",
-                &serde_json::json!({"snake":{"mode":"endless","best_score":best}}),
+                &serde_json::json!({"snake":{"mode":"endless","best_score":best},"library":snapshot.game_library()?,"records":snapshot.game_records(u32::MAX)?}),
             )?;
-            counts.insert("小游戏", 1);
+            counts.insert("小游戏", 2);
         }
         if scope.includes(Scope::Contacts) {
             let records = snapshot.contacts()?;

@@ -154,6 +154,9 @@ impl PersonalDeskApp {
         if selected.is_some() || recommended {
             self.study.route_open = false;
             let mut s = std::mem::take(&mut self.study.practice);
+            s.knowledge = None;
+            s.notebook_key = None;
+            s.stats = None;
             s.topic.clear();
             s.filter = Filter {
                 area: selected.unwrap_or_default(),

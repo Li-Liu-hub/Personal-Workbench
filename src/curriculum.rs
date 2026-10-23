@@ -15,10 +15,13 @@ pub const AREAS: [&str; 8] = [
 ];
 pub const MIXED: &str = "__free_mixed__";
 #[cfg(test)]
-pub const BUILTIN_COUNT: u32 = 70;
+pub const BUILTIN_COUNT: u32 = 446;
 pub fn with_profile(mut card: Card) -> Card {
     if card.kind == "engineering" && card.training.is_none() {
         card.training = Some(profile(&card));
+    }
+    if card.kind == "engineering" && card.tags.is_empty() {
+        card.tags = vec![category(&card.topic).into(), profile(&card).area];
     }
     card
 }
@@ -134,7 +137,10 @@ pub fn route(items: &[Candidate], rules: &Rules) -> Vec<AreaProgress> {
     AREAS
         .iter()
         .map(|area| {
-            let rows: Vec<_> = items.iter().filter(|r| r.training.area == *area).collect();
+            let rows: Vec<_> = items
+                .iter()
+                .filter(|r| r.training.area == *area && r.card.knowledge_ids.is_empty())
+                .collect();
             let passed = |level| {
                 rows.iter()
                     .filter(|r| {
@@ -179,7 +185,8 @@ pub fn choose(
         .iter()
         .enumerate()
         .filter(|(_, r)| {
-            filter.matches(&r.training)
+            (!guided || r.card.knowledge_ids.is_empty())
+                && filter.matches(&r.training)
                 && (topic.is_empty()
                     || topic == MIXED
                     || category(&r.card.topic) == category(topic))

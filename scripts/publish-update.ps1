@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
-    [string]$Notes = '新增每日随笔：每日随机主题、开始前换题、页内写作与自动保存，支持记录本搜索及导出；主题和原文在重启、图书归组及更新后保留'
+    [string]$Notes = '扩充指令大全至 358 个知识点、376 道对应练习；新增贪吃蛇与俄罗斯方块关卡、续玩存档和完整成绩记录，保留原有文档、账号和练习历史'
 )
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

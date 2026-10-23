@@ -59,7 +59,7 @@ pub fn original() -> Source {
     }
 }
 pub fn card() -> Card {
-    Card{id:ID.into(),kind:"engineering".into(),title:"修复订单服务：库存、幂等与并发".into(),topic:"项目修 Bug".into(),
+    Card{knowledge_ids:vec![],tags:vec!["项目实战".into(),"库存".into(),"幂等".into(),"并发".into()],id:ID.into(),kind:"engineering".into(),title:"修复订单服务：库存、幂等与并发".into(),topic:"项目修 Bug".into(),
         prompt:"一个 Java 17 多文件订单服务出现了重复请求重复扣库存、非法数量被接受、失败后库存变化和并发错误。导出项目，在自己的编辑器修复，保持公共方法签名不变；导入修复后的 ZIP，再运行随题提供的 9 个回归场景。你可以修改主源码，验证始终使用原始测试。".into(),
         answer:"先校验 requestId、数量和商品，再检查幂等键；相同请求返回原订单，不同内容复用同一键应拒绝且不改库存。在扣库存前检查可用数量。将检查、扣减与订单保存放入同一个并发一致的边界（例如此单实例示例中对 place 同步）。错误路径不能留下库存改动。生产系统还需数据库事务、原子库存更新和持久化幂等约束；本练习为内存 Java 示例。".into(),
         rubric:[("校验非法请求且失败不改变库存",25),("正确处理幂等重试和请求编号冲突",25),("库存与订单在并发下保持一致",25),("保持金额计算和现有接口正确，结合测试检查边界",25)].into_iter().enumerate().map(|(i,(text,points))|Rubric{id:format!("r{}",i+1),text:text.into(),points}).collect(),

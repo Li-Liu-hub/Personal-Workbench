@@ -130,6 +130,7 @@ fn main() -> eframe::Result {
     let Some(_instance) = install::Instance::acquire(&app::data_directory()) else {
         return Ok(());
     };
+    install::remember_data_directory(&app::data_directory());
     if let Ok(executable) = std::env::current_exe()
         && let Some(parent) = executable.parent()
     {

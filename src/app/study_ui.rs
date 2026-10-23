@@ -4,6 +4,7 @@ use crate::{
     study::{self, Attempt, Card, Grade, NotebookEntry, Pending, Rules},
 };
 use std::sync::Arc;
+mod knowledge;
 mod learning;
 mod project;
 mod training;
@@ -25,7 +26,7 @@ pub(super) struct Session {
     topic: String,
     notebook: bool,
     query: String,
-    notebook_key: Option<(u64, String)>,
+    notebook_key: Option<(u64, String, String)>,
     entries: Vec<NotebookEntry>,
     selected: Option<String>,
     history: Vec<Attempt>,
@@ -44,6 +45,8 @@ pub(super) struct Session {
     filter: crate::curriculum::Filter,
     recommendation: String,
     draw_attempted: bool,
+    knowledge: Option<(String, String)>,
+    knowledge_back: bool,
 }
 pub(super) struct StudyState {
     practice: Session,
@@ -55,7 +58,7 @@ pub(super) struct StudyState {
     rules: Rules,
     config: Config,
     error: String,
-    tutor_open: bool,
+    pub(super) tutor_open: bool,
     operation: String,
     markdown: egui_commonmark::CommonMarkCache,
     pub(super) route_open: bool,
@@ -318,8 +321,15 @@ impl PersonalDeskApp {
             .db
             .as_ref()
             .ok_or(DeskError::UnsupportedFormat)
-            .and_then(|db| db.practice_choice(&s.topic, &s.filter, &s.recent, roll()))
-        {
+            .and_then(|db| {
+                db.practice_choice_for(
+                    &s.topic,
+                    &s.filter,
+                    &s.recent,
+                    roll(),
+                    s.knowledge.as_ref().map_or("", |k| k.0.as_str()),
+                )
+            }) {
             Ok(choice) => {
                 s.draw_attempted = true;
                 s.recommendation = choice
@@ -585,7 +595,11 @@ impl PersonalDeskApp {
         ui.add_space(14.);
         ui.horizontal_wrapped(|ui| {
             if kind == "engineering" {
-                self.render_practice_selector(ui, &mut s);
+                if s.knowledge.is_some() {
+                    self.render_knowledge_scope(ui, &mut s);
+                } else {
+                    self.render_practice_selector(ui, &mut s);
+                }
             } else {
                 let before = s.word_mode.clone();
                 ui.add_enabled_ui(!self.study.busy, |ui| {
@@ -623,6 +637,16 @@ impl PersonalDeskApp {
                     today: db.study_today(kind).unwrap_or(0),
                     progress: db.study_totals(kind).unwrap_or_default(),
                 });
+                if let Some((id, _)) = &s.knowledge {
+                    let (count, practiced, mastered, weak) =
+                        db.knowledge_totals(id).unwrap_or_default();
+                    s.stats = Some(StatsCache {
+                        at: std::time::Instant::now(),
+                        count,
+                        today: db.study_today(kind).unwrap_or(0),
+                        progress: (practiced, mastered, weak),
+                    });
+                }
             }
             let StatsCache {
                 count,
@@ -681,7 +705,16 @@ impl PersonalDeskApp {
         } else {
             self.render_learning_workspace(ui, kind, &mut s);
         }
+        let knowledge_back = if s.knowledge_back {
+            s.knowledge.as_ref().map(|k| k.0.clone())
+        } else {
+            None
+        };
+        s.knowledge_back = false;
         *self.study.session_mut(kind) = s;
+        if let Some(id) = knowledge_back {
+            self.open_knowledge_reference(&id);
+        }
         self.render_study_settings(ui.ctx());
         self.render_training_route(ui.ctx());
     }
@@ -878,33 +911,54 @@ impl PersonalDeskApp {
                         .color(muted()),
                 );
                 ui.label(RichText::new(&training.area).small().color(muted()));
+                for tag in card
+                    .tags
+                    .iter()
+                    .filter(|t| {
+                        t.as_str() != crate::curriculum::category(&card.topic)
+                            && **t != training.area
+                    })
+                    .take(3)
+                {
+                    ui.label(RichText::new(format!("#{tag}")).small().color(muted()));
+                }
             });
-            ui.add_space(16.);
-            ui.label(RichText::new(&card.title).size(25.).strong());
-            if !s.recommendation.is_empty() {
-                ui.label(RichText::new(&s.recommendation).small().color(accent()));
-            }
-            ui.add(
-                egui::Label::new(
-                    RichText::new(format!("目标：{}", training.goal))
-                        .small()
-                        .color(muted()),
-                )
-                .wrap(),
+            ui.add_space(if s.knowledge.is_some() { 10. } else { 16. });
+            let title = card
+                .title
+                .strip_suffix(" · 专项练习")
+                .unwrap_or(&card.title);
+            ui.label(
+                RichText::new(title)
+                    .size(if s.knowledge.is_some() { 23. } else { 25. })
+                    .strong(),
             );
-            egui::CollapsingHeader::new("作答要求")
-                .id_salt(("training-goal", &card.id))
-                .show(ui, |ui| {
-                    ui.label(format!("提交：{}", training.deliverable));
-                    if crate::curriculum::category(&card.topic) == "代码实战" {
-                        ui.label(
-                            "代码题由 AI 按评分点批改；只有项目实战会实际编译运行 Java 测试。",
-                        );
-                    }
-                });
+            if s.knowledge.is_none() {
+                if !s.recommendation.is_empty() {
+                    ui.label(RichText::new(&s.recommendation).small().color(accent()));
+                }
+                ui.add(
+                    egui::Label::new(
+                        RichText::new(format!("目标：{}", training.goal))
+                            .small()
+                            .color(muted()),
+                    )
+                    .wrap(),
+                );
+                egui::CollapsingHeader::new("作答要求")
+                    .id_salt(("training-goal", &card.id))
+                    .show(ui, |ui| {
+                        ui.label(format!("提交：{}", training.deliverable));
+                        if crate::curriculum::category(&card.topic) == "代码实战" {
+                            ui.label(
+                                "代码题由 AI 按评分点批改；只有项目实战会实际编译运行 Java 测试。",
+                            );
+                        }
+                    });
+            }
             ui.add_space(12.);
             ui.add(egui::Label::new(RichText::new(&card.prompt).size(16.)).wrap());
-            ui.add_space(24.);
+            ui.add_space(if s.knowledge.is_some() { 12. } else { 24. });
         }
         if let Some(lab) = &card.sql {
             if s.sql_preview.is_none() {
@@ -1077,6 +1131,10 @@ impl PersonalDeskApp {
         let key = (
             self.db.as_ref().map(|d| d.change_count()).unwrap_or(0),
             s.query.clone(),
+            s.knowledge
+                .as_ref()
+                .map(|k| k.0.clone())
+                .unwrap_or_default(),
         );
         if s.notebook_key.as_ref() != Some(&key) {
             s.entries = self
@@ -1084,6 +1142,9 @@ impl PersonalDeskApp {
                 .as_ref()
                 .and_then(|db| db.study_notebook(kind, &s.query).ok())
                 .unwrap_or_default();
+            if let Some((id, _)) = &s.knowledge {
+                s.entries.retain(|e| e.card.knowledge_ids.contains(id));
+            }
             if !s
                 .entries
                 .iter()
@@ -1133,7 +1194,19 @@ impl PersonalDeskApp {
                                         .and_then(|db| db.study_pending(kind).ok())
                                         .unwrap_or_default()
                                         .into_iter()
-                                        .filter(|p| !p.answer.trim().is_empty())
+                                        .filter(|p| {
+                                            !p.answer.trim().is_empty()
+                                                && s.knowledge.as_ref().is_none_or(|(id, _)| {
+                                                    self.db
+                                                        .as_ref()
+                                                        .and_then(|db| {
+                                                            db.study_card(&p.card_id).ok().flatten()
+                                                        })
+                                                        .is_some_and(|c| {
+                                                            c.knowledge_ids.contains(id)
+                                                        })
+                                                })
+                                        })
                                         .collect::<Vec<_>>();
                                     if !drafts.is_empty() {
                                         ui.collapsing(

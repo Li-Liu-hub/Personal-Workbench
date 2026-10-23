@@ -132,7 +132,7 @@ impl PersonalDeskApp {
                     (Section::Words, "每日单词", TileKind::Word, None),
                     (Section::Reference, "指令大全", TileKind::Document, None),
                     (Section::Tools, "小工具", TileKind::Setting, None),
-                    (Section::Games, "小游戏", TileKind::Game, Some(1)),
+                    (Section::Games, "小游戏", TileKind::Game, Some(2)),
                     (Section::Settings, "设置", TileKind::Setting, None),
                 ];
                 navigation.sort_by_key(|(section, _, _, _)| {
@@ -180,7 +180,10 @@ impl PersonalDeskApp {
                         }
                     });
                     if response.clicked() {
-                        if !self.flush_writing() || !self.flush_study_answer() {
+                        if !self.flush_writing()
+                            || !self.flush_study_answer()
+                            || !self.flush_games()
+                        {
                             continue;
                         }
                         self.section = section;

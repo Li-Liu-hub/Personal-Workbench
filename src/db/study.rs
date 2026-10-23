@@ -19,6 +19,7 @@ impl Database {
           CREATE TABLE IF NOT EXISTS study_pending(id TEXT PRIMARY KEY,card_id TEXT NOT NULL REFERENCES study_cards(id),answer TEXT NOT NULL,at TEXT NOT NULL);")?;
         self.desk.execute_batch("CREATE TABLE IF NOT EXISTS study_dialogue(id TEXT PRIMARY KEY,card_id TEXT NOT NULL REFERENCES study_cards(id),role TEXT NOT NULL,content TEXT NOT NULL,at TEXT NOT NULL); CREATE INDEX IF NOT EXISTS study_dialogue_card ON study_dialogue(card_id,at); CREATE TABLE IF NOT EXISTS study_help(pending_id TEXT PRIMARY KEY);")?;
         self.desk.execute_batch("CREATE TABLE IF NOT EXISTS study_project_code(card_id TEXT PRIMARY KEY REFERENCES study_cards(id),source_json TEXT NOT NULL,report_json TEXT);")?;
+        self.desk.execute_batch("CREATE TABLE IF NOT EXISTS study_knowledge(card_id TEXT NOT NULL REFERENCES study_cards(id),knowledge_id TEXT NOT NULL,PRIMARY KEY(card_id,knowledge_id)); CREATE INDEX IF NOT EXISTS study_knowledge_lookup ON study_knowledge(knowledge_id,card_id);")?;
         if self.setting("study.extension.seed.version")?.as_deref() != Some("1") {
             self.import_study_cards(&[crate::challenges::card()])?;
             let foundations: Vec<Card> =
@@ -57,6 +58,8 @@ impl Database {
             }],
             source: "https://github.com/skywind3000/ECDICT".into(),
             phonetic: w.phonetic,
+            tags: vec![],
+            knowledge_ids: vec![],
             sql: None,
             origin: None,
             project: None,
@@ -120,10 +123,19 @@ impl Database {
         let tx = self.desk.transaction()?;
         let mut added = 0;
         for card in cards {
-            added += tx.execute(
+            let inserted = tx.execute(
                 "INSERT OR IGNORE INTO study_cards(id,kind,topic,card_json) VALUES(?1,?2,?3,?4)",
                 params![card.id, card.kind, card.topic, serde_json::to_string(card)?],
             )?;
+            added += inserted;
+            if inserted != 0 {
+                for id in &card.knowledge_ids {
+                    tx.execute(
+                        "INSERT OR IGNORE INTO study_knowledge(card_id,knowledge_id) VALUES(?1,?2)",
+                        params![card.id, id],
+                    )?;
+                }
+            }
         }
         tx.commit()?;
         Ok(added)

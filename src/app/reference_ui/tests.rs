@@ -20,7 +20,7 @@ fn reference_workspace_searches_edits_saves_and_preserves_unfinished_drafts() {
     configure_theme(&ctx);
     input_frame(&mut app, &ctx, 0., vec![], vec![]);
     let output = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
-    assert_eq!(app.reference.rows.len(), 128);
+    assert_eq!(app.reference.rows.len(), 358);
     let add = center(&output, "+ 添加指令");
     input_frame(&mut app, &ctx, 0.2, pointer(add, true), vec![]);
     input_frame(&mut app, &ctx, 0.3, pointer(add, false), vec![]);
