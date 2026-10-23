@@ -29,6 +29,7 @@ fn sample() -> Card {
 fn grade(card: &Card, score: u8) -> Grade {
     let mut remaining = score;
     Grade {
+        assessment: None,
         checks: card
             .rubric
             .iter()
@@ -548,8 +549,12 @@ fn real_sql_results_are_model_context_and_survive_history_export_and_copy() {
     let answer = card.sql.as_ref().unwrap().reference.clone();
     let report = crate::sql_practice::run(card.sql.as_ref().unwrap(), &answer);
     let request = crate::local_ai::grade_request(&card, &answer, Some(&report));
-    let content: serde_json::Value =
-        serde_json::from_str(request["messages"][1]["content"].as_str().unwrap()).unwrap();
+    let content: serde_json::Value = serde_json::from_str(
+        request["messages"].as_array().unwrap().last().unwrap()["content"]
+            .as_str()
+            .unwrap(),
+    )
+    .unwrap();
     assert_eq!(content["execution"]["sample_matches"], true);
     assert_eq!(content["execution"]["dialect"], "SQLite");
     assert!(
@@ -791,7 +796,9 @@ fn live_local_grading_end_to_end() {
         "other engineering topics {:?}",
         scores
     );
-    app.study.ai.unload_if_idle();
+    app.study.ai.unload_if_idle(false);
+    assert!(app.study.ai.is_loaded(), "0 means manual model shutdown");
+    app.study.ai.stop();
     assert_eq!(app.study.ai.status(), "未加载");
     drop(app);
     let db = Database::open(dir.path()).unwrap();

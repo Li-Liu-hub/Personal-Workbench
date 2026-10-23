@@ -155,7 +155,14 @@ pub struct Check {
     pub evidence: String,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Assessment {
+    pub version: u8,
+    pub zero_reviewed: bool,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Grade {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub assessment: Option<Assessment>,
     pub checks: Vec<Check>,
     pub summary: String,
     #[serde(default)]
@@ -200,6 +207,7 @@ impl Grade {
     }
     pub fn unknown(card: &Card) -> Self {
         Self {
+            assessment: None,
             checks: card
                 .rubric
                 .iter()

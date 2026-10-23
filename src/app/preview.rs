@@ -267,6 +267,16 @@ impl PersonalDeskApp {
                     39 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
                         1000., 680.,
                     ))),
+                    40 => {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1280., 800.,
+                        )));
+                        self.section = Section::Words;
+                        self.prepare_learning_preview("语法");
+                    }
+                    41 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                        1000., 680.,
+                    ))),
                     _ => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
                 }
             }
@@ -317,6 +327,8 @@ impl PersonalDeskApp {
             "snake-game",
             "tetris-game",
             "tetris-game-small",
+            "grammar-foundations",
+            "grammar-foundations-small",
         ][c.step];
         let path = c.output.join(format!("{name}.png"));
         let completed = c.completed.clone();

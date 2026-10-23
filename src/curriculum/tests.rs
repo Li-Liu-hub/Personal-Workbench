@@ -6,6 +6,7 @@ fn candidates() -> Vec<Candidate> {
         include_str!("../../assets/sql_practice.json"),
         include_str!("../../assets/foundations.json"),
         include_str!("../../assets/reference_practice.json"),
+        include_str!("../../assets/learning_variants.json"),
     ] {
         for card in serde_json::from_str::<Vec<Card>>(text).unwrap() {
             cards.insert(card.id.clone(), card);

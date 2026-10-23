@@ -199,6 +199,7 @@ impl LocalAi {
         self.finish(result.is_ok());
         result
     }
+    #[cfg(test)]
     pub fn english_exercise(
         &self,
         config: &Config,
@@ -206,31 +207,93 @@ impl LocalAi {
         base: &Card,
         mode: &str,
     ) -> Result<Card, String> {
+        self.english_variant(config, log, base, mode, &crate::english::plan(mode, 0))
+    }
+    pub fn english_variant(
+        &self,
+        config: &Config,
+        log: &Path,
+        base: &Card,
+        mode: &str,
+        plan: &crate::english::Plan,
+    ) -> Result<Card, String> {
         if mode == "语法" {
-            return crate::english::exercise(base, mode, None);
+            return crate::english::grammar_card(plan.sequence);
         }
         self.begin("正在生成英语练习")?;
         let result = (|| {
             let port = self.ensure_started(config, log)?;
             let schema = serde_json::json!({"type":"object","additionalProperties":false,
-                "required":["prompt","reference","explanation"],"properties":{
-                    "prompt":{"type":"string"},"reference":{"type":"string"},"explanation":{"type":"string"}}});
+                "required":["a_prompt","b_reference","c_explanation"],"properties":{
+                    "a_prompt":{"type":"string"},"b_reference":{"type":"string"},"c_explanation":{"type":"string"}}});
             let instruction = match mode {
                 "中译英" => {
-                    "prompt只给一句中文待翻译句子，不要泄露英文答案。reference给准确英文译文，必须使用目标词或其词形变化。"
+                    "a_prompt必须是一句中文原句，不得给英文！b_reference必须是对应的英文译文，使用目标词或词形变化。c_explanation用中文解释译法。"
                 }
-                "英译中" => "prompt给一句使用目标词的英文待翻译句子。reference给准确中文译文。",
+                "英译中" => {
+                    "a_prompt必须是一句使用目标词的完整英文原句；b_reference必须是中文译文，不得给英文！c_explanation用中文解释译法。不要设置空格或出填空题。"
+                }
+                "搭配填空" => {
+                    "给出一个含空格的英文句子及候选词/原形，要求填写并说明理由，目标词参与搭配；reference必须给答案和理由。"
+                }
+                "句式改写" => {
+                    "给英文原句及明确句式转换要求，目标词自然出现在句子中；reference给保留原意的改写和理由。"
+                }
+                "短文理解" => {
+                    "给60到90词英文短文，自然使用目标词。给2道围绕主要信息或推断的问题，并问目标词在此处的意思，接受中文或英文回答。reference逐问回答并指明原文依据。"
+                }
                 _ => {
-                    "prompt给一句包含目标词、且只有一处常见语法错误的英文句子，请学生改正整句。reference给正确完整句子。不要只考拼写。"
+                    "严格按照指定的语法知识点和题目形式出题，自然使用目标词。改错题原句必须有一处主要语法错误，reference只给改正后的完整句子，不附解释。其他题型给完整解答。具体规则和理由放explanation。"
                 }
             };
-            let text=self.complete(port,serde_json::json!({"model":"personaldesk-grader","max_tokens":650,"temperature":0.4,
+            let mut request = serde_json::json!({"model":"personaldesk-grader","max_tokens":1100,"temperature":0.55,"seed":plan.sequence,
                 "chat_template_kwargs":{"enable_thinking":false},"response_format":{"type":"json_schema","json_schema":{"name":"english_exercise","strict":true,"schema":schema}},
-                "messages":[{"role":"system","content":"生成准确、自然、简短的英语练习。以雅思常见生活、教育、环境主题为主，兼顾日常和技术语境。难度中等。explanation用中文讲清用法和语法，不能泛泛而谈。只返回JSON。"},
-                    {"role":"user","content":format!("目标词：{}；中文词义：{}；练习方式：{}。{}",base.title,base.answer,mode,instruction)}]}))?;
-            let draft: crate::english::Draft =
-                serde_json::from_str(&text).map_err(|e| e.to_string())?;
-            crate::english::exercise(base, mode, Some(draft))
+                "messages":[{"role":"system","content":"生成准确、自然、简短的英语练习。以雅思生活、教育、环境主题为主，兼顾日常和技术语境。先生成a_prompt题干，再生成b_reference解答，最后c_explanation用中文具体解释这道题的用法与理由，不能泛泛而谈。只返回JSON。"},
+                    {"role":"user","content":format!("目标词：{}；中文词义：{}；练习方式：{}。{}\n{}",base.title,base.answer,mode,instruction,plan.instructions())}]});
+            let example = match mode {
+                "中译英" => Some(
+                    serde_json::json!({"a_prompt":"每天阅读能提高我们的写作能力。","b_reference":"Reading every day can improve our writing skills.","c_explanation":"improve 后接提升的对象；can 后用动词原形。"}),
+                ),
+                "英译中" => Some(
+                    serde_json::json!({"a_prompt":"Reading every day can improve our writing skills.","b_reference":"每天阅读能提高我们的写作能力。","c_explanation":"improve 表示提高，writing skills 是写作能力。"}),
+                ),
+                "搭配填空" => Some(
+                    serde_json::json!({"a_prompt":"用 improve 的合适形式填空并解释搭配：Regular practice can ___ your writing skills.","b_reference":"improve；Regular practice can improve your writing skills.","c_explanation":"can 后用动词原形；improve skills 表示提升技能，improve 为及物动词，直接接宾语。"}),
+                ),
+                "语法" if plan.form == "改错并解释" => Some(
+                    serde_json::json!({"a_prompt":"改正下面句子并说明原因：These two changes has improved reliability.","b_reference":"These two changes have improved reliability.","c_explanation":"原句changes是复数主语，has应改为have；现在完成时其余结构保留。"}),
+                ),
+                _ => None,
+            };
+            if let Some(example) = example {
+                let messages = request["messages"].as_array_mut().unwrap();
+                messages.insert(1, serde_json::json!({"role":"user","content":format!("格式示例：目标词improve，练习方式{mode}。注意题干与答案的语言和区别。实际题目必须按后面给的词条、知识点和语境重新编写。")}));
+                messages.insert(
+                    2,
+                    serde_json::json!({"role":"assistant","content":example.to_string()}),
+                );
+            }
+            for attempt in 0..2 {
+                let text = self.complete(port, request.clone())?;
+                #[cfg(test)]
+                eprintln!("GENERATED {mode} attempt={attempt}: {text}");
+                let result = serde_json::from_str::<crate::english::Draft>(&text)
+                    .map_err(|e| e.to_string())
+                    .and_then(|draft| plan.exercise(base, mode, Some(draft)));
+                match result {
+                    Ok(card) => return Ok(card),
+                    Err(error) if attempt == 0 => {
+                        self.set_status("正在校验并重做英语题…");
+                        request["seed"] = serde_json::json!(plan.sequence.wrapping_add(1));
+                        request["messages"].as_array_mut().unwrap().extend([
+                            serde_json::json!({"role":"assistant","content":text}),
+                            serde_json::json!({"role":"user","content":format!("题目未通过检查：{error}。请重新生成完整JSON，保留指定知识点和题目形式。")}),
+                        ]);
+                    }
+                    Err(error) => return Err(format!("生成的练习未通过检查：{error}")),
+                }
+            }
+            unreachable!()
         })();
         self.finish(result.is_ok());
         result

@@ -35,6 +35,7 @@ pub(super) struct Session {
     sql_answer: String,
     word_mode: String,
     mixed_draws: usize,
+    english_sequence: u64,
     chat: Vec<crate::local_ai::Dialogue>,
     chat_for: Option<String>,
     chat_input: String,
@@ -165,20 +166,25 @@ impl PersonalDeskApp {
             .study_card("ielts:benefit")
             .unwrap()
             .unwrap();
-        let card = crate::english::exercise(
-            &base,
-            mode,
-            if mode == "中译英" {
-                Some(crate::english::Draft {
-                    prompt: "规律运动有益于身心健康。".into(),
-                    reference: "Regular exercise benefits our physical and mental health.".into(),
-                    explanation: "benefit 可作及物动词，表示有益于。".into(),
-                })
-            } else {
-                None
-            },
-        )
-        .unwrap();
+        let card = if mode == "语法" {
+            crate::english::grammar_card(12).unwrap()
+        } else {
+            crate::english::exercise(
+                &base,
+                mode,
+                if mode == "中译英" {
+                    Some(crate::english::Draft {
+                        prompt: "规律运动有益于身心健康。".into(),
+                        reference: "Regular exercise benefits our physical and mental health."
+                            .into(),
+                        explanation: "benefit 可作及物动词，表示有益于。".into(),
+                    })
+                } else {
+                    None
+                },
+            )
+            .unwrap()
+        };
         self.db
             .as_mut()
             .unwrap()
@@ -635,7 +641,18 @@ impl PersonalDeskApp {
                     at: std::time::Instant::now(),
                     count: db.study_count(kind).unwrap_or(0),
                     today: db.study_today(kind).unwrap_or(0),
-                    progress: db.study_totals(kind).unwrap_or_default(),
+                    progress: if kind == "word" {
+                        let rows = db.english_progress("").unwrap_or_default();
+                        (
+                            rows.len() as u32,
+                            rows.iter().filter(|p| p.mastered).count() as u32,
+                            rows.iter()
+                                .filter(|p| !p.mastered && p.latest < self.study.rules.threshold)
+                                .count() as u32,
+                        )
+                    } else {
+                        db.study_totals(kind).unwrap_or_default()
+                    },
                 });
                 if let Some((id, _)) = &s.knowledge {
                     let (count, practiced, mastered, weak) =
@@ -662,7 +679,7 @@ impl PersonalDeskApp {
             chrome::badge(
                 ui,
                 &if kind == "word" {
-                    format!("今日 {today} / {}", self.study.rules.daily_words)
+                    format!("今日 {today} / {} 项", self.study.rules.daily_words)
                 } else {
                     format!("今日已练 {today} 题")
                 },
@@ -680,7 +697,7 @@ impl PersonalDeskApp {
             }
             ui.label(
                 RichText::new(if kind == "word" {
-                    format!("IELTS · {count} 词")
+                    format!("IELTS · {count} 词 · 24 语法点")
                 } else {
                     format!("{count} 道工程题")
                 })
@@ -864,21 +881,25 @@ impl PersonalDeskApp {
         ui.set_width((width - 58.).max(220.));
         ui.set_min_height((height - 58.).max(200.));
         if kind == "word" {
-            ui.add_space(8.);
-            ui.vertical_centered(|ui| {
-                ui.label(RichText::new("IELTS").size(12.).color(accent()));
-                ui.add_space(16.);
-                let word_size = (ui.available_width()
-                    / (card.title.chars().count().max(1) as f32 * 0.62))
-                    .clamp(18., 46.);
-                ui.label(RichText::new(&card.title).size(word_size).strong());
-                if !card.phonetic.is_empty() {
-                    ui.label(RichText::new(&card.phonetic).size(17.).color(muted()));
-                }
-            });
-            ui.add_space(28.);
+            let grammar = card.id.starts_with("english:grammar:v3:");
+            if grammar {
+                ui.label(RichText::new(&card.title).size(24.).strong());
+            } else {
+                ui.vertical_centered(|ui| {
+                    ui.label(RichText::new("IELTS").size(12.).color(accent()));
+                    ui.add_space(8.);
+                    let word_size = (ui.available_width()
+                        / (card.title.chars().count().max(1) as f32 * 0.62))
+                        .clamp(18., 46.);
+                    ui.label(RichText::new(&card.title).size(word_size).strong());
+                    if !card.phonetic.is_empty() {
+                        ui.label(RichText::new(&card.phonetic).size(17.).color(muted()));
+                    }
+                });
+            }
+            ui.add_space(12.);
             ui.horizontal_wrapped(|ui| {
-                for mode in ["造句", "中译英", "英译中", "语法"] {
+                for mode in crate::english::MODES.into_iter().skip(1) {
                     if ui
                         .add_enabled(!self.study.busy, egui::Button::new(mode).small())
                         .clicked()
@@ -894,7 +915,19 @@ impl PersonalDeskApp {
             ui.add_space(10.);
             if card.topic != "IELTS" {
                 ui.label(RichText::new(&card.topic).size(12.).color(accent()));
-                if matches!(card.topic.as_str(), "中译英" | "英译中") {
+                ui.horizontal_wrapped(|ui| {
+                    for tag in card
+                        .tags
+                        .iter()
+                        .filter(|tag| !tag.starts_with("练习序号:"))
+                        .take(4)
+                    {
+                        ui.label(RichText::new(tag).small().color(muted()));
+                    }
+                });
+                if card.id.starts_with("english:grammar:v3:") {
+                    ui.label(RichText::new("基础语法 · 本地题库").small().color(muted()));
+                } else if card.topic != "造句" {
                     ui.label(RichText::new("AI 练习题").small().color(muted()));
                 }
                 ui.add_space(10.);
@@ -1501,7 +1534,7 @@ impl PersonalDeskApp {
             });
             ui.horizontal(|ui| {
                 ui.add(egui::DragValue::new(&mut self.study.rules.daily_words).range(1..=200));
-                ui.label("每日单词目标");
+                ui.label("每日学习目标（不同单词或语法知识点）");
             });
             ui.separator();
             ui.label("本地 GGUF 模型");
@@ -1525,10 +1558,10 @@ impl PersonalDeskApp {
             ui.horizontal(|ui| {
                 ui.add(
                     egui::DragValue::new(&mut self.study.config.idle_seconds)
-                        .range(30..=600)
+                        .range(0..=3600)
                         .suffix(" 秒"),
                 );
-                ui.label("空闲后卸载模型");
+                ui.label("离开学习页后空闲卸载（0 为手动停止）");
             });
             if ui
                 .add_enabled(!self.study.busy, egui::Button::new("卸载模型"))
@@ -1602,6 +1635,30 @@ impl PersonalDeskApp {
 }
 fn render_feedback(ui: &mut egui::Ui, attempt: &Attempt) {
     use crate::ui_components::chrome;
+    if !matches!(attempt.model.as_str(), "manual" | "未能作答" | "") {
+        let version = attempt
+            .feedback
+            .assessment
+            .as_ref()
+            .map(|a| {
+                format!(
+                    " · 语义评分 v{}{}",
+                    a.version,
+                    if a.zero_reviewed {
+                        " · 已复核零分"
+                    } else {
+                        ""
+                    }
+                )
+            })
+            .unwrap_or_default();
+        ui.label(
+            RichText::new(format!("本地 AI · {}{version}", attempt.model))
+                .small()
+                .color(muted()),
+        );
+        ui.add_space(8.);
+    }
     if attempt.assisted {
         chrome::badge(ui, "辅助练习 · 不计入独立掌握连续次数", muted());
         ui.add_space(8.);
@@ -1666,7 +1723,19 @@ fn render_feedback(ui: &mut egui::Ui, attempt: &Attempt) {
         ui.label(
             RichText::new(format!(
                 "下次注意：{}",
-                attempt.feedback.weak_points.join("；")
+                attempt
+                    .feedback
+                    .weak_points
+                    .iter()
+                    .map(|point| attempt
+                        .question
+                        .rubric
+                        .iter()
+                        .find(|rubric| rubric.id == *point)
+                        .map(|rubric| rubric.text.as_str())
+                        .unwrap_or(point.as_str()))
+                    .collect::<Vec<_>>()
+                    .join("；")
             ))
             .size(13.)
             .color(muted()),

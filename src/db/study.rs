@@ -183,19 +183,55 @@ impl Database {
         })
         .transpose()
     }
+    /// Mastery follows a word and practice mode, not a single generated sentence.
+    /// Old and new variants participate without changing immutable attempt snapshots.
+    pub fn english_progress(&self, mode: &str) -> Result<Vec<Progress>> {
+        let rules = self.study_rules();
+        let sql = "WITH ranked AS (
+            SELECT COALESCE(json_extract(c.card_json,'$.origin'),c.id) AS base,c.topic,a.completion,
+              ROW_NUMBER() OVER (PARTITION BY COALESCE(json_extract(c.card_json,'$.origin'),c.id),c.topic ORDER BY a.rowid DESC) AS n
+            FROM study_attempts a JOIN study_cards c ON c.id=a.card_id
+            WHERE c.kind='word' AND COALESCE(json_extract(a.attempt_json,'$.assisted'),0)=0
+              AND (?1='' OR c.topic=?1 OR (?1='释义' AND json_extract(c.card_json,'$.origin') IS NULL))
+          ) SELECT base,topic,COUNT(*),COALESCE(MIN(CASE WHEN completion<?2 THEN n END)-1,COUNT(*)),MAX(CASE WHEN n=1 THEN completion END)
+            FROM ranked GROUP BY base,topic";
+        Ok(self
+            .desk
+            .prepare_cached(sql)?
+            .query_map(params![mode, rules.threshold], |r| {
+                let base: String = r.get(0)?;
+                let topic: String = r.get(1)?;
+                let streak: u32 = r.get(3)?;
+                Ok(Progress {
+                    card_id: if mode.is_empty() {
+                        format!("{base}|{topic}")
+                    } else {
+                        base
+                    },
+                    attempts: r.get(2)?,
+                    streak,
+                    mastered: streak >= rules.consecutive,
+                    latest: r.get(4)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?)
+    }
     pub fn draw_word(&self, mode: &str, recent: &[String], roll: u64) -> Result<Option<Card>> {
-        let prefix = if mode == "释义" {
-            String::new()
-        } else {
-            format!("drill:{}:", crate::english::slug(mode))
-        };
-        let rows=self.desk.prepare("SELECT c.card_json,COALESCE(p.mastered,0),COALESCE(p.attempts,0),COALESCE(p.latest,0) FROM study_cards c LEFT JOIN study_progress p ON p.card_id=?1||c.id WHERE c.kind='word' AND json_extract(c.card_json,'$.origin') IS NULL ORDER BY c.id")?
-            .query_map([prefix],|r|Ok((r.get::<_,String>(0)?,r.get::<_,bool>(1)?,r.get::<_,u32>(2)?,r.get::<_,u8>(3)?)))?
-            .collect::<std::result::Result<Vec<_>,_>>()?;
+        if mode == "语法" {
+            return self.draw_grammar(recent, roll);
+        }
+        let progress = self
+            .english_progress(mode)?
+            .into_iter()
+            .map(|p| (p.card_id.clone(), p))
+            .collect::<std::collections::HashMap<_, _>>();
+        let rows = self.desk.prepare("SELECT card_json FROM study_cards WHERE kind='word' AND json_extract(card_json,'$.origin') IS NULL ORDER BY id")?.query_map([], |r| r.get::<_, String>(0))?.collect::<std::result::Result<Vec<_>, _>>()?;
         let rules = self.study_rules();
         let mut candidates = Vec::new();
-        for (json, mastered, attempts, latest) in rows {
+        for json in rows {
             let card: Card = serde_json::from_str(&json)?;
+            let p = progress.get(&card.id).cloned().unwrap_or_default();
+            let (mastered, attempts, latest) = (p.mastered, p.attempts, p.latest);
             if mastered && rules.mastered == study::MasteredMode::Stop {
                 continue;
             }
@@ -212,6 +248,50 @@ impl Database {
         }
         if candidates.iter().any(|(c, _)| !recent.contains(&c.id)) {
             candidates.retain(|(c, _)| !recent.contains(&c.id));
+        }
+        let total: u64 = candidates.iter().map(|(_, w)| w).sum();
+        if total == 0 {
+            return Ok(None);
+        }
+        let mut draw = roll % total;
+        for (card, weight) in candidates {
+            if draw < weight {
+                return Ok(Some(card));
+            }
+            draw -= weight;
+        }
+        Ok(None)
+    }
+    fn draw_grammar(&self, recent: &[String], roll: u64) -> Result<Option<Card>> {
+        let sequence = self
+            .setting("study.word.sequence.grammar")?
+            .and_then(|s| s.parse::<u64>().ok())
+            .unwrap_or(0);
+        let progress = self.english_progress("语法")?;
+        let rules = self.study_rules();
+        let mut candidates = Vec::new();
+        for offset in 0..48 {
+            let card = crate::english::grammar_card(sequence.saturating_add(offset))
+                .map_err(DeskError::InvalidInput)?;
+            let p = progress
+                .iter()
+                .find(|p| Some(p.card_id.as_str()) == card.origin.as_deref());
+            if p.is_some_and(|p| p.mastered) && rules.mastered == study::MasteredMode::Stop {
+                continue;
+            }
+            let weight = match p {
+                Some(p) if p.mastered => 1u64,
+                Some(p) if p.latest < rules.threshold => 150,
+                Some(_) => 60,
+                None => 100,
+            };
+            candidates.push((card, weight));
+        }
+        if candidates
+            .iter()
+            .any(|(c, _)| !recent.contains(c.origin.as_ref().unwrap()))
+        {
+            candidates.retain(|(c, _)| !recent.contains(c.origin.as_ref().unwrap()));
         }
         let total: u64 = candidates.iter().map(|(_, w)| w).sum();
         if total == 0 {
