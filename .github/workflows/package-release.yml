@@ -21,7 +21,7 @@ jobs:
           if ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+$') { throw 'Invalid release tag' }
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ github.sha }}
       - name: Download the tested binary and verify its checksum
         shell: pwsh
         run: |
@@ -35,6 +35,8 @@ jobs:
           if ((Get-FileHash (Join-Path $dest PersonalDesk.exe) -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) { throw 'Binary checksum mismatch' }
           $version = (Get-Content Cargo.toml | Select-String '^version = "([^"]+)"').Matches[0].Groups[1].Value
           if ("v$version" -ne $env:RELEASE_TAG) { throw 'Tag and source version disagree' }
+          $target = gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --json targetCommitish --jq .targetCommitish
+          if ($target -ne (git rev-parse HEAD)) { throw 'Draft release target and packaging source disagree' }
       - name: Build the installer using the runner compiler
         shell: pwsh
         run: |
