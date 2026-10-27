@@ -1,0 +1,434 @@
+[
+  {
+    "id": "ref:mysql_internals:mvcc",
+    "language": "MySQL",
+    "category": "事务与 MVCC",
+    "title": "MVCC 多版本并发控制",
+    "summary": "InnoDB 通过版本信息、undo 与一致性读视图，让普通读取可见符合快照规则的已提交历史版本。",
+    "syntax": "初始 balance=100；A 在 RR 事务中普通 SELECT 得到 100；B 更新为 80 并提交；A 再次普通 SELECT。",
+    "example": "初始 balance=100；A 在 RR 事务中普通 SELECT 得到 100；B 更新为 80 并提交；A 再次普通 SELECT。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：MVCC 主要支持 RC/RR 下的一致性非锁定读，不表示写入无锁；历史版本按需要由 undo 重构，不是为整库复制一份快照。\n\n自检：A 第二次读多少？MVCC 是否让所有操作都无锁？\n参考结论：在 A 没有自行修改该行且保持同一 RR 快照的前提下仍读 100；UPDATE、DELETE 和锁定读仍需锁与相应并发控制，不能概括为全程无锁。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-multi-versioning.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "事务与 MVCC",
+      "数据库原理",
+      "mvcc"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:hidden-columns",
+    "language": "MySQL",
+    "category": "事务与 MVCC",
+    "title": "DB_TRX_ID、DB_ROLL_PTR 与隐藏行号",
+    "summary": "聚簇记录中的事务标识和回滚指针帮助定位最近修改者及重构历史版本。",
+    "syntax": "当前记录 value=30，DB_TRX_ID=150；undo 能重构 value=20、事务 120，再重构 value=10、事务 90。",
+    "example": "当前记录 value=30，DB_TRX_ID=150；undo 能重构 value=20、事务 120，再重构 value=10、事务 90。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：DB_TRX_ID 为 6 字节，DB_ROLL_PTR 为 7 字节；无合适聚簇键时才会用内部 6 字节行号，不能说所有表都按隐藏行号聚簇。\n\n自检：说明三个隐藏字段的职责及隐藏行号的使用条件。\n参考结论：事务 ID 标识最近插入或更新该记录的事务，回滚指针关联 undo 以重构旧值；有主键或合适的全列 NOT NULL 唯一索引时优先作聚簇键，否则生成内部行号。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-multi-versioning.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "事务与 MVCC",
+      "数据库原理",
+      "hidden-columns"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:version-chain",
+    "language": "MySQL",
+    "category": "事务与 MVCC",
+    "title": "undo 版本链与删除标记",
+    "summary": "更新产生可重构旧记录的信息，删除先做标记，purge 在不再需要旧版本时清理。",
+    "syntax": "一行从 v=10 更新为 20，再更新为 30；较早快照仍需要看见 v=10。",
+    "example": "一行从 v=10 更新为 20，再更新为 30；较早快照仍需要看见 v=10。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：逻辑上沿 undo 追溯旧版本，不应把示意版本链误解为每版都存完整独立行；提交不意味着立刻清除所有 undo。\n\n自检：当前行 v=30 时，早期事务如何可能读到 10？\n参考结论：一致性读检查当前版本是否可见，不可见则按 undo 重构并继续判断，直到得到其快照可见的 v=10；只要仍有视图需要，就不能提前 purge 这些历史信息。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-multi-versioning.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "事务与 MVCC",
+      "数据库原理",
+      "version-chain"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:purge",
+    "language": "MySQL",
+    "category": "事务与 MVCC",
+    "title": "长事务、历史版本与 purge",
+    "summary": "长时间存活的一致性读视图可能阻止清理其仍需的旧版本，增加历史链和存储压力。",
+    "syntax": "事务 A 建立快照后长时间不结束，其他事务持续更新同一批数据。",
+    "example": "事务 A 建立快照后长时间不结束，其他事务持续更新同一批数据。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：不能仅凭运行时间认定一定阻塞 purge，关键是持有的视图与所需历史；不要把截断 undo 表空间等同逐条删除日志。\n\n自检：为什么应关注长事务与历史积压？给出排查方向。\n参考结论：旧视图仍可能访问更新前数据，因此 purge 要保留所需版本；检查 information_schema.innodb_trx、事务开始时间与 InnoDB 历史指标，确认业务后缩短事务边界。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-purge-configuration.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "事务与 MVCC",
+      "数据库原理",
+      "purge"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:read-view",
+    "language": "MySQL",
+    "category": "Read View 与隔离级别",
+    "title": "Read View 可见性判断",
+    "summary": "一致性读视图记录创建时活跃事务集合和事务 ID 边界，按事务 ID 与集合判断版本是否可见。",
+    "syntax": "教学记号：活跃集合 {100,105}，最小活跃 ID=100，下一待分配 ID=110；读者是事务 105。",
+    "example": "教学记号：活跃集合 {100,105}，最小活跃 ID=100，下一待分配 ID=110；读者是事务 105。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：自身版本可见；ID<100 可见，ID>=110 不可见，中间 ID 在活跃集合中则不可见。教学上下界名易混淆，实际源码 m_up_limit_id 是较小界、m_low_limit_id 是较大界。\n\n自检：判断版本 ID 90、100、103、105、111 的可见性。\n参考结论：90 可见，100 不可见，103 可见，105 为自身版本可见，111 不可见；这是按视图创建时的状态判断，其他事务后来提交不会改写旧视图。",
+    "source": "https://github.com/mysql/mysql-server/blob/mysql-8.4.0/storage/innobase/include/read0types.h",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "Read View 与隔离级别",
+      "数据库原理",
+      "read-view"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:rc-rr",
+    "language": "MySQL",
+    "category": "Read View 与隔离级别",
+    "title": "RC 与 RR 的快照创建时机",
+    "summary": "RC 每次一致性读建立新快照，RR 通常复用本事务首次一致性读建立的快照。",
+    "syntax": "A 先普通 SELECT 得到 10；B 把该行改为 20 并提交；A 在同一事务再次普通 SELECT，A 没改该行。",
+    "example": "A 先普通 SELECT 得到 10；B 把该行改为 20 并提交；A 在同一事务再次普通 SELECT，A 没改该行。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：显式事务内比较才有意义；RR 不等于 BEGIN 的瞬间就必定创建读视图，WITH CONSISTENT SNAPSHOT 是需另行说明的选项。\n\n自检：分别给出 RC 和 RR 的第二次读取结果。\n参考结论：RC 新建语句级快照读到 20；RR 复用首次一致性读快照读到 10；前提为 InnoDB 普通一致性 SELECT、无自身更新和相关 DDL。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-consistent-read.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "Read View 与隔离级别",
+      "数据库原理",
+      "rc-rr"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:snapshot-start",
+    "language": "MySQL",
+    "category": "Read View 与隔离级别",
+    "title": "BEGIN、首次一致性读与一致快照",
+    "summary": "RR 的普通 BEGIN 通常只是开始事务，首次一致性读才确定快照时间点。",
+    "syntax": "A 执行 BEGIN；B 更新值 10→20 并提交；A 随后首次普通 SELECT。",
+    "example": "A 执行 BEGIN；B 更新值 10→20 并提交；A 随后首次普通 SELECT。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：RR 下 START TRANSACTION WITH CONSISTENT SNAPSHOT 可在启动时建立一致性快照；其他隔离级别下行为和警告要查版本文档。\n\n自检：本例 A 读到什么？若在 B 提交前已建立快照又如何？\n参考结论：普通 BEGIN 尚无旧一致性读快照，首次 SELECT 在 B 提交后可读到 20；若此前已建立 RR 快照且 A 未改该行，则仍读 10。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-consistent-read.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "Read View 与隔离级别",
+      "数据库原理",
+      "snapshot-start"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:current-read",
+    "language": "MySQL",
+    "category": "Read View 与隔离级别",
+    "title": "快照读、锁定读与当前读",
+    "summary": "普通 SELECT 可读取历史快照，FOR UPDATE 和修改语句按锁定规则处理当前可操作的版本。",
+    "syntax": "A 在 RR 普通 SELECT 读到 10；B 更新为 20 提交；A 再执行 SELECT value FROM t WHERE id=1 FOR UPDATE。",
+    "example": "A 在 RR 普通 SELECT 读到 10；B 更新为 20 提交；A 再执行 SELECT value FROM t WHERE id=1 FOR UPDATE。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：当前读是常见教学称呼；锁定读可能等待并发事务，不能保证语句调用瞬间无等待返回最新；混合读可能观察不同版本。\n\n自检：第二条 SELECT 是否必须仍为 10？为什么？\n参考结论：不必须；在 B 已提交且无其他冲突的条件下锁定读可得到 20 并加锁，RR 的快照复用规则不把 FOR UPDATE 强制固定在历史版本 10。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "Read View 与隔离级别",
+      "数据库原理",
+      "current-read"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:own-writes",
+    "language": "MySQL",
+    "category": "Read View 与隔离级别",
+    "title": "RR 中自身写入的可见性",
+    "summary": "事务总能读到自己的修改，即使它的一致性读快照不能看到其他事务新提交的某些状态。",
+    "syntax": "A 的 RR 快照读 v=10；B 改 v=20 并提交；A 执行 UPDATE t SET v=v+1 WHERE id=1，再普通 SELECT。",
+    "example": "A 的 RR 快照读 v=10；B 改 v=20 并提交；A 执行 UPDATE t SET v=v+1 WHERE id=1，再普通 SELECT。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：UPDATE 处理可操作的当前记录，不是对旧快照 v=10 机械加一；此类混合读写结果不能简单理解为某个历史时刻的整库副本。\n\n自检：无其他并发修改时最后读到多少？\n参考结论：A 的 UPDATE 对已提交当前值 20 加一得 21，A 后续普通 SELECT 可见自身写入 21；不能只凭 RR 就推断返回 10 或更新成 11。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-consistent-read.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "Read View 与隔离级别",
+      "数据库原理",
+      "own-writes"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:phantom",
+    "language": "MySQL",
+    "category": "Read View 与隔离级别",
+    "title": "幻读、快照可重复与范围锁",
+    "summary": "RR 一致性读的视图复用与范围锁定读的 next-key 锁是不同机制，不能都归结为 MVCC 加锁。",
+    "syntax": "A 普通 SELECT 某范围；B 在范围内插入并提交；A 重做普通 SELECT。另做实验把 A 改为有索引范围 FOR UPDATE。",
+    "example": "A 普通 SELECT 某范围；B 在范围内插入并提交；A 重做普通 SELECT。另做实验把 A 改为有索引范围 FOR UPDATE。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：相同 RR 视图使普通重复读看不到后插入行；范围锁是否阻止插入依赖索引、谓词、隔离级别和执行路径，混合当前读仍需单独分析。\n\n自检：比较两种实验中 A 的可见性与 B 的插入行为。\n参考结论：普通 RR 一致性读复用快照，A 不见 B 的新行且通常不阻止其插入；RR 范围 FOR UPDATE 若锁住相应间隙，B 的插入会等待，需按实际锁范围验证。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-consistent-read.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "Read View 与隔离级别",
+      "数据库原理",
+      "phantom"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:isolation",
+    "language": "MySQL",
+    "category": "Read View 与隔离级别",
+    "title": "四种事务隔离级别与异常边界",
+    "summary": "隔离级别限制不同并发可见性，InnoDB 默认 RR，但不能只用一句表格替代具体语句行为分析。",
+    "syntax": "查看 SELECT @@transaction_isolation；分别测试未提交更新、同一行重读、范围重读。",
+    "example": "查看 SELECT @@transaction_isolation；分别测试未提交更新、同一行重读、范围重读。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：RU 可脏读，RC 防脏读但重读可变，RR 一致性读复用快照；SERIALIZABLE 在特定事务条件下把普通读转为共享锁读，业务约束仍需建模。\n\n自检：选择 RC 后是否自动避免余额读改写覆盖？\n参考结论：不会。RC 解决脏读不保证应用层先读后写的复合操作原子，可用条件 UPDATE、版本号乐观锁或同事务锁定读，并检查受影响行数和失败重试。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-transaction-isolation-levels.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "Read View 与隔离级别",
+      "数据库原理",
+      "isolation"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:record-gap-next-key",
+    "language": "MySQL",
+    "category": "InnoDB 锁与并发",
+    "title": "记录锁、间隙锁与 next-key lock",
+    "summary": "记录锁保护索引记录，间隙锁保护记录间空隙，next-key 是记录及其前间隙的组合。",
+    "syntax": "索引键有 10、20、30；示意对键 20 的 next-key 区间。",
+    "example": "索引键有 10、20、30；示意对键 20 的 next-key 区间。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：教学区间可写 (10,20]；间隙锁主要阻止插入，不等同互斥锁，某些间隙锁可共存；真实范围依执行计划及边界扫描确定。\n\n自检：区分 record、gap 和 next-key，并说明能否仅凭 WHERE 文本断言所有锁。\n参考结论：record 保护 20，gap 示意 (10,20)，next-key 为 (10,20]；不能只凭 WHERE 断言锁全集，须结合索引、唯一性、扫描边界和实际锁观测。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-locking.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "InnoDB 锁与并发",
+      "数据库原理",
+      "record-gap-next-key"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:unique-lookup",
+    "language": "MySQL",
+    "category": "InnoDB 锁与并发",
+    "title": "唯一索引等值查询与锁退化条件",
+    "summary": "对完整唯一键的成功等值定位通常只锁该索引记录，不需要保护其前间隙。",
+    "syntax": "主键 id=20 已存在；RR 显式事务执行 SELECT * FROM t WHERE id=20 FOR UPDATE。",
+    "example": "主键 id=20 已存在；RR 显式事务执行 SELECT * FROM t WHERE id=20 FOR UPDATE。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：前提是完整唯一条件且命中现存记录；未命中或只使用复合唯一索引的一部分条件可能仍涉及间隙或范围锁。\n\n自检：能否把所有唯一索引查询都说成没有间隙锁？\n参考结论：不能；本例命中完整唯一键可用记录锁，但查不存在的键、范围查询或复合唯一键只给部分列不满足这一简化条件，必须分开分析。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-locks-set.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "InnoDB 锁与并发",
+      "数据库原理",
+      "unique-lookup"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:intention-lock",
+    "language": "MySQL",
+    "category": "InnoDB 锁与并发",
+    "title": "意向锁与多粒度加锁",
+    "summary": "意向共享 IS 和意向排他 IX 是表级锁，表示事务准备在更细粒度上加相应锁。",
+    "syntax": "两个事务分别更新同表不同主键行，各持表级 IX 和行级 X 锁。",
+    "example": "两个事务分别更新同表不同主键行，各持表级 IX 和行级 X 锁。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：IX 与 IX 相容，因此意向锁不意味着整表禁止其他写；它帮助快速判断表级锁与行级锁的冲突。\n\n自检：两个事务是否仅因都持 IX 就互相阻塞？\n参考结论：不会，IX 之间相容；不同记录的 X 锁也可并存，实际阻塞需看是否锁到同一记录、间隙或有表级等其他冲突。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-locking.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "InnoDB 锁与并发",
+      "数据库原理",
+      "intention-lock"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:deadlock-retry",
+    "language": "MySQL",
+    "category": "InnoDB 锁与并发",
+    "title": "InnoDB 死锁检测与事务重试",
+    "summary": "锁形成等待环时，InnoDB 可检测并选择牺牲事务回滚，应用应重试完整业务事务。",
+    "syntax": "A 锁 id=1 后要锁 id=2；B 锁 id=2 后要锁 id=1。",
+    "example": "A 锁 id=1 后要锁 id=2；B 锁 id=2 后要锁 id=1。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：死锁回滚与锁等待超时的事务回滚范围不同，超时默认常仅回滚当前语句；统一锁序和短事务减少冲突。\n\n自检：发生死锁错误后应重试哪部分？为何不只重试最后 UPDATE？\n参考结论：应按业务边界回滚并重试完整事务，保证此前读取和决策重新执行；仅重试最后语句可能丢失已被回滚的前序更新或沿用失效判断。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-deadlocks-handling.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "InnoDB 锁与并发",
+      "数据库原理",
+      "deadlock-retry"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:optimistic-update",
+    "language": "MySQL",
+    "category": "InnoDB 锁与并发",
+    "title": "版本号乐观锁与条件更新",
+    "summary": "用预期版本作为 UPDATE 条件，并检查影响行数，防止基于过期读的覆盖写。",
+    "syntax": "UPDATE stock SET qty=qty-1,version=version+1 WHERE id=1 AND version=7 AND qty>0;",
+    "example": "UPDATE stock SET qty=qty-1,version=version+1 WHERE id=1 AND version=7 AND qty>0;",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：影响 1 行才表示本次扣减成功；0 行可能是版本冲突、库存不足或记录不存在；更新版本本身也让匹配成功产生实际变更。\n\n自检：两个客户端都读到 version=7 时能否同时成功？冲突如何处理？\n参考结论：在该原子条件更新下至多一个按 version=7 成功，另一请求返回 0；重新读取并按业务规则有限重试或返回冲突，不能把 0 当成功。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/update.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "InnoDB 锁与并发",
+      "数据库原理",
+      "optimistic-update"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:locking-lab",
+    "language": "MySQL",
+    "category": "InnoDB 锁与并发",
+    "title": "MVCC 双会话复现实验",
+    "summary": "通过独立会话按严格顺序执行，可区分快照复用、提交可见性和锁定读行为。",
+    "syntax": "测试库初始化：CREATE TABLE mvcc_demo(id INT PRIMARY KEY,v INT) ENGINE=InnoDB; INSERT INTO mvcc_demo VALUES(1,100);\nA：SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ; START TRANSACTION; SELECT v FROM mvcc_demo WHERE id=1;\nB：START TRANSACTION; UPDATE mvcc_demo SET v=80 WHERE id=1; COMMIT;\nA：SELECT v FROM mvcc_demo WHERE id=1; SELECT v FROM mvcc_demo WHERE id=1 FOR UPDATE; ROLLBACK;",
+    "example": "测试库初始化：CREATE TABLE mvcc_demo(id INT PRIMARY KEY,v INT) ENGINE=InnoDB; INSERT INTO mvcc_demo VALUES(1,100);\nA：SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ; START TRANSACTION; SELECT v FROM mvcc_demo WHERE id=1;\nB：START TRANSACTION; UPDATE mvcc_demo SET v=80 WHERE id=1; COMMIT;\nA：SELECT v FROM mvcc_demo WHERE id=1; SELECT v FROM mvcc_demo WHERE id=1 FOR UPDATE; ROLLBACK;",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：初始化仅在独立空测试库执行一次；A、B 是两个连接，严格按块交错；A 结束后再改为 RC 并重做，SQL 不能在 SQLite 题目执行器验证 InnoDB 语义。\n\n自检：预测 A 三次读数，并描述改为 RC 后的变化。\n参考结论：RR 下依次 100、100、80；把 A 的隔离级别在新事务前改为 RC 后为 100、80、80；需在真实 MySQL 上执行才能把预测标记为运行结果。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-consistent-read.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "InnoDB 锁与并发",
+      "数据库原理",
+      "locking-lab"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:clustered-secondary",
+    "language": "MySQL",
+    "category": "索引、日志与恢复",
+    "title": "聚簇索引、二级索引与回表",
+    "summary": "InnoDB 聚簇索引叶页包含行数据，二级索引记录通常携带二级键和主键值。",
+    "syntax": "表主键 id，二级索引 idx_email(email)；SELECT name FROM users WHERE email='a@example.test'。",
+    "example": "表主键 id，二级索引 idx_email(email)；SELECT name FROM users WHERE email='a@example.test'。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：查询所需字段不全在二级索引时通常需按主键回聚簇索引取行；MVCC 判断也可能需要访问聚簇记录，覆盖不等于绝无回表。\n\n自检：为何主键过长会影响多个二级索引？本查询为何通常回表？\n参考结论：二级记录携带主键使长主键增加多棵索引的空间和 I/O；name 不在所用二级索引可覆盖字段内，通常需以主键查聚簇记录取得。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-index-types.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "索引、日志与恢复",
+      "数据库原理",
+      "clustered-secondary"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:composite-index",
+    "language": "MySQL",
+    "category": "索引、日志与恢复",
+    "title": "联合索引、最左前缀与范围条件",
+    "summary": "联合 B+ 树按键的字典序组织，可定位范围的前缀与后续过滤能力需分别分析。",
+    "syntax": "索引 (a,b,c)，查询 a=1 AND b>10 AND c=3。",
+    "example": "索引 (a,b,c)，查询 a=1 AND b>10 AND c=3。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：a 等值和 b 范围可决定主要扫描区间，c 仍可能用于索引条件下推或覆盖；不能说范围后的列一律完全无效，最终取决于优化器。\n\n自检：c 是否毫无作用？应如何验证所用访问方式？\n参考结论：不是；c 可能在索引层过滤减少回表，或参与覆盖，但未必进一步收窄同样的连续范围；用 EXPLAIN 与实际计划、扫描行数验证。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/multiple-column-indexes.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "索引、日志与恢复",
+      "数据库原理",
+      "composite-index"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:explain",
+    "language": "MySQL",
+    "category": "索引、日志与恢复",
+    "title": "EXPLAIN、估算与执行验证",
+    "summary": "EXPLAIN 给出优化器计划和估算，EXPLAIN ANALYZE 执行语句并返回实际运行统计。",
+    "syntax": "某查询预计 rows=100，真实数据分布偏斜，实际扫描远大于估算。",
+    "example": "某查询预计 rows=100，真实数据分布偏斜，实际扫描远大于估算。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：计划成本不是毫秒，估算行数也不是实测；ANALYZE 会真正执行，尤其不要对生产重查询未经评估直接使用。\n\n自检：如何确认误估原因并验证索引效果？\n参考结论：在测试环境观察 EXPLAIN ANALYZE 的实际行数、循环和时间，对比估算及过滤条件，检查统计信息、数据分布和选择性，再以相同数据和查询验证调整。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/explain.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "索引、日志与恢复",
+      "数据库原理",
+      "explain"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:undo-redo-binlog",
+    "language": "MySQL",
+    "category": "索引、日志与恢复",
+    "title": "undo、redo 与 binlog 的职责",
+    "summary": "undo 支持回滚和历史版本重构，redo 支持崩溃恢复，binlog 记录服务器层可用于复制等的变更事件。",
+    "syntax": "事务改余额后提交，数据页尚未刷盘就发生进程崩溃。",
+    "example": "事务改余额后提交，数据页尚未刷盘就发生进程崩溃。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：WAL 要求相关日志满足持久化顺序；提交持久性取决于刷盘配置和存储保证；不能把 redo 称为只记录 SQL 文本的日志。\n\n自检：哪类日志用于恢复已提交但未落数据页的修改？三类是否互相替代？\n参考结论：InnoDB redo 用于重放并恢复相关页修改；undo 重构旧值或回滚，binlog 服务复制和基于备份的恢复等，三者职责不同，不能互相替代。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-redo-log.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "索引、日志与恢复",
+      "数据库原理",
+      "undo-redo-binlog"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:two-phase-commit",
+    "language": "MySQL",
+    "category": "索引、日志与恢复",
+    "title": "redo 与 binlog 的内部两阶段提交",
+    "summary": "同时启用 InnoDB 与 binlog 时，内部协调提交保证崩溃恢复后引擎事务与 binlog 的一致决定。",
+    "syntax": "教学流程：引擎 prepare，写入并按配置同步 binlog，再完成引擎 commit；在中途模拟崩溃。",
+    "example": "教学流程：引擎 prepare，写入并按配置同步 binlog，再完成引擎 commit；在中途模拟崩溃。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：这是 MySQL 内部存储引擎与 binlog 协调，不等同业务跨服务 XA 的全部流程；恢复会参考事务状态与 binlog 中的提交证据。\n\n自检：为何不能简单先把一边永久提交、另一边失败就忽略？\n参考结论：否则可能出现引擎已提交而复制日志没有该事务，或日志有事务而引擎未按同一决定恢复；prepare 与恢复协调使双方对同一事务作一致提交或回滚决定。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/binary-log.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "索引、日志与恢复",
+      "数据库原理",
+      "two-phase-commit"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:durability",
+    "language": "MySQL",
+    "category": "索引、日志与恢复",
+    "title": "刷盘参数、持久性与故障模型",
+    "summary": "提交成功后的数据保留取决于日志同步策略和底层存储是否兑现持久写入保证。",
+    "syntax": "检查 innodb_flush_log_at_trx_commit 与 sync_binlog，比较 1/1 和放宽同步的配置。",
+    "example": "检查 innodb_flush_log_at_trx_commit 与 sync_binlog，比较 1/1 和放宽同步的配置。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：1/1 常用于较强提交持久性，但需存储可靠并正确执行 fsync；不同故障如进程崩溃与掉电影响不同，不能承诺任意硬件故障零丢失。\n\n自检：为何只设置其中一个参数不能完整说明引擎日志与 binlog 的持久性？\n参考结论：两个参数分别约束 InnoDB 日志与 binlog 的同步策略；只保证一侧不能说明另一侧已持久落盘，还需考虑故障类型、组提交和底层存储行为。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-parameters.html#sysvar_innodb_flush_log_at_trx_commit",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "索引、日志与恢复",
+      "数据库原理",
+      "durability"
+    ]
+  },
+  {
+    "id": "ref:mysql_internals:buffer-pool",
+    "language": "MySQL",
+    "category": "索引、日志与恢复",
+    "title": "Buffer Pool、脏页与 checkpoint",
+    "summary": "Buffer Pool 缓存数据和索引页，更新产生脏页，checkpoint 推进恢复所需日志边界。",
+    "syntax": "事务提交时 redo 已按配置持久化，对应数据页仍在 Buffer Pool 中为脏页。",
+    "example": "事务提交时 redo 已按配置持久化，对应数据页仍在 Buffer Pool 中为脏页。",
+    "notes": "版本前提：MySQL 8.4 / InnoDB；涉及实验须在独立测试库运行，不适用 SQLite。\n\n原理与边界：事务提交不要求同步刷新所有数据页；后台刷脏与日志容量、I/O 能力相关，不能通过缓存命中率单指标解释全部延迟。\n\n自检：为什么已提交数据页可以稍后刷盘？持续刷脏跟不上会怎样？\n参考结论：WAL 与 redo 允许崩溃后恢复尚未写回页的修改，因此可延迟刷脏；若刷脏长期跟不上，脏页与日志空间压力上升，可能引发前台等待。",
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-buffer-pool.html",
+    "entry_type": "原理",
+    "tags": [
+      "MySQL",
+      "索引、日志与恢复",
+      "数据库原理",
+      "buffer-pool"
+    ]
+  }
+]

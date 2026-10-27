@@ -23,6 +23,7 @@ fn sample() -> Card {
         sql: None,
         origin: None,
         project: None,
+        coding: None,
         training: None,
     }
 }
@@ -52,6 +53,7 @@ fn grade(card: &Card, score: u8) -> Grade {
         weak_points: vec![],
         sql: None,
         project: None,
+        coding: None,
     }
 }
 fn draft(card: &Card) -> Pending {
@@ -83,6 +85,7 @@ fn seeds_are_complete_and_invalid_import_rolls_back() {
                 "排障与调优" => 16,
                 "工程设计" => 9,
                 "项目实战" => 1,
+                "编码题" => 0,
                 _ => unreachable!(),
             }
         );
@@ -824,5 +827,37 @@ fn live_local_grading_end_to_end() {
             output.join("real-model.log"),
         )
         .unwrap();
+    }
+}
+
+#[test]
+fn teaching_feedback_shows_changes_causes_examples_and_practice_at_supported_sizes() {
+    for size in [egui::vec2(1000., 680.), egui::vec2(1280., 800.)] {
+        let ctx = egui::Context::default();
+        configure_theme(&ctx);
+        let draw = |time| {
+            let mut output = ctx.run_ui(egui::RawInput { screen_rect:Some(egui::Rect::from_min_size(egui::Pos2::ZERO,size)),time:Some(time),..Default::default() },|ui| {
+                render_learning_feedback(ui,"建议改法：The environment often blurs students' vision.\n为什么：environment 是单数主语，often 不改变主谓一致。\n例子：The bright light often hurts my eyes.\n试着再做：The music often disturb her. 答：disturbs。");
+            });
+            output.textures_delta.clear();
+            output
+        };
+        draw(0.);
+        let output = draw(0.1);
+        for text in [
+            "建议改法",
+            "The environment often blurs students' vision.",
+            "为什么",
+            "environment 是单数主语，often 不改变主谓一致。",
+            "例子",
+            "The bright light often hurts my eyes.",
+            "试着再做",
+        ] {
+            let at = position(&output, text);
+            assert!(
+                at.x < size.x && at.y < size.y,
+                "teaching content is visible at {size:?}: {text}"
+            );
+        }
     }
 }

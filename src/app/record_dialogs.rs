@@ -299,9 +299,15 @@ impl PersonalDeskApp {
                 "settings-details",
                 &title,
                 "按自己的习惯使用个人办公台。",
-                460.0,
+                if title == "版本历史" {
+                    620.0
+                } else {
+                    460.0
+                },
                 |ui| {
-                    if title == "本地数据" {
+                    if title == "版本历史" {
+                        self.render_version_history(ui);
+                    } else if title == "本地数据" {
                         ui.label(format!("数据目录：{}", self.data_dir.display()));
                         if ui.button("打开数据目录").clicked()
                             && let Err(error) = files::open_in_system(&self.data_dir)
@@ -321,8 +327,14 @@ impl PersonalDeskApp {
         self.render_tag_dialogs(ctx);
         self.render_contact_dialogs(ctx);
         self.render_tool_dialog(ctx);
+        self.render_excel_merge_dialog(ctx);
+        self.render_pdf_images_dialog(ctx);
+        self.render_campus_dialog(ctx);
+        self.render_jobhunt_dialogs(ctx);
+        self.render_hiring_dialog(ctx);
         self.render_theme_dialog(ctx);
         self.render_update_dialog(ctx);
         self.render_book_dialog(ctx);
+        self.render_library_deletion_dialog(ctx);
     }
 }

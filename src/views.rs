@@ -18,7 +18,7 @@ impl ViewMode {
     }
 }
 
-pub const SECTIONS: [Section; 13] = [
+pub const SECTIONS: [Section; 15] = [
     Section::Essays,
     Section::Reference,
     Section::Practice,
@@ -26,6 +26,8 @@ pub const SECTIONS: [Section; 13] = [
     Section::Folders,
     Section::Credentials,
     Section::Documents,
+    Section::Resume,
+    Section::JobHunt,
     Section::Inventory,
     Section::Websites,
     Section::Contacts,
@@ -44,6 +46,8 @@ pub fn key(section: Section) -> &'static str {
         Section::Folders => "view.folders",
         Section::Credentials => "view.credentials",
         Section::Documents => "view.documents",
+        Section::Resume => "view.resume",
+        Section::JobHunt => "view.jobhunt",
         Section::Inventory => "view.inventory",
         Section::Websites => "view.websites",
         Section::Contacts => "view.contacts",

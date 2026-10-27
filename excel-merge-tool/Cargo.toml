@@ -1,0 +1,34 @@
+[package]
+name = "excel-merge-tool"
+version = "0.2.0"
+edition = "2021"
+description = "选择文件夹，把其中所有 Excel 流式合并成一个 Excel（可配置每 sheet 条数）"
+
+[[bin]]
+name = "excel-merge"
+path = "src/main.rs"
+
+[dependencies]
+# 读取（xlsx / xls / xlsb / ods），用迭代式 Reader 做流式读
+calamine = "0.26"
+# 写出（xlsx），开启 constant_memory 做流式写
+rust_xlsxwriter = { version = "0.79", features = ["constant_memory"] }
+# 图形界面
+eframe = { version = "0.29", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+egui = "0.29"
+# 原生文件夹 / 文件选择对话框
+rfd = "0.15"
+# 时间戳
+chrono = "0.4"
+# 解码窗口图标（png → RGBA）
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+# 给 exe 加图标（Windows 资源）
+[build-dependencies]
+winresource = "0.1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

@@ -1,0 +1,410 @@
+[
+  {
+    "id": "ref:cs408:layering",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "OSI、TCP/IP 与封装",
+    "summary": "分层把应用语义、端到端传输、跨网路由和链路交付拆成不同职责。",
+    "syntax": "浏览器发送应用消息，经 TCP、IP、以太网逐层封装后上链路。",
+    "example": "浏览器发送应用消息，经 TCP、IP、以太网逐层封装后上链路。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：协议层并不等同物理设备；路由器转发时通常重建下一跳链路帧，端到端 IP 地址一般保持，NAT 等情况另论。\n\n自检：给出 TCP、IP、以太网的数据单位和主要寻址信息。\n参考结论：TCP 传输段使用端口，IP 分组使用 IP 地址，以太网帧使用 MAC 地址；跨路由跳时链路层源目的地址随下一跳重建。",
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "layering"
+    ]
+  },
+  {
+    "id": "ref:cs408:delay",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "发送时延、传播时延与排队时延",
+    "summary": "发送时延由比特数除以速率决定，传播时延由距离除以信号传播速度决定。",
+    "syntax": "1000 字节分组，链路 10Mb/s，距离 2000km，传播速度 2×10^8m/s。",
+    "example": "1000 字节分组，链路 10Mb/s，距离 2000km，传播速度 2×10^8m/s。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：字节转换成比特需乘 8；忽略处理和排队时才可直接相加，长距离不一定表示发送时延大。\n\n自检：求发送时延、传播时延和总计。\n参考结论：发送 8000/10^7=0.8ms，传播 2×10^6/(2×10^8)=10ms，合计 10.8ms。",
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "delay"
+    ]
+  },
+  {
+    "id": "ref:cs408:bandwidth-delay",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "带宽时延积与停等利用率",
+    "summary": "带宽时延积表示链路可容纳的在途数据量；停等协议容易浪费长时延链路容量。",
+    "syntax": "速率 100Mb/s，往返传播时延 RTT=40ms，忽略确认发送时延。",
+    "example": "速率 100Mb/s，往返传播时延 RTT=40ms，忽略确认发送时延。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：本题用 RTT 估算填满往返管道所需窗口；若讨论单向链路容量应用单向传播时延，须说明口径。\n\n自检：求填满窗口所需在途比特数和字节数。\n参考结论：100×10^6×0.04=4×10^6 bit，即 500000 字节；窗口远小于此值时可能无法持续占满链路。",
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "bandwidth-delay"
+    ]
+  },
+  {
+    "id": "ref:cs408:encoding",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "奈奎斯特与香农容量边界",
+    "summary": "奈奎斯特从无噪声带限信道码元速率出发，香农从带宽与信噪比给出可靠容量上界。",
+    "syntax": "带宽 B=3000Hz，信噪比 S/N=31，使用香农公式。",
+    "example": "带宽 B=3000Hz，信噪比 S/N=31，使用香农公式。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：C=B log2(1+S/N)，分贝需先转线性比；理论上界不是实际协议吞吐率，编码和开销还会降低可用速率。\n\n自检：求容量上界，若给 30dB 应如何换算？\n参考结论：C=3000×log2(32)=15000bit/s；30dB 对应线性功率比 10^(30/10)=1000，再代入公式而非直接代入 30。",
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "encoding"
+    ]
+  },
+  {
+    "id": "ref:cs408:crc",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "CRC 差错检测与模二除法",
+    "summary": "CRC 用生成多项式的模二除法余数检查传输差错，不能保证发现一切错误模式。",
+    "syntax": "数据 1101，生成比特串 1011，先补 3 个零再做异或长除法。",
+    "example": "数据 1101，生成比特串 1011，先补 3 个零再做异或长除法。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：模二加减均为异或，无进位借位；r 次生成多项式附加 r 位余数；检测能力依赖生成多项式。\n\n自检：给出余数和发送码字，并说明接收校验。\n参考结论：1101000 除以 1011 的余数为 001，发送 1101001；接收方再除以 1011，余数非零可判错，余数零也不能排除所有差错。",
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "crc"
+    ]
+  },
+  {
+    "id": "ref:cs408:sliding-window",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "停等、GBN 与选择重传",
+    "summary": "流水 ARQ 用窗口允许多个未确认帧在途，GBN 与 SR 的接收缓存和重传范围不同。",
+    "syntax": "序号字段 3 位；经典 GBN 接收窗口为 1，SR 发送与接收窗口等大。",
+    "example": "序号字段 3 位；经典 GBN 接收窗口为 1，SR 发送与接收窗口等大。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：防止新旧帧混淆，GBN 最大发送窗口 2^k-1，SR 等大窗口最多 2^(k-1)，前提为经典协议模型。\n\n自检：给出两种协议最大发送窗口及丢帧时差异。\n参考结论：GBN 最大 7，SR 最大 4；GBN 超时常重传丢帧及之后未确认帧，SR 对各帧单独确认并只重传需要的帧。",
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "sliding-window"
+    ]
+  },
+  {
+    "id": "ref:cs408:ethernet-switch",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "MAC 学习、交换转发与广播域",
+    "summary": "交换机从收到帧的源 MAC 学习端口，对未知目的地址在同 VLAN 其他端口泛洪。",
+    "syntax": "交换表为空，主机 A 从端口 1 给 B 发帧，B 在端口 2 回帧。",
+    "example": "交换表为空，主机 A 从端口 1 给 B 发帧，B 在端口 2 回帧。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：交换机学习源地址而非目的地址；VLAN 划分广播域，生成树等机制用于避免二层环路引起广播风暴。\n\n自检：说明两次发帧后的表项与转发行为。\n参考结论：先学 A→1，未知 B 因此泛洪；B 回帧时学 B→2，并按 A→1 单播转发，此后可对 A、B 都做已知单播。",
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "ethernet-switch"
+    ]
+  },
+  {
+    "id": "ref:cs408:csma",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "CSMA/CD、全双工与冲突域",
+    "summary": "经典共享以太网用载波侦听和碰撞检测；现代全双工交换链路不使用碰撞检测竞争。",
+    "syntax": "共享半双工链路速率 10Mb/s，最大往返传播 51.2μs。",
+    "example": "共享半双工链路速率 10Mb/s，最大往返传播 51.2μs。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：要在最短帧发送结束前发现最远碰撞，帧发送时长至少覆盖往返传播；半双工模型不能套到全双工交换口。\n\n自检：计算最短帧长度，并指出适用条件。\n参考结论：10^7×51.2×10^-6=512bit=64字节，适用于题干共享半双工碰撞检测模型；全双工链路不存在这种竞争碰撞。",
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "csma"
+    ]
+  },
+  {
+    "id": "ref:cs408:ipv4-cidr",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "IPv4 子网划分与 CIDR",
+    "summary": "CIDR 前缀确定网络部分，主机部分决定地址块大小，普通子网还需区分网络和广播地址。",
+    "syntax": "地址 192.168.10.130/26，按普通 IPv4 LAN 子网规则。",
+    "example": "地址 192.168.10.130/26，按普通 IPv4 LAN 子网规则。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：/26 掩码 255.255.255.192，每块 64 地址；/31 点到点与 /32 主机路由有例外，不能机械减 2。\n\n自检：求网络、广播、主机范围和数量。\n参考结论：网络 192.168.10.128，广播 192.168.10.191，可用 129..190，共 62 个普通主机地址。",
+    "source": "https://www.rfc-editor.org/rfc/rfc4632.html",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "ipv4-cidr"
+    ]
+  },
+  {
+    "id": "ref:cs408:longest-prefix",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "路由最长前缀匹配",
+    "summary": "多个路由项匹配目的地址时，优先选择前缀最长的有效项。",
+    "syntax": "路由 0.0.0.0/0→A，10.0.0.0/8→B，10.1.0.0/16→C；目的 10.1.2.3。",
+    "example": "路由 0.0.0.0/0→A，10.0.0.0/8→B，10.1.0.0/16→C；目的 10.1.2.3。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：先比较匹配长度，同一前缀的多条候选还要按路由策略和度量选择；默认路由只是最宽匹配。\n\n自检：选择下一跳并解释。\n参考结论：选择 C，因为 /16 比 /8 和 /0 更具体；并不是先遇到的项优先，也不是数值最大的下一跳优先。",
+    "source": "https://www.rfc-editor.org/rfc/rfc4632.html",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "longest-prefix"
+    ]
+  },
+  {
+    "id": "ref:cs408:arp",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "ARP、下一跳与 IP 地址保持",
+    "summary": "IPv4 同链路转发需知道下一跳 MAC，跨子网时通常解析默认网关而非远端主机的 MAC。",
+    "syntax": "主机 192.168.1.10/24 要访问 8.8.8.8，网关 192.168.1.1。",
+    "example": "主机 192.168.1.10/24 要访问 8.8.8.8，网关 192.168.1.1。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：ARP 请求在本地二层广播域内，路由器不按普通转发方式跨网广播；ARP 易被欺骗，不能视为认证协议。\n\n自检：第一跳以太网目的 MAC 和 IP 目的地址分别是谁？\n参考结论：MAC 为网关 192.168.1.1 的 MAC，经 ARP 获取；IP 目的仍为 8.8.8.8，不能把 IP 目的也改成网关。",
+    "source": "https://www.rfc-editor.org/rfc/rfc826.html",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "arp"
+    ]
+  },
+  {
+    "id": "ref:cs408:fragmentation",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "IPv4 分片、MTU 与偏移",
+    "summary": "IPv4 分片以字节偏移的 8 倍单位记录位置，除末片外数据长度通常为 8 的倍数。",
+    "syntax": "IP 数据报总长 4000B，首部固定 20B，链路 MTU=1500B，允许分片。",
+    "example": "IP 数据报总长 4000B，首部固定 20B，链路 MTU=1500B，允许分片。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：可装数据上限 1480B 且可被 8 整除；重组通常由目的主机完成；DF 置位时不能按此分片。\n\n自检：列出每片数据长度、总长、偏移与 MF。\n参考结论：三片数据 1480、1480、1020，总长 1500、1500、1040；偏移 0、185、370，MF 依次 1、1、0。",
+    "source": "https://www.rfc-editor.org/rfc/rfc791.html",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "fragmentation"
+    ]
+  },
+  {
+    "id": "ref:cs408:icmp",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "ICMP、TTL 与路径探测",
+    "summary": "ICMP 承载网络层差错与诊断，TTL 限制分组在路由中的生存跳数。",
+    "syntax": "traceroute 逐步增加探测包 TTL，路由器转发时递减 TTL。",
+    "example": "traceroute 逐步增加探测包 TTL，路由器转发时递减 TTL。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：TTL 到期通常返回 Time Exceeded，但防火墙可能过滤或限速；无应答不必然代表目标不可达；ICMP 不保证原包重传。\n\n自检：解释如何得知第 k 跳以及星号的含义边界。\n参考结论：TTL 设为 k 的探测可能在第 k 个路由器到期，借 ICMP 回报识别该跳；星号仅说明超时未收到预期回应，不能直接证明那一跳故障。",
+    "source": "https://www.rfc-editor.org/rfc/rfc792.html",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "icmp"
+    ]
+  },
+  {
+    "id": "ref:cs408:ipv6",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "IPv6 地址、邻居发现与分片",
+    "summary": "IPv6 使用 128 位地址，以邻居发现替代 IPv4 ARP，路由器不直接对 IPv6 包分片。",
+    "syntax": "IPv6 主机发送包超过下一跳 MTU，收到 ICMPv6 Packet Too Big。",
+    "example": "IPv6 主机发送包超过下一跳 MTU，收到 ICMPv6 Packet Too Big。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：发送端据此调整包大小或按需源端分片；IPv6 无广播，使用多播等机制；不能套用 IPv4 路由器分片流程。\n\n自检：应由谁调整或分片？本链路地址解析是否用 ARP？\n参考结论：由源端调整包大小，必要时源端分片；本链路使用基于 ICMPv6 的邻居发现，不使用 IPv4 ARP。",
+    "source": "https://www.rfc-editor.org/rfc/rfc8200.html",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "ipv6"
+    ]
+  },
+  {
+    "id": "ref:cs408:routing-protocols",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "距离向量、链路状态与路由环",
+    "summary": "距离向量交换到目标的距离信息，链路状态传播拓扑并各自计算最短路。",
+    "syntax": "两台距离向量路由器在目的网络失效后互相声称可经对方到达。",
+    "example": "两台距离向量路由器在目的网络失效后互相声称可经对方到达。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：距离向量可能产生计数到无穷；水平分割、毒性逆转等可缓解但不是任意拓扑下的万能解；链路状态常用 Dijkstra。\n\n自检：识别问题并比较两类协议掌握的信息。\n参考结论：这是距离向量的路由环与计数到无穷问题；距离向量主要知道邻居宣告的距离，链路状态维护更完整的区域拓扑并本地计算路径。",
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "routing-protocols"
+    ]
+  },
+  {
+    "id": "ref:cs408:udp-tcp",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "UDP、TCP 与消息边界",
+    "summary": "UDP 保留数据报边界，TCP 提供可靠有序字节流但不保留应用消息边界。",
+    "syntax": "应用连续 write 两条各 100 字节消息，接收端调用 read 读取 TCP 流。",
+    "example": "应用连续 write 两条各 100 字节消息，接收端调用 read 读取 TCP 流。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：read 可能读到半条、整条或多条消息；所谓粘包是应用缺乏分帧，不是 TCP 出错；UDP 仍可能丢失、重复或乱序。\n\n自检：接收方如何正确还原两条应用消息？\n参考结论：应用约定长度前缀、定长或可转义分隔符并维护接收缓冲，按协议累计和拆分；不能假设一次 write 对应一次 read。",
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "udp-tcp"
+    ]
+  },
+  {
+    "id": "ref:cs408:tcp-handshake",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "TCP 三次握手与序号确认",
+    "summary": "握手同步双方初始序号并确认双向收发能力，SYN 本身占用一个序号。",
+    "syntax": "客户端 ISN=100，服务端 ISN=500，无握手数据。",
+    "example": "客户端 ISN=100，服务端 ISN=500，无握手数据。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：第三次 ACK 的 ack=服务端 ISN+1；纯 ACK 不消耗序号；异常、重传和同时打开须按 TCP 状态机讨论。\n\n自检：写出三次握手的 seq 和 ack。\n参考结论：客户端 SYN seq=100；服务端 SYN+ACK seq=500、ack=101；客户端 ACK seq=101、ack=501。",
+    "source": "https://www.rfc-editor.org/rfc/rfc9293.html",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "tcp-handshake"
+    ]
+  },
+  {
+    "id": "ref:cs408:tcp-close",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "TCP 连接关闭、半关闭与 TIME_WAIT",
+    "summary": "TCP 双方向独立关闭，FIN 占一个序号；TIME_WAIT 用于处理旧段并允许最终确认重发。",
+    "syntax": "A 主动发送 FIN，B 确认后仍发送剩余数据，再发送 FIN，A 最后确认。",
+    "example": "A 主动发送 FIN，B 确认后仍发送剩余数据，再发送 FIN，A 最后确认。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：ACK 与 FIN 可能合并，关闭不一定恰好四个报文；通常主动关闭方进入 TIME_WAIT，具体由实际状态转移决定。\n\n自检：为何 B 确认 A 的 FIN 后还能发送数据？TIME_WAIT 有何作用？\n参考结论：A 的 FIN 仅结束 A→B 的数据流，B→A 可继续；TIME_WAIT 让旧段在网络中消失，并在对端重传 FIN 时重新发送最终 ACK。",
+    "source": "https://www.rfc-editor.org/rfc/rfc9293.html",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "tcp-close"
+    ]
+  },
+  {
+    "id": "ref:cs408:tcp-sequence",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "TCP 累积确认、重传与字节编号",
+    "summary": "TCP 序号按字节编号，ACK 表示下一个期望收到的连续字节序号。",
+    "syntax": "收到 seq=100、有效载荷 50B；之后收到 seq=200、50B，但 150..199 缺失。",
+    "example": "收到 seq=100、有效载荷 50B；之后收到 seq=200、50B，但 150..199 缺失。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：乱序数据可缓存但累计 ACK 不能跳过缺口；SACK 可额外告知已收到的非连续区间；序号按模 2^32 处理。\n\n自检：两次接收后的累计 ACK 分别是多少？缺口补齐后是多少？\n参考结论：第一段后 ACK=150；收到乱序段后累计 ACK 仍为 150；补齐 150..199 后连续到 249，累计 ACK=250。",
+    "source": "https://www.rfc-editor.org/rfc/rfc9293.html",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "tcp-sequence"
+    ]
+  },
+  {
+    "id": "ref:cs408:flow-control",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "TCP 流量控制与接收窗口",
+    "summary": "接收窗口约束发送端不要压垮接收缓存，零窗口需要探测机制避免窗口更新丢失导致停滞。",
+    "syntax": "接收端通告 rwnd=4000B，发送端已有 1500B 尚未确认，暂忽略拥塞窗口。",
+    "example": "接收端通告 rwnd=4000B，发送端已有 1500B 尚未确认，暂忽略拥塞窗口。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：可发送量还受拥塞窗口和实现约束；简化模型用可用窗口减在途字节，窗口扩大选项影响实际编码范围。\n\n自检：还能新增发送多少？它与拥塞控制的目标有何区别？\n参考结论：还能发 2500B；流量控制保护接收端缓冲，拥塞控制调节网络中的负载，二者共同限制发送。",
+    "source": "https://www.rfc-editor.org/rfc/rfc9293.html",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "flow-control"
+    ]
+  },
+  {
+    "id": "ref:cs408:congestion-control",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "慢启动、拥塞避免与发送上限",
+    "summary": "经典拥塞控制用 cwnd 调节在途数据，实际发送上限受 min(cwnd,rwnd) 约束。",
+    "syntax": "经典教学模型：初始 cwnd=1 MSS，每段均被确认，阈值为 8 MSS，忽略延迟 ACK。",
+    "example": "经典教学模型：初始 cwnd=1 MSS，每段均被确认，阈值为 8 MSS，忽略延迟 ACK。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：慢启动阶段每 RTT 约翻倍，达到阈值后转加性增长；实际初始窗口与算法可能不同，不能把教学参数当所有实现默认值。\n\n自检：给出前四轮开始时窗口，并说明 rwnd=3 MSS 时的限制。\n参考结论：前四轮开始约为 1、2、4、8 MSS；若 rwnd=3 MSS，发送上限最多为 min(cwnd,3 MSS)，已在途数据还占用窗口。",
+    "source": "https://www.rfc-editor.org/rfc/rfc5681.html",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "congestion-control"
+    ]
+  },
+  {
+    "id": "ref:cs408:dns",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "DNS 递归、迭代与缓存 TTL",
+    "summary": "客户端常向递归解析器提问，解析器可通过根、顶级域和权威服务器的迭代查询找答案。",
+    "syntax": "本机缓存为空，递归解析器也没有某域名缓存，要取得 A 记录。",
+    "example": "本机缓存为空，递归解析器也没有某域名缓存，要取得 A 记录。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：DNS 同时可用 UDP 与 TCP，不能说只用 UDP；缓存 TTL 到期通常需重新查询，权威回答与缓存回答须区分。\n\n自检：描述基本解析链并说明 TTL 的作用。\n参考结论：客户端问递归解析器，解析器依次获得根、顶级域、权威服务器指引并取回记录，再返回并缓存；TTL 限制缓存有效期，不保证全球立即同步更新。",
+    "source": "https://www.rfc-editor.org/rfc/rfc1034.html",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "dns"
+    ]
+  },
+  {
+    "id": "ref:cs408:http-tls",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "HTTP 语义、连接复用与 TLS",
+    "summary": "HTTP 定义请求响应语义，TLS 为传输提供认证、机密性与完整性，连接承载方式随 HTTP 版本不同。",
+    "syntax": "HTTP/1.1 与 HTTP/2 常经 TCP；HTTP/3 经基于 UDP 的 QUIC；HTTPS 校验服务器证书。",
+    "example": "HTTP/1.1 与 HTTP/2 常经 TCP；HTTP/3 经基于 UDP 的 QUIC；HTTPS 校验服务器证书。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：HTTP/2 多路复用仍可能受 TCP 层丢包队头阻塞；TLS 不隐藏所有元数据，证书验证还需主机名与信任链等检查。\n\n自检：为什么不能说所有 HTTP 都基于 TCP？证书校验主要解决什么？\n参考结论：HTTP/3 使用 QUIC/UDP，因此所有 HTTP 基于 TCP 的说法不成立；证书校验在信任体系下验证服务端身份，协商密钥后保护通信内容。",
+    "source": "https://www.rfc-editor.org/rfc/rfc9114.html",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "http-tls"
+    ]
+  },
+  {
+    "id": "ref:cs408:nat-dhcp",
+    "language": "计算机网络",
+    "category": "计算机网络",
+    "title": "NAT 端口映射、DHCP 与网关",
+    "summary": "NAT/PAT 通过地址和端口映射复用公网出口，DHCP 向主机分配地址及网络配置。",
+    "syntax": "两台内网主机均从本地端口 5000 访问同一公网服务器；出口只有一个公网 IPv4。",
+    "example": "两台内网主机均从本地端口 5000 访问同一公网服务器；出口只有一个公网 IPv4。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：PAT 为两条流分配可区分的公网端口并维护回程映射；DHCP 可下发掩码、网关与 DNS；NAT 不能替代完整安全策略。\n\n自检：为何不能只靠同一个公网 IP 区分两个连接？DHCP 网关配置有何用途？\n参考结论：回包还需端口及协议等映射信息才能定位内网连接；默认网关指示跨本地子网目的应交给哪一个下一跳路由器。",
+    "source": "https://www.rfc-editor.org/rfc/rfc3022.html",
+    "entry_type": "原理",
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "nat-dhcp"
+    ]
+  }
+]

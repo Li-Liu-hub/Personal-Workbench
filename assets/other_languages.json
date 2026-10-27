@@ -1,0 +1,2018 @@
+[
+  {
+    "id": "ref:js-advanced:finally-return",
+    "language": "JavaScript",
+    "category": "异步与并发 / Promise 边界",
+    "title": "finally 返回值与异常覆盖",
+    "summary": "finally 通常透传原结果，但抛错或返回拒绝的 Promise 会替换结果；返回普通值不会改写成功值。",
+    "syntax": "const a = await Promise.resolve(7).finally(() => 99);\nconst b = await Promise.resolve(7).finally(() => { throw new Error(\"cleanup\"); }).catch(e => e.message);\nconsole.log(a, b);",
+    "example": "const a = await Promise.resolve(7).finally(() => 99);\nconst b = await Promise.resolve(7).finally(() => { throw new Error(\"cleanup\"); }).catch(e => e.message);\nconsole.log(a, b);",
+    "notes": "版本前提：ES2022+；浏览器 API 另行注明。\n位于 async 函数内执行；输出 7 和 cleanup。清理异常可能遮蔽原业务异常，记录和传播策略需要显式选择。",
+    "source": "https://tc39.es/ecma262/multipage/control-abstraction-objects.html#sec-promise.prototype.finally",
+    "entry_type": "实践",
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "异步与并发",
+      "finally-return"
+    ]
+  },
+  {
+    "id": "ref:js-advanced:floating-promise",
+    "language": "JavaScript",
+    "category": "异步与并发 / Promise 边界",
+    "title": "遗漏 return 的悬浮 Promise",
+    "summary": "then 回调中的异步操作必须返回或等待，否则外层链无法感知它的完成和失败。",
+    "syntax": "Promise.resolve().then(() => {\n  return saveOrder();\n}).then(() => console.log(\"saved\")).catch(report);",
+    "example": "Promise.resolve().then(() => {\n  return saveOrder();\n}).then(() => console.log(\"saved\")).catch(report);",
+    "notes": "版本前提：ES2022+；浏览器 API 另行注明。\nsaveOrder、report 是应用提供的函数。删掉 return 后，下游不会等待 saveOrder，外层 catch 也不能可靠接住该独立 Promise 的拒绝。",
+    "source": "https://tc39.es/ecma262/multipage/control-abstraction-objects.html#sec-promise.prototype.then",
+    "entry_type": "实践",
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "异步与并发",
+      "floating-promise"
+    ]
+  },
+  {
+    "id": "ref:js-advanced:foreach-await",
+    "language": "JavaScript",
+    "category": "异步与并发 / 批处理",
+    "title": "forEach(async) 与异步串行循环",
+    "summary": "forEach 忽略回调的返回值，不能用 await forEach 等待异步批处理。",
+    "syntax": "async function saveAll(rows) {\n  for (const row of rows) {\n    await save(row);\n  }\n  return \"done\";\n}",
+    "example": "async function saveAll(rows) {\n  for (const row of rows) {\n    await save(row);\n  }\n  return \"done\";\n}",
+    "notes": "版本前提：ES2022+；浏览器 API 另行注明。\n示例串行执行，save 为外部异步函数。并行独立任务可用 Promise.all(rows.map(save))，但要考虑并发数量和部分失败。",
+    "source": "https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.foreach",
+    "entry_type": "实践",
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "异步与并发",
+      "foreach-await"
+    ]
+  },
+  {
+    "id": "ref:js-advanced:thenable-assimilation",
+    "language": "JavaScript",
+    "category": "异步与并发 / Promise 边界",
+    "title": "Promise.resolve 对 thenable 的采用",
+    "summary": "Promise.resolve 会采用具有可调用 then 的对象，不只是把对象包装为成功值。",
+    "syntax": "const custom = { then(resolve) { resolve(42); } };\nconst value = await Promise.resolve(custom);\nconsole.log(value);",
+    "example": "const custom = { then(resolve) { resolve(42); } };\nconst value = await Promise.resolve(custom);\nconsole.log(value);",
+    "notes": "版本前提：ES2022+；浏览器 API 另行注明。\n位于 async 函数内；输出 42。读取 then 属性的 getter 或 then 的调用可有副作用；不要把不可信对象当作无行为的数据。",
+    "source": "https://tc39.es/ecma262/multipage/control-abstraction-objects.html#sec-promise-resolve",
+    "entry_type": "实践",
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "异步与并发",
+      "thenable-assimilation"
+    ]
+  },
+  {
+    "id": "ref:js-advanced:microtask-starvation",
+    "language": "JavaScript",
+    "category": "异步与并发 / 调度",
+    "title": "递归微任务与渲染饥饿",
+    "summary": "持续补充微任务可能使任务队列和页面绘制迟迟得不到执行机会。",
+    "syntax": "// 浏览器中分块处理，给任务队列让出机会\nasync function processChunks(chunks) {\n  for (const chunk of chunks) {\n    process(chunk);\n    await new Promise(resolve => setTimeout(resolve, 0));\n  }\n}",
+    "example": "// 浏览器中分块处理，给任务队列让出机会\nasync function processChunks(chunks) {\n  for (const chunk of chunks) {\n    process(chunk);\n    await new Promise(resolve => setTimeout(resolve, 0));\n  }\n}",
+    "notes": "版本前提：ES2022+；浏览器 API 另行注明。\n浏览器环境；process 为同步处理函数。await Promise.resolve() 只让到微任务，不保证让浏览器绘制。setTimeout 的延迟不是精确调度承诺。",
+    "source": "https://html.spec.whatwg.org/multipage/webappapis.html#event-loops",
+    "entry_type": "实践",
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "异步与并发",
+      "microtask-starvation"
+    ]
+  },
+  {
+    "id": "ref:js-advanced:generator-cleanup",
+    "language": "JavaScript",
+    "category": "迭代与资源 / 生成器",
+    "title": "生成器提前退出与 finally 清理",
+    "summary": "for...of 提前退出时会尝试调用迭代器 return，生成器可在 finally 中释放资源。",
+    "syntax": "function* values() {\n  try { yield 1; yield 2; }\n  finally { console.log(\"closed\"); }\n}\nfor (const n of values()) { console.log(n); break; }",
+    "example": "function* values() {\n  try { yield 1; yield 2; }\n  finally { console.log(\"closed\"); }\n}\nfor (const n of values()) { console.log(n); break; }",
+    "notes": "版本前提：ES2022+；浏览器 API 另行注明。\n输出 1 后输出 closed。手工调用 next 后直接丢弃迭代器，并不等价于 for...of 的提前退出协议。",
+    "source": "https://tc39.es/ecma262/multipage/abstract-operations.html#sec-iteratorclose",
+    "entry_type": "实践",
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "迭代与资源",
+      "generator-cleanup"
+    ]
+  },
+  {
+    "id": "ref:js-advanced:async-generator",
+    "language": "JavaScript",
+    "category": "迭代与资源 / 异步流",
+    "title": "async generator 与逐项背压",
+    "summary": "异步生成器把逐项产生数据和逐项等待消费结合，避免必须先聚合全部结果。",
+    "syntax": "async function* pages(fetchPage) {\n  for (let page = 1; page <= 3; page++) yield await fetchPage(page);\n}\nfor await (const data of pages(fetchPage)) {\n  await consume(data);\n}",
+    "example": "async function* pages(fetchPage) {\n  for (let page = 1; page <= 3; page++) yield await fetchPage(page);\n}\nfor await (const data of pages(fetchPage)) {\n  await consume(data);\n}",
+    "notes": "版本前提：ES2022+；浏览器 API 另行注明。\n位于 async 函数内，fetchPage、consume 为外部函数。该示例一页消费完成后才请求下一页；并不自动提供网络取消或并行预取。",
+    "source": "https://tc39.es/ecma262/multipage/control-abstraction-objects.html#sec-asyncgenerator-objects",
+    "entry_type": "实践",
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "迭代与资源",
+      "async-generator"
+    ]
+  },
+  {
+    "id": "ref:js-advanced:map-identity",
+    "language": "JavaScript",
+    "category": "集合与容器 / 键语义",
+    "title": "Map 对象键与身份相等",
+    "summary": "Map 的对象键按对象身份比较，不会因字段相同而视为同一键。",
+    "syntax": "const a = { id: 1 };\nconst b = { id: 1 };\nconst cache = new Map([[a, \"A\"]]);\nconsole.log(cache.get(b), cache.get(a));",
+    "example": "const a = { id: 1 };\nconst b = { id: 1 };\nconst cache = new Map([[a, \"A\"]]);\nconsole.log(cache.get(b), cache.get(a));",
+    "notes": "版本前提：ES2022+；浏览器 API 另行注明。\n输出 undefined、A。若业务要求按 id 复用缓存，应显式选用稳定的基本类型键，并处理租户、版本等业务维度。",
+    "source": "https://tc39.es/ecma262/multipage/keyed-collections.html#sec-map-objects",
+    "entry_type": "实践",
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "集合与容器",
+      "map-identity"
+    ]
+  },
+  {
+    "id": "ref:js-advanced:sparse-array",
+    "language": "JavaScript",
+    "category": "集合与容器 / 数组边界",
+    "title": "稀疏数组的空槽与 undefined",
+    "summary": "数组空槽表示缺失属性，map 等操作会跳过空槽，显式 undefined 仍是存在的元素。",
+    "syntax": "const a = new Array(3);\nconst b = Array.from({ length: 3 }, (_, i) => i);\nconsole.log(a.map(() => 1).join(\"|\"));\nconsole.log(b.join(\"|\"));",
+    "example": "const a = new Array(3);\nconst b = Array.from({ length: 3 }, (_, i) => i);\nconsole.log(a.map(() => 1).join(\"|\"));\nconsole.log(b.join(\"|\"));",
+    "notes": "版本前提：ES2022+；浏览器 API 另行注明。\n输出 || 和 0|1|2。不要用 new Array(n).map(...) 生成 n 项；不同数组 API 对空槽处理不完全相同。",
+    "source": "https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.map",
+    "entry_type": "实践",
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "集合与容器",
+      "sparse-array"
+    ]
+  },
+  {
+    "id": "ref:js-advanced:unicode-regexp",
+    "language": "JavaScript",
+    "category": "文本与数据 / Unicode",
+    "title": "正则 u 模式与 Unicode 码点",
+    "summary": "字符串 length 计 UTF-16 码元，正则 u 模式可让点号按码点匹配代理对。",
+    "syntax": "const s = \"😀\";\nconsole.log(s.length, /^.$/.test(s), /^.$/u.test(s));",
+    "example": "const s = \"😀\";\nconsole.log(s.length, /^.$/.test(s), /^.$/u.test(s));",
+    "notes": "版本前提：ES2022+；浏览器 API 另行注明。\n输出 2、false、true。码点仍不等于用户看到的字素簇；组合音符、旗帜和连接符表情可能含多个码点。",
+    "source": "https://tc39.es/ecma262/multipage/text-processing.html#sec-regexp-regular-expression-objects",
+    "entry_type": "实践",
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "文本与数据",
+      "unicode-regexp"
+    ]
+  },
+  {
+    "id": "ref:js-advanced:json-prototype",
+    "language": "JavaScript",
+    "category": "对象与安全 / 数据合并",
+    "title": "JSON 的 __proto__ 与不安全合并",
+    "summary": "JSON.parse 本身把 __proto__ 作为数据属性；把结果赋给普通对象时可能触发继承的 setter。",
+    "syntax": "const input = JSON.parse('{\"__proto__\":{\"admin\":true}}');\nconst unsafe = Object.assign({}, input);\nconst safe = Object.assign(Object.create(null), input);\nconsole.log(unsafe.admin, Object.hasOwn(safe, \"admin\"));",
+    "example": "const input = JSON.parse('{\"__proto__\":{\"admin\":true}}');\nconst unsafe = Object.assign({}, input);\nconst safe = Object.assign(Object.create(null), input);\nconsole.log(unsafe.admin, Object.hasOwn(safe, \"admin\"));",
+    "notes": "版本前提：ES2022+；浏览器 API 另行注明。\n在含传统 __proto__ setter 的常见引擎中，unsafe.admin 为 true，后者为 false。这是目标对象原型被改变，并非示例直接修改 Object.prototype。还需白名单校验，防范递归合并中的 constructor/prototype 等路径。",
+    "source": "https://tc39.es/ecma262/multipage/fundamental-objects.html#sec-object.assign",
+    "entry_type": "实践",
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "对象与安全",
+      "json-prototype"
+    ]
+  },
+  {
+    "id": "ref:js-advanced:descriptor-defaults",
+    "language": "JavaScript",
+    "category": "对象与元编程 / 属性描述符",
+    "title": "defineProperty 默认属性特性",
+    "summary": "defineProperty 新建数据属性时，未指定的 writable、enumerable、configurable 默认为 false。",
+    "syntax": "const obj = {};\nObject.defineProperty(obj, \"id\", { value: 7 });\nconsole.log(Object.keys(obj), Object.getOwnPropertyDescriptor(obj, \"id\"));",
+    "example": "const obj = {};\nObject.defineProperty(obj, \"id\", { value: 7 });\nconsole.log(Object.keys(obj), Object.getOwnPropertyDescriptor(obj, \"id\"));",
+    "notes": "版本前提：ES2022+；浏览器 API 另行注明。\nObject.keys 不含 id；属性仍存在且可读。严格模式赋值会抛 TypeError，非严格模式通常静默失败。",
+    "source": "https://tc39.es/ecma262/multipage/fundamental-objects.html#sec-object.defineproperty",
+    "entry_type": "实践",
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "对象与元编程",
+      "descriptor-defaults"
+    ]
+  },
+  {
+    "id": "ref:js-advanced:private-brand",
+    "language": "JavaScript",
+    "category": "对象与元编程 / 类边界",
+    "title": "私有字段品牌检查与方法接收者",
+    "summary": "私有字段访问要求接收者具有声明该字段的类品牌，外形相同或 Proxy 包装并不保证满足。",
+    "syntax": "class Counter {\n  #n = 1;\n  get() { return this.#n; }\n}\nconst c = new Counter();\nconst get = c.get.bind(c);\nconsole.log(get());",
+    "example": "class Counter {\n  #n = 1;\n  get() { return this.#n; }\n}\nconst c = new Counter();\nconst get = c.get.bind(c);\nconsole.log(get());",
+    "notes": "版本前提：ES2022+；浏览器 API 另行注明。\n提取为 const get=c.get 后直接调用会失去 this；Proxy(c) 作为接收者访问 #n 通常也会失败。bind 原实例可解决本例，但不代表通用代理自动透明。",
+    "source": "https://tc39.es/ecma262/multipage/ecmascript-language-functions-and-classes.html#sec-privatefieldget",
+    "entry_type": "实践",
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "对象与元编程",
+      "private-brand"
+    ]
+  },
+  {
+    "id": "ref:js-advanced:module-live-binding",
+    "language": "JavaScript",
+    "category": "模块与工程 / ES Modules",
+    "title": "模块导入的活绑定与只读约束",
+    "summary": "命名导入是导出变量的活绑定，导出方重新赋值可被观察，导入方不能直接赋值。",
+    "syntax": "// counter.mjs\nexport let count = 0;\nexport function inc() { count++; }\n// main.mjs\nimport { count, inc } from \"./counter.mjs\";\ninc(); console.log(count);",
+    "example": "// counter.mjs\nexport let count = 0;\nexport function inc() { count++; }\n// main.mjs\nimport { count, inc } from \"./counter.mjs\";\ninc(); console.log(count);",
+    "notes": "版本前提：ES2022+；浏览器 API 另行注明。\n两段分别放在两个模块文件中，输出 1。导入只读不等于导出的对象被深冻结；循环依赖还需注意初始化时序。",
+    "source": "https://tc39.es/ecma262/multipage/ecmascript-language-scripts-and-modules.html#sec-imports",
+    "entry_type": "实践",
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "模块与工程",
+      "module-live-binding"
+    ]
+  },
+  {
+    "id": "ref:js-advanced:url-params",
+    "language": "JavaScript",
+    "category": "Web API / 请求构造",
+    "title": "URLSearchParams 编码与重复参数",
+    "summary": "用 URLSearchParams 表达查询参数，避免字符串拼接误把 &、+ 等字符当成分隔符。",
+    "syntax": "const url = new URL(\"https://example.com/search\");\nurl.searchParams.set(\"q\", \"C++ & Rust\");\nurl.searchParams.append(\"tag\", \"a\");\nurl.searchParams.append(\"tag\", \"b\");\nconsole.log(url.searchParams.getAll(\"tag\"));",
+    "example": "const url = new URL(\"https://example.com/search\");\nurl.searchParams.set(\"q\", \"C++ & Rust\");\nurl.searchParams.append(\"tag\", \"a\");\nurl.searchParams.append(\"tag\", \"b\");\nconsole.log(url.searchParams.getAll(\"tag\"));",
+    "notes": "版本前提：ES2022+；浏览器 API 另行注明。\n浏览器及支持 URL 的现代 Node.js。getAll 返回 [a,b]；set 会替换同名参数，append 会保留多值。编码不代替服务端校验或参数化 SQL。",
+    "source": "https://url.spec.whatwg.org/#interface-urlsearchparams",
+    "entry_type": "实践",
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "Web API",
+      "url-params"
+    ]
+  },
+  {
+    "id": "ref:js-advanced:transfer-buffer",
+    "language": "JavaScript",
+    "category": "Web API / 跨线程数据",
+    "title": "structuredClone 转移 ArrayBuffer",
+    "summary": "transfer 把可转移资源移交到克隆结果，原 ArrayBuffer 会脱离，区别于普通深复制。",
+    "syntax": "const buffer = new ArrayBuffer(8);\nconst copy = structuredClone(buffer, { transfer: [buffer] });\nconsole.log(buffer.byteLength, copy.byteLength);",
+    "example": "const buffer = new ArrayBuffer(8);\nconst copy = structuredClone(buffer, { transfer: [buffer] });\nconsole.log(buffer.byteLength, copy.byteLength);",
+    "notes": "版本前提：ES2022+；浏览器 API 另行注明。\n需宿主支持 structuredClone 和 ArrayBuffer 转移。输出 0、8；原视图不应继续当作有效数据使用，普通对象不能随意列入 transfer。",
+    "source": "https://html.spec.whatwg.org/multipage/structured-data.html#structured-cloning",
+    "entry_type": "实践",
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "Web API",
+      "transfer-buffer"
+    ]
+  },
+  {
+    "id": "ref:c-advanced:flexible-array",
+    "language": "C",
+    "category": "内存与布局 / 结构体",
+    "title": "柔性数组成员与整体分配",
+    "summary": "结构体末尾的柔性数组不计入 sizeof 的元素空间，分配时必须额外计算载荷并检查溢出。",
+    "syntax": "#include <stdint.h>\n#include <stdlib.h>\nstruct Packet { size_t len; unsigned char data[]; };\nstruct Packet *packet_new(size_t n) {\n  if (n > SIZE_MAX - sizeof(struct Packet)) return NULL;\n  struct Packet *p = malloc(sizeof *p + n);\n  if (p) p->len = n;\n  return p;\n}",
+    "example": "#include <stdint.h>\n#include <stdlib.h>\nstruct Packet { size_t len; unsigned char data[]; };\nstruct Packet *packet_new(size_t n) {\n  if (n > SIZE_MAX - sizeof(struct Packet)) return NULL;\n  struct Packet *p = malloc(sizeof *p + n);\n  if (p) p->len = n;\n  return p;\n}",
+    "notes": "版本前提：C17；示例需相应标准头文件。\n柔性数组须为有其他命名成员的结构体的最后成员；不能把 sizeof *p 当作载荷总长度，释放整体指针即可。",
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf#page=113",
+    "entry_type": "实践",
+    "tags": [
+      "C",
+      "进阶专题",
+      "内存与布局",
+      "flexible-array"
+    ]
+  },
+  {
+    "id": "ref:c-advanced:designated-init",
+    "language": "C",
+    "category": "类型与初始化 / 聚合",
+    "title": "指定初始化与省略成员归零",
+    "summary": "指定初始化允许按成员名或下标给聚合赋初值，未显式初始化的部分按规则零初始化。",
+    "syntax": "struct Options { int retry; int timeout; };\nstruct Options opt = { .timeout = 30 };\nint table[5] = { [3] = 9 };",
+    "example": "struct Options { int retry; int timeout; };\nstruct Options opt = { .timeout = 30 };\nint table[5] = { [3] = 9 };",
+    "notes": "版本前提：C17；示例需相应标准头文件。\nopt.retry 为 0，table 为 {0,0,0,9,0}。这不意味着未初始化的自动变量也会自动清零；本语法与 C++ 指定初始化规则不同。",
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "entry_type": "实践",
+    "tags": [
+      "C",
+      "进阶专题",
+      "类型与初始化",
+      "designated-init"
+    ]
+  },
+  {
+    "id": "ref:c-advanced:compound-literal",
+    "language": "C",
+    "category": "类型与初始化 / 生命周期",
+    "title": "复合字面量的存储期",
+    "summary": "复合字面量创建匿名对象；块作用域中的对象具有与所在块关联的自动存储期。",
+    "syntax": "struct Point { int x, y; };\nvoid use_point(const struct Point *p);\nvoid draw(void) {\n  use_point(&(struct Point){ .x=1, .y=2 });\n}",
+    "example": "struct Point { int x, y; };\nvoid use_point(const struct Point *p);\nvoid draw(void) {\n  use_point(&(struct Point){ .x=1, .y=2 });\n}",
+    "notes": "版本前提：C17；示例需相应标准头文件。\ndraw 内同步使用有效；use_point 不得把地址保存到块结束后继续访问。文件作用域复合字面量有静态存储期。",
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "entry_type": "实践",
+    "tags": [
+      "C",
+      "进阶专题",
+      "类型与初始化",
+      "compound-literal"
+    ]
+  },
+  {
+    "id": "ref:c-advanced:restrict-contract",
+    "language": "C",
+    "category": "内存与优化 / 别名",
+    "title": "restrict 是访问契约",
+    "summary": "restrict 允许编译器基于受限指针的访问契约优化；重叠访问可能违反契约而非只是降低性能。",
+    "syntax": "void add(size_t n, int *restrict out, const int *restrict in) {\n  for (size_t i=0; i<n; ++i) out[i] += in[i];\n}\n// 合法示例：两个不重叠且足够长的数组。",
+    "example": "void add(size_t n, int *restrict out, const int *restrict in) {\n  for (size_t i=0; i<n; ++i) out[i] += in[i];\n}\n// 合法示例：两个不重叠且足够长的数组。",
+    "notes": "版本前提：C17；示例需相应标准头文件。\n需 <stddef.h>。对 n>0 调用 add(n,a,a) 会在本例读写规则下违反 restrict 契约；不能为了提速盲目给所有指针加 restrict。",
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "entry_type": "实践",
+    "tags": [
+      "C",
+      "进阶专题",
+      "内存与优化",
+      "restrict-contract"
+    ]
+  },
+  {
+    "id": "ref:c-advanced:alias-memcpy",
+    "language": "C",
+    "category": "内存与优化 / 别名",
+    "title": "类型重解释与 memcpy 复制表示",
+    "summary": "把不兼容对象指针强转后解引用可能违反有效类型规则；复制对象表示与数值转换应区分。",
+    "syntax": "#include <stdint.h>\n#include <string.h>\nuint32_t float_bits(float x) {\n  _Static_assert(sizeof(float)==sizeof(uint32_t), \"size mismatch\");\n  uint32_t bits;\n  memcpy(&bits, &x, sizeof bits);\n  return bits;\n}",
+    "example": "#include <stdint.h>\n#include <string.h>\nuint32_t float_bits(float x) {\n  _Static_assert(sizeof(float)==sizeof(uint32_t), \"size mismatch\");\n  uint32_t bits;\n  memcpy(&bits, &x, sizeof bits);\n  return bits;\n}",
+    "notes": "版本前提：C17；示例需相应标准头文件。\n仅适用于存在 uint32_t 且尺寸相同的平台。所得位模式仍依赖浮点表示与字节序，不可直接当作可移植网络格式。",
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "entry_type": "实践",
+    "tags": [
+      "C",
+      "进阶专题",
+      "内存与优化",
+      "alias-memcpy"
+    ]
+  },
+  {
+    "id": "ref:c-advanced:sequence-effects",
+    "language": "C",
+    "category": "表达式与行为 / 求值顺序",
+    "title": "未排序副作用与未定义行为",
+    "summary": "同一标量上未排序的修改和读取/修改会产生未定义行为，不能靠某次编译结果推导规则。",
+    "syntax": "int i = 1;\n// int bad = i++ + i++; // 未定义行为\nint left = i++;\nint right = i++;\nint good = left + right;",
+    "example": "int i = 1;\n// int bad = i++ + i++; // 未定义行为\nint left = i++;\nint right = i++;\nint good = left + right;",
+    "notes": "版本前提：C17；示例需相应标准头文件。\n拆成完整表达式后，good 为 3，i 为 3。函数实参的求值顺序也不能当作固定从左到右。",
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "entry_type": "实践",
+    "tags": [
+      "C",
+      "进阶专题",
+      "表达式与行为",
+      "sequence-effects"
+    ]
+  },
+  {
+    "id": "ref:c-advanced:integer-promotion",
+    "language": "C",
+    "category": "表达式与行为 / 整数",
+    "title": "整数提升发生在运算之前",
+    "summary": "小整数运算通常先提升到 int 或 unsigned int，再转换为接收变量类型。",
+    "syntax": "#include <limits.h>\n#include <stdio.h>\nint main(void) {\n  unsigned char a = UCHAR_MAX;\n  printf(\"%d\\n\", a < -1);\n}",
+    "example": "#include <limits.h>\n#include <stdio.h>\nint main(void) {\n  unsigned char a = UCHAR_MAX;\n  printf(\"%d\\n\", a < -1);\n}",
+    "notes": "版本前提：C17；示例需相应标准头文件。\n在 int 可表示全部 unsigned char 值的常见平台，a 提升为 int，比较为 false；在特殊平台提升到 unsigned int 时结果可能不同。不要把接收变量类型误当运算类型。",
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "entry_type": "实践",
+    "tags": [
+      "C",
+      "进阶专题",
+      "表达式与行为",
+      "integer-promotion"
+    ]
+  },
+  {
+    "id": "ref:c-advanced:snprintf-sizing",
+    "language": "C",
+    "category": "文本与数据 / 格式化",
+    "title": "snprintf 两遍分配与返回值检查",
+    "summary": "snprintf 返回所需字符数，不含终止符；两遍分配须检查负值并给终止符留空间。",
+    "syntax": "#include <stdio.h>\n#include <stdlib.h>\nchar *label(int id) {\n  int n = snprintf(NULL, 0, \"item-%d\", id);\n  if (n < 0) return NULL;\n  char *p = malloc((size_t)n + 1);\n  if (!p) return NULL;\n  int written = snprintf(p, (size_t)n + 1, \"item-%d\", id);\n  if (written != n) { free(p); return NULL; }\n  return p;\n}",
+    "example": "#include <stdio.h>\n#include <stdlib.h>\nchar *label(int id) {\n  int n = snprintf(NULL, 0, \"item-%d\", id);\n  if (n < 0) return NULL;\n  char *p = malloc((size_t)n + 1);\n  if (!p) return NULL;\n  int written = snprintf(p, (size_t)n + 1, \"item-%d\", id);\n  if (written != n) { free(p); return NULL; }\n  return p;\n}",
+    "notes": "版本前提：C17；示例需相应标准头文件。\n调用者负责 free 返回值；两遍间格式输入必须保持有效且一致。本例 n 是 int 且文本短；通用大尺寸计算仍要检查 size_t 加法溢出。",
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "entry_type": "实践",
+    "tags": [
+      "C",
+      "进阶专题",
+      "文本与数据",
+      "snprintf-sizing"
+    ]
+  },
+  {
+    "id": "ref:c-advanced:errno-protocol",
+    "language": "C",
+    "category": "错误与资源 / 标准库",
+    "title": "errno 只在失败协议下解释",
+    "summary": "成功调用不保证清空 errno；只有在函数文档约定的失败条件下才读取其错误信息。",
+    "syntax": "#include <errno.h>\n#include <stdlib.h>\nchar *end;\nerrno = 0;\nlong n = strtol(\"999999999999999999999999999999\", &end, 10);\nif (errno == ERANGE) { /* 数值超出 long 范围 */ }",
+    "example": "#include <errno.h>\n#include <stdlib.h>\nchar *end;\nerrno = 0;\nlong n = strtol(\"999999999999999999999999999999\", &end, 10);\nif (errno == ERANGE) { /* 数值超出 long 范围 */ }",
+    "notes": "版本前提：C17；示例需相应标准头文件。\n置零是为了识别本次范围错误；仍需检查 end 是否前进以及是否完整消费输入。不要用 n==0 单独判失败，因为字符串 0 是有效输入。",
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "entry_type": "实践",
+    "tags": [
+      "C",
+      "进阶专题",
+      "错误与资源",
+      "errno-protocol"
+    ]
+  },
+  {
+    "id": "ref:c-advanced:strtok-state",
+    "language": "C",
+    "category": "文本与数据 / 分词",
+    "title": "strtok 的共享状态与空字段",
+    "summary": "strtok 会修改缓冲区并维护内部状态，嵌套分词和保留空字段时不宜直接使用。",
+    "syntax": "#include <stdio.h>\n#include <string.h>\nchar line[] = \"a,,b\";\nfor (char *p=strtok(line, \",\"); p; p=strtok(NULL, \",\"))\n  puts(p);",
+    "example": "#include <stdio.h>\n#include <string.h>\nchar line[] = \"a,,b\";\nfor (char *p=strtok(line, \",\"); p; p=strtok(NULL, \",\"))\n  puts(p);",
+    "notes": "版本前提：C17；示例需相应标准头文件。\n依次输出 a 和 b，不产生中间空字段。strtok_r 是 POSIX 而非 ISO C 接口，独立状态能解决嵌套干扰，但仍会合并连续分隔符。CSV 还需处理引号和转义。",
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "entry_type": "实践",
+    "tags": [
+      "C",
+      "进阶专题",
+      "文本与数据",
+      "strtok-state"
+    ]
+  },
+  {
+    "id": "ref:c-advanced:portable-serialization",
+    "language": "C",
+    "category": "文件与数据 / 二进制格式",
+    "title": "结构体内存不能直接当协议",
+    "summary": "结构体可能有填充、平台字节序和不同成员宽度，直接 fwrite 结构体不构成可移植格式。",
+    "syntax": "#include <stdint.h>\nuint32_t value = 0x12345678u;\nunsigned char bytes[4] = {\n  (unsigned char)(value >> 24), (unsigned char)(value >> 16),\n  (unsigned char)(value >> 8), (unsigned char)value\n};",
+    "example": "#include <stdint.h>\nuint32_t value = 0x12345678u;\nunsigned char bytes[4] = {\n  (unsigned char)(value >> 24), (unsigned char)(value >> 16),\n  (unsigned char)(value >> 8), (unsigned char)value\n};",
+    "notes": "版本前提：C17；示例需相应标准头文件。\n要求 CHAR_BIT=8 且存在 uint32_t；示例显式写成大端四字节。实际协议还应定义版本、长度和字段合法范围，接收时检查缓冲区边界。",
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "entry_type": "实践",
+    "tags": [
+      "C",
+      "进阶专题",
+      "文件与数据",
+      "portable-serialization"
+    ]
+  },
+  {
+    "id": "ref:c-advanced:atomic-counter",
+    "language": "C",
+    "category": "异步与并发 / 原子",
+    "title": "C 原子计数与 relaxed 边界",
+    "summary": "原子读改写可防止计数丢失；relaxed 保证该原子操作本身，不发布其他普通内存数据。",
+    "syntax": "#include <stdatomic.h>\n_Atomic unsigned long hits = 0;\nvoid hit(void) {\n  atomic_fetch_add_explicit(&hits, 1, memory_order_relaxed);\n}",
+    "example": "#include <stdatomic.h>\n_Atomic unsigned long hits = 0;\nvoid hit(void) {\n  atomic_fetch_add_explicit(&hits, 1, memory_order_relaxed);\n}",
+    "notes": "版本前提：C17；示例需相应标准头文件。\nC11 原子接口，C17 实现需支持。普通 hits++ 若作用于非原子共享变量会数据竞争；原子操作是否无锁取决于实现，不能从语法推断。",
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "entry_type": "实践",
+    "tags": [
+      "C",
+      "进阶专题",
+      "异步与并发",
+      "atomic-counter"
+    ]
+  },
+  {
+    "id": "ref:c-advanced:static-assert",
+    "language": "C",
+    "category": "构建与接口 / 编译期检查",
+    "title": "_Static_assert 记录平台假设",
+    "summary": "编译期断言用于声明尺寸等必要条件，不会在运行时替代输入检查。",
+    "syntax": "#include <limits.h>\n#include <stdint.h>\n_Static_assert(CHAR_BIT == 8, \"8-bit bytes required\");\n_Static_assert(sizeof(uint32_t) == 4, \"32-bit field required\");",
+    "example": "#include <limits.h>\n#include <stdint.h>\n_Static_assert(CHAR_BIT == 8, \"8-bit bytes required\");\n_Static_assert(sizeof(uint32_t) == 4, \"32-bit field required\");",
+    "notes": "版本前提：C17；示例需相应标准头文件。\nC11 起可用；uint32_t 是可选精确宽度类型，缺失会先编译失败。断言尺寸不保证端序、对齐或网络编码。",
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "entry_type": "实践",
+    "tags": [
+      "C",
+      "进阶专题",
+      "构建与接口",
+      "static-assert"
+    ]
+  },
+  {
+    "id": "ref:c-advanced:multidimensional",
+    "language": "C",
+    "category": "内存与布局 / 数组接口",
+    "title": "二维数组形参与行跨度",
+    "summary": "二维数组传参退化为指向一行数组的指针，类型不是 int**。",
+    "syntax": "#include <stddef.h>\nint sum3(size_t rows, const int a[][3]) {\n  int sum=0;\n  for(size_t i=0;i<rows;i++)\n    for(size_t j=0;j<3;j++) sum += a[i][j];\n  return sum;\n}",
+    "example": "#include <stddef.h>\nint sum3(size_t rows, const int a[][3]) {\n  int sum=0;\n  for(size_t i=0;i<rows;i++)\n    for(size_t j=0;j<3;j++) sum += a[i][j];\n  return sum;\n}",
+    "notes": "版本前提：C17；示例需相应标准头文件。\na 的调整后类型为 const int (*)[3]，行跨度是 3 个 int。示例假定和不会溢出，rows 由调用者保证；指针表需要另一个接口。",
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "entry_type": "实践",
+    "tags": [
+      "C",
+      "进阶专题",
+      "内存与布局",
+      "multidimensional"
+    ]
+  },
+  {
+    "id": "ref:c-advanced:enum-validation",
+    "language": "C",
+    "category": "类型与接口 / 外部输入",
+    "title": "枚举与外部数值验证",
+    "summary": "把外部整数转换为 enum 不能自动确认它对应某个业务枚举项，应显式校验输入集合。",
+    "syntax": "enum State { READY=1, RUNNING=2, DONE=3 };\nint parse_state(int raw, enum State *out) {\n  switch(raw) {\n    case READY: case RUNNING: case DONE:\n      *out = (enum State)raw; return 1;\n    default: return 0;\n  }\n}",
+    "example": "enum State { READY=1, RUNNING=2, DONE=3 };\nint parse_state(int raw, enum State *out) {\n  switch(raw) {\n    case READY: case RUNNING: case DONE:\n      *out = (enum State)raw; return 1;\n    default: return 0;\n  }\n}",
+    "notes": "版本前提：C17；示例需相应标准头文件。\nout 必须是有效非空指针。enum 的底层表示由实现规则决定，不应直接作为固定宽度协议字段。",
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "entry_type": "实践",
+    "tags": [
+      "C",
+      "进阶专题",
+      "类型与接口",
+      "enum-validation"
+    ]
+  },
+  {
+    "id": "ref:c-advanced:bsearch-contract",
+    "language": "C",
+    "category": "集合与算法 / 二分查找",
+    "title": "bsearch 的排序与重复键契约",
+    "summary": "bsearch 要求数据按兼容比较规则组织；存在重复键时不保证返回第一个匹配项。",
+    "syntax": "#include <stdlib.h>\nstatic int cmp(const void *a, const void *b) {\n  int x=*(const int*)a, y=*(const int*)b;\n  return (x>y)-(x<y);\n}\nint a[]={1,2,2,4}, key=2;\nint *p=bsearch(&key,a,4,sizeof a[0],cmp);",
+    "example": "#include <stdlib.h>\nstatic int cmp(const void *a, const void *b) {\n  int x=*(const int*)a, y=*(const int*)b;\n  return (x>y)-(x<y);\n}\nint a[]={1,2,2,4}, key=2;\nint *p=bsearch(&key,a,4,sizeof a[0],cmp);",
+    "notes": "版本前提：C17；示例需相应标准头文件。\np 指向某个 2 或找不到时为 NULL；此例应找到 2。比较器避免使用 x-y 的有符号溢出。要找首个重复值需自行实现下界算法。",
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "entry_type": "实践",
+    "tags": [
+      "C",
+      "进阶专题",
+      "集合与算法",
+      "bsearch-contract"
+    ]
+  },
+  {
+    "id": "ref:cpp-advanced:try-emplace",
+    "language": "C++",
+    "category": "集合与容器 / 插入语义",
+    "title": "try_emplace 与重复键的移动参数",
+    "summary": "try_emplace 在键已存在时不从映射值参数移动，但函数实参表达式仍会先求值。",
+    "syntax": "#include <map>\n#include <memory>\nstd::map<int,std::unique_ptr<int>> m;\nm.try_emplace(1, std::make_unique<int>(7));\nauto p=std::make_unique<int>(9);\nauto [it, inserted]=m.try_emplace(1, std::move(p));",
+    "example": "#include <map>\n#include <memory>\nstd::map<int,std::unique_ptr<int>> m;\nm.try_emplace(1, std::make_unique<int>(7));\nauto p=std::make_unique<int>(9);\nauto [it, inserted]=m.try_emplace(1, std::move(p));",
+    "notes": "版本前提：C++17；C++20 功能另行注明。\nC++17。inserted 为 false，p 仍拥有 9，原值仍是 7；若把 make_unique 直接写进实参，即使重复键也会先进行那次构造。",
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rr-smartptrparam",
+    "entry_type": "实践",
+    "tags": [
+      "C++",
+      "进阶专题",
+      "集合与容器",
+      "try-emplace"
+    ]
+  },
+  {
+    "id": "ref:cpp-advanced:node-handle",
+    "language": "C++",
+    "category": "集合与容器 / 节点迁移",
+    "title": "extract 节点句柄与键修改",
+    "summary": "关联容器节点句柄可移出节点后修改键，重新插入失败时仍需处理返回的节点所有权。",
+    "syntax": "#include <map>\n#include <string>\nstd::map<int,std::string> m{{1,\"A\"},{2,\"B\"}};\nauto node=m.extract(1);\nnode.key()=2;\nauto result=m.insert(std::move(node));",
+    "example": "#include <map>\n#include <string>\nstd::map<int,std::string> m{{1,\"A\"},{2,\"B\"}};\nauto node=m.extract(1);\nnode.key()=2;\nauto result=m.insert(std::move(node));",
+    "notes": "版本前提：C++17；C++20 功能另行注明。\nC++17。键 2 已存在，result.inserted=false；未插入的节点在 result.node 中。忽略返回值可能使该节点随句柄销毁而丢失业务数据。",
+    "source": "https://eel.is/c++draft/associative.reqmts",
+    "entry_type": "实践",
+    "tags": [
+      "C++",
+      "进阶专题",
+      "集合与容器",
+      "node-handle"
+    ]
+  },
+  {
+    "id": "ref:cpp-advanced:transparent-lookup",
+    "language": "C++",
+    "category": "集合与容器 / 查找成本",
+    "title": "透明比较器与异构查找",
+    "summary": "std::less<> 作为透明比较器，可让有序字符串容器接受适配的查找键而不先构造 std::string。",
+    "syntax": "#include <map>\n#include <string>\n#include <string_view>\nstd::map<std::string,int,std::less<>> counts{{\"apple\",3}};\nstd::string_view key=\"apple\";\nauto it=counts.find(key);",
+    "example": "#include <map>\n#include <string>\n#include <string_view>\nstd::map<std::string,int,std::less<>> counts{{\"apple\",3}};\nstd::string_view key=\"apple\";\nauto it=counts.find(key);",
+    "notes": "版本前提：C++17；C++20 功能另行注明。\nC++17。异构比较必须建立一致的严格弱序；C++17 的 unordered_map 不具有同样的标准异构查找接口，不要直接套用。",
+    "source": "https://eel.is/c++draft/associative.reqmts",
+    "entry_type": "实践",
+    "tags": [
+      "C++",
+      "进阶专题",
+      "集合与容器",
+      "transparent-lookup"
+    ]
+  },
+  {
+    "id": "ref:cpp-advanced:fold-expression",
+    "language": "C++",
+    "category": "模板与编译期 / 参数包",
+    "title": "折叠表达式与空参数包",
+    "summary": "带初值的二元折叠可明确空参数包结果，单纯写加法一元折叠不能处理空包。",
+    "syntax": "template<class... T>\nauto sum(T... values) { return (0 + ... + values); }\nauto a=sum();\nauto b=sum(1,2,3);",
+    "example": "template<class... T>\nauto sum(T... values) { return (0 + ... + values); }\nauto a=sum();\nauto b=sum(1,2,3);",
+    "notes": "版本前提：C++17；C++20 功能另行注明。\nC++17。a=0，b=6。初始 0 的类型影响运算推导；复杂对象需要选择合适单位元和重载，而非默认所有类型都适用。",
+    "source": "https://eel.is/c++draft/expr.prim.fold",
+    "entry_type": "实践",
+    "tags": [
+      "C++",
+      "进阶专题",
+      "模板与编译期",
+      "fold-expression"
+    ]
+  },
+  {
+    "id": "ref:cpp-advanced:if-constexpr",
+    "language": "C++",
+    "category": "模板与编译期 / 分支",
+    "title": "if constexpr 与被丢弃分支",
+    "summary": "模板实例化中 if constexpr 可丢弃不选中的依赖类型分支，普通 if 仍需实例化两侧相关代码。",
+    "syntax": "#include <type_traits>\ntemplate<class T>\nauto value(T x) {\n  if constexpr (std::is_pointer_v<T>) return *x;\n  else return x;\n}\nauto n=value(7);",
+    "example": "#include <type_traits>\ntemplate<class T>\nauto value(T x) {\n  if constexpr (std::is_pointer_v<T>) return *x;\n  else return x;\n}\nauto n=value(7);",
+    "notes": "版本前提：C++17；C++20 功能另行注明。\nC++17。n 为 7；依赖于 T 的 *x 分支对 T=int 被丢弃。被丢弃分支仍需语法正确；非模板上下文不提供同等屏蔽所有错误的能力。",
+    "source": "https://eel.is/c++draft/stmt.if",
+    "entry_type": "实践",
+    "tags": [
+      "C++",
+      "进阶专题",
+      "模板与编译期",
+      "if-constexpr"
+    ]
+  },
+  {
+    "id": "ref:cpp-advanced:structured-binding",
+    "language": "C++",
+    "category": "类型与表达式 / 引用",
+    "title": "结构化绑定的复制与引用",
+    "summary": "auto [a,b] 通常引入隐藏副本，auto& [a,b] 可把绑定关联到原对象成员。",
+    "syntax": "#include <utility>\nstd::pair<int,int> p{1,2};\nauto [x,y]=p;\nx=9;\nauto& [a,b]=p;\na=7;",
+    "example": "#include <utility>\nstd::pair<int,int> p{1,2};\nauto [x,y]=p;\nx=9;\nauto& [a,b]=p;\na=7;",
+    "notes": "版本前提：C++17；C++20 功能另行注明。\nC++17。本例最终 p.first=7，x=9；不能仅凭变量外形判断是否引用。引用绑定还受原对象生命周期约束。",
+    "source": "https://eel.is/c++draft/dcl.struct.bind",
+    "entry_type": "实践",
+    "tags": [
+      "C++",
+      "进阶专题",
+      "类型与表达式",
+      "structured-binding"
+    ]
+  },
+  {
+    "id": "ref:cpp-advanced:initializer-list",
+    "language": "C++",
+    "category": "类型与表达式 / 初始化",
+    "title": "花括号与 initializer_list 优先选择",
+    "summary": "花括号初始化可能优先匹配 initializer_list 构造，与圆括号的个数和值语义不同。",
+    "syntax": "#include <vector>\nstd::vector<int> a(3,7);\nstd::vector<int> b{3,7};",
+    "example": "#include <vector>\nstd::vector<int> a(3,7);\nstd::vector<int> b{3,7};",
+    "notes": "版本前提：C++17；C++20 功能另行注明。\na 是三个 7，b 是两个元素 3、7。统一使用花括号不能替代对重载含义的理解；花括号还会限制窄化转换。",
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Res-list",
+    "entry_type": "实践",
+    "tags": [
+      "C++",
+      "进阶专题",
+      "类型与表达式",
+      "initializer-list"
+    ]
+  },
+  {
+    "id": "ref:cpp-advanced:decltype-auto",
+    "language": "C++",
+    "category": "类型与表达式 / 返回值",
+    "title": "decltype(auto) 与括号改变返回类型",
+    "summary": "decltype(auto) 按 decltype 规则推导，返回带括号的左值表达式可能形成引用并悬空。",
+    "syntax": "auto safe() { int x=7; return x; }\n// decltype(auto) bad() { int x=7; return (x); }\n// bad 返回 int&，离开函数即悬空。",
+    "example": "auto safe() { int x=7; return x; }\n// decltype(auto) bad() { int x=7; return (x); }\n// bad 返回 int&，离开函数即悬空。",
+    "notes": "版本前提：C++17；C++20 功能另行注明。\n不要执行对悬空引用的读取。decltype(x) 对未加括号名字给声明类型，而 decltype((x)) 对该左值给 int&。",
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rf-dangle",
+    "entry_type": "实践",
+    "tags": [
+      "C++",
+      "进阶专题",
+      "类型与表达式",
+      "decltype-auto"
+    ]
+  },
+  {
+    "id": "ref:cpp-advanced:emplace-cost",
+    "language": "C++",
+    "category": "集合与容器 / 构造成本",
+    "title": "emplace_back 不保证零移动",
+    "summary": "emplace_back 避免构造传入的元素临时值，但 vector 扩容仍可能移动或复制已有元素。",
+    "syntax": "#include <vector>\n#include <string>\nstd::vector<std::string> names;\nnames.reserve(2);\nnames.emplace_back(3, 'x');\nnames.emplace_back(\"Bob\");",
+    "example": "#include <vector>\n#include <string>\nstd::vector<std::string> names;\nnames.reserve(2);\nnames.emplace_back(3, 'x');\nnames.emplace_back(\"Bob\");",
+    "notes": "版本前提：C++17；C++20 功能另行注明。\n内容为 xxx 和 Bob；reserve 提供至少 2 的容量，不改变 size。超过容量仍可重分配并使元素引用/迭代器失效。",
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rsl-vector",
+    "entry_type": "实践",
+    "tags": [
+      "C++",
+      "进阶专题",
+      "集合与容器",
+      "emplace-cost"
+    ]
+  },
+  {
+    "id": "ref:cpp-advanced:move-noexcept",
+    "language": "C++",
+    "category": "异常与资源 / 移动",
+    "title": "noexcept 移动与容器重分配",
+    "summary": "vector 为维持异常保证，可能优先复制可复制但移动会抛错的元素。",
+    "syntax": "#include <utility>\nstruct Item {\n  Item()=default;\n  Item(const Item&)=default;\n  Item(Item&&) noexcept(false) {}\n};\nItem x;\nauto&& choice=std::move_if_noexcept(x);",
+    "example": "#include <utility>\nstruct Item {\n  Item()=default;\n  Item(const Item&)=default;\n  Item(Item&&) noexcept(false) {}\n};\nItem x;\nauto&& choice=std::move_if_noexcept(x);",
+    "notes": "版本前提：C++17；C++20 功能另行注明。\n本例 choice 为 const Item&。不要给实际可能抛错的移动操作虚假声明 noexcept，否则抛异常会终止程序；不可复制类型另有保证边界。",
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-move-noexcept",
+    "entry_type": "实践",
+    "tags": [
+      "C++",
+      "进阶专题",
+      "异常与资源",
+      "move-noexcept"
+    ]
+  },
+  {
+    "id": "ref:cpp-advanced:constructor-unwind",
+    "language": "C++",
+    "category": "异常与资源 / 构造失败",
+    "title": "构造函数抛错时谁负责清理",
+    "summary": "构造失败时已完成构造的成员会析构，但该对象自己的析构函数不会执行。",
+    "syntax": "#include <memory>\n#include <stdexcept>\nstruct Session {\n  std::unique_ptr<int> resource=std::make_unique<int>(7);\n  Session() { throw std::runtime_error(\"fail\"); }\n};",
+    "example": "#include <memory>\n#include <stdexcept>\nstruct Session {\n  std::unique_ptr<int> resource=std::make_unique<int>(7);\n  Session() { throw std::runtime_error(\"fail\"); }\n};",
+    "notes": "版本前提：C++17；C++20 功能另行注明。\n需在外层捕获异常；resource 作为已构造成员会销毁。把裸 new 的清理仅放在 Session 析构函数中无法覆盖构造失败路径。",
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Re-raii",
+    "entry_type": "实践",
+    "tags": [
+      "C++",
+      "进阶专题",
+      "异常与资源",
+      "constructor-unwind"
+    ]
+  },
+  {
+    "id": "ref:cpp-advanced:condition-predicate",
+    "language": "C++",
+    "category": "异步与并发 / 条件变量",
+    "title": "条件变量谓词与虚假唤醒",
+    "summary": "条件变量通知不保存业务状态；等待必须在锁保护下重复检查谓词。",
+    "syntax": "#include <condition_variable>\n#include <mutex>\nstd::mutex m;\nstd::condition_variable cv;\nbool ready=false;\n// 消费者\nstd::unique_lock<std::mutex> lock(m);\ncv.wait(lock, [] { return ready; });",
+    "example": "#include <condition_variable>\n#include <mutex>\nstd::mutex m;\nstd::condition_variable cv;\nbool ready=false;\n// 消费者\nstd::unique_lock<std::mutex> lock(m);\ncv.wait(lock, [] { return ready; });",
+    "notes": "版本前提：C++17；C++20 功能另行注明。\n生产者应在相同 mutex 下写 ready，再通知。wait 原子释放锁并进入等待、返回前重获锁；通知先于等待也可由谓词状态兜底。",
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rconc-wait",
+    "entry_type": "实践",
+    "tags": [
+      "C++",
+      "进阶专题",
+      "异步与并发",
+      "condition-predicate"
+    ]
+  },
+  {
+    "id": "ref:cpp-advanced:scoped-lock",
+    "language": "C++",
+    "category": "异步与并发 / 多锁",
+    "title": "scoped_lock 与固定锁序",
+    "summary": "std::scoped_lock 可用避免死锁的算法同时获取多把 mutex，减少手工反向加锁风险。",
+    "syntax": "#include <mutex>\nstruct Account { std::mutex m; int balance=0; };\nvoid transfer(Account& a, Account& b, int n) {\n  if (&a==&b) return;\n  std::scoped_lock lock(a.m,b.m);\n  a.balance-=n; b.balance+=n;\n}",
+    "example": "#include <mutex>\nstruct Account { std::mutex m; int balance=0; };\nvoid transfer(Account& a, Account& b, int n) {\n  if (&a==&b) return;\n  std::scoped_lock lock(a.m,b.m);\n  a.balance-=n; b.balance+=n;\n}",
+    "notes": "版本前提：C++17；C++20 功能另行注明。\nC++17。示例只展示同步，不含余额、负数、溢出等完整业务检查。必须避免把同一非递归 mutex 作为两把锁传入。",
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rconc-deadlock",
+    "entry_type": "实践",
+    "tags": [
+      "C++",
+      "进阶专题",
+      "异步与并发",
+      "scoped-lock"
+    ]
+  },
+  {
+    "id": "ref:cpp-advanced:jthread-stop",
+    "language": "C++",
+    "category": "异步与并发 / 取消",
+    "title": "jthread 的协作停止与自动 join",
+    "summary": "jthread 析构会请求停止并 join，但停止令牌需要工作线程主动检查。",
+    "syntax": "#include <thread>\n#include <stop_token>\n#include <chrono>\nstd::jthread worker([](std::stop_token stop) {\n  while (!stop.stop_requested())\n    std::this_thread::sleep_for(std::chrono::milliseconds(10));\n});\nworker.request_stop();",
+    "example": "#include <thread>\n#include <stop_token>\n#include <chrono>\nstd::jthread worker([](std::stop_token stop) {\n  while (!stop.stop_requested())\n    std::this_thread::sleep_for(std::chrono::milliseconds(10));\n});\nworker.request_stop();",
+    "notes": "版本前提：C++17；C++20 功能另行注明。\n要求 C++20 和支持的标准库。request_stop 不会强制中断阻塞系统调用；如果任务永远不检查令牌，析构仍可能长时间等待。",
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rconc-joining_thread",
+    "entry_type": "实践",
+    "tags": [
+      "C++",
+      "进阶专题",
+      "异步与并发",
+      "jthread-stop"
+    ]
+  },
+  {
+    "id": "ref:cpp-advanced:future-exception",
+    "language": "C++",
+    "category": "异步与并发 / 结果传递",
+    "title": "future.get 的异常与一次性取值",
+    "summary": "future.get 等待结果并可能重新抛出异步异常，成功或抛出后通常都消费该共享状态。",
+    "syntax": "#include <future>\n#include <stdexcept>\nauto f=std::async(std::launch::async, []()->int {\n  throw std::runtime_error(\"task failed\");\n});\ntry { (void)f.get(); } catch(const std::exception&) { /* 记录失败 */ }",
+    "example": "#include <future>\n#include <stdexcept>\nauto f=std::async(std::launch::async, []()->int {\n  throw std::runtime_error(\"task failed\");\n});\ntry { (void)f.get(); } catch(const std::exception&) { /* 记录失败 */ }",
+    "notes": "版本前提：C++17；C++20 功能另行注明。\nget 会重新抛出 runtime_error；后续 f 不再有效，不能再次调用 get。多消费者读取应考虑 shared_future，并另行设计同步和生命周期。",
+    "source": "https://eel.is/c++draft/futures.unique.future",
+    "entry_type": "实践",
+    "tags": [
+      "C++",
+      "进阶专题",
+      "异步与并发",
+      "future-exception"
+    ]
+  },
+  {
+    "id": "ref:cpp-advanced:span-lifetime",
+    "language": "C++",
+    "category": "内存与视图 / 非拥有接口",
+    "title": "span 不拥有底层数组",
+    "summary": "span 描述连续内存的地址和长度，不延长底层容器生命周期，也不抵抗 vector 重分配。",
+    "syntax": "#include <span>\n#include <vector>\nstd::vector<int> values{1,2,3};\nstd::span<int> view(values);\nview[0]=7;\n// values 扩容重分配后，旧 view 不能继续使用。",
+    "example": "#include <span>\n#include <vector>\nstd::vector<int> values{1,2,3};\nstd::span<int> view(values);\nview[0]=7;\n// values 扩容重分配后，旧 view 不能继续使用。",
+    "notes": "版本前提：C++17；C++20 功能另行注明。\n要求 C++20。view[0] 修改原 vector；span 的长度也不会随原容器增加元素而自动变化。C++20 的 operator[] 不提供异常式边界检查保证。",
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#SS-views",
+    "entry_type": "实践",
+    "tags": [
+      "C++",
+      "进阶专题",
+      "内存与视图",
+      "span-lifetime"
+    ]
+  },
+  {
+    "id": "ref:rust-advanced:cow",
+    "language": "Rust",
+    "category": "内存与所有权 / 按需拥有",
+    "title": "Cow 的借用与写时克隆",
+    "summary": "Cow 可在无需修改时借用数据，首次需要可变访问时才复制成拥有值。",
+    "syntax": "use std::borrow::Cow;\nlet source=\"abc\";\nlet mut text: Cow<'_, str> = Cow::Borrowed(source);\ntext.to_mut().push('!');\nassert_eq!(source,\"abc\");\nassert_eq!(text,\"abc!\");",
+    "example": "use std::borrow::Cow;\nlet source=\"abc\";\nlet mut text: Cow<'_, str> = Cow::Borrowed(source);\ntext.to_mut().push('!');\nassert_eq!(source,\"abc\");\nassert_eq!(text,\"abc!\");",
+    "notes": "版本前提：Rust 2024 edition，1.85+；示例需相应 use。\nto_mut 对 Borrowed 分配并复制；若已是 Owned 则直接返回可变引用。Cow 不等于共享可变引用，也不保证所有转换零分配。",
+    "source": "https://doc.rust-lang.org/std/borrow/enum.Cow.html",
+    "entry_type": "实践",
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "内存与所有权",
+      "cow"
+    ]
+  },
+  {
+    "id": "ref:rust-advanced:tryfrom",
+    "language": "Rust",
+    "category": "类型与错误 / 转换",
+    "title": "TryFrom 与 as 截断",
+    "summary": "有范围限制的整数转换应用 TryFrom 明确处理失败，as 可能按规则截断而非报错。",
+    "syntax": "let raw=300u16;\nlet checked=u8::try_from(raw);\nlet truncated=raw as u8;\nassert!(checked.is_err());\nassert_eq!(truncated,44);",
+    "example": "let raw=300u16;\nlet checked=u8::try_from(raw);\nlet truncated=raw as u8;\nassert!(checked.is_err());\nassert_eq!(truncated,44);",
+    "notes": "版本前提：Rust 2024 edition，1.85+；示例需相应 use。\nu8 范围为 0..=255。as 并非所有场景都错误，但不能把输入范围验证寄托于它；From 适用于约定的无失败转换。",
+    "source": "https://doc.rust-lang.org/std/convert/trait.TryFrom.html",
+    "entry_type": "实践",
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "类型与错误",
+      "tryfrom"
+    ]
+  },
+  {
+    "id": "ref:rust-advanced:error-source",
+    "language": "Rust",
+    "category": "类型与错误 / 错误链",
+    "title": "Error::source 与上下文包装",
+    "summary": "自定义错误可保留底层错误供 source 链追踪，避免只格式化成字符串而丢失结构。",
+    "syntax": "use std::{error::Error, fmt, io};\n#[derive(Debug)]\nstruct LoadError(io::Error);\nimpl fmt::Display for LoadError {\n fn fmt(&self,f:&mut fmt::Formatter<'_>)->fmt::Result { write!(f,\"配置读取失败\") }\n}\nimpl Error for LoadError {\n fn source(&self)->Option<&(dyn Error+'static)> { Some(&self.0) }\n}",
+    "example": "use std::{error::Error, fmt, io};\n#[derive(Debug)]\nstruct LoadError(io::Error);\nimpl fmt::Display for LoadError {\n fn fmt(&self,f:&mut fmt::Formatter<'_>)->fmt::Result { write!(f,\"配置读取失败\") }\n}\nimpl Error for LoadError {\n fn source(&self)->Option<&(dyn Error+'static)> { Some(&self.0) }\n}",
+    "notes": "版本前提：Rust 2024 edition，1.85+；示例需相应 use。\nDisplay 提供高层上下文，source 保留底层原因；From 转换和 ? 的支持需另行实现。",
+    "source": "https://doc.rust-lang.org/std/error/trait.Error.html",
+    "entry_type": "实践",
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "类型与错误",
+      "error-source"
+    ]
+  },
+  {
+    "id": "ref:rust-advanced:transpose",
+    "language": "Rust",
+    "category": "类型与错误 / 组合",
+    "title": "Option<Result<T,E>> 的 transpose",
+    "summary": "transpose 把可选操作与失败传播的层次交换，适合可选配置字段的解析。",
+    "syntax": "fn port(raw: Option<&str>) -> Result<Option<u16>, std::num::ParseIntError> {\n raw.map(str::parse::<u16>).transpose()\n}",
+    "example": "fn port(raw: Option<&str>) -> Result<Option<u16>, std::num::ParseIntError> {\n raw.map(str::parse::<u16>).transpose()\n}",
+    "notes": "版本前提：Rust 2024 edition，1.85+；示例需相应 use。\nNone 得到 Ok(None)，有效数字得到 Ok(Some(n))，解析失败得到 Err。缺失值与错误输入不应合并。",
+    "source": "https://doc.rust-lang.org/std/option/enum.Option.html#method.transpose",
+    "entry_type": "实践",
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "类型与错误",
+      "transpose"
+    ]
+  },
+  {
+    "id": "ref:rust-advanced:collect-result",
+    "language": "Rust",
+    "category": "迭代与错误 / 批处理",
+    "title": "collect Result 短路与完整错误收集",
+    "summary": "收集成 Result<Vec<_>,_> 遇到第一个 Err 就停止，不会收集全部错误。",
+    "syntax": "let input=[\"1\",\"bad\",\"3\"];\nlet values: Result<Vec<i32>,_> = input.iter().map(|s| s.parse()).collect();\nassert!(values.is_err());",
+    "example": "let input=[\"1\",\"bad\",\"3\"];\nlet values: Result<Vec<i32>,_> = input.iter().map(|s| s.parse()).collect();\nassert!(values.is_err());",
+    "notes": "版本前提：Rust 2024 edition，1.85+；示例需相应 use。\n短路意味着后续 map 副作用未必执行。逐项反馈应保留 Vec<Result<...>> 或分别汇总成功与失败。",
+    "source": "https://doc.rust-lang.org/std/result/enum.Result.html",
+    "entry_type": "实践",
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "迭代与错误",
+      "collect-result"
+    ]
+  },
+  {
+    "id": "ref:rust-advanced:slice-windows",
+    "language": "Rust",
+    "category": "集合与算法 / 切片",
+    "title": "windows 与 chunks 的重叠区别",
+    "summary": "windows 提供重叠窗口，chunks 提供不重叠分块，chunks_exact 另暴露余数。",
+    "syntax": "let a=[1,2,3,4,5];\nlet pairs: Vec<_> = a.windows(2).collect();\nlet mut chunks=a.chunks_exact(2);\nassert_eq!(chunks.next(),Some(&a[0..2]));\nassert_eq!(chunks.remainder(), &[5]);",
+    "example": "let a=[1,2,3,4,5];\nlet pairs: Vec<_> = a.windows(2).collect();\nlet mut chunks=a.chunks_exact(2);\nassert_eq!(chunks.next(),Some(&a[0..2]));\nassert_eq!(chunks.remainder(), &[5]);",
+    "notes": "版本前提：Rust 2024 edition，1.85+；示例需相应 use。\n长度不能为 0。remainder 是无法组成完整块的尾部，不是所有尚未消费的数据；windows 的共享重叠引用不能直接改成迭代可变引用。",
+    "source": "https://doc.rust-lang.org/std/primitive.slice.html#method.chunks_exact",
+    "entry_type": "实践",
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "集合与算法",
+      "slice-windows"
+    ]
+  },
+  {
+    "id": "ref:rust-advanced:split-mut",
+    "language": "Rust",
+    "category": "内存与所有权 / 可变拆分",
+    "title": "split_at_mut 证明区域不重叠",
+    "summary": "split_at_mut 安全地拆成两个不重叠可变切片，避免对同一容器重复借用。",
+    "syntax": "let mut a=[1,2,3,4];\nlet (left,right)=a.split_at_mut(2);\nleft[0]=10; right[0]=30;\nassert_eq!(a,[10,2,30,4]);",
+    "example": "let mut a=[1,2,3,4];\nlet (left,right)=a.split_at_mut(2);\nleft[0]=10; right[0]=30;\nassert_eq!(a,[10,2,30,4]);",
+    "notes": "版本前提：Rust 2024 edition，1.85+；示例需相应 use。\n拆分点不能大于长度；两个切片来自同一数组但元素范围不重叠。动态索引应先验证，不要用 unsafe 绕过检查。",
+    "source": "https://doc.rust-lang.org/std/primitive.slice.html#method.split_at_mut",
+    "entry_type": "实践",
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "内存与所有权",
+      "split-mut"
+    ]
+  },
+  {
+    "id": "ref:rust-advanced:entry-borrow",
+    "language": "Rust",
+    "category": "集合与所有权 / 借用边界",
+    "title": "Entry 可变借用与读取顺序",
+    "summary": "Entry 持有可变访问期间，不能再通过同一 map 获取冲突共享引用。",
+    "syntax": "use std::collections::HashMap;\nlet mut counts=HashMap::from([(\"a\",1)]);\nlet previous=counts.get(\"a\").copied().unwrap_or(0);\n*counts.entry(\"b\").or_insert(0)+=previous;",
+    "example": "use std::collections::HashMap;\nlet mut counts=HashMap::from([(\"a\",1)]);\nlet previous=counts.get(\"a\").copied().unwrap_or(0);\n*counts.entry(\"b\").or_insert(0)+=previous;",
+    "notes": "版本前提：Rust 2024 edition，1.85+；示例需相应 use。\n先读取并复制小值，再获取 Entry；大值可提取必要信息或缩短借用范围，不必克隆整个容器。",
+    "source": "https://doc.rust-lang.org/std/collections/hash_map/enum.Entry.html",
+    "entry_type": "实践",
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "集合与所有权",
+      "entry-borrow"
+    ]
+  },
+  {
+    "id": "ref:rust-advanced:weak-cycle",
+    "language": "Rust",
+    "category": "内存与所有权 / 引用计数",
+    "title": "Rc 循环与 Weak 回边",
+    "summary": "Rc 强引用环阻止计数归零；反向关联可用不维持所有权的 Weak。",
+    "syntax": "use std::rc::Rc;\nlet strong=Rc::new(String::from(\"node\"));\nlet weak=Rc::downgrade(&strong);\nassert!(weak.upgrade().is_some());\ndrop(strong);\nassert!(weak.upgrade().is_none());",
+    "example": "use std::rc::Rc;\nlet strong=Rc::new(String::from(\"node\"));\nlet weak=Rc::downgrade(&strong);\nassert!(weak.upgrade().is_some());\ndrop(strong);\nassert!(weak.upgrade().is_none());",
+    "notes": "版本前提：Rust 2024 edition，1.85+；示例需相应 use。\nRc 仅适于单线程；跨线程考虑 Arc 且仍需同步。Weak 不保证对象存活，要处理 upgrade 的 None。",
+    "source": "https://doc.rust-lang.org/book/ch15-06-reference-cycles.html",
+    "entry_type": "实践",
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "内存与所有权",
+      "weak-cycle"
+    ]
+  },
+  {
+    "id": "ref:rust-advanced:scoped-thread",
+    "language": "Rust",
+    "category": "异步与并发 / 生命周期",
+    "title": "作用域线程借用栈数据",
+    "summary": "thread::scope 等待作用域内线程结束后才返回，因此线程可借用外部非静态数据。",
+    "syntax": "let text=String::from(\"hello\");\nstd::thread::scope(|s| {\n s.spawn(|| assert_eq!(text.len(),5));\n});\nassert_eq!(text,\"hello\");",
+    "example": "let text=String::from(\"hello\");\nstd::thread::scope(|s| {\n s.spawn(|| assert_eq!(text.len(),5));\n});\nassert_eq!(text,\"hello\");",
+    "notes": "版本前提：Rust 2024 edition，1.85+；示例需相应 use。\n标准库 1.63+。作用域不自动允许多个线程无同步写同一数据，Send/Sync 和所有权约束仍生效。",
+    "source": "https://doc.rust-lang.org/std/thread/fn.scope.html",
+    "entry_type": "实践",
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "异步与并发",
+      "scoped-thread"
+    ]
+  },
+  {
+    "id": "ref:rust-advanced:once-lock",
+    "language": "Rust",
+    "category": "异步与并发 / 初始化",
+    "title": "OnceLock 单次初始化与重入风险",
+    "summary": "OnceLock 可在线程间共享延迟初始化值；初始化闭包 panic 不会使单元永久中毒。",
+    "syntax": "use std::sync::OnceLock;\nstatic NAME: OnceLock<String> = OnceLock::new();\nlet a=NAME.get_or_init(|| \"desk\".to_string());\nlet b=NAME.get_or_init(|| \"other\".to_string());\nassert_eq!(a,b);",
+    "example": "use std::sync::OnceLock;\nstatic NAME: OnceLock<String> = OnceLock::new();\nlet a=NAME.get_or_init(|| \"desk\".to_string());\nlet b=NAME.get_or_init(|| \"other\".to_string());\nassert_eq!(a,b);",
+    "notes": "版本前提：Rust 2024 edition，1.85+；示例需相应 use。\nOnceLock 1.70+。本例值为 desk；闭包不得重入初始化同一单元，否则可能死锁。不同首次调用者的配置语义要明确。",
+    "source": "https://doc.rust-lang.org/std/sync/struct.OnceLock.html",
+    "entry_type": "实践",
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "异步与并发",
+      "once-lock"
+    ]
+  },
+  {
+    "id": "ref:rust-advanced:atomic-ordering",
+    "language": "Rust",
+    "category": "异步与并发 / 内存序",
+    "title": "原子计数与其他数据的发布",
+    "summary": "Relaxed 可用于独立统计，借标志发布其他数据则需要完整同步设计。",
+    "syntax": "use std::sync::atomic::{AtomicUsize,Ordering};\nstatic HITS: AtomicUsize=AtomicUsize::new(0);\nHITS.fetch_add(1,Ordering::Relaxed);\nlet snapshot=HITS.load(Ordering::Relaxed);",
+    "example": "use std::sync::atomic::{AtomicUsize,Ordering};\nstatic HITS: AtomicUsize=AtomicUsize::new(0);\nHITS.fetch_add(1,Ordering::Relaxed);\nlet snapshot=HITS.load(Ordering::Relaxed);",
+    "notes": "版本前提：Rust 2024 edition，1.85+；示例需相应 use。\nsnapshot 不代表其他对象就绪。更强内存序不会使不合法别名自动安全，优先以 Mutex 或通道表达数据所有权。",
+    "source": "https://doc.rust-lang.org/std/sync/atomic/enum.Ordering.html",
+    "entry_type": "实践",
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "异步与并发",
+      "atomic-ordering"
+    ]
+  },
+  {
+    "id": "ref:rust-advanced:condvar-loop",
+    "language": "Rust",
+    "category": "异步与并发 / 条件等待",
+    "title": "Condvar 条件循环与锁关联",
+    "summary": "条件变量允许虚假唤醒，等待应检查由同一 mutex 保护的业务状态。",
+    "syntax": "use std::sync::{Mutex,Condvar};\nlet pair=(Mutex::new(false),Condvar::new());\n// 等待端片段，另需生产者设置 true 后通知\nlet (lock,cv)=&pair;\nlet guard=lock.lock().unwrap();\nlet _ready=cv.wait_while(guard, |ready| !*ready).unwrap();",
+    "example": "use std::sync::{Mutex,Condvar};\nlet pair=(Mutex::new(false),Condvar::new());\n// 等待端片段，另需生产者设置 true 后通知\nlet (lock,cv)=&pair;\nlet guard=lock.lock().unwrap();\nlet _ready=cv.wait_while(guard, |ready| !*ready).unwrap();",
+    "notes": "版本前提：Rust 2024 edition，1.85+；示例需相应 use。\n无生产者会一直等待。wait_while 释放锁进入等待，返回前重获锁并判断；unwrap 的中毒处理需按应用调整。",
+    "source": "https://doc.rust-lang.org/std/sync/struct.Condvar.html#method.wait_while",
+    "entry_type": "实践",
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "异步与并发",
+      "condvar-loop"
+    ]
+  },
+  {
+    "id": "ref:rust-advanced:pin-boundary",
+    "language": "Rust",
+    "category": "异步与并发 / Future 约束",
+    "title": "Pin 固定承诺与 Unpin",
+    "summary": "Pin 约束被固定目标不再被移动，不禁止移动指针变量，也不使任意自引用自动安全。",
+    "syntax": "use std::pin::Pin;\nlet mut pinned=Box::pin(String::from(\"abc\"));\nlet text: &mut String=Pin::as_mut(&mut pinned).get_mut();\ntext.push('!');",
+    "example": "use std::pin::Pin;\nlet mut pinned=Box::pin(String::from(\"abc\"));\nlet text: &mut String=Pin::as_mut(&mut pinned).get_mut();\ntext.push('!');",
+    "notes": "版本前提：Rust 2024 edition，1.85+；示例需相应 use。\nString 是 Unpin，因此可安全 get_mut；!Unpin 不能照抄。new_unchecked 等 unsafe 接口要求调用者维持固定契约直至析构。",
+    "source": "https://doc.rust-lang.org/std/pin/index.html",
+    "entry_type": "实践",
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "异步与并发",
+      "pin-boundary"
+    ]
+  },
+  {
+    "id": "ref:rust-advanced:cfg-feature",
+    "language": "Rust",
+    "category": "构建与工程 / 条件编译",
+    "title": "cfg! 与 cfg 属性的区别",
+    "summary": "cfg! 产生布尔值并保留两个分支；cfg 属性才选择性移除编译项目。",
+    "syntax": "#[cfg(target_os=\"windows\")]\nfn platform_name()->&'static str { \"windows\" }\n#[cfg(not(target_os=\"windows\"))]\nfn platform_name()->&'static str { \"other\" }",
+    "example": "#[cfg(target_os=\"windows\")]\nfn platform_name()->&'static str { \"windows\" }\n#[cfg(not(target_os=\"windows\"))]\nfn platform_name()->&'static str { \"other\" }",
+    "notes": "版本前提：Rust 2024 edition，1.85+；示例需相应 use。\nif cfg!(windows) 不阻止类型检查 Windows 专属引用；Cargo features 通常可叠加，不应无依据假定互斥。",
+    "source": "https://doc.rust-lang.org/reference/conditional-compilation.html",
+    "entry_type": "实践",
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "构建与工程",
+      "cfg-feature"
+    ]
+  },
+  {
+    "id": "ref:rust-advanced:doctest",
+    "language": "Rust",
+    "category": "构建与测试 / 文档示例",
+    "title": "文档测试与 compile_fail",
+    "summary": "文档代码块可成为测试，compile_fail 可记录预期无法通过编译的用法。",
+    "syntax": "/// ```\n/// assert_eq!(2 + 2, 4);\n/// ```\n/// ```compile_fail\n/// let mut n=1;\n/// let r=&n;\n/// n=2;\n/// println!(\"{r}\");\n/// ```\npub fn example() {}",
+    "example": "/// ```\n/// assert_eq!(2 + 2, 4);\n/// ```\n/// ```compile_fail\n/// let mut n=1;\n/// let r=&n;\n/// n=2;\n/// println!(\"{r}\");\n/// ```\npub fn example() {}",
+    "notes": "版本前提：Rust 2024 edition，1.85+；示例需相应 use。\n放在库公开项目文档中，cargo test --doc 执行。compile_fail 仅确认编译失败，其他语法错误也可能造成假验证。",
+    "source": "https://doc.rust-lang.org/rustdoc/write-documentation/documentation-tests.html",
+    "entry_type": "实践",
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "构建与测试",
+      "doctest"
+    ]
+  },
+  {
+    "id": "ref:go-advanced:channel-publication",
+    "language": "Go",
+    "category": "异步与并发 / 内存模型",
+    "title": "channel 传递与数据发布",
+    "summary": "channel 的发送与对应接收形成同步关系，但传递指针不意味着接收后可以继续无锁并发修改。",
+    "syntax": "type Data struct { Value int }\nch:=make(chan *Data)\ngo func(){\n d:=&Data{Value:42}\n ch<-d\n // 交出后不再修改 d\n}()\nd:=<-ch\nfmt.Println(d.Value)",
+    "example": "type Data struct { Value int }\nch:=make(chan *Data)\ngo func(){\n d:=&Data{Value:42}\n ch<-d\n // 交出后不再修改 d\n}()\nd:=<-ch\nfmt.Println(d.Value)",
+    "notes": "版本前提：Go 1.22+；特殊版本另行注明。\n片段需 fmt 并放入函数。打印 42；若发送后仍写 d.Value，可能与消费者读取竞争。通信可表达所有权约定，但 Go 不自动强制独占。",
+    "source": "https://go.dev/ref/mem#chan",
+    "entry_type": "实践",
+    "tags": [
+      "Go",
+      "进阶专题",
+      "异步与并发",
+      "channel-publication"
+    ]
+  },
+  {
+    "id": "ref:go-advanced:worker-pool",
+    "language": "Go",
+    "category": "异步与并发 / 批处理",
+    "title": "固定 worker 数与有界并发",
+    "summary": "固定数量工作协程消费任务队列，可避免每个输入都创建一个无限扩张的 goroutine。",
+    "syntax": "jobs:=make(chan int)\nvar wg sync.WaitGroup\nfor i:=0;i<3;i++ {\n wg.Add(1)\n go func(){ defer wg.Done(); for n:=range jobs { process(n) } }()\n}\nfor _,n:=range []int{1,2,3,4,5} { jobs<-n }\nclose(jobs)\nwg.Wait()",
+    "example": "jobs:=make(chan int)\nvar wg sync.WaitGroup\nfor i:=0;i<3;i++ {\n wg.Add(1)\n go func(){ defer wg.Done(); for n:=range jobs { process(n) } }()\n}\nfor _,n:=range []int{1,2,3,4,5} { jobs<-n }\nclose(jobs)\nwg.Wait()",
+    "notes": "版本前提：Go 1.22+；特殊版本另行注明。\n需 sync 和 process 定义；最大同时执行 process 的数量为 3。失败传播、取消与输出汇总仍须另外设计，只有发送端在全部发送后关闭 jobs。",
+    "source": "https://pkg.go.dev/sync#WaitGroup",
+    "entry_type": "实践",
+    "tags": [
+      "Go",
+      "进阶专题",
+      "异步与并发",
+      "worker-pool"
+    ]
+  },
+  {
+    "id": "ref:go-advanced:cancel-send",
+    "language": "Go",
+    "category": "异步与并发 / 泄漏防护",
+    "title": "可取消发送避免协程泄漏",
+    "summary": "消费者提前退出时，生产者若永久阻塞发送可能泄漏；select 可同时观察取消信号。",
+    "syntax": "func emit(ctx context.Context,out chan<- int,n int) error {\n select {\n case out<-n: return nil\n case <-ctx.Done(): return ctx.Err()\n }\n}",
+    "example": "func emit(ctx context.Context,out chan<- int,n int) error {\n select {\n case out<-n: return nil\n case <-ctx.Done(): return ctx.Err()\n }\n}",
+    "notes": "版本前提：Go 1.22+；特殊版本另行注明。\n需 context；若消费者退出须触发 cancel。多个分支同时就绪时 select 不保证取消优先；out 若被错误关闭，发送仍可能 panic。",
+    "source": "https://pkg.go.dev/context",
+    "entry_type": "实践",
+    "tags": [
+      "Go",
+      "进阶专题",
+      "异步与并发",
+      "cancel-send"
+    ]
+  },
+  {
+    "id": "ref:go-advanced:timer-version",
+    "language": "Go",
+    "category": "异步与并发 / 时间",
+    "title": "Timer Reset 与 Go 1.23 行为变化",
+    "summary": "基于通道的 Timer 在 Go 1.23 新语义下增强 Stop/Reset 保证，旧模块语义不能直接套用。",
+    "syntax": "timer:=time.NewTimer(time.Second)\ndefer timer.Stop()\nselect {\ncase <-timer.C: handleTimeout()\ncase <-ctx.Done(): return\n}",
+    "example": "timer:=time.NewTimer(time.Second)\ndefer timer.Stop()\nselect {\ncase <-timer.C: handleTimeout()\ncase <-ctx.Done(): return\n}",
+    "notes": "版本前提：Go 1.22+；特殊版本另行注明。\n需 time、ctx 和外围函数。Go 1.23+ 新定时器通道语义受主模块 go 指令和 GODEBUG=asynctimerchan 等设置影响；兼容旧语义时按文档正确停止和排空，勿无条件阻塞读取。",
+    "source": "https://go.dev/wiki/Go123Timer",
+    "entry_type": "实践",
+    "tags": [
+      "Go",
+      "进阶专题",
+      "异步与并发",
+      "timer-version"
+    ]
+  },
+  {
+    "id": "ref:go-advanced:http-server",
+    "language": "Go",
+    "category": "网络与服务 / 超时",
+    "title": "HTTP Server 头部超时与优雅关闭",
+    "summary": "显式设置服务器超时并调用 Shutdown，可限制部分资源占用并给进行中请求结束机会。",
+    "syntax": "srv:=&http.Server{\n Addr:\":8080\",Handler:mux,\n ReadHeaderTimeout:5*time.Second,\n IdleTimeout:60*time.Second,\n}\n// 另一个协程启动 ListenAndServe，收到退出信号后：\nctx,cancel:=context.WithTimeout(context.Background(),10*time.Second)\ndefer cancel()\nerr:=srv.Shutdown(ctx)",
+    "example": "srv:=&http.Server{\n Addr:\":8080\",Handler:mux,\n ReadHeaderTimeout:5*time.Second,\n IdleTimeout:60*time.Second,\n}\n// 另一个协程启动 ListenAndServe，收到退出信号后：\nctx,cancel:=context.WithTimeout(context.Background(),10*time.Second)\ndefer cancel()\nerr:=srv.Shutdown(ctx)",
+    "notes": "版本前提：Go 1.22+；特殊版本另行注明。\n需 net/http、time、context 和 mux。ReadHeaderTimeout 不限制整个业务执行时间；Shutdown 对 hijacked 连接等有独立处理边界，返回错误要记录。",
+    "source": "https://pkg.go.dev/net/http#Server.Shutdown",
+    "entry_type": "实践",
+    "tags": [
+      "Go",
+      "进阶专题",
+      "网络与服务",
+      "http-server"
+    ]
+  },
+  {
+    "id": "ref:go-advanced:http-client",
+    "language": "Go",
+    "category": "网络与服务 / 请求生命周期",
+    "title": "HTTP Client 复用与响应体关闭",
+    "summary": "Client 和 Transport 宜复用；每次成功获取响应后仍必须关闭 Body，并按需求限制读取量。",
+    "syntax": "client:=&http.Client{Timeout:5*time.Second}\nresp,err:=client.Get(\"https://example.com/\")\nif err!=nil { return err }\ndefer resp.Body.Close()\nif resp.StatusCode!=http.StatusOK { return fmt.Errorf(\"HTTP %d\",resp.StatusCode) }\nbody,err:=io.ReadAll(io.LimitReader(resp.Body,1<<20))",
+    "example": "client:=&http.Client{Timeout:5*time.Second}\nresp,err:=client.Get(\"https://example.com/\")\nif err!=nil { return err }\ndefer resp.Body.Close()\nif resp.StatusCode!=http.StatusOK { return fmt.Errorf(\"HTTP %d\",resp.StatusCode) }\nbody,err:=io.ReadAll(io.LimitReader(resp.Body,1<<20))",
+    "notes": "版本前提：Go 1.22+；特殊版本另行注明。\n片段位于返回 error 的函数；需 net/http、time、fmt、io。LimitReader 限制本次读量但不会证明完整响应小于限制；判断超限应多读一字节。读到 EOF 并关闭更利于复用，但不能无限排空恶意大响应。",
+    "source": "https://pkg.go.dev/net/http#Client",
+    "entry_type": "实践",
+    "tags": [
+      "Go",
+      "进阶专题",
+      "网络与服务",
+      "http-client"
+    ]
+  },
+  {
+    "id": "ref:go-advanced:sql-transaction",
+    "language": "Go",
+    "category": "数据库访问 / 事务",
+    "title": "sql.Tx 的同连接与提交错误",
+    "summary": "事务内操作必须通过 Tx 执行；用 DB 执行同名 SQL 不会自动加入当前事务。",
+    "syntax": "tx,err:=db.BeginTx(ctx,nil)\nif err!=nil { return err }\ndefer tx.Rollback()\nif _,err=tx.ExecContext(ctx,\"UPDATE stock SET qty=qty-1 WHERE id=? AND qty>0\",id); err!=nil { return err }\nreturn tx.Commit()",
+    "example": "tx,err:=db.BeginTx(ctx,nil)\nif err!=nil { return err }\ndefer tx.Rollback()\nif _,err=tx.ExecContext(ctx,\"UPDATE stock SET qty=qty-1 WHERE id=? AND qty>0\",id); err!=nil { return err }\nreturn tx.Commit()",
+    "notes": "版本前提：Go 1.22+；特殊版本另行注明。\n需 database/sql，db、ctx、id 已提供；问号占位符按驱动。本例还应检查影响行数确认扣减成功，Commit 错误不能吞掉；延迟 Rollback 在成功提交后返回 ErrTxDone 可忽略。",
+    "source": "https://pkg.go.dev/database/sql#Tx",
+    "entry_type": "实践",
+    "tags": [
+      "Go",
+      "进阶专题",
+      "数据库访问",
+      "sql-transaction"
+    ]
+  },
+  {
+    "id": "ref:go-advanced:sql-pool",
+    "language": "Go",
+    "category": "数据库访问 / 连接池",
+    "title": "连接池等待与未关闭 Rows",
+    "summary": "sql.DB 是并发连接池，限制连接数后未关闭 Rows 可能让后续查询长期等待。",
+    "syntax": "db.SetMaxOpenConns(4)\ndb.SetMaxIdleConns(2)\nrows,err:=db.QueryContext(ctx,\"SELECT id FROM items\")\nif err!=nil { return err }\ndefer rows.Close()\nfor rows.Next() {\n var id int\n if err:=rows.Scan(&id); err!=nil { return err }\n}\nreturn rows.Err()",
+    "example": "db.SetMaxOpenConns(4)\ndb.SetMaxIdleConns(2)\nrows,err:=db.QueryContext(ctx,\"SELECT id FROM items\")\nif err!=nil { return err }\ndefer rows.Close()\nfor rows.Next() {\n var id int\n if err:=rows.Scan(&id); err!=nil { return err }\n}\nreturn rows.Err()",
+    "notes": "版本前提：Go 1.22+；特殊版本另行注明。\n需已连接的 db 与 ctx。提前退出也要关闭 Rows；监控 DB.Stats 的 WaitCount、WaitDuration 等，盲目放大连接池可能加重数据库压力。",
+    "source": "https://pkg.go.dev/database/sql#DB.Stats",
+    "entry_type": "实践",
+    "tags": [
+      "Go",
+      "进阶专题",
+      "数据库访问",
+      "sql-pool"
+    ]
+  },
+  {
+    "id": "ref:go-advanced:embed-files",
+    "language": "Go",
+    "category": "构建与资源 / 内嵌文件",
+    "title": "go:embed 的构建期快照",
+    "summary": "go:embed 在构建时把匹配文件纳入程序，运行后修改源文件不会自动更新内嵌内容。",
+    "syntax": "package config\nimport _ \"embed\"\n//go:embed defaults.json\nvar defaults []byte",
+    "example": "package config\nimport _ \"embed\"\n//go:embed defaults.json\nvar defaults []byte",
+    "notes": "版本前提：Go 1.22+；特殊版本另行注明。\nGo 1.16+；defaults.json 必须存在于包目录允许的匹配范围；不能用 ../ 越过包目录。内嵌资源不是秘密保管方式。",
+    "source": "https://pkg.go.dev/embed",
+    "entry_type": "实践",
+    "tags": [
+      "Go",
+      "进阶专题",
+      "构建与资源",
+      "embed-files"
+    ]
+  },
+  {
+    "id": "ref:go-advanced:filepath-traversal",
+    "language": "Go",
+    "category": "文件与安全 / 路径",
+    "title": "filepath.Join 与目录穿越",
+    "summary": "Join/Clean 规范化路径但不验证业务边界；不可信相对路径还可能包含 .. 或经过符号链接逃逸。",
+    "syntax": "if !filepath.IsLocal(userPath) { return fmt.Errorf(\"invalid path\") }\npath:=filepath.Join(base,userPath)\n// 仍需按威胁模型处理符号链接及竞态。",
+    "example": "if !filepath.IsLocal(userPath) { return fmt.Errorf(\"invalid path\") }\npath:=filepath.Join(base,userPath)\n// 仍需按威胁模型处理符号链接及竞态。",
+    "notes": "版本前提：Go 1.22+；特殊版本另行注明。\nIsLocal 自 Go 1.20 提供，纯词法检查，不能识别符号链接目标。base 应为可信目录；本例不是对抗恶意本地文件系统的完整沙箱。",
+    "source": "https://pkg.go.dev/path/filepath#IsLocal",
+    "entry_type": "实践",
+    "tags": [
+      "Go",
+      "进阶专题",
+      "文件与安全",
+      "filepath-traversal"
+    ]
+  },
+  {
+    "id": "ref:go-advanced:errors-join",
+    "language": "Go",
+    "category": "错误与资源 / 多错误",
+    "title": "errors.Join 保留多条错误链",
+    "summary": "Join 可合并多个错误并保留 Is/As 查找能力，不等价于仅拼接消息。",
+    "syntax": "a:=errors.New(\"write\")\nb:=errors.New(\"close\")\nerr:=errors.Join(a,b)\nfmt.Println(errors.Is(err,a),errors.Is(err,b))",
+    "example": "a:=errors.New(\"write\")\nb:=errors.New(\"close\")\nerr:=errors.Join(a,b)\nfmt.Println(errors.Is(err,a),errors.Is(err,b))",
+    "notes": "版本前提：Go 1.22+；特殊版本另行注明。\nGo 1.20+。输出 true、true；Join 忽略 nil，全为 nil 时返回 nil。Error 字符串格式不宜作为错误身份判断协议。",
+    "source": "https://pkg.go.dev/errors#Join",
+    "entry_type": "实践",
+    "tags": [
+      "Go",
+      "进阶专题",
+      "错误与资源",
+      "errors-join"
+    ]
+  },
+  {
+    "id": "ref:go-advanced:atomic-value",
+    "language": "Go",
+    "category": "异步与并发 / 配置快照",
+    "title": "atomic.Value 发布不可变快照",
+    "summary": "atomic.Value 可原子替换完整配置值，但 Store 后继续修改 map 仍会造成竞争。",
+    "syntax": "var config atomic.Value\nconfig.Store(map[string]string{\"mode\":\"safe\"})\ncurrent:=config.Load().(map[string]string)\nfmt.Println(current[\"mode\"])\n// 更新时构造新 map 后 Store，发布后不再修改。",
+    "example": "var config atomic.Value\nconfig.Store(map[string]string{\"mode\":\"safe\"})\ncurrent:=config.Load().(map[string]string)\nfmt.Println(current[\"mode\"])\n// 更新时构造新 map 后 Store，发布后不再修改。",
+    "notes": "版本前提：Go 1.22+；特殊版本另行注明。\n需 sync/atomic 和 fmt；首次 Store 确定具体类型，后续不一致类型或 nil 会 panic。含 Value 的对象首次使用后不得复制。",
+    "source": "https://pkg.go.dev/sync/atomic#Value",
+    "entry_type": "实践",
+    "tags": [
+      "Go",
+      "进阶专题",
+      "异步与并发",
+      "atomic-value"
+    ]
+  },
+  {
+    "id": "ref:go-advanced:once-failure",
+    "language": "Go",
+    "category": "异步与并发 / 初始化",
+    "title": "sync.Once 的 panic 与重试边界",
+    "summary": "Once 保证 Do 的函数最多执行一次，即使函数 panic，也会视为已经执行过。",
+    "syntax": "var once sync.Once\nvar value string\ninitValue:=func(){ value=\"ready\" }\nonce.Do(initValue)\nonce.Do(func(){ value=\"again\" })\nfmt.Println(value)",
+    "example": "var once sync.Once\nvar value string\ninitValue:=func(){ value=\"ready\" }\nonce.Do(initValue)\nonce.Do(func(){ value=\"again\" })\nfmt.Println(value)",
+    "notes": "版本前提：Go 1.22+；特殊版本另行注明。\n输出 ready。需要失败后重试的初始化不能直接靠 Once 的再次 Do；可用锁保护的显式状态机区分未开始、失败、成功。",
+    "source": "https://pkg.go.dev/sync#Once",
+    "entry_type": "实践",
+    "tags": [
+      "Go",
+      "进阶专题",
+      "异步与并发",
+      "once-failure"
+    ]
+  },
+  {
+    "id": "ref:go-advanced:fuzz-test",
+    "language": "Go",
+    "category": "构建与测试 / 输入探索",
+    "title": "Fuzz 测试的性质与可复现种子",
+    "summary": "模糊测试围绕可验证性质探索输入，发现样例后应保存为回归证据。",
+    "syntax": "func FuzzRoundTrip(f *testing.F) {\n f.Add(\"hello\")\n f.Fuzz(func(t *testing.T,s string){\n  encoded:=hex.EncodeToString([]byte(s))\n  got,err:=hex.DecodeString(encoded)\n  if err!=nil || string(got)!=s { t.Fatal(\"round trip\") }\n })\n}",
+    "example": "func FuzzRoundTrip(f *testing.F) {\n f.Add(\"hello\")\n f.Fuzz(func(t *testing.T,s string){\n  encoded:=hex.EncodeToString([]byte(s))\n  got,err:=hex.DecodeString(encoded)\n  if err!=nil || string(got)!=s { t.Fatal(\"round trip\") }\n })\n}",
+    "notes": "版本前提：Go 1.22+；特殊版本另行注明。\nGo 1.18+，放 *_test.go 并导入 testing、encoding/hex；示例性质为字节往返。测试应确定、无共享状态且限定资源，不把未发现失败当作正确性证明。",
+    "source": "https://go.dev/doc/security/fuzz/",
+    "entry_type": "实践",
+    "tags": [
+      "Go",
+      "进阶专题",
+      "构建与测试",
+      "fuzz-test"
+    ]
+  },
+  {
+    "id": "ref:go-advanced:bench-allocation",
+    "language": "Go",
+    "category": "构建与测试 / 性能证据",
+    "title": "Benchmark 的分配量与对照条件",
+    "summary": "基准需避免编译器消除、覆盖真实工作量，并结合分配指标而非单次运行作结论。",
+    "syntax": "var sink string\nfunc BenchmarkJoin(b *testing.B) {\n b.ReportAllocs()\n for i:=0;i<b.N;i++ {\n  sink=strings.Join([]string{\"a\",\"b\",\"c\"},\",\")\n }\n}",
+    "example": "var sink string\nfunc BenchmarkJoin(b *testing.B) {\n b.ReportAllocs()\n for i:=0;i<b.N;i++ {\n  sink=strings.Join([]string{\"a\",\"b\",\"c\"},\",\")\n }\n}",
+    "notes": "版本前提：Go 1.22+；特殊版本另行注明。\n放 *_test.go，需 testing、strings；go test -bench=Join -benchmem。固定输入不代表生产分布，优化结论应比较相同环境与多次样本。",
+    "source": "https://pkg.go.dev/testing#hdr-Benchmarks",
+    "entry_type": "实践",
+    "tags": [
+      "Go",
+      "进阶专题",
+      "构建与测试",
+      "bench-allocation"
+    ]
+  },
+  {
+    "id": "ref:go-advanced:json-numbers",
+    "language": "Go",
+    "category": "文本与数据 / JSON",
+    "title": "JSON 数字精度与 UseNumber",
+    "summary": "解码到 interface{} 时数字默认变 float64，大整数可能失去精度；UseNumber 保留数字文本供检查转换。",
+    "syntax": "dec:=json.NewDecoder(strings.NewReader(`{\"id\":9007199254740993}`))\ndec.UseNumber()\nvar obj map[string]any\nif err:=dec.Decode(&obj); err!=nil { return err }\nid,err:=obj[\"id\"].(json.Number).Int64()",
+    "example": "dec:=json.NewDecoder(strings.NewReader(`{\"id\":9007199254740993}`))\ndec.UseNumber()\nvar obj map[string]any\nif err:=dec.Decode(&obj); err!=nil { return err }\nid,err:=obj[\"id\"].(json.Number).Int64()",
+    "notes": "版本前提：Go 1.22+；特殊版本另行注明。\n需 encoding/json、strings；已知 id 存在且为数字才能直接断言，真实输入须检查类型。UseNumber 不保证数字可装入 int64，仍要检查转换 err。",
+    "source": "https://pkg.go.dev/encoding/json#Decoder.UseNumber",
+    "entry_type": "实践",
+    "tags": [
+      "Go",
+      "进阶专题",
+      "文本与数据",
+      "json-numbers"
+    ]
+  },
+  {
+    "id": "ref:linux-advanced:heredoc",
+    "language": "Linux",
+    "category": "Shell 脚本 / 引用",
+    "title": "带引号 heredoc 与变量展开",
+    "summary": "heredoc 的分隔符是否带引号决定正文是否进行参数和命令替换。",
+    "syntax": "name=desk\ncat <<'EOF'\n$name $(date)\nEOF\ncat <<EOF\n$name\nEOF",
+    "example": "name=desk\ncat <<'EOF'\n$name $(date)\nEOF\ncat <<EOF\n$name\nEOF",
+    "notes": "版本前提：GNU/Linux；Bash 5.x，其他工具另行注明。\nBash；第一段原样输出 $name $(date)，第二段输出 desk。生成配置或脚本时按需要选择展开，不能把不可信内容当代码拼接。",
+    "source": "https://www.gnu.org/software/bash/manual/html_node/Here-Documents.html",
+    "entry_type": "实践",
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "Shell 脚本",
+      "heredoc"
+    ]
+  },
+  {
+    "id": "ref:linux-advanced:read-lines",
+    "language": "Linux",
+    "category": "Shell 脚本 / 文本边界",
+    "title": "while IFS= read -r 保留行内容",
+    "summary": "读取文本行时清空 IFS、使用 -r，并处理末行没有换行，避免无意剥离空白和反斜杠。",
+    "syntax": "while IFS= read -r line || [[ -n \"$line\" ]]; do\n  printf '<%s>\\n' \"$line\"\ndone < input.txt",
+    "example": "while IFS= read -r line || [[ -n \"$line\" ]]; do\n  printf '<%s>\\n' \"$line\"\ndone < input.txt",
+    "notes": "版本前提：GNU/Linux；Bash 5.x，其他工具另行注明。\nBash；适合文本而非含 NUL 的任意二进制。相比 cat input|while，输入重定向避免循环在常见管道子 shell 中丢失变量更新。",
+    "source": "https://www.gnu.org/software/bash/manual/html_node/Bash-Builtins.html",
+    "entry_type": "实践",
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "Shell 脚本",
+      "read-lines"
+    ]
+  },
+  {
+    "id": "ref:linux-advanced:bash-arrays",
+    "language": "Linux",
+    "category": "Shell 脚本 / 参数边界",
+    "title": "Bash 数组保持参数边界",
+    "summary": "数组配合 \"${args[@]}\" 可保留每个参数，避免空格、通配符被再次拆分或扩展。",
+    "syntax": "files=(\"report 1.txt\" \"*.log\")\nprintf '<%s>\\n' \"${files[@]}\"",
+    "example": "files=(\"report 1.txt\" \"*.log\")\nprintf '<%s>\\n' \"${files[@]}\"",
+    "notes": "版本前提：GNU/Linux；Bash 5.x，其他工具另行注明。\nBash 数组不是 POSIX sh 语法。输出两个参数 report 1.txt 与字面量 *.log；不要用 eval 执行数组拼接成的命令字符串。",
+    "source": "https://www.gnu.org/software/bash/manual/html_node/Arrays.html",
+    "entry_type": "实践",
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "Shell 脚本",
+      "bash-arrays"
+    ]
+  },
+  {
+    "id": "ref:linux-advanced:getopts",
+    "language": "Linux",
+    "category": "Shell 脚本 / 接口",
+    "title": "getopts 解析选项与移除已消费参数",
+    "summary": "getopts 可处理短选项与带值选项，OPTIND 标记已消费位置，重复解析前需重置。",
+    "syntax": "while getopts \":o:v\" opt; do\n  case \"$opt\" in\n    o) output=$OPTARG ;;\n    v) verbose=1 ;;\n    :) printf '缺少参数: -%s\\n' \"$OPTARG\" >&2; exit 2 ;;\n    \\?) printf '未知选项: -%s\\n' \"$OPTARG\" >&2; exit 2 ;;\n  esac\ndone\nshift \"$((OPTIND-1))\"",
+    "example": "while getopts \":o:v\" opt; do\n  case \"$opt\" in\n    o) output=$OPTARG ;;\n    v) verbose=1 ;;\n    :) printf '缺少参数: -%s\\n' \"$OPTARG\" >&2; exit 2 ;;\n    \\?) printf '未知选项: -%s\\n' \"$OPTARG\" >&2; exit 2 ;;\n  esac\ndone\nshift \"$((OPTIND-1))\"",
+    "notes": "版本前提：GNU/Linux；Bash 5.x，其他工具另行注明。\nBash 内建；-o 需要参数，-v 不需要。开头冒号启用静默错误模式；getopts 不自动实现 GNU 风格长选项。",
+    "source": "https://www.gnu.org/software/bash/manual/html_node/Bourne-Shell-Builtins.html",
+    "entry_type": "实践",
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "Shell 脚本",
+      "getopts"
+    ]
+  },
+  {
+    "id": "ref:linux-advanced:trap-temp",
+    "language": "Linux",
+    "category": "Shell 脚本 / 资源清理",
+    "title": "mktemp 与 EXIT trap 清理",
+    "summary": "mktemp 安全创建临时文件，EXIT trap 在常规退出时清理；不要用可预测文件名冒充安全临时路径。",
+    "syntax": "tmp=$(mktemp) || exit 1\ntrap 'rm -f -- \"$tmp\"' EXIT\nprintf 'temporary\\n' > \"$tmp\"\ncat -- \"$tmp\"",
+    "example": "tmp=$(mktemp) || exit 1\ntrap 'rm -f -- \"$tmp\"' EXIT\nprintf 'temporary\\n' > \"$tmp\"\ncat -- \"$tmp\"",
+    "notes": "版本前提：GNU/Linux；Bash 5.x，其他工具另行注明。\nGNU mktemp、Bash；仅删除本次已创建的临时文件。SIGKILL 和机器断电不能保证执行 trap；不要把该模式扩成未经边界验证的递归清理。",
+    "source": "https://www.gnu.org/software/coreutils/manual/html_node/mktemp-invocation.html",
+    "entry_type": "实践",
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "Shell 脚本",
+      "trap-temp"
+    ]
+  },
+  {
+    "id": "ref:linux-advanced:flock",
+    "language": "Linux",
+    "category": "Shell 脚本 / 并发控制",
+    "title": "flock 锁文件描述符与单实例",
+    "summary": "flock 对打开的文件描述符加建议锁，可防同一任务重入；所有参与者必须遵守同一锁协议。",
+    "syntax": "(\n  flock -n 9 || exit 1\n  printf 'running\\n'\n  # 在此执行需互斥的任务\n) 9>./job.lock",
+    "example": "(\n  flock -n 9 || exit 1\n  printf 'running\\n'\n  # 在此执行需互斥的任务\n) 9>./job.lock",
+    "notes": "版本前提：GNU/Linux；Bash 5.x，其他工具另行注明。\nutil-linux flock；锁覆盖子 shell 生命周期。锁定期间删除并重建锁文件会更换 inode，使不同进程锁住不同对象；网络文件系统语义需另核对。",
+    "source": "https://github.com/util-linux/util-linux/blob/master/sys-utils/flock.1.adoc",
+    "entry_type": "实践",
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "Shell 脚本",
+      "flock"
+    ]
+  },
+  {
+    "id": "ref:linux-advanced:timeout",
+    "language": "Linux",
+    "category": "进程与排障 / 时间边界",
+    "title": "timeout 的退出码与强制结束后备",
+    "summary": "timeout 限制命令运行时间，超时状态与命令自身失败要区分，并可设 TERM 后的 KILL 后备。",
+    "syntax": "timeout --signal=TERM --kill-after=2s 5s sleep 30\nstatus=$?\nprintf 'status=%s\\n' \"$status\"",
+    "example": "timeout --signal=TERM --kill-after=2s 5s sleep 30\nstatus=$?\nprintf 'status=%s\\n' \"$status\"",
+    "notes": "版本前提：GNU/Linux；Bash 5.x，其他工具另行注明。\nGNU coreutils；本例通常为超时状态 124，若涉及 KILL 可见 137 等；--preserve-status 改变状态策略。不能把超时等同于操作已回滚。",
+    "source": "https://www.gnu.org/software/coreutils/manual/html_node/timeout-invocation.html",
+    "entry_type": "实践",
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "进程与排障",
+      "timeout"
+    ]
+  },
+  {
+    "id": "ref:linux-advanced:inode-stat",
+    "language": "Linux",
+    "category": "文件与存储 / 标识",
+    "title": "inode、设备号与硬链接计数",
+    "summary": "inode 需结合设备号标识同一时刻的文件对象；路径不同不一定代表不同内容对象。",
+    "syntax": "stat -c 'device=%d inode=%i links=%h size=%s name=%n' -- file.txt\nls -li -- file.txt",
+    "example": "stat -c 'device=%d inode=%i links=%h size=%s name=%n' -- file.txt\nls -li -- file.txt",
+    "notes": "版本前提：GNU/Linux；Bash 5.x，其他工具另行注明。\nGNU stat。inode 可在删除后被复用，不是永久业务 ID；符号链接与目标要区分，stat -L 跟随链接，默认行为另见工具文档。",
+    "source": "https://www.gnu.org/software/coreutils/manual/html_node/stat-invocation.html",
+    "entry_type": "实践",
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "文件与存储",
+      "inode-stat"
+    ]
+  },
+  {
+    "id": "ref:linux-advanced:deleted-open",
+    "language": "Linux",
+    "category": "文件与存储 / 空间排障",
+    "title": "已删除但仍打开的文件占用空间",
+    "summary": "unlink 删除目录项，但仍被进程打开的文件可继续占用空间，直到相关引用释放。",
+    "syntax": "df -h\ndu -xsh /var/log\nlsof +L1",
+    "example": "df -h\ndu -xsh /var/log\nlsof +L1",
+    "notes": "版本前提：GNU/Linux；Bash 5.x，其他工具另行注明。\n需 lsof，部分进程信息可能需授权读取。df/du 差异还有挂载、稀疏文件、保留空间等原因；先定位进程与业务，再按应用支持方式轮转/重开日志。",
+    "source": "https://www.gnu.org/software/libc/manual/html_node/Deleting-Files.html",
+    "entry_type": "实践",
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "文件与存储",
+      "deleted-open"
+    ]
+  },
+  {
+    "id": "ref:linux-advanced:acl-mask",
+    "language": "Linux",
+    "category": "文件与权限 / ACL",
+    "title": "ACL mask 限制命名用户权限",
+    "summary": "POSIX ACL 的 mask 会限制命名用户、命名组与所属组的有效权限，不能只看某一条 rwx。",
+    "syntax": "getfacl -- report.txt\n# 可能看到：\n# user:alice:rw-\n# mask::r--\n# 对 alice 的有效权限仅 r--",
+    "example": "getfacl -- report.txt\n# 可能看到：\n# user:alice:rw-\n# mask::r--\n# 对 alice 的有效权限仅 r--",
+    "notes": "版本前提：GNU/Linux；Bash 5.x，其他工具另行注明。\n需 Linux ACL 工具；文件拥有者和 other 不受该 mask 同样约束。chmod 的组权限修改可能改变 mask，修改前后应核对 getfacl。",
+    "source": "https://git.savannah.nongnu.org/cgit/acl.git/tree/man/man5/acl.5",
+    "entry_type": "实践",
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "文件与权限",
+      "acl-mask"
+    ]
+  },
+  {
+    "id": "ref:linux-advanced:setgid-sticky",
+    "language": "Linux",
+    "category": "文件与权限 / 共享目录",
+    "title": "setgid 组继承与 sticky 删除约束",
+    "summary": "目录 setgid 影响新建对象组归属，sticky 限制共享目录中删除/重命名他人文件，二者不等价。",
+    "syntax": "stat -c 'mode=%A (%a) owner=%U group=%G' -- /tmp /srv/shared\n# 常见示意：共享组目录 2770；公共临时目录 1777",
+    "example": "stat -c 'mode=%A (%a) owner=%U group=%G' -- /tmp /srv/shared\n# 常见示意：共享组目录 2770；公共临时目录 1777",
+    "notes": "版本前提：GNU/Linux；Bash 5.x，其他工具另行注明。\n示例只查看权限，/srv/shared 须存在。sticky 不禁止修改本来有写权限的文件内容；root 等特权行为另有例外。",
+    "source": "https://www.gnu.org/software/coreutils/manual/html_node/Directory-Setuid-and-Setgid.html",
+    "entry_type": "实践",
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "文件与权限",
+      "setgid-sticky"
+    ]
+  },
+  {
+    "id": "ref:linux-advanced:link-semantics",
+    "language": "Linux",
+    "category": "文件与存储 / 链接",
+    "title": "硬链接与符号链接的失效边界",
+    "summary": "硬链接指向同一文件对象，符号链接保存路径；目标路径被删后两者行为不同。",
+    "syntax": "# 在受控示例目录准备 source.txt\nln -- source.txt hard.txt\nln -s -- source.txt soft.txt\nstat -c '%i %h %n' -- source.txt hard.txt\nreadlink -- soft.txt",
+    "example": "# 在受控示例目录准备 source.txt\nln -- source.txt hard.txt\nln -s -- source.txt soft.txt\nstat -c '%i %h %n' -- source.txt hard.txt\nreadlink -- soft.txt",
+    "notes": "版本前提：GNU/Linux；Bash 5.x，其他工具另行注明。\n普通硬链接通常不能跨文件系统，也不允许随意硬链接目录。相对符号链接以链接所在目录为基准，不是运行命令时的工作目录。",
+    "source": "https://www.gnu.org/software/coreutils/manual/html_node/ln-invocation.html",
+    "entry_type": "实践",
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "文件与存储",
+      "link-semantics"
+    ]
+  },
+  {
+    "id": "ref:linux-advanced:systemd-dropin",
+    "language": "Linux",
+    "category": "服务与日志 / 配置",
+    "title": "systemd drop-in 与 daemon-reload",
+    "summary": "服务覆盖配置可放 drop-in；重新读取 unit 配置与重启服务是不同动作。",
+    "syntax": "systemctl cat example.service\nsystemctl show example.service -p FragmentPath -p DropInPaths -p NeedDaemonReload\n# 编辑 drop-in 后需 daemon-reload；是否 restart 按变更和业务窗口决定。",
+    "example": "systemctl cat example.service\nsystemctl show example.service -p FragmentPath -p DropInPaths -p NeedDaemonReload\n# 编辑 drop-in 后需 daemon-reload；是否 restart 按变更和业务窗口决定。",
+    "notes": "版本前提：GNU/Linux；Bash 5.x，其他工具另行注明。\n适用于 systemd 主机，example.service 替换为实际 unit。不要直接修改包管理器维护的原始 unit；daemon-reload 不重启服务，也不重载应用自身配置。",
+    "source": "https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html",
+    "entry_type": "实践",
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "服务与日志",
+      "systemd-dropin"
+    ]
+  },
+  {
+    "id": "ref:linux-advanced:journal-boot",
+    "language": "Linux",
+    "category": "服务与日志 / 排障证据",
+    "title": "journalctl 按启动与时间定位",
+    "summary": "日志需明确启动批次、服务与时间范围，避免混合旧进程错误误判当前状态。",
+    "syntax": "journalctl --list-boots\njournalctl -b -u example.service --since \"2026-10-23 09:00:00\" --until \"2026-10-23 10:00:00\" --no-pager",
+    "example": "journalctl --list-boots\njournalctl -b -u example.service --since \"2026-10-23 09:00:00\" --until \"2026-10-23 10:00:00\" --no-pager",
+    "notes": "版本前提：GNU/Linux；Bash 5.x，其他工具另行注明。\nsystemd journal，时间按主机配置解释；需核对时区，替换为实际事件时间。跨重启历史是否存在取决于持久化及保留策略，空日志不证明事件未发生。",
+    "source": "https://www.freedesktop.org/software/systemd/man/latest/journalctl.html",
+    "entry_type": "实践",
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "服务与日志",
+      "journal-boot"
+    ]
+  },
+  {
+    "id": "ref:linux-advanced:proc-limits",
+    "language": "Linux",
+    "category": "进程与排障 / 资源上限",
+    "title": "进程 limits 与当前 shell 的 ulimit",
+    "summary": "当前 shell 的 ulimit 不代表已运行服务的资源上限，应查看目标进程实际 limits。",
+    "syntax": "pid=1234  # 替换为确认的服务 PID\ncat -- \"/proc/$pid/limits\"\nls -- \"/proc/$pid/fd\"\nsystemctl show example.service -p LimitNOFILE",
+    "example": "pid=1234  # 替换为确认的服务 PID\ncat -- \"/proc/$pid/limits\"\nls -- \"/proc/$pid/fd\"\nsystemctl show example.service -p LimitNOFILE",
+    "notes": "版本前提：GNU/Linux；Bash 5.x，其他工具另行注明。\nLinux /proc 与 systemd；PID 需核实且可能退出/复用。文件描述符耗尽还应区分每进程上限、系统级限制和应用泄漏。",
+    "source": "https://docs.kernel.org/filesystems/proc.html",
+    "entry_type": "实践",
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "进程与排障",
+      "proc-limits"
+    ]
+  },
+  {
+    "id": "ref:linux-advanced:nice-ionice",
+    "language": "Linux",
+    "category": "进程与排障 / 调度",
+    "title": "nice 与 ionice 的作用边界",
+    "summary": "nice 调整 CPU 调度优先级，ionice 影响支持的 I/O 调度优先级，都不是硬性资源配额。",
+    "syntax": "ps -eo pid,ni,comm --sort=ni\nionice -p 1234\n# 只读观察；1234 替换为确认的目标 PID。",
+    "example": "ps -eo pid,ni,comm --sort=ni\nionice -p 1234\n# 只读观察；1234 替换为确认的目标 PID。",
+    "notes": "版本前提：GNU/Linux；Bash 5.x，其他工具另行注明。\nprocps 与 util-linux；I/O 优先级效果取决于设备和调度器。nice 值较大通常更谦让，不保证固定 CPU 百分比；严格限额需另看 cgroup 等机制。",
+    "source": "https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html",
+    "entry_type": "实践",
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "进程与排障",
+      "nice-ionice"
+    ]
+  },
+  {
+    "id": "ref:mysql-advanced:clustered-index",
+    "language": "MySQL",
+    "category": "索引与执行 / 存储结构",
+    "title": "聚簇索引与二级索引回表",
+    "summary": "InnoDB 主键聚簇索引叶子保存行，二级索引记录包含主键值，非覆盖查询可能需要回表。",
+    "syntax": "CREATE TABLE item (\n id BIGINT PRIMARY KEY,\n sku VARCHAR(64) NOT NULL,\n description TEXT,\n KEY idx_sku(sku)\n) ENGINE=InnoDB;\nEXPLAIN SELECT description FROM item WHERE sku='A';",
+    "example": "CREATE TABLE item (\n id BIGINT PRIMARY KEY,\n sku VARCHAR(64) NOT NULL,\n description TEXT,\n KEY idx_sku(sku)\n) ENGINE=InnoDB;\nEXPLAIN SELECT description FROM item WHERE sku='A';",
+    "notes": "版本前提：MySQL 8.0 / InnoDB；特殊版本另行注明。\n示例表在隔离演练库创建。查询 description 时 idx_sku 通常不能覆盖；具体计划依数据和统计信息。宽主键会增加二级索引开销，但不是不经验证就更换主键的理由。",
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/innodb-index-types.html",
+    "entry_type": "实践",
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "索引与执行",
+      "clustered-index"
+    ]
+  },
+  {
+    "id": "ref:mysql-advanced:next-key",
+    "language": "MySQL",
+    "category": "事务与锁 / 范围锁",
+    "title": "next-key lock 与唯一点查边界",
+    "summary": "RR 下范围锁定读通常涉及记录和间隙，锁定范围取决于实际扫描索引，而不只返回的行。",
+    "syntax": "CREATE TABLE score(id INT PRIMARY KEY, points INT, KEY idx_points(points)) ENGINE=InnoDB;\nSTART TRANSACTION;\nSELECT * FROM score WHERE points BETWEEN 10 AND 20 FOR UPDATE;\n-- 观察锁后在本会话 ROLLBACK；勿遗留事务。",
+    "example": "CREATE TABLE score(id INT PRIMARY KEY, points INT, KEY idx_points(points)) ENGINE=InnoDB;\nSTART TRANSACTION;\nSELECT * FROM score WHERE points BETWEEN 10 AND 20 FOR UPDATE;\n-- 观察锁后在本会话 ROLLBACK；勿遗留事务。",
+    "notes": "版本前提：MySQL 8.0 / InnoDB；特殊版本另行注明。\n隔离库，RR；需另会话预置数据并按索引实际扫描观察。完整唯一键匹配已存在记录时通常只需记录锁；未命中、非唯一范围和 RC 规则不可混同。",
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html",
+    "entry_type": "实践",
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "事务与锁",
+      "next-key"
+    ]
+  },
+  {
+    "id": "ref:mysql-advanced:snapshot-locking",
+    "language": "MySQL",
+    "category": "事务与锁 / 读取语义",
+    "title": "快照读与锁定读不是同一视图",
+    "summary": "RR 一致性读可复用快照，而锁定读需要读取并锁定可用的新版本，混用时可能看到不同状态。",
+    "syntax": "-- 会话 A，RR；items(id PRIMARY KEY, qty INT) 已有 id=1\nSTART TRANSACTION;\nSELECT qty FROM items WHERE id=1;\n-- 会话 B 更新并提交该行后\nSELECT qty FROM items WHERE id=1 FOR UPDATE;\nROLLBACK;",
+    "example": "-- 会话 A，RR；items(id PRIMARY KEY, qty INT) 已有 id=1\nSTART TRANSACTION;\nSELECT qty FROM items WHERE id=1;\n-- 会话 B 更新并提交该行后\nSELECT qty FROM items WHERE id=1 FOR UPDATE;\nROLLBACK;",
+    "notes": "版本前提：MySQL 8.0 / InnoDB；特殊版本另行注明。\n仅隔离测试库；普通 START TRANSACTION 一般不在该语句时自动建立所有一致性读快照，首次一致性读或 WITH CONSISTENT SNAPSHOT 等影响建立时点。事务自己的修改可被自己看到。",
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/innodb-consistent-read.html",
+    "entry_type": "实践",
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "事务与锁",
+      "snapshot-locking"
+    ]
+  },
+  {
+    "id": "ref:mysql-advanced:deadlock-retry",
+    "language": "MySQL",
+    "category": "事务与锁 / 失败恢复",
+    "title": "死锁回滚与整事务有界重试",
+    "summary": "InnoDB 检测死锁后选择牺牲事务回滚，调用端应按错误类型和业务幂等性有界重试整个事务。",
+    "syntax": "-- 两会话若按相反顺序锁 id=1、id=2，可能死锁\nSTART TRANSACTION;\nSELECT id FROM accounts WHERE id IN (1,2) ORDER BY id FOR UPDATE;\n-- 执行业务并检查结果\nCOMMIT;",
+    "example": "-- 两会话若按相反顺序锁 id=1、id=2，可能死锁\nSTART TRANSACTION;\nSELECT id FROM accounts WHERE id IN (1,2) ORDER BY id FOR UPDATE;\n-- 执行业务并检查结果\nCOMMIT;",
+    "notes": "版本前提：MySQL 8.0 / InnoDB；特殊版本另行注明。\n隔离库，accounts 的 id 为主键；尽量统一加锁顺序并缩短事务，但仍需处理死锁。锁等待超时默认可能只回滚当前语句，不能把两种错误的回滚边界一概而论。",
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/innodb-deadlocks-handling.html",
+    "entry_type": "实践",
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "事务与锁",
+      "deadlock-retry"
+    ]
+  },
+  {
+    "id": "ref:mysql-advanced:optimistic-version",
+    "language": "MySQL",
+    "category": "事务与锁 / 乐观并发",
+    "title": "版本号 CAS 更新与冲突检查",
+    "summary": "带旧版本条件的 UPDATE 可检测并发覆盖，必须用影响行数区分成功与冲突。",
+    "syntax": "UPDATE document\nSET body='new', version=version+1\nWHERE id=42 AND version=7;\n-- 应由驱动检查影响行数是否恰为 1。",
+    "example": "UPDATE document\nSET body='new', version=version+1\nWHERE id=42 AND version=7;\n-- 应由驱动检查影响行数是否恰为 1。",
+    "notes": "版本前提：MySQL 8.0 / InnoDB；特殊版本另行注明。\ndocument(id PRIMARY KEY, body TEXT, version BIGINT NOT NULL) 已存在，version 从合法值开始且未溢出。影响行数 0 也可能是记录不存在；需按业务区分，不应直接覆盖重试。",
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/update.html",
+    "entry_type": "实践",
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "事务与锁",
+      "optimistic-version"
+    ]
+  },
+  {
+    "id": "ref:mysql-advanced:skip-locked",
+    "language": "MySQL",
+    "category": "事务与锁 / 工作队列",
+    "title": "SKIP LOCKED 与不完整结果",
+    "summary": "SKIP LOCKED 跳过已锁行，适合竞争领取任务，但不提供完整一致的业务结果集。",
+    "syntax": "START TRANSACTION;\nSELECT id FROM jobs WHERE status='ready'\nORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED;\n-- 通过同连接把选中 id 改为 running，再 COMMIT；没选中也要结束事务。",
+    "example": "START TRANSACTION;\nSELECT id FROM jobs WHERE status='ready'\nORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED;\n-- 通过同连接把选中 id 改为 running，再 COMMIT；没选中也要结束事务。",
+    "notes": "版本前提：MySQL 8.0 / InnoDB；特殊版本另行注明。\nMySQL 8.0+；jobs 有主键及适合 status,id 的索引。领取、状态变化、提交需同事务；任务还需超时回收和幂等执行。不能用于要求精确总量的余额/报表读取。",
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/innodb-locking-reads.html",
+    "entry_type": "实践",
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "事务与锁",
+      "skip-locked"
+    ]
+  },
+  {
+    "id": "ref:mysql-advanced:ddl-commit",
+    "language": "MySQL",
+    "category": "事务与锁 / DDL 边界",
+    "title": "DDL 隐式提交与 atomic DDL",
+    "summary": "许多 DDL 会隐式提交；atomic DDL 不等于用户可以用 ROLLBACK 撤回已执行的建表。",
+    "syntax": "-- 仅隔离演练库\nSTART TRANSACTION;\nINSERT INTO audit_log(message) VALUES ('before ddl');\nCREATE TABLE demo(id INT PRIMARY KEY);\nROLLBACK;",
+    "example": "-- 仅隔离演练库\nSTART TRANSACTION;\nINSERT INTO audit_log(message) VALUES ('before ddl');\nCREATE TABLE demo(id INT PRIMARY KEY);\nROLLBACK;",
+    "notes": "版本前提：MySQL 8.0 / InnoDB；特殊版本另行注明。\naudit_log 预先存在且 InnoDB，demo 不存在；普通 CREATE TABLE 涉及隐式提交，插入可能已提交且 demo 不会由最后 ROLLBACK 撤销。临时表 DDL 有特殊边界，不能泛化。",
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/implicit-commit.html",
+    "entry_type": "实践",
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "事务与锁",
+      "ddl-commit"
+    ]
+  },
+  {
+    "id": "ref:mysql-advanced:foreign-index",
+    "language": "MySQL",
+    "category": "建模与约束 / 外键",
+    "title": "外键索引与删除级联边界",
+    "summary": "外键涉及引用侧索引和父表键，ON DELETE 行为必须符合业务保留策略，不能只为删得方便加 CASCADE。",
+    "syntax": "CREATE TABLE parent(id BIGINT PRIMARY KEY) ENGINE=InnoDB;\nCREATE TABLE child(\n id BIGINT PRIMARY KEY,parent_id BIGINT,\n CONSTRAINT fk_parent FOREIGN KEY(parent_id) REFERENCES parent(id) ON DELETE RESTRICT\n) ENGINE=InnoDB;",
+    "example": "CREATE TABLE parent(id BIGINT PRIMARY KEY) ENGINE=InnoDB;\nCREATE TABLE child(\n id BIGINT PRIMARY KEY,parent_id BIGINT,\n CONSTRAINT fk_parent FOREIGN KEY(parent_id) REFERENCES parent(id) ON DELETE RESTRICT\n) ENGINE=InnoDB;",
+    "notes": "版本前提：MySQL 8.0 / InnoDB；特殊版本另行注明。\n隔离库示例。MySQL 8.0 InnoDB 可为缺失的引用侧所需索引自动创建；仍应通过 SHOW CREATE TABLE/SHOW INDEX 确认。可空 parent_id 不等于必须有父记录。",
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html",
+    "entry_type": "实践",
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "建模与约束",
+      "foreign-index"
+    ]
+  },
+  {
+    "id": "ref:mysql-advanced:composite-sort",
+    "language": "MySQL",
+    "category": "索引与执行 / 排序",
+    "title": "复合索引等值前缀与排序",
+    "summary": "等值过滤前缀结合后续排序字段可帮助避免额外排序，但仍需检查实际执行计划和成本。",
+    "syntax": "CREATE INDEX idx_orders_feed ON orders(tenant_id,created_at DESC,id DESC);\nEXPLAIN SELECT id,created_at FROM orders\nWHERE tenant_id=7 ORDER BY created_at DESC,id DESC LIMIT 20;",
+    "example": "CREATE INDEX idx_orders_feed ON orders(tenant_id,created_at DESC,id DESC);\nEXPLAIN SELECT id,created_at FROM orders\nWHERE tenant_id=7 ORDER BY created_at DESC,id DESC LIMIT 20;",
+    "notes": "版本前提：MySQL 8.0 / InnoDB；特殊版本另行注明。\n隔离库 orders 已有对应字段，MySQL 8.0 支持降序索引；id 为主键。多租户约束、排序方向、过滤范围和投影都影响计划；索引不保证每次被选。",
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/descending-indexes.html",
+    "entry_type": "实践",
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "索引与执行",
+      "composite-sort"
+    ]
+  },
+  {
+    "id": "ref:mysql-advanced:histogram",
+    "language": "MySQL",
+    "category": "索引与执行 / 统计信息",
+    "title": "直方图改善选择率估计",
+    "summary": "直方图可帮助优化器估计偏斜列过滤率，但不会直接变成能定位数据的索引。",
+    "syntax": "ANALYZE TABLE orders UPDATE HISTOGRAM ON status WITH 32 BUCKETS;\nEXPLAIN SELECT id FROM orders WHERE status='rare';",
+    "example": "ANALYZE TABLE orders UPDATE HISTOGRAM ON status WITH 32 BUCKETS;\nEXPLAIN SELECT id FROM orders WHERE status='rare';",
+    "notes": "版本前提：MySQL 8.0 / InnoDB；特殊版本另行注明。\nMySQL 8.0，隔离库且具权限。统计采样、数据变化和成本模型仍有误差；ANALYZE 会产生工作量，先对比估计行数和实际受控执行证据。",
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/optimizer-statistics.html",
+    "entry_type": "实践",
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "索引与执行",
+      "histogram"
+    ]
+  },
+  {
+    "id": "ref:mysql-advanced:invisible-index",
+    "language": "MySQL",
+    "category": "索引与执行 / 变更验证",
+    "title": "不可见索引的验证与写入成本",
+    "summary": "不可见索引通常不参与优化器选择，但仍被维护；可辅助评估去掉某索引后的查询路径。",
+    "syntax": "-- 仅隔离演练库，idx_status 已存在且不是主键\nALTER TABLE orders ALTER INDEX idx_status INVISIBLE;\nEXPLAIN SELECT id FROM orders WHERE status='ready';\nALTER TABLE orders ALTER INDEX idx_status VISIBLE;",
+    "example": "-- 仅隔离演练库，idx_status 已存在且不是主键\nALTER TABLE orders ALTER INDEX idx_status INVISIBLE;\nEXPLAIN SELECT id FROM orders WHERE status='ready';\nALTER TABLE orders ALTER INDEX idx_status VISIBLE;",
+    "notes": "版本前提：MySQL 8.0 / InnoDB；特殊版本另行注明。\nMySQL 8.0。优化器开关可允许使用不可见索引；主键不能简单设为不可见。不可见仍有存储/更新成本，实验完恢复设置。",
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/invisible-indexes.html",
+    "entry_type": "实践",
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "索引与执行",
+      "invisible-index"
+    ]
+  },
+  {
+    "id": "ref:mysql-advanced:functional-index",
+    "language": "MySQL",
+    "category": "索引与执行 / 表达式",
+    "title": "函数索引的表达式与版本前提",
+    "summary": "函数索引可为特定表达式建立访问路径，查询表达式、类型和排序规则需与索引匹配。",
+    "syntax": "CREATE INDEX idx_lower_email ON users ((LOWER(email)));\nEXPLAIN SELECT id FROM users WHERE LOWER(email)='a@example.com';",
+    "example": "CREATE INDEX idx_lower_email ON users ((LOWER(email)));\nEXPLAIN SELECT id FROM users WHERE LOWER(email)='a@example.com';",
+    "notes": "版本前提：MySQL 8.0 / InnoDB；特殊版本另行注明。\nMySQL 8.0.13+；users.email 是合适长度 VARCHAR。函数键部分受生成列表达式等限制，不可任意放子查询。大小写不敏感排序规则下可能已有不同可行方案。",
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/create-index.html",
+    "entry_type": "实践",
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "索引与执行",
+      "functional-index"
+    ]
+  },
+  {
+    "id": "ref:mysql-advanced:json-table",
+    "language": "MySQL",
+    "category": "文本与数据 / 关系展开",
+    "title": "JSON_TABLE 展开数组与错误策略",
+    "summary": "JSON_TABLE 把 JSON 路径内容展开成关系行，缺失字段和类型错误应显式选择处理策略。",
+    "syntax": "SELECT jt.id FROM JSON_TABLE(\n '[{\"id\":1},{\"id\":2}]',\n '$[*]' COLUMNS(id INT PATH '$.id' ERROR ON EMPTY ERROR ON ERROR)\n) AS jt;",
+    "example": "SELECT jt.id FROM JSON_TABLE(\n '[{\"id\":1},{\"id\":2}]',\n '$[*]' COLUMNS(id INT PATH '$.id' ERROR ON EMPTY ERROR ON ERROR)\n) AS jt;",
+    "notes": "版本前提：MySQL 8.0 / InnoDB；特殊版本另行注明。\nMySQL 8.0；具体类型转换与 JSON null 行为在小版本中有调整，项目应固定并核对版本。此处仅给两个合法整数，结果 1、2；需要稳定次序时增加 ordinality 并 ORDER BY。",
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/json-table-functions.html",
+    "entry_type": "实践",
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "文本与数据",
+      "json-table"
+    ]
+  },
+  {
+    "id": "ref:mysql-advanced:recursive-budget",
+    "language": "MySQL",
+    "category": "查询与聚合 / 递归控制",
+    "title": "递归 CTE 的终止与递归上限",
+    "summary": "递归 CTE 应有业务终止条件，服务器深度限制是保险而不是防环算法。",
+    "syntax": "WITH RECURSIVE nums(n) AS (\n SELECT 1\n UNION ALL\n SELECT n+1 FROM nums WHERE n<5\n) SELECT n FROM nums ORDER BY n;",
+    "example": "WITH RECURSIVE nums(n) AS (\n SELECT 1\n UNION ALL\n SELECT n+1 FROM nums WHERE n<5\n) SELECT n FROM nums ORDER BY n;",
+    "notes": "版本前提：MySQL 8.0 / InnoDB；特殊版本另行注明。\nMySQL 8.0，结果 1..5。树/图遍历需考虑环与锚点/递归列类型一致，深度可看 cte_max_recursion_depth；增加限制不能修复无限循环。",
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/with.html",
+    "entry_type": "实践",
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "查询与聚合",
+      "recursive-budget"
+    ]
+  },
+  {
+    "id": "ref:mysql-advanced:replica-consistency",
+    "language": "MySQL",
+    "category": "可靠性与运维 / 复制",
+    "title": "复制延迟与写后读一致性",
+    "summary": "异步复制下主库写入成功不保证副本立即可见，写后读需要路由或位点等待策略。",
+    "syntax": "-- 在副本上只读观察，MySQL 8.0.22+\nSHOW REPLICA STATUS;\n-- 结合执行/接收状态、错误和位点，不只看 Seconds_Behind_Source。",
+    "example": "-- 在副本上只读观察，MySQL 8.0.22+\nSHOW REPLICA STATUS;\n-- 结合执行/接收状态、错误和位点，不只看 Seconds_Behind_Source。",
+    "notes": "版本前提：MySQL 8.0 / InnoDB；特殊版本另行注明。\n复制环境且具有所需权限；字段可为 NULL，延迟指标是估计且不充分。等待 GTID 应有超时和失败回退，业务需明确一致性要求。",
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/replication-problems.html",
+    "entry_type": "实践",
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "可靠性与运维",
+      "replica-consistency"
+    ]
+  },
+  {
+    "id": "ref:mysql-advanced:collation-unique",
+    "language": "MySQL",
+    "category": "文本与数据 / 比较规则",
+    "title": "排序规则影响唯一键相等性",
+    "summary": "唯一索引的字符串相等性受列排序规则影响，大小写或重音不敏感可能合并业务认为不同的值。",
+    "syntax": "CREATE TABLE handles(\n name VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci UNIQUE\n) ENGINE=InnoDB;\nINSERT INTO handles VALUES ('Alice');\n-- 再插入 alice 通常会触发重复键冲突。",
+    "example": "CREATE TABLE handles(\n name VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci UNIQUE\n) ENGINE=InnoDB;\nINSERT INTO handles VALUES ('Alice');\n-- 再插入 alice 通常会触发重复键冲突。",
+    "notes": "版本前提：MySQL 8.0 / InnoDB；特殊版本另行注明。\nMySQL 8.0，隔离演练库。ai/ci 表示重音/大小写不敏感；尾部空格和 Unicode 规范等细节也应按所选规则验证。不要因冲突就任意改生产排序规则。",
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/charset-collation-names.html",
+    "entry_type": "实践",
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "文本与数据",
+      "collation-unique"
+    ]
+  }
+]

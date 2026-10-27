@@ -82,6 +82,9 @@ impl PersonalDeskApp {
         id: &str,
         tags: &[String],
     ) {
+        if scope == TagScope::BookPages && !self.flush_writing() {
+            return;
+        }
         let result = self
             .db
             .as_mut()
@@ -92,8 +95,12 @@ impl PersonalDeskApp {
                 if scope == TagScope::BookPages
                     && let Some(page) = self.writing.page.as_mut()
                     && page.id == id
+                    && let Some(saved) = self
+                        .db
+                        .as_ref()
+                        .and_then(|db| db.writing_page(id).ok().flatten())
                 {
-                    page.tags = tags.to_vec();
+                    *page = saved;
                 }
                 if let Some(draft) = self.inline_credentials.get_mut(id) {
                     draft.tags = tags.to_vec();
@@ -266,8 +273,12 @@ impl PersonalDeskApp {
         }
         if scope == TagScope::BookPages
             && let Some(page) = self.writing.page.as_mut()
+            && let Some(saved) = self
+                .db
+                .as_ref()
+                .and_then(|db| db.writing_page(&page.id).ok().flatten())
         {
-            rewrite(&mut page.tags);
+            *page = saved;
         }
         self.load_tags();
         self.load_summaries();
@@ -305,6 +316,9 @@ impl PersonalDeskApp {
             );
             let mut close = dialog_closed(&dialog);
             if save {
+                if assignment.scope == TagScope::BookPages && !self.flush_writing() {
+                    return;
+                }
                 let result = self
                     .db
                     .as_mut()
@@ -314,6 +328,16 @@ impl PersonalDeskApp {
                     });
                 match result {
                     Ok(()) => {
+                        if assignment.scope == TagScope::BookPages
+                            && let Some(page) = self.writing.page.as_mut()
+                            && page.id == assignment.id
+                            && let Some(saved) = self
+                                .db
+                                .as_ref()
+                                .and_then(|db| db.writing_page(&page.id).ok().flatten())
+                        {
+                            *page = saved;
+                        }
                         if assignment.scope == TagScope::Inventory
                             && self.inventory_draft.id == assignment.id
                         {

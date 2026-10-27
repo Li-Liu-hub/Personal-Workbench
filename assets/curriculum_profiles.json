@@ -210,31 +210,948 @@
     "deliverable": "写出明确结论或方案，解释关键步骤，给出边界和验证方法。"
   },
   {
-    "id": "sql:sqlite:insert",
-    "area": "数据库",
+    "id": "knowledge:ref:java-eco:actuator",
+    "area": "工程可靠性",
     "level": 2,
-    "goal": "正确新增数据且保留旧记录",
-    "deliverable": "可运行题提交 SQLite SQL；概念题解释原理并结合随题数据举例。"
+    "goal": "存活检查判断进程是否应重启，就绪检查判断能否接流量；外部依赖故障不应一律触发反复重启。",
+    "deliverable": "数据库短暂故障时如何区分 liveness 与 readiness 的处置。（写出结论、关键原因与一个边界条件。）"
   },
   {
-    "id": "sql:sqlite:delete",
-    "area": "数据库",
+    "id": "knowledge:ref:java-eco:ai-integration",
+    "area": "工程可靠性",
     "level": 2,
-    "goal": "控制删除范围",
-    "deliverable": "可运行题提交 SQLite SQL；概念题解释原理并结合随题数据举例。"
+    "goal": "模型输出是待校验数据，结构化格式不能证明内容真实；工具调用需明确输入约束与执行结果。",
+    "deliverable": "设计AI代码点评功能，区分模型推断与真实编译测试证据。（写出结论、关键原因与一个边界条件。）"
   },
   {
-    "id": "sql:sqlite:upsert",
-    "area": "数据库",
+    "id": "knowledge:ref:java-eco:ai-tools",
+    "area": "工程可靠性",
     "level": 2,
-    "goal": "理解唯一键冲突下的写入语义",
-    "deliverable": "可运行题提交 SQLite SQL；概念题解释原理并结合随题数据举例。"
+    "goal": "模型可以提出工具参数，但执行权与参数校验必须由程序控制；外部资料不能改变系统授权规则。",
+    "deliverable": "为只读知识库查询设计工具边界，并说明如何处理资料中的恶意指令。（写出结论、关键原因与一个边界条件。）"
   },
   {
-    "id": "sql:sqlite:transfer",
+    "id": "knowledge:ref:java-eco:aop-proxy",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "Spring AOP 通常通过代理织入增强；调用目标对象自身方法绕过代理，final/private 等限制需按代理类型分析。",
+    "deliverable": "解释自身调用为何跳过增强，并给出拆分协作 Bean 的方案。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:api-evolution",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "新旧消费者并存时，新增可选字段通常比移除或改变字段类型更易兼容；错误语义同样是契约。",
+    "deliverable": "为订单状态新增枚举值设计消费者兼容策略。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:aqs",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "AbstractQueuedSynchronizer 为独占/共享同步器提供状态与排队骨架，子类定义获取与释放状态的规则。",
+    "deliverable": "对比 ReentrantLock 与 Semaphore 的 state 含义，并说明独占与共享的差别。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:async",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "异步方法需通过代理调用并选择受控执行器；返回 Future/CompletableFuture 才便于追踪结果。",
+    "deliverable": "说明自身调用异步方法与外部代理调用的差别，并设计异常可观测方式。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:batch",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "批处理将读取、处理和写入按chunk组织，并持久化作业执行元数据以支持重启与状态追踪。",
+    "deliverable": "第5批写入失败后如何重启，说明外部通知为何还需幂等。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:bean-extension",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "前者主要处理 Bean 定义等容器元数据，后者围绕 Bean 实例初始化过程扩展，常用于包装实例。",
+    "deliverable": "说明修改属性定义与包装成代理分别适合哪个扩展点。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:bean-lifecycle",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "Bean 经实例化、依赖填充、初始化及后处理等阶段，最终暴露对象可能是代理，资源需要销毁回调。",
+    "deliverable": "说明初始化阶段直接调用自身事务方法为什么可能没有预期的事务。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:bean-scope",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "Spring singleton 是每个容器、每个 Bean 定义通常一个实例，不保证对象线程安全。",
+    "deliverable": "说明单例服务保存当前用户字段的并发风险。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:bigdecimal",
+    "area": "Java 与并发",
+    "level": 1,
+    "goal": "金额宜由十进制字符串创建；scale 和舍入策略需要显式约定，equals 与 compareTo 语义不同。",
+    "deliverable": "给出总价并解释金额构造与比较应注意什么。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:boot-autoconfig",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "Boot 自动配置按类路径、属性及已有 Bean 等条件装配常见组件，不是运行时神秘扫描所有依赖。",
+    "deliverable": "解释引入依赖后为什么仍未创建期待的 Bean，给出排查顺序。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:boot-lifecycle",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "初始化、应用就绪和开始接收流量不是同一个时刻；关闭时应停止接收新任务并处理在途工作。",
+    "deliverable": "说明把十分钟数据同步放进启动 Runner 对发布有什么影响。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:boot-migration",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "Boot3/Framework6 基线使用 Java17 与 Jakarta 命名空间；迁移包含依赖、Servlet 容器、校验及持久化API，不只是替换 import。",
+    "deliverable": "为旧服务升级制定依赖盘点、兼容验证和回退方案。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:boot-packaging",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "可执行 jar 打包程序与依赖，运行配置和数据应保持外置；镜像层和缓存不应包含用户秘密。",
+    "deliverable": "解释容器限制1GB时为何不能将 -Xmx 设置为1GB。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:boot-starter",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "starter 聚合常用依赖；BOM 管理一组经过协调的版本，两者职责不同。",
+    "deliverable": "说明 starter 与 BOM 的区别，以及为何单独升级一个核心 jar 有风险。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:boxing",
+    "area": "Java 与并发",
+    "level": 1,
+    "goal": "包装类型参与运算会拆箱；null 拆箱抛异常，== 对两个包装对象比较身份。",
+    "deliverable": "解释 null 拆箱的后果，并给出包装数字按值比较的方式。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:cache",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "@Cacheable 基于键复用结果，@CacheEvict 失效；缓存不是数据库一致性的自动替代。",
+    "deliverable": "为多租户商品查询设计缓存键，并说明一次更新后如何处理失效。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:cache-failures",
+    "area": "数据库",
+    "level": 2,
+    "goal": "不存在键反复回源、热点过期并发回源、大批键集中失效是不同问题，应采用不同治理手段。",
+    "deliverable": "区分三类问题，并为热点过期瞬时流量给出有界回源方案。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:cache-pattern",
+    "area": "数据库",
+    "level": 2,
+    "goal": "旁路缓存先读缓存，未命中再读数据库并回填；更新常先写数据库再失效缓存，但仍需处理竞争和失败。",
+    "deliverable": "分析读请求回填旧值与更新删除缓存交错时的风险。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:caffeine",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "进程内缓存访问快，可按大小和过期策略约束资源；多个应用实例各有独立副本。",
+    "deliverable": "同一商品在两台应用上价格不同，如何排查本地缓存并设计失效机制。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:cas",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "CAS 比较期望值并条件更新，成功更新单个状态；失败可重试，但高竞争会消耗 CPU。",
+    "deliverable": "解释 CAS 为什么不天然解决 ABA 或跨多个变量的一致性。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:ci-release",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "同一经过测试的制品应晋升到发布，而不是每个环境重新编译产生不同内容；保留版本与哈希便于追踪。",
+    "deliverable": "为有数据库变更的服务制定制品发布与回退检查。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:circuit",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "超时限制等待，重试再次尝试，熔断暂时阻断持续失败的调用，舱壁限制故障占用的资源范围。",
+    "deliverable": "为库存查询设计四种策略的配合，避免故障时请求风暴。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:classloading",
+    "area": "性能与交付",
+    "level": 3,
+    "goal": "类的身份由二进制名与定义它的加载器共同决定；加载、链接和初始化是不同阶段。",
+    "deliverable": "解释插件里两个同名类为何可能出现 ClassCastException。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:cloud-discovery",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "注册发现维护可用服务实例目录，负载均衡负责选择目标；注册成功不保证实例已经就绪。",
+    "deliverable": "解释已下线实例为何还可能收到短时请求，以及如何减轻影响。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:collector",
+    "area": "Java 与并发",
+    "level": 1,
+    "goal": "toMap 遇到重复键需要明确归并策略；groupingBy 表达一对多关系。",
+    "deliverable": "给出 A 与 B 的计数，并解释省略归并函数的后果。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:condition",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "Condition 与显式锁关联，一把锁可建立多个等待条件；await 在等待时释放关联锁，返回前重获锁。",
+    "deliverable": "为有界队列说明 notEmpty 与 notFull 两个条件的作用。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:config-refresh",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "配置中心使发布与配置解耦，但不同节点可能短时使用不同版本；刷新也未必重建所有资源。",
+    "deliverable": "解释动态更新折扣参数为何需要请求内一致快照和版本记录。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:configuration",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "@Bean 声明容器对象；完整配置类的代理可截获配置方法间调用，lite 模式则是普通 Java 方法调用。",
+    "deliverable": "解释 proxyBeanMethods=false 下调用另一个 @Bean 方法可能创建新对象的原因。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:connection-pool",
     "area": "数据库",
     "level": 3,
-    "goal": "验证转账事务与失败回滚",
+    "goal": "连接池限制同时持有的数据库连接；排查需区分数据库慢、事务过长、未归还连接和配置过大。",
+    "deliverable": "连接池pending突增时列出需要关联的应用与数据库证据。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:containers",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "容器是进程隔离和资源限制环境，不自动解决应用关闭和数据持久化；持久数据应明确挂载。",
+    "deliverable": "解释直接终止容器时如何减少丢任务与截断请求。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:contract-test",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "跨服务接口需要验证请求响应与事件模式，包含可选字段、错误状态和未知枚举处理。",
+    "deliverable": "给订单事件添加字段时如何证明旧消费者仍可工作。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:cpu-stacks",
+    "area": "性能与交付",
+    "level": 3,
+    "goal": "CPU 满不等于线程太少；需要区分计算、忙等、GC 和原生开销，并在相同负载下验证改动。",
+    "deliverable": "设计排查 CPU 100% 的步骤，说明为什么不直接扩大线程池。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:csrf-cors",
+    "area": "网络与 Web",
+    "level": 2,
+    "goal": "CORS控制跨源读取等浏览器访问规则，CSRF防护针对浏览器自动携带凭据导致的跨站请求，两者不能互相替代。",
+    "deliverable": "解释允许CORS为何没有自动解决基于Cookie登录的CSRF。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:cycles",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "构造器循环依赖无法靠普通实例化顺序解决；暴露早期引用也不能自动修正对象职责或半初始化状态。",
+    "deliverable": "为订单和支付双向依赖提出一个职责拆分方案。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:datetime",
+    "area": "Java 与并发",
+    "level": 1,
+    "goal": "Instant 表示时间线上的点，LocalDateTime 没有时区；展示时间必须结合 ZoneId。",
+    "deliverable": "解释为何不能把无时区的 LocalDateTime 直接当作全世界同一时刻。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:db-migration",
+    "area": "数据库",
+    "level": 3,
+    "goal": "结构变更要版本化且能重复部署验证；采用先扩展、迁移数据、再收缩的兼容步骤减少同时升级要求。",
+    "deliverable": "为旧新应用并存的字段重命名设计渐进迁移步骤。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:deadlock",
+    "area": "Java 与并发",
+    "level": 3,
+    "goal": "互斥、持有并等待、不可抢占、循环等待可共同导致死锁；统一多资源锁顺序可以破坏循环等待。",
+    "deliverable": "为双账户转账设计一致锁顺序，并说明同一账户的特殊情况。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:distributed-lock",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "带租约的分布式锁可能过期，旧持有者仍在执行；仅唯一解锁令牌不能阻止过期持有者继续写。",
+    "deliverable": "解释长GC暂停导致租约过期后的双写风险，以及fencing的作用。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:dubbo",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "RPC把本地调用形式包装成网络交互，仍存在超时、重试、序列化兼容与部分失败。",
+    "deliverable": "一次扣款RPC超时后，为什么不能直接重试三次？（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:escape-jit",
+    "area": "性能与交付",
+    "level": 3,
+    "goal": "JIT 可在满足条件时优化对象分配和局部锁，但是否优化取决于实际编译与逃逸情况。",
+    "deliverable": "说明为什么局部锁基准可能测不到真实竞争开销。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:events",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "默认事件发布通常在调用线程执行；事务事件可按提交阶段触发，以避免回滚事务提前发通知。",
+    "deliverable": "说明 AFTER_COMMIT 是否等于消息绝不丢失，以及更可靠的做法。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:exceptions",
+    "area": "Java 与并发",
+    "level": 1,
+    "goal": "受检异常要求捕获或声明；异常应保留原因并在合适层转换，而不是返回无法区分失败的默认值。",
+    "deliverable": "解释示例保留 cause 的作用，给出吞掉异常导致的一个业务问题。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:future-errors",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "thenApply 在完成链的线程上执行或直接执行；Async 版本可指定执行器，避免阻塞公共池。",
+    "deliverable": "说明超时后远端请求是否一定停止，并设计合理的 I/O 超时与异常处理。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:gateway",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "网关处理入口路由和横切策略，服务内部仍要维护业务校验；超时和转发头应有明确信任边界。",
+    "deliverable": "为上传与普通查询设置不同路由预算，并说明身份信息如何可信传递。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:gc-collectors",
+    "area": "性能与交付",
+    "level": 3,
+    "goal": "收集器选择应匹配暂停、吞吐和内存目标；G1 的区域与混合回收和低延迟收集器有不同权衡。",
+    "deliverable": "给出为延迟敏感服务比较两个收集器时需要的至少三类证据。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:gc-roots",
+    "area": "性能与交付",
+    "level": 3,
+    "goal": "垃圾回收主要依据可达性，不是简单引用计数；循环引用本身不阻止回收。",
+    "deliverable": "解释互相引用的两个对象能否被回收，并列出一个实际泄漏根源。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:gradle",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "Gradle以任务依赖图调度构建；构建缓存与配置缓存分别复用任务结果和配置模型。",
+    "deliverable": "说明为什么本机缓存命中不能证明CI一定能复现构建。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:heap-dump",
+    "area": "性能与交付",
+    "level": 3,
+    "goal": "堆转储可检查对象保留关系；retained size 关注释放某对象后可能释放的对象集合，而非仅看对象自身大小。",
+    "deliverable": "区别 shallow size 与 retained size，并说明如何验证缓存泄漏。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:http-client",
+    "area": "网络与 Web",
+    "level": 2,
+    "goal": "连接、读取和整体调用有不同超时；连接池复用降低开销，重试应受请求总预算约束。",
+    "deliverable": "为一个总预算3秒的下游调用安排超时和重试策略。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:idempotency",
+    "area": "网络与 Web",
+    "level": 2,
+    "goal": "幂等需要持久化请求身份与业务结果，防止超时重试产生重复副作用；仅放一个内存标记不足。",
+    "deliverable": "为支付创建接口设计超时重试与重复扣款防护。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:immutable",
+    "area": "Java 与并发",
+    "level": 1,
+    "goal": "final 引用不保证对象不可变；构造与返回集合时需要阻断外部对内部状态的修改。",
+    "deliverable": "说明记录类的集合字段如何避免外部增删影响，并说明浅复制限制。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:interrupt",
+    "area": "Java 与并发",
+    "level": 3,
+    "goal": "interrupt 主要是协作取消信号；阻塞方法可能抛 InterruptedException，不能等同于强制杀线程。",
+    "deliverable": "说明吞掉 InterruptedException 会怎样破坏取消，并给出正确处理。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:ioc-di",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "容器管理对象定义和依赖关系；构造器注入能显式表达必需依赖并便于独立测试。",
+    "deliverable": "解释手工 new OrderService 与从容器取得服务时依赖和代理的区别。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:jackson",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "JSON序列化是对外数据契约，应显式区分请求DTO、响应DTO和持久化实体，避免意外暴露字段。",
+    "deliverable": "为包含密码摘要和订单关联的User实体设计安全响应DTO。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:jdbc",
+    "area": "数据库",
+    "level": 3,
+    "goal": "参数绑定把数据与SQL结构分开；连接、语句和结果集的生命周期应及时关闭，池连接close通常表示归还。",
+    "deliverable": "解释参数化查询能解决什么，为什么不能直接把表名放进问号。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:jfr",
+    "area": "性能与交付",
+    "level": 3,
+    "goal": "先保留时间窗口、进程身份及问题现场，再用事件和线程栈关联慢请求、分配与锁竞争。",
+    "deliverable": "为一次 30 秒延迟尖峰设计 JFR 采集与请求时间线对照方案。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:jmh",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "微基准需处理JIT预热、死代码消除与常量折叠；JMH提供基准生命周期与结果消费工具。",
+    "deliverable": "解释局部字符串拼接基准为何可能被编译器完全优化掉。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:jmm",
+    "area": "Java 与并发",
+    "level": 3,
+    "goal": "happens-before 规定跨线程可见性和有序性保证，不等于所有机器指令的物理先后顺序。",
+    "deliverable": "说明读线程看到 ready=true 后能否看到 value=42，以及需要的条件。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:jpa-context",
+    "area": "数据库",
+    "level": 3,
+    "goal": "受管实体的变更可在flush时同步到数据库；游离对象的修改不会自动被当前上下文跟踪。",
+    "deliverable": "解释示例为何可能无需显式update，以及事务外游离对象有何不同。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:jpa-fetch",
+    "area": "数据库",
+    "level": 3,
+    "goal": "LAZY或EAGER不保证只执行一次SQL；fetch join或EntityGraph需要结合结果基数与分页策略。",
+    "deliverable": "为订单加明细的分页接口设计查询方式，避免N+1与错误分页。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:junit",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "单元测试聚焦局部规则，集成测试检查真实边界；参数化案例覆盖不同输入类别而不是复制相同路径。",
+    "deliverable": "为库存扣减选择边界、正常和并发冲突三类测试。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:jvm-areas",
+    "area": "性能与交付",
+    "level": 3,
+    "goal": "JVM 规范定义运行时数据区；HotSpot 的元空间是方法区相关元数据的一种实现，堆外还包括直接缓冲区等。",
+    "deliverable": "区分堆溢出、元空间溢出和无法创建线程各自先查什么。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:jwt",
+    "area": "网络与 Web",
+    "level": 2,
+    "goal": "JWT签名保护令牌完整性，不默认加密载荷；验证还需固定允许算法并检查发行方、受众和时间声明。",
+    "deliverable": "说明一个签名有效但aud不匹配的令牌是否应被本服务接受。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:kafka-delivery",
+    "area": "数据库",
+    "level": 2,
+    "goal": "Kafka主要保证分区内记录顺序；业务处理与提交offset的先后决定重放和丢处理风险。",
+    "deliverable": "解释消费者处理成功后崩溃为什么会重复消费，以及如何幂等。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:latch-barrier",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "Latch 等待计数归零且一次性使用；Barrier 让固定参与者在多轮屏障会合，失败可打破屏障。",
+    "deliverable": "等待两项初始化时如何防止任务异常导致永久等待，并比较两类同步器。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:lock-classes",
+    "area": "Java 与并发",
+    "level": 3,
+    "goal": "这些是不同维度：悲观/乐观描述冲突处理，互斥/读写描述兼容访问模式，可重入/公平描述锁的行为。",
+    "deliverable": "分别说明版本号更新与 ReentrantReadWriteLock 属于什么机制，避免混淆分类维度。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:lock-states",
+    "area": "Java 与并发",
+    "level": 3,
+    "goal": "旧 HotSpot 教学常讲无锁、偏向、轻量级、膨胀监视器；这不是所有 JDK 都按固定顺序经历的 Java 规范。",
+    "deliverable": "解释为什么在 Java 21/24 上背诵固定四步锁升级可能误导，区分语言保证与 VM 实现。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:logs",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "日志应包含可关联的请求与业务标识，结构化字段便于检索；线程复用前清理MDC，避免请求串号。",
+    "deliverable": "设计一次请求跨线程后的日志关联与上下文清理。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:lombok",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "Lombok在编译期生成样板代码，评审仍需知道实际生成的构造器、equals和toString。",
+    "deliverable": "解释实体id在保存后改变时，依赖该字段的hashCode可能引起什么问题。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:mapstruct",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "编译期映射减少手写转换，但必须定义忽略字段、类型转换以及null是清空还是保持不变。",
+    "deliverable": "给用户局部更新设计字段白名单和null处理规则。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:maven",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "生命周期阶段按顺序执行，插件目标绑定阶段；多模块聚合和依赖继承是不同关系。",
+    "deliverable": "说明-pl与-am如何帮助只验证受影响服务及其依赖模块。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:method-security",
+    "area": "网络与 Web",
+    "level": 2,
+    "goal": "方法级鉴权通过拦截业务方法补充URL级检查，适合服务入口或细粒度权限规则。",
+    "deliverable": "说明有order:read权限为何不等于可读取任意租户订单。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:metrics-traces",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "指标看趋势与分位，追踪看调用链，日志看事件细节；高基数标签会放大存储和内存成本。",
+    "deliverable": "为P99突增选择指标、追踪和日志证据，解释标签基数风险。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:mockito",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "模拟用于隔离依赖并控制边界行为，不应通过把所有内部调用都mock掉来证明集成正确。",
+    "deliverable": "区分应mock的外部支付与应使用真实数据库验证的唯一约束。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:modularity",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "按业务能力和不变量划分模块，先明确契约与数据所有权；微服务增加网络、发布和一致性成本。",
+    "deliverable": "说明何时应保留模块化单体，何时拆出独立支付服务。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:monitor",
+    "area": "Java 与并发",
+    "level": 3,
+    "goal": "实例同步方法锁 this，静态同步方法锁 Class 对象；同一线程可以再次获取已持有的内置监视器。",
+    "deliverable": "判断两个不同实例的 synchronized 实例方法是否互斥，并说明如何保护共享状态。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:mvc-pipeline",
+    "area": "网络与 Web",
+    "level": 2,
+    "goal": "Filter 位于 Servlet 链，Interceptor 围绕处理器调用；异常处理与异步完成还存在不同回调阶段。",
+    "deliverable": "分别选择请求编码、业务鉴权与控制器参数校验的合适位置并解释。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:mybatis-cache",
+    "area": "数据库",
+    "level": 3,
+    "goal": "一级缓存通常关联SqlSession；二级缓存按命名空间配置。多个会话、外部写入和可变返回对象会影响一致性。",
+    "deliverable": "区分会话缓存返回旧值和数据库隔离快照返回旧值的排查方法。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:mybatis-dynamic",
+    "area": "数据库",
+    "level": 3,
+    "goal": "动态条件组合要处理空条件、括号与空列表，where/trim可帮助去掉多余前缀但不校验业务语义。",
+    "deliverable": "说明批量删除接口传入空ID集合时应怎样保护数据。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:mybatis-mapping",
+    "area": "数据库",
+    "level": 3,
+    "goal": "resultMap 定义列到对象的映射，关联嵌套查询便于复用但可能为每个父对象额外查一次。",
+    "deliverable": "查询100个订单及客户时，如何识别并避免101次SQL。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:mybatis-params",
+    "area": "数据库",
+    "level": 3,
+    "goal": "#{} 通常产生 PreparedStatement 参数；${} 是文本替换，结构位置需校验白名单。",
+    "deliverable": "设计允许name/id两种排序的安全查询，说明两类占位符的差别。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:mybatis-plus",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "条件构造器减少重复SQL，但逻辑删除、租户条件、乐观锁和批量操作仍有独立的配置与业务边界。",
+    "deliverable": "解释逻辑删除用户后重用手机号可能遇到的唯一约束问题。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:nacos",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "注册发现与配置管理是不同用途，namespace/group/dataId等维度应明确规划并与环境隔离。",
+    "deliverable": "为开发和生产两个订单服务设计隔离命名与误连防护。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:netty",
+    "area": "网络与 Web",
+    "level": 2,
+    "goal": "事件循环复用少量线程处理多连接，耗时工作需移出；引用计数缓冲区的释放责任需明确。",
+    "deliverable": "设计长度前缀协议的解码边界，并说明缓冲区释放责任。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:oauth-oidc",
+    "area": "网络与 Web",
+    "level": 2,
+    "goal": "OAuth2主要解决授权委托，OIDC增加身份层；浏览器/公共客户端可用授权码与PKCE降低授权码被截获的风险。",
+    "deliverable": "区分登录身份与调用API授权，并解释两种令牌用途。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:optimistic-db",
+    "area": "数据库",
+    "level": 3,
+    "goal": "更新时把已读取版本放进条件，受影响行数为0表示冲突或记录不存在，不能继续假装成功。",
+    "deliverable": "两个实例同时改库存时，解释版本条件与受影响行数的作用。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:optional",
+    "area": "Java 与并发",
+    "level": 1,
+    "goal": "Optional 描述可能缺失的结果，orElse 参数会先求值；昂贵或有副作用的默认值通常放在 orElseGet。",
+    "deliverable": "说明已有值时 orElse(loadDefault()) 与 orElseGet 的行为差别。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:outbox",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "业务记录和待发送事件写入同一数据库事务，再由后台发布；重复发送由幂等消费者处理。",
+    "deliverable": "说明进程在发送成功后崩溃时如何避免重复业务副作用。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:pagination",
+    "area": "网络与 Web",
+    "level": 2,
+    "goal": "分页应有稳定且唯一的排序，游标分页可减少深 offset 扫描并减少并发插入导致的漂移。",
+    "deliverable": "说明订单按创建时间排序时为何还需要ID作为次排序及游标字段。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:pass-value",
+    "area": "Java 与并发",
+    "level": 1,
+    "goal": "Java 参数始终按值传递；对象参数复制的是引用值，修改对象内容和给形参重新赋值是两件事。",
+    "deliverable": "若调用前列表为 [A]，说明调用后内容以及重绑定为什么无效。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:password-hash",
+    "area": "网络与 Web",
+    "level": 2,
+    "goal": "密码应使用带盐且有工作因子的专用散列算法；验证使用matches，不是把明文加密后直接字符串比较。",
+    "deliverable": "解释为什么不能用encode(raw).equals(stored)验证密码。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:perf-budget",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "优化要有工作负载、基线和成功标准，先确认瓶颈再改变实现，比较吞吐、P95/P99和错误率。",
+    "deliverable": "为列表接口优化建立可复现的验收实验并说明混杂因素。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:pool-sizing",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "任务先使用核心线程，再入队，队列满后才扩展到最大线程；达到上限需执行明确的拒绝策略。",
+    "deliverable": "说明该池第 5 个并发任务通常先去哪里，以及为什么队列必须有界。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:profiles",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "Profile 选择环境配置片段；外部配置来源有覆盖顺序，要确认实际生效值而非只读一个 YAML。",
+    "deliverable": "本地 YAML 写8080但应用监听8081时，如何检查覆盖来源。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:properties",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "类型化属性集中绑定配置，并可配合校验、默认值和构造器表达必填项。",
+    "deliverable": "给重试配置设计类型、校验和非法配置时的启动行为。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:qualifier",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "同类型存在多个候选时，应明确定义选择规则；名称和优先级不能替代业务路由策略。",
+    "deliverable": "为两种支付实现说明静态注入选择与运行时路由的区别。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:rabbit-acks",
+    "area": "数据库",
+    "level": 2,
+    "goal": "生产确认与消费确认是不同方向的机制；消费者完成持久化处理后再确认，失败需有界重试或死信。",
+    "deliverable": "说明publisher confirm是否保证消费者已完成业务。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:rag",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "RAG先检索相关资料再把证据带给模型；分块、向量索引与重排影响召回，生成仍需核对引用。",
+    "deliverable": "设计知识问答的召回率、引用正确性与拒答能力评测。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:records",
+    "area": "Java 与并发",
+    "level": 1,
+    "goal": "record 适合透明数据载体，sealed 限制直接子类型；它们分别约束数据表示与类型扩展范围。",
+    "deliverable": "解释此建模相比任意字符串状态的收益与版本前提。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:redis-data",
+    "area": "数据库",
+    "level": 2,
+    "goal": "字符串、哈希、集合、有序集合和流有不同访问模型；单命令原子不等于多个往返调用原子。",
+    "deliverable": "说明SET NX PX能保证什么，以及为何不能直接DEL任意锁键。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:reentrant",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "显式锁支持可中断或限时获取；成功获取后必须在 finally 中释放。公平配置不保证操作系统调度公平。",
+    "deliverable": "说明限时获取失败时应如何处理，以及为何 unlock 放在 finally。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:reflection",
+    "area": "Java 与并发",
+    "level": 1,
+    "goal": "反射访问运行时类型；只有 RUNTIME 保留策略的注解能供运行时反射读取。",
+    "deliverable": "解释注解为何不会自己实现功能，以及运行时扫描需要什么保留策略。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:request-binding",
+    "area": "网络与 Web",
+    "level": 2,
+    "goal": "三者分别处理查询/表单参数、路径变量与经消息转换器读取的请求体，不能只看 Java 参数名称猜绑定。",
+    "deliverable": "解释JSON请求无法绑定时应检查哪些信息。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:rest-errors",
+    "area": "网络与 Web",
+    "level": 2,
+    "goal": "错误需要稳定的机器可读字段与合适 HTTP 状态，而不是所有响应都200并拼接异常堆栈。",
+    "deliverable": "设计参数错误与数据库不可用的不同HTTP响应和排查标识。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:rocketmq",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "生产发送、消费者处理和确认各有故障窗口；顺序通常受消息组或队列约束，事务消息还需回查本地状态。",
+    "deliverable": "解释事务消息本地事务成功但发送状态不明时，回查应依据什么事实。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:rwlock",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "读锁间可兼容，写锁排他；从写锁获取读锁后释放写锁可降级，持读锁直接等写锁可能死锁。",
+    "deliverable": "解释降级顺序为何先取读锁，指出持读锁直接升级的风险。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:saga",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "跨服务长流程拆成多个本地事务，以状态机和补偿处理部分失败；补偿是新的业务动作，不是时间倒流。",
+    "deliverable": "为库存预留成功但扣款超时的订单设计可恢复状态。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:scheduled",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "定时调度通常在每个应用实例各自触发，fixedDelay、fixedRate与cron表达不同时间语义。",
+    "deliverable": "两台应用都启动定时对账时，如何避免重复结算并保留失败重跑能力。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:search-index",
+    "area": "数据库",
+    "level": 2,
+    "goal": "搜索索引通常是业务数据的派生视图，mapping与分词影响检索；写入确认与搜索可见存在刷新时序。",
+    "deliverable": "设计搜索索引丢失后的重建与增量追平流程。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:security-chain",
+    "area": "网络与 Web",
+    "level": 2,
+    "goal": "认证确认身份，授权决定访问能力；Servlet安全过滤器在控制器前处理请求，并可按链匹配规则选择配置。",
+    "deliverable": "区分未登录401、已认证但权限不足403与业务资源所有权检查。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:semaphore",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "许可用于限制同时执行或访问稀缺资源的数量，可跨线程释放；它不负责记录业务对象的所有权。",
+    "deliverable": "说明限制同时请求数与限制每秒请求数的区别。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:spi",
+    "area": "Java 与并发",
+    "level": 1,
+    "goal": "SPI 由接口定义扩展点，通过 ServiceLoader 查找提供者，使调用方不绑定具体实现。",
+    "deliverable": "设计支付渠道扩展时说明接口、提供者注册及选择策略各自职责。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:spring-data-repo",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "Repository抽象提供查询方法等约定，分页返回Page可能额外执行count，Slice只需判断是否还有下一页。",
+    "deliverable": "列表只需要下一页按钮时，为什么Slice可能比Page更适合。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:spring-test",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "切片测试加载某一层的必要环境，完整上下文测试验证更广装配；两者都应清楚模拟与真实依赖范围。",
+    "deliverable": "设计同时验证HTTP校验和事务回滚的两层测试。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:stamped",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "乐观读先取得 stamp，读取字段后验证；验证失败回退到读锁，才能避免返回不一致快照。",
+    "deliverable": "说明校验失败为何必须重读字段，而不能只补一次 validate。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:stream-lazy",
+    "area": "Java 与并发",
+    "level": 1,
+    "goal": "中间操作通常惰性执行，终止操作触发遍历；流消费后不能再次使用。",
+    "deliverable": "给出结果并说明再次消费同一 stream 的问题。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:testcontainers",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "容器测试使用真实数据库或中间件暴露方言、事务和驱动差异，测试数据与容器生命周期需隔离。",
+    "deliverable": "为什么本机H2通过仍不能确认MySQL锁与JSON方言正确？（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:threadlocal",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "ThreadLocal 为线程保存局部值，线程池复用线程时旧上下文可能残留，任务结束应 remove。",
+    "deliverable": "解释任务 A 的用户信息如何泄露给任务 B，并给出生命周期边界。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:tx-boundary",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "本地数据库事务不自动覆盖 HTTP、缓存、消息和新线程；长事务持锁与占用连接会放大故障。",
+    "deliverable": "设计保存订单并通知库存的失败处理，不假设一个注解覆盖所有资源。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:tx-isolation",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "事务隔离由数据库与驱动共同实现，readOnly 通常是优化提示，不是阻止所有写操作的安全机制。",
+    "deliverable": "解释 readOnly=true 为何不能替代权限或数据库约束。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:tx-nested",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "支持保存点的事务管理器可用 NESTED 局部回滚；REQUIRED 内层标记回滚会影响共同事务。",
+    "deliverable": "解释捕获内层异常后外层仍可能回滚的原因，并区分保存点与独立事务。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:tx-propagation",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "REQUIRED 通常参与已有事务；REQUIRES_NEW 暂停外层并建立独立事务，内外层提交结果可以不同。",
+    "deliverable": "解释为什么扩大 REQUIRES_NEW 使用范围可能引发连接池等待。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:tx-rollback",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "默认声明式事务通常对 RuntimeException 和 Error 回滚，对受检异常默认不回滚，可显式设置 rollbackFor。",
+    "deliverable": "说明受检异常、吞掉异常与显式 rollbackFor 对提交行为的不同影响。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:validation",
+    "area": "工程可靠性",
+    "level": 2,
+    "goal": "字段约束描述输入条件；必须由 MVC、方法校验或 Validator 等入口触发，不会因写了注解就自动执行。",
+    "deliverable": "解释同名用户并发创建为何还需要数据库唯一约束。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:virtual-monitor",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "JDK 21/22 中 synchronized 内阻塞可能固定载体线程；JDK 24 的 JEP 491 改善监视器引起的固定，不能沿用旧版结论。",
+    "deliverable": "说明为何应先确认 JDK 版本和实际等待证据，再决定是否替换内置锁。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:virtual-threads",
+    "area": "Java 与并发",
+    "level": 2,
+    "goal": "Java 21 正式提供虚拟线程，适合大量等待型任务；它不会增加 CPU 核心数或数据库连接数。",
+    "deliverable": "解释一万条虚拟线程为何仍可能把 20 个连接的数据库池压满。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:volatile",
+    "area": "Java 与并发",
+    "level": 3,
+    "goal": "volatile 可提供可见性和特定排序，但 count++ 包含读、改、写，仍可能丢失更新。",
+    "deliverable": "说明两个线程递增为何可能只增加一次，并提供正确替代。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:wait-notify",
+    "area": "Java 与并发",
+    "level": 3,
+    "goal": "wait 要求持有同一对象监视器，等待时释放它；唤醒后重新竞争，必须循环检查条件。",
+    "deliverable": "解释为何 if 检查应改为 while，以及 wait 与 sleep 的锁行为差别。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:webflux",
+    "area": "网络与 Web",
+    "level": 2,
+    "goal": "响应式流支持异步组合与背压；不能在事件循环中直接执行长时间阻塞数据库或文件调用。",
+    "deliverable": "解释把JDBC查询直接放在事件循环回调里为什么会拖慢无关请求。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "knowledge:ref:java-eco:zookeeper",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "临时节点与会话相关，不是与某一次TCP连接瞬断直接等价；watch用于感知变化，仍需读取并重建状态。",
+    "deliverable": "说明网络短暂断开与会话过期对临时节点的不同影响。（写出结论、关键原因与一个边界条件。）"
+  },
+  {
+    "id": "project:checkout:1",
+    "area": "工程可靠性",
+    "level": 3,
+    "goal": "在多文件 Java 项目中实现可验证的库存、幂等与并发修复",
+    "deliverable": "导出源码、修复、导入 ZIP，运行固定回归测试，再提交修复说明与 AI 点评。"
+  },
+  {
+    "id": "sql:sqlite:concept-keys",
+    "area": "数据库",
+    "level": 1,
+    "goal": "理解主键、外键和唯一约束",
     "deliverable": "可运行题提交 SQLite SQL；概念题解释原理并结合随题数据举例。"
   },
   {
@@ -245,13 +1162,6 @@
     "deliverable": "可运行题提交 SQLite SQL；概念题解释原理并结合随题数据举例。"
   },
   {
-    "id": "sql:sqlite:concept-keys",
-    "area": "数据库",
-    "level": 1,
-    "goal": "理解主键、外键和唯一约束",
-    "deliverable": "可运行题提交 SQLite SQL；概念题解释原理并结合随题数据举例。"
-  },
-  {
     "id": "sql:sqlite:concept-transaction",
     "area": "数据库",
     "level": 1,
@@ -259,10 +1169,31 @@
     "deliverable": "可运行题提交 SQLite SQL；概念题解释原理并结合随题数据举例。"
   },
   {
-    "id": "project:checkout:1",
-    "area": "工程可靠性",
+    "id": "sql:sqlite:delete",
+    "area": "数据库",
+    "level": 2,
+    "goal": "控制删除范围",
+    "deliverable": "可运行题提交 SQLite SQL；概念题解释原理并结合随题数据举例。"
+  },
+  {
+    "id": "sql:sqlite:insert",
+    "area": "数据库",
+    "level": 2,
+    "goal": "正确新增数据且保留旧记录",
+    "deliverable": "可运行题提交 SQLite SQL；概念题解释原理并结合随题数据举例。"
+  },
+  {
+    "id": "sql:sqlite:transfer",
+    "area": "数据库",
     "level": 3,
-    "goal": "在多文件 Java 项目中实现可验证的库存、幂等与并发修复",
-    "deliverable": "导出源码、修复、导入 ZIP，运行固定回归测试，再提交修复说明与 AI 点评。"
+    "goal": "验证转账事务与失败回滚",
+    "deliverable": "可运行题提交 SQLite SQL；概念题解释原理并结合随题数据举例。"
+  },
+  {
+    "id": "sql:sqlite:upsert",
+    "area": "数据库",
+    "level": 2,
+    "goal": "理解唯一键冲突下的写入语义",
+    "deliverable": "可运行题提交 SQLite SQL；概念题解释原理并结合随题数据举例。"
   }
 ]

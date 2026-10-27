@@ -94,3 +94,32 @@ pub fn open_location(path: &Path) -> Result<()> {
     }
     open_in_system(&folder)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn locations_resolve_files_and_folders_and_report_missing_parents() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("document.txt");
+        std::fs::write(&file, "keep").unwrap();
+        assert_eq!(location_target(&file).unwrap(), shell_path(dir.path()));
+        assert_eq!(location_target(dir.path()).unwrap(), shell_path(dir.path()));
+        assert!(location_target(&dir.path().join("missing/child.txt")).is_err());
+        assert!(open_in_system(&file).is_err());
+        assert_eq!(std::fs::read_to_string(file).unwrap(), "keep");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn shell_paths_preserve_unicode_and_convert_verbatim_drive_and_unc_prefixes() {
+        for (input, expected) in [
+            (r"\\?\C:\资料\文档.txt", r"C:\资料\文档.txt"),
+            (r"\\?\UNC\server\share\文档.txt", r"\\server\share\文档.txt"),
+            (r"C:\ordinary.txt", r"C:\ordinary.txt"),
+        ] {
+            assert_eq!(shell_path(Path::new(input)), PathBuf::from(expected));
+        }
+    }
+}

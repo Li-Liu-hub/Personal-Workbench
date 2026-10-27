@@ -123,6 +123,8 @@ pub enum Section {
     #[default]
     Folders,
     Documents,
+    Resume,
+    JobHunt,
     Inventory,
     Websites,
     Contacts,
@@ -147,4 +149,26 @@ pub fn normalize_date(value: &str) -> crate::error::Result<String> {
     Err(crate::error::DeskError::InvalidDate(
         "日期无效，请填写 YYYY-MM-DD，例如 2026-10-20；也可留空".into(),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn date_formats_share_one_canonical_value_and_validate_leap_years() {
+        for value in [
+            "2024-02-29",
+            "2024/02/29",
+            "2024.02.29",
+            "20240229",
+            " 2024年02月29日 ",
+        ] {
+            assert_eq!(normalize_date(value).unwrap(), "2024-02-29");
+        }
+        assert_eq!(normalize_date("  ").unwrap(), "");
+        for value in ["2025-02-29", "2026-13-01", "2026-04-31", "tomorrow"] {
+            assert!(normalize_date(value).is_err(), "{value}");
+        }
+    }
 }

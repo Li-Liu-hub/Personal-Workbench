@@ -15,7 +15,7 @@ impl Database {
         use rusqlite::OptionalExtension;
         let normalized = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
         let display = crate::files::shell_path(&normalized);
-        Ok(self.desk.query_row("SELECT bd.book_id FROM book_documents bd JOIN books b ON b.id=bd.book_id WHERE bd.document_path IN (?1,?2,?3) AND b.deleted=0",params![path.to_string_lossy().as_ref(),normalized.to_string_lossy().as_ref(),display.to_string_lossy().as_ref()],|r|r.get(0)).optional()?)
+        Ok(self.desk.query_row("SELECT bd.book_id FROM book_documents bd JOIN live_books b ON b.id=bd.book_id WHERE bd.document_path IN (?1,?2,?3) AND b.deleted=0",params![path.to_string_lossy().as_ref(),normalized.to_string_lossy().as_ref(),display.to_string_lossy().as_ref()],|r|r.get(0)).optional()?)
     }
     /// Group by reference, never move or rewrite the document files.
     #[cfg(test)]
@@ -100,7 +100,7 @@ impl Database {
 
     pub fn save_book_draft(&mut self, writer: &str, page: &Page) -> Result<()> {
         let key = format!("{writer}:{}", page.id);
-        self.desk.execute("INSERT INTO book_page_drafts(id,book_id,writer,page_json) VALUES(?1,?2,?3,?4) ON CONFLICT(id) DO UPDATE SET page_json=excluded.page_json",params![key,page.book_id,writer,serde_json::to_string(page)?])?;
+        self.desk.execute("INSERT INTO book_page_drafts(id,book_id,writer,page_json) VALUES(?1,?2,?3,?4) ON CONFLICT(id) DO UPDATE SET book_id=excluded.book_id,page_json=excluded.page_json",params![key,page.book_id,writer,serde_json::to_string(page)?])?;
         Ok(())
     }
 
@@ -119,14 +119,45 @@ impl Database {
             .collect()
     }
 
+    pub fn move_book(&mut self, id: &str, parent: Option<&str>) -> Result<()> {
+        let tx = self.desk.transaction()?;
+        let live: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM live_books WHERE id=?1 AND id<>?2)",
+            params![id, WRITING_ROOT],
+            |r| r.get(0),
+        )?;
+        if !live {
+            return Err(DeskError::InvalidInput("图书已不存在".into()));
+        }
+        if let Some(parent) = parent {
+            let valid: bool = tx.query_row(
+                "SELECT EXISTS(SELECT 1 FROM live_books WHERE id=?1 AND id<>?2)",
+                params![parent, WRITING_ROOT],
+                |r| r.get(0),
+            )?;
+            let cycle: bool = tx.query_row("WITH RECURSIVE subtree(id) AS (SELECT ?1 UNION SELECT b.id FROM books b JOIN subtree s ON b.parent_id=s.id) SELECT EXISTS(SELECT 1 FROM subtree WHERE id=?2)", params![id,parent], |r| r.get(0))?;
+            if !valid || cycle {
+                return Err(DeskError::InvalidInput(
+                    "不能将图书放入自身或其子图书".into(),
+                ));
+            }
+        }
+        tx.execute(
+            "UPDATE books SET parent_id=?1,updated_at=CURRENT_TIMESTAMP WHERE id=?2",
+            params![parent, id],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
     pub fn books(&self) -> Result<Vec<Book>> {
-        let mut statement=self.desk.prepare("SELECT id,title,tags_json FROM books WHERE deleted=0 AND id<>'__personal_writing__' ORDER BY updated_at DESC,rowid DESC")?;
+        let mut statement=self.desk.prepare("SELECT id,title,tags_json,parent_id FROM live_books WHERE deleted=0 AND id<>'__personal_writing__' ORDER BY updated_at DESC,rowid DESC")?;
         Ok(statement
             .query_map([], |r| {
                 Ok(Book {
                     id: r.get(0)?,
                     title: r.get(1)?,
                     tags: read_tags(r, 2)?,
+                    parent_id: r.get(3)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?)
@@ -135,15 +166,23 @@ impl Database {
         if book.title.trim().is_empty() {
             return Err(DeskError::InvalidPath("请填写图书名称".into()));
         }
+        if book.id == WRITING_ROOT || book.parent_id.as_deref() == Some(&book.id) {
+            return Err(DeskError::InvalidInput("不能将图书放入自身".into()));
+        }
+        if let Some(parent) = &book.parent_id
+            && !self.books()?.iter().any(|b| &b.id == parent)
+        {
+            return Err(DeskError::InvalidInput("上级图书已不存在".into()));
+        }
         let tags = tags::normalize(&book.tags)?;
         let tx = self.desk.transaction()?;
         ensure_tags(&tx, TagScope::Books, &tags)?;
-        tx.execute("INSERT INTO books(id,title,tags_json) VALUES(?1,?2,?3) ON CONFLICT(id) DO UPDATE SET title=excluded.title,tags_json=excluded.tags_json,updated_at=CURRENT_TIMESTAMP",params![book.id,book.title,serde_json::to_string(&tags)?])?;
+        tx.execute("INSERT INTO books(id,title,tags_json,parent_id) VALUES(?1,?2,?3,?4) ON CONFLICT(id) DO UPDATE SET title=excluded.title,tags_json=excluded.tags_json,updated_at=CURRENT_TIMESTAMP",params![book.id,book.title,serde_json::to_string(&tags)?,book.parent_id])?;
         tx.commit()?;
         Ok(())
     }
     pub fn book_pages(&self, book_id: &str) -> Result<Vec<Page>> {
-        let mut statement=self.desk.prepare("SELECT id,book_id,title,body,tags_json,revision,updated_at FROM book_pages WHERE book_id=?1 AND deleted=0 ORDER BY rowid")?;
+        let mut statement=self.desk.prepare("SELECT id,book_id,title,body,tags_json,revision,updated_at FROM book_pages WHERE book_id=?1 AND deleted=0 AND EXISTS(SELECT 1 FROM live_books WHERE id=book_id AND deleted=0) ORDER BY rowid")?;
         Ok(statement
             .query_map([book_id], |r| {
                 Ok(Page {
@@ -159,32 +198,66 @@ impl Database {
             .collect::<std::result::Result<Vec<_>, _>>()?)
     }
     pub fn save_book_page(&mut self, page: &mut Page) -> Result<()> {
-        if page.title.trim().is_empty() {
-            return Err(DeskError::InvalidPath("请填写页面名称".into()));
-        }
-        let tags = tags::normalize(&page.tags)?;
         let tx = self.desk.transaction()?;
-        ensure_tags(&tx, TagScope::BookPages, &tags)?;
-        if page.revision == 0 {
-            tx.execute("INSERT INTO book_pages(id,book_id,title,body,tags_json,revision) VALUES(?1,?2,?3,?4,?5,1)",params![page.id,page.book_id,page.title,page.body,serde_json::to_string(&tags)?])?;
-        } else {
-            tx.execute("INSERT OR IGNORE INTO book_page_versions(page_id,revision,title,body,tags_json) SELECT id,revision,title,body,tags_json FROM book_pages WHERE id=?1 AND revision=?2 AND deleted=0",params![page.id,page.revision])?;
-            let updated=tx.execute("UPDATE book_pages SET title=?1,body=?2,tags_json=?3,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE id=?4 AND revision=?5 AND deleted=0",params![page.title,page.body,serde_json::to_string(&tags)?,page.id,page.revision])?;
-            if updated != 1 {
-                return Err(DeskError::ConcurrentModification);
-            }
-        }
+        write_page(&tx, page)?;
         tx.commit()?;
-        page.revision += 1;
-        page.updated_at = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
+        page_saved(page);
         Ok(())
     }
     pub fn set_library_deleted(&mut self, id: &str, page: bool, deleted: bool) -> Result<()> {
+        if !page && id == WRITING_ROOT {
+            return Err(DeskError::InvalidPath("不能删除文档根目录".into()));
+        }
         let table = if page { "book_pages" } else { "books" };
-        self.desk.execute(
-            &format!("UPDATE {table} SET deleted=?1 WHERE id=?2"),
+        let tx = self.desk.transaction()?;
+        if !page {
+            // Both deletion and restoration invalidate editors opened before this transition.
+            tx.execute("WITH RECURSIVE subtree(id) AS (SELECT ?1 UNION SELECT b.id FROM books b JOIN subtree s ON b.parent_id=s.id) UPDATE book_pages SET revision=revision+1 WHERE book_id IN (SELECT id FROM subtree) AND EXISTS(SELECT 1 FROM books WHERE id=?1 AND deleted<>?2)", params![id, deleted])?;
+        }
+        let revision = if page { ",revision=revision+1" } else { "" };
+        tx.execute(
+            &format!("UPDATE {table} SET deleted=?1{revision} WHERE id=?2 AND deleted<>?1"),
             params![deleted as i64, id],
         )?;
+        tx.commit()?;
         Ok(())
     }
+}
+
+/// Shared transaction boundary for ordinary saves and saves that also clear a draft.
+pub(super) fn write_page(tx: &rusqlite::Transaction<'_>, page: &Page) -> Result<()> {
+    if page.id.trim().is_empty()
+        || page.title.trim().is_empty()
+        || page.revision < 0
+        || page.revision == i64::MAX
+    {
+        return Err(DeskError::InvalidPath(
+            "请填写页面编号、名称及有效修订号".into(),
+        ));
+    }
+    let live_book: bool = tx.query_row(
+        "SELECT EXISTS(SELECT 1 FROM live_books WHERE id=?1 AND deleted=0)",
+        [&page.book_id],
+        |r| r.get(0),
+    )?;
+    if !live_book {
+        return Err(DeskError::ConcurrentModification);
+    }
+    let tags = tags::normalize(&page.tags)?;
+    ensure_tags(tx, TagScope::BookPages, &tags)?;
+    if page.revision == 0 {
+        tx.execute("INSERT INTO book_pages(id,book_id,title,body,tags_json,revision) VALUES(?1,?2,?3,?4,?5,1)",params![page.id,page.book_id,page.title,page.body,serde_json::to_string(&tags)?])?;
+    } else {
+        tx.execute("INSERT OR IGNORE INTO book_page_versions(page_id,revision,title,body,tags_json) SELECT id,revision,title,body,tags_json FROM book_pages WHERE id=?1 AND revision=?2 AND deleted=0",params![page.id,page.revision])?;
+        let updated=tx.execute("UPDATE book_pages SET title=?1,body=?2,tags_json=?3,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE id=?4 AND revision=?5 AND book_id=?6 AND deleted=0",params![page.title,page.body,serde_json::to_string(&tags)?,page.id,page.revision,page.book_id])?;
+        if updated != 1 {
+            return Err(DeskError::ConcurrentModification);
+        }
+    }
+    Ok(())
+}
+
+pub(super) fn page_saved(page: &mut Page) {
+    page.revision += 1;
+    page.updated_at = chrono::Local::now().format("%Y-%m-%d %H:%M").to_string();
 }

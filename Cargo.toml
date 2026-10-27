@@ -1,6 +1,6 @@
 [package]
 name = "personal-desk"
-version = "0.14.0"
+version = "0.15.30"
 edition = "2024"
 rust-version = "1.95"
 description = "A private Rust desktop office hub"
@@ -8,7 +8,8 @@ license = "MIT"
 
 [dependencies]
 aes-gcm = "0.10"
-calamine = "0.26.1"
+calamine = { version = "0.26.1", features = ["dates"] }
+rust_xlsxwriter = { version = "0.79.4", features = ["constant_memory", "chrono"] }
 image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp", "bmp"] }
 chrono = { version = "0.4", features = ["serde"] }
 directories = "6"
@@ -25,15 +26,26 @@ tempfile = "3"
 url = "2"
 uuid = { version = "1", features = ["v4", "serde"] }
 walkdir = "2"
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_System_Com", "Win32_System_Threading", "Win32_System_JobObjects", "Win32_Security", "Win32_System_Registry", "Win32_UI_HiDpi", "Win32_Graphics_Gdi"] }
-windows = { version = "0.52", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_System_Ole", "Win32_UI_Shell"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_System_Com", "Win32_System_Threading", "Win32_System_JobObjects", "Win32_Security", "Win32_System_Registry", "Win32_UI_HiDpi", "Win32_Graphics_Gdi", "Win32_UI_Shell_Common", "Win32_NetworkManagement_IpHelper", "Win32_NetworkManagement_Ndis", "Win32_Networking_WinSock"] }
+windows = { version = "0.52", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_System_Ole", "Win32_UI_Shell", "Win32_System_WinRT", "Data_Pdf", "Storage", "Storage_Streams", "Foundation", "UI"] }
 zip = { version = "6", default-features = false, features = ["deflate"] }
 zeroize = { version = "1", features = ["derive"] }
 egui_commonmark = { version = "0.26", default-features = false, features = ["pulldown_cmark"] }
-ureq = { version = "3", default-features = false, features = ["json"] }
+ureq = { version = "3", default-features = false, features = ["charset", "gzip", "json", "rustls"] }
+
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+tiny_http = "0.12"
+regex = "1"
+serde_yaml_ng = "0.10"
+getrandom = "0.3"
+
+scraper = { version = "0.24", default-features = false }
+quick-xml = "0.38"
 
 [dev-dependencies]
-getrandom = "0.3"
+
+[build-dependencies]
+winresource = { version = "0.1.31", default-features = false }
 
 [profile.release]
 opt-level = 2

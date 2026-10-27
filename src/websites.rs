@@ -28,3 +28,45 @@ pub fn prepare(mut website: Website) -> Result<Website> {
     website.category = website.category.trim().to_owned();
     Ok(website)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn website_addresses_accept_http_hosts_and_reject_other_schemes_or_missing_hosts() {
+        for input in [
+            "",
+            " ",
+            "file:///C:/data",
+            "ftp://example.test",
+            "https://",
+            "https://[invalid]",
+        ] {
+            assert!(
+                prepare(Website {
+                    url: input.into(),
+                    ..Default::default()
+                })
+                .is_err(),
+                "{input}"
+            );
+        }
+        for input in [
+            "example.test/a?q=1",
+            "http://localhost:8080/",
+            "https://例子.测试/",
+        ] {
+            let website = prepare(Website {
+                url: input.into(),
+                title: " title ".into(),
+                category: " tag ".into(),
+                ..Default::default()
+            })
+            .unwrap();
+            assert_eq!(website.title, "title");
+            assert_eq!(website.category, "tag");
+            assert!(url::Url::parse(&website.url).is_ok());
+        }
+    }
+}

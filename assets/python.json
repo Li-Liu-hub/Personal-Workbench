@@ -1,0 +1,291 @@
+[
+  {
+    "id": "ref:python:gil",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "GIL 全局解释器锁对多线程的实际影响",
+    "summary": "CPython 的 GIL 保证同一时刻只有一个线程执行 Python 字节码，CPU 密集型多线程无法并行加速；IO 密集型任务在等待时释放 GIL，多线程仍然有效；CPU 并行应使用 multiprocessing 或子进程。",
+    "syntax": "两个线程各循环 1 亿次自增，耗时约等于单线程两倍",
+    "example": "两个线程各循环 1 亿次自增，耗时约等于单线程两倍",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：GIL 的切换基于字节码计数与等待事件（IO/锁释放）；C 扩展在进入 C 代码时可释放 GIL（如 numpy 计算、hashlib）。3.13 实验性 free-threaded 构建正在移除 GIL，但主流版本仍是 GIL 语义。\n\n自检：CPU 密集与 IO 密集任务各该怎么选并发模型？为什么 numpy 计算多线程有效？\n参考结论：CPU 密集用 multiprocessing（每进程独立解释器与 GIL）或提交给进程池；IO 密集用 threading/asyncio。numpy 的核心计算在 C 层执行并释放 GIL，多线程可并行，纯 Python 循环则被 GIL 串行化。",
+    "source": "https://docs.python.org/3/glossary.html#term-global-interpreter-lock",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "gil"
+    ]
+  },
+  {
+    "id": "ref:python:mutable-default",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "可变对象作默认参数的共享陷阱",
+    "summary": "默认参数在函数定义时求值一次并绑定到函数对象，所有调用共享同一个可变默认值；跨调用累积修改导致数据污染，默认应设 None 并在函数体内创建。",
+    "syntax": "def add(x, items=[]): items.append(x); return items",
+    "example": "def add(x, items=[]): items.append(x); return items",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：共享默认值在并发下还会引发线程安全问题；不变类型（int/str/tuple）作默认值没有此问题。检测手段：查看函数的 __defaults__ 可见累积状态。\n\n自检：为什么 def f(x, acc=[]) 连续调用会累积？正确写法是什么？如何验证？\n参考结论：默认值在 def 时求值一次，acc 绑定同一个列表对象，append 跨调用可见。正确写法：acc=None 后在函数内 acc=[]。验证：f.__defaults__ 中可看到同一列表不断增长。",
+    "source": "https://docs.python.org/3/faq/programming.html#why-are-default-values-evaluated-at-definition-time",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "mutable-default"
+    ]
+  },
+  {
+    "id": "ref:python:decorator",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "装饰器：带参装饰器与 functools.wraps",
+    "summary": "装饰器在不修改原函数的前提下包装行为；带参装饰器是三层函数（参数层→包装层→调用层）；必须用 functools.wraps 保留被包装函数的 __name__/__doc__/签名元信息。",
+    "syntax": "@retry(times=3) def call(): ...",
+    "example": "@retry(times=3) def call(): ...",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：装饰器在导入时执行一次，运行时只调用内层包装函数；多个装饰器自下而上应用、自上而下包装。不用 wraps 会让日志、调试与序列化工具拿到的是 wrapper 的元数据。\n\n自检：写一个可配置重试次数的装饰器需要几层结构？wraps 解决什么问题？装饰器的应用时机？\n参考结论：三层：外层接收 times 返回真正的装饰器，中层接收函数返回 wrapper，内层执行重试逻辑。wraps 把原函数元数据复制到 wrapper，保持 introspection 正确。装饰器在函数定义（导入）时执行，而非每次调用。",
+    "source": "https://docs.python.org/3/glossary.html#term-decorator",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "decorator"
+    ]
+  },
+  {
+    "id": "ref:python:generator-yield",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "生成器与惰性求值：yield 的执行模型",
+    "summary": "生成器函数遇到 yield 暂停并交出值，下次 next 从暂停点恢复，局部状态保留；惰性求值让百万级序列几乎不占内存；yield from 委托子生成器并转发值与异常。",
+    "syntax": "def gen(): yield 1; yield 2 —— g=gen(); next(g)",
+    "example": "def gen(): yield 1; yield 2 —— g=gen(); next(g)",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：生成器是一次性的，耗尽后再 next 抛 StopIteration；return 值放在 StopIteration.value 中（for 不可见）；send 可向暂停点注入值实现协程式双向通信。\n\n自检：生成器为什么省内存？生成器耗尽后行为？send 的作用？\n参考结论：惰性产出：元素按需计算，任意时刻只保存当前帧状态，不像列表整体物化。耗尽后再 next 抛 StopIteration。send(value) 恢复执行并把 value 作为 yield 表达式的值，驱动双向数据流。",
+    "source": "https://docs.python.org/3/howto/functional.html#generators",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "generator-yield"
+    ]
+  },
+  {
+    "id": "ref:python:context-manager",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "上下文管理器与 with 的保证",
+    "summary": "with 保证退出时执行清理：__enter__ 成功后无论是否异常都调用 __exit__；@contextmanager 把生成器函数变成上下文管理器；异常时 __exit__ 返回 True 可抑制异常（慎用）。",
+    "syntax": "with open(p) as f: data=f.read()",
+    "example": "with open(p) as f: data=f.read()",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：__exit__(exc_type, exc, tb) 正常退出三参为 None；返回 truthy 会吞掉异常，默认 False 透传。contextmanager 生成器中 yield 之前是 enter、之后是 exit，异常在 yield 处抛入。\n\n自检：with 的异常保证是什么？__exit__ 返回 True 的后果？contextmanager 的结构？\n参考结论：enter 成功后 exit 必被调用，资源释放不依赖调用者自觉；返回 True 表示异常已处理（吞掉），默认返回 False 向外透传。@contextmanager 包装生成器，yield 前代码在进入时执行，yield 后在退出时执行，异常从 yield 点抛入。",
+    "source": "https://docs.python.org/3/library/contextlib.html",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "context-manager"
+    ]
+  },
+  {
+    "id": "ref:python:copy-shallow",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "浅拷贝与深拷贝的边界",
+    "summary": "b=a 是引用共享；copy.copy 浅拷贝只复制一层容器，内部可变对象仍共享；copy.deepcopy 递归复制；deepcopy 用 memo 字典处理循环引用。",
+    "syntax": "copy.copy([[1],[2]]) 的内层列表两份拷贝共享",
+    "example": "copy.copy([[1],[2]]) 的内层列表两份拷贝共享",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：不可变对象（int/str/tuple 均不可变元素）拷贝与否无差别，浅拷贝足够；含可变元素的 tuple 浅拷贝仍共享内层。自定义类可通过 __copy__/__deepcopy__ 控制行为。\n\n自检：a=[[1],[2]]，b=copy.copy(a) 后修改 a[0][0]，b 会变吗？deepcopy 如何处理循环引用？\n参考结论：会变：浅拷贝只新建外层列表，a[0] 与 b[0] 指向同一内层列表。deepcopy 递归复制并在 memo 中记录 id→副本映射，遇到已复制对象直接复用副本，既防循环引用死循环又保持共享关系。",
+    "source": "https://docs.python.org/3/library/copy.html",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "copy-shallow"
+    ]
+  },
+  {
+    "id": "ref:python:is-vs-equals",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "is 与 == 的语义区别及小整数/驻留缓存",
+    "summary": "is 比较对象身份（同一对象），== 比较值（调用 __eq__）；CPython 缓存 -5..256 的小整数与部分字符串驻留，导致 is 在字面量上“偶然正确”，跨对象比较必须用 ==。",
+    "syntax": "a=256;b=256;a is b 为 True；a=257;b=257 可能为 False",
+    "example": "a=256;b=256;a is b 为 True；a=257;b=257 可能为 False",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：256 内整数在解释器启动时创建共享；字符串驻留发生在编译期常量与符合标识符规则的串；REPL 与脚本、不同代码块行为可能不同，绝不能依赖。\n\n自检：什么时候 is 与 == 结果相同但不该混用？257 的例子说明了什么？写身份判断的正确场景？\n参考结论：对不可变字面量 is 常“碰巧”等于 ==，但语义不同：身份 vs 值。257 超出小整数缓存，两个变量可能是不同对象，说明 is 依赖实现细节不可用于值比较。is 的正确场景：与 None/True/False 比较身份、哨兵对象判断。",
+    "source": "https://docs.python.org/3/reference/datamodel.html#customization",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "is-vs-equals"
+    ]
+  },
+  {
+    "id": "ref:python:args-kwargs",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "*args 与 **kwargs 的收集与解包规则",
+    "summary": "*args 收集位置参数为 tuple，**kwargs 收集关键字参数为 dict；调用时 * 解包序列、** 解包字典；参数顺序：位置、*args、仅关键字、**kwargs。",
+    "syntax": "def f(a, *args, key=None, **kw)",
+    "example": "def f(a, *args, key=None, **kw)",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：仅关键字参数（* 后或 *args 后）强制调用方写参数名，避免布尔开关含义不明；关键字-only 与 positional-only（/，PEP 570）让 API 演进不破坏调用方。\n\n自检：f(1,2,3,key=4,x=5) 中 args/kwargs 各是什么？仅关键字参数解决什么问题？\n参考结论：args=(2,3)，kwargs={'x':5}，a=1，key=4。仅关键字参数（key=None）强制具名传递，布尔/可选参数语义自文档化，且允许函数安全新增参数而不破坏位置调用。",
+    "source": "https://docs.python.org/3/tutorial/controlflow.html#more-on-defining-functions",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "args-kwargs"
+    ]
+  },
+  {
+    "id": "ref:python:exception-best-practice",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "异常处理的最佳实践：精确捕获、异常链与自定义异常",
+    "summary": "捕获具体异常类型而非裸 except；raise ... from e 保留异常链；finally/with 负责清理；自定义异常继承 Exception 并携带上下文数据；库内定义异常基类方便调用方精确处理。",
+    "syntax": "except Exception: pass —— 吞掉一切",
+    "example": "except Exception: pass —— 吞掉一切",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：裸 except 会连 KeyboardInterrupt/SystemExit 一起吞掉（等价 except BaseException）；as e 后用 raise NewError(...) from e 保留原始堆栈（__cause__）；Python 3.11 的 ExceptionGroup 支持并发异常聚合。\n\n自检：裸 except 的问题？异常链 from 的作用？设计库异常层级的建议？\n参考结论：裸 except 吞掉所有 BaseException 包括退出信号，且丢失类型信息无法分支处理。from e 把原异常记为 __cause__，调试时看到完整因果链。库应定义 AppError 基类派生具体异常，调用方按层级捕获，未预期异常自然上抛。",
+    "source": "https://docs.python.org/3/tutorial/errors.html",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "exception-best-practice"
+    ]
+  },
+  {
+    "id": "ref:python:asyncio-basic",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "asyncio 协程模型：事件循环与 await",
+    "summary": "async def 定义协程，await 挂起并让出控制权给事件循环；协程单线程并发适合高 IO 场景；阻塞调用会卡住整个循环，需用 to_thread/run_in_executor 委托线程。",
+    "syntax": "await asyncio.gather(t1(), t2()) 并发执行",
+    "example": "await asyncio.gather(t1(), t2()) 并发执行",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：gather 并发运行协程收集结果；create_task 把协程调度为 Task 立即执行；超时用 asyncio.timeout（3.11+）；注意协程函数调用不执行（返回协程对象），必须 await/任务化。\n\n自检：await 时发生什么？为什么在协程里用 time.sleep 是错误？协程函数直接调用会执行吗？\n参考结论：await 把控制权交还事件循环，循环调度其他就绪任务，IO 完成后恢复。time.sleep 是阻塞调用，卡住整个事件循环，应 await asyncio.sleep 或 to_thread。直接调用 async 函数只创建协程对象不执行，未 await 会收到 RuntimeWarning。",
+    "source": "https://docs.python.org/3/library/asyncio.html",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "asyncio-basic"
+    ]
+  },
+  {
+    "id": "ref:python:slots",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "__slots__ 的内存与属性限制",
+    "summary": "声明 __slots__ 后实例用固定槽位存储属性，省去每实例的 __dict__，内存显著降低且属性访问更快；代价是不能动态添加未声明属性，继承链都要声明才生效。",
+    "syntax": "class P: __slots__=('x','y')",
+    "example": "class P: __slots__=('x','y')",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：百万级小对象场景收益明显；与多继承/弱引用需注意（要加 '__weakref__'）；dataclass(slots=True)（3.10+）自动生成。\n\n自检：__slots__ 为什么省内存？两个限制是什么？与 dataclass 如何结合？\n参考结论：普通实例每个都带 __dict__（哈希表）开销；slots 用 C 数组槽位直接存值，省哈希表与动态查找。限制：不能动态加属性；子类若不声明 slots 会重新引入 __dict__。dataclass(slots=True) 自动按字段生成 slots。",
+    "source": "https://docs.python.org/3/reference/datamodel.html#slots",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "slots"
+    ]
+  },
+  {
+    "id": "ref:python:dataclass",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "dataclass 与 frozen 不可变数据类",
+    "summary": "@dataclass 自动生成 __init__/__repr__/__eq__；frozen=True 生成不可变类（赋值抛 FrozenInstanceError，并生成 __hash__）；field(default_factory=list) 解决可变默认值；eq=True 时必须 frozen 才可哈希。",
+    "syntax": "@dataclass(frozen=True) class P: x:int",
+    "example": "@dataclass(frozen=True) class P: x:int",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：default_factory 在每次实例化时调用工厂生成新默认值，避开可变默认参数陷阱；eq 默认按字段生成，frozen+eq 才实现 __hash__ 可用于集合键。\n\n自检：dataclass 的可变默认字段怎么写？frozen 的收益？可哈希的条件？\n参考结论：field(default_factory=list) 让每个实例拿到新列表。frozen 保证不可变、线程友好、可作为字典键。条件：frozen=True 且 eq=True（默认）时生成基于字段的 __hash__。",
+    "source": "https://docs.python.org/3/library/dataclasses.html",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "dataclass"
+    ]
+  },
+  {
+    "id": "ref:python:typing",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "类型注解与 mypy 渐进式检查",
+    "summary": "类型注解是元数据（运行时基本不强制），配合 mypy/pyright 静态检查；Optional[X] 即 X|None，容器类型用内置泛型 list[int]（3.9+），Pydantic/FastAPI 把注解用于运行时校验。",
+    "syntax": "def f(ids: list[int]) -> dict[str, int]",
+    "example": "def f(ids: list[int]) -> dict[str, int]",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：注解提升可维护性与 IDE 补全，代价是维护成本；mypy 渐进采用可从关键模块开始；Protocol（PEP 544）支持结构化子类型，替代部分抽象基类。\n\n自检：注解在运行时被强制吗？list[int] 与 typing.List 的区别？Protocol 解决什么问题？\n参考结论：CPython 不强制注解（只存入 __annotations__），静态工具负责检查；3.9+ 可直接用内置泛型 list[int]，typing.List 是旧写法。Protocol 按“有无方法/属性”匹配类型（结构化类型），鸭子类型的静态化表达。",
+    "source": "https://docs.python.org/3/library/typing.html",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "typing"
+    ]
+  },
+  {
+    "id": "ref:python:string-fstring",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "f-string 与格式化的选择",
+    "summary": "f-string（PEP 498，3.6+）在运行时求值并格式化，可读性最好；调试用 f\"{x=}\" 输出名称与值（3.8+）；数字格式 f\"{v:.2f}\"、对齐与千分位内建；日志场景仍推荐惰性 %s 占位符避免未启用级别时的开销。",
+    "syntax": "f\"{price:.2f}\" / f\"{user=}\"",
+    "example": "f\"{price:.2f}\" / f\"{user=}\"",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：f-string 中可写表达式但应保持简单，复杂逻辑先提取变量；= 调试语法输出等号与 repr；与 str.format 相比更早绑定、更快。\n\n自检：f\"{x=}\" 输出什么？为什么日志库推荐 % 占位符而不是 f-string？\n参考结论：输出 \"x=<repr 值>\"，名称与值一起显示便于调试。日志占位符在级别未开启时不做格式化，f-string 在调用前就完成拼接，热路径上浪费 CPU。",
+    "source": "https://docs.python.org/3/tutorial/inputoutput.html#formatted-string-literals",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "string-fstring"
+    ]
+  },
+  {
+    "id": "ref:python:errors-eafp",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "EAFP 风格与 LBYL 的取舍",
+    "summary": "Python 惯用 EAFP：先操作，捕获 KeyError/AttributeError 等再处理，比先检查（LBYL）更快且无竞态；字典用 get/setdefault/collections.defaultdict 表达默认语义。",
+    "syntax": "try: v = d[k] except KeyError: ... vs if k in d: v=d[k]",
+    "example": "try: v = d[k] except KeyError: ... vs if k in d: v=d[k]",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：多线程下 LBYL 的检查与使用之间存在竞态（检查后键可能被删）；EAFP 原子路径更稳。异常代价在异常路径高，热路径高失败率时应权衡。\n\n自检：为什么说 EAFP 在并发下比 LBYL 安全？defaultdict 的语义？何时反而选 LBYL？\n参考结论：LBYL 的 in 检查与取值两步之间可被其他线程修改；EAFP 直接操作，失败由异常处理，检查与使用原子。defaultdict(factory) 访问缺失键时自动生成默认值并写入。失败率高、异常构造昂贵的热路径可先检查，或用 .get 带默认值。",
+    "source": "https://docs.python.org/3/glossary.html#term-EAFP",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "errors-eafp"
+    ]
+  },
+  {
+    "id": "ref:python:walrus",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "海象运算符 := 与循环内赋值",
+    "summary": "海象运算符（PEP 572）在表达式内赋值，消除重复计算与循环哨兵变量；列表推导内也可用，但作用域泄漏到包含函数作用域需谨慎。",
+    "syntax": "while (chunk := f.read(8192)): process(chunk)",
+    "example": "while (chunk := f.read(8192)): process(chunk)",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：推导式中的 := 绑定到最近的可迭代作用域，可被外层访问（3.8 语义决定）；用于 if/while 条件可读性提升明显，嵌套过深反而难读。\n\n自检：写一个“读到空串停止”的文件循环，不用 := 与用 := 的对比？推导式中 := 的作用域？\n参考结论：无 :=：line=f.readline() 后 while line: 循环末尾再 readline，重复两行。用 :=：while (line:=f.readline()): 一行完成。在推导式中 := 变量绑定到包含作用域（非推导式局部），同名外层变量会被覆盖。",
+    "source": "https://peps.python.org/pep-0572/",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "walrus"
+    ]
+  },
+  {
+    "id": "ref:python:modules-import",
+    "language": "Python",
+    "category": "进阶专题",
+    "title": "模块导入机制：循环导入与延迟导入",
+    "summary": "import 在 sys.modules 缓存模块，首次导入执行模块顶层代码；循环导入可用延迟导入（函数内 import）或重构拆分解决；相对导入基于包结构，脚本直接运行时 __name__ != '__main__' 语义要清楚。",
+    "syntax": "A import B，B import A → 部分初始化的模块",
+    "example": "A import B，B import A → 部分初始化的模块",
+    "notes": "学习范围：CPython 3.10+ 行为基准；与解释器实现相关的结论以官方文档为准。\n\n原理与边界：导入顺序决定顶层代码执行次数（仅一次）；副作用重的顶层代码（连接、读配置）会让导入不可测试；入口判断 if __name__ == '__main__' 防止导入即执行。\n\n自检：循环导入为什么发生？如何破除？为什么顶层代码要有副作用纪律？\n参考结论：A 导入时执行顶层 import B，B 又 import A，此时 A 尚未完成初始化，B 拿到部分初始化对象，访问其属性报错。破除：函数内延迟 import、把公共依赖下沉到第三模块。顶层副作用让“导入”与“运行”耦合，测试与复用都受影响，应收敛到 main/初始化函数。",
+    "source": "https://docs.python.org/3/reference/import.html",
+    "entry_type": "概念",
+    "tags": [
+      "Python",
+      "进阶专题",
+      "modules-import"
+    ]
+  }
+]

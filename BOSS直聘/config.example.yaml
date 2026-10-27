@@ -1,0 +1,42 @@
+# BossHunter 配置示例
+# 复制为 config.yaml 后修改；MCP 服务默认读取 BOSSHUNTER_CONFIG 指定的配置文件。
+
+profile:
+  # 仅作为本地资料路径保存，工具本身不会上传简历。
+  resume_path: ""
+
+search:
+  keywords: ["Java后端开发", "全栈开发"]
+  cities: ["上海", "深圳"]
+  city_codes: {}          # 自定义 城市名 -> BOSS 城市编码；内置城市可留空
+  max_pages: 3            # 每个 城市×关键词 最多读取页数（1-50）
+  sort: default           # default / newest
+  filters:                # 可选：BOSS 筛选，支持 job_type/experience/degree/scale/salary/industry
+    experience: ["1-3年"]
+    degree: ["本科"]
+
+delivery:
+  greeting: "您好，我对这个岗位很感兴趣，方便聊聊吗？"
+  images: []              # 默认随投递发送的图片绝对或相对路径；为空时只发文字
+  daily_limit: 50         # 每日成功投递上限
+  interval_min: 60        # 两次投递之间的随机间隔（秒）
+  interval_max: 180
+  send_windows: ["09:00-18:00"]  # 允许发送的时间窗口，可配置多个且不能重叠
+  browse_before_greet: false
+  browse_duration_min: 3
+  browse_duration_max: 8
+
+safety:
+  daily_page_limit: 600          # 每日搜索+详情+聊天页面总预算
+  daily_search_page_limit: 60
+  daily_detail_page_limit: 400
+  risk_lock_minutes: 10          # 检测到验证码/风控后的冷却分钟数
+  max_consecutive_failures: 3    # 连续失败达到该值后停止，force 可重置
+
+browser:
+  chrome_path: ""                # 留空自动查找 Chrome / Edge
+  debug_port: 9333
+  user_data_dir: "./data/chrome-profile"  # 专用配置目录，登录态保存在这里
+  auto_launch: true
+  launch_timeout_seconds: 25
+  headless: false

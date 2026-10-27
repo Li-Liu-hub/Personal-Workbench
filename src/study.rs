@@ -1,7 +1,7 @@
 use crate::error::{DeskError, Result};
 use serde::{Deserialize, Serialize};
 
-pub const TOPICS: [&str; 7] = [
+pub const TOPICS: [&str; 8] = [
     "八股题",
     "SQL 训练",
     "Linux 命令",
@@ -9,6 +9,7 @@ pub const TOPICS: [&str; 7] = [
     "排障与调优",
     "工程设计",
     "项目实战",
+    "编码题",
 ];
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Rubric {
@@ -35,6 +36,8 @@ pub struct Card {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sql: Option<crate::sql_practice::Lab>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub coding: Option<crate::coding::Lab>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub origin: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project: Option<String>,
@@ -58,8 +61,16 @@ impl Card {
         if let Some(sql) = &self.sql {
             sql.validate().map_err(DeskError::InvalidPath)?;
         }
+        if let Some(lab) = &self.coding {
+            lab.validate().map_err(DeskError::InvalidInput)?;
+            if self.kind != "engineering" || self.sql.is_some() || self.project.is_some() {
+                return Err(DeskError::InvalidInput(
+                    "编码题不能同时设置 SQL 或多文件项目".into(),
+                ));
+            }
+        }
         if !matches!(self.kind.as_str(), "engineering" | "word")
-            || self.id.is_empty()
+            || self.id.trim().is_empty()
             || self.title.trim().is_empty()
             || self.prompt.trim().is_empty()
             || self.answer.trim().is_empty()
@@ -79,7 +90,7 @@ impl Card {
             || self
                 .rubric
                 .iter()
-                .any(|r| r.id.is_empty() || r.text.is_empty() || r.points == 0)
+                .any(|r| r.id.trim().is_empty() || r.text.trim().is_empty() || r.points == 0)
         {
             return Err(DeskError::InvalidPath("评分点编号不能重复或留空".into()));
         }
@@ -158,6 +169,8 @@ pub struct Check {
 pub struct Assessment {
     pub version: u8,
     pub zero_reviewed: bool,
+    #[serde(default)]
+    pub high_reviewed: bool,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Grade {
@@ -171,10 +184,13 @@ pub struct Grade {
     pub sql: Option<crate::sql_practice::Report>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project: Option<crate::challenges::Report>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub coding: Option<crate::coding::Report>,
 }
 impl Grade {
     /// A model cannot invent a final score: validate every rubric result and sum it here.
     pub fn completion(&self, card: &Card, answer: &str) -> Result<u8> {
+        card.validate()?;
         if self.checks.len() != card.rubric.len() {
             return Err(DeskError::InvalidPath(
                 "模型没有逐项完成评分，请重试".into(),
@@ -222,6 +238,7 @@ impl Grade {
             weak_points: vec![],
             sql: None,
             project: None,
+            coding: None,
         }
     }
 }
@@ -273,6 +290,126 @@ pub struct SavedDialogue {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn card() -> Card {
+        crate::coding::cards().remove(0)
+    }
+
+    #[test]
+    fn invalid_cards_cannot_produce_wrapped_or_out_of_range_scores() {
+        let mut card = card();
+        card.rubric = (0..3)
+            .map(|i| Rubric {
+                id: format!("r{i}"),
+                text: "criterion".into(),
+                points: 100,
+            })
+            .collect();
+        let mut grade = Grade::unknown(&card);
+        for check in &mut grade.checks {
+            check.earned = 100;
+            check.evidence = "answer".into();
+        }
+        assert!(grade.completion(&card, "answer").is_err());
+    }
+
+    #[test]
+    fn cards_reject_blank_identifiers_and_criteria_even_with_one_hundred_points() {
+        let original = card();
+        for field in ["id", "rubric-id", "rubric-text"] {
+            let mut card = original.clone();
+            match field {
+                "id" => card.id = "  ".into(),
+                "rubric-id" => card.rubric[0].id = "  ".into(),
+                _ => card.rubric[0].text = "  ".into(),
+            }
+            assert!(card.validate().is_err(), "{field}");
+        }
+    }
+
+    #[test]
+    fn grade_requires_one_bounded_check_per_criterion_and_literal_answer_evidence() {
+        let mut card = card();
+        card.rubric = vec![
+            Rubric {
+                id: "r1".into(),
+                text: "first".into(),
+                points: 50,
+            },
+            Rubric {
+                id: "r2".into(),
+                text: "second".into(),
+                points: 50,
+            },
+        ];
+        let mut grade = Grade::unknown(&card);
+        for check in &mut grade.checks {
+            check.earned = 50;
+            check.evidence = "ANSWER".into();
+        }
+        assert_eq!(grade.completion(&card, "my answer").unwrap(), 100);
+        for field in [
+            "missing",
+            "duplicate",
+            "unknown",
+            "points",
+            "reason",
+            "evidence",
+        ] {
+            let mut invalid = grade.clone();
+            match field {
+                "missing" => {
+                    invalid.checks.pop();
+                }
+                "duplicate" => invalid.checks[1].id = "r1".into(),
+                "unknown" => invalid.checks[0].id = "unknown".into(),
+                "points" => invalid.checks[0].earned = 51,
+                "reason" => invalid.checks[0].reason = " \n".into(),
+                _ => invalid.checks[0].evidence = "invented".into(),
+            }
+            assert!(invalid.completion(&card, "my answer").is_err(), "{field}");
+        }
+    }
+
+    #[test]
+    fn mastery_rules_accept_boundaries_and_reject_invalid_ranges() {
+        for (threshold, consecutive, daily_words) in [(1, 1, 1), (100, 20, 200)] {
+            assert!(
+                Rules {
+                    threshold,
+                    consecutive,
+                    daily_words,
+                    ..Default::default()
+                }
+                .validate()
+                .is_ok()
+            );
+        }
+        for (threshold, consecutive, daily_words) in [
+            (0, 1, 1),
+            (101, 1, 1),
+            (85, 0, 1),
+            (85, 21, 1),
+            (85, 1, 0),
+            (85, 1, 201),
+        ] {
+            assert!(
+                Rules {
+                    threshold,
+                    consecutive,
+                    daily_words,
+                    ..Default::default()
+                }
+                .validate()
+                .is_err()
+            );
+        }
+        let progress = Progress::from_scores("empty".into(), &[], &Rules::default());
+        assert_eq!(
+            (progress.attempts, progress.streak, progress.latest),
+            (0, 0, 0)
+        );
+        assert!(!progress.mastered);
+    }
     #[test]
     fn five_successes_are_consecutive_and_a_lapse_restores_the_question() {
         let r = Rules::default();

@@ -1,0 +1,842 @@
+[
+  {
+    "id": "knowledge:ref:cs408:number-representation",
+    "kind": "engineering",
+    "title": "原码、反码、补码与表示范围 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n8 位补码：+5=00000101，-5=11111011。\n\n任务：把 11111011 分别按无符号和 8 位补码解释。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "无符号为 251；最高位权重为 -128 的补码解释为 -5，两种解释共享相同比特但数值不同。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "无符号为 251；最高位权重为 -128 的补码解释为 -5，两种解释共享相同比特但数值不同。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "补码取负是按位取反加一；最小负数取负无法在同位宽带符号数内表示；必须区分无符号解释。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:number-representation"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "number-representation"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "n 位补码范围为 -2^(n-1) 到 2^(n-1)-1，可统一加减法电路。",
+      "deliverable": "把 11111011 分别按无符号和 8 位补码解释。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:overflow",
+    "kind": "engineering",
+    "title": "补码加法溢出与进位标志 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n8 位：01111111 + 00000001 = 10000000。\n\n任务：判断示例的有符号溢出与无符号进位。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "有符号溢出发生，因为两个正数相加得到负号；无符号 127+1=128 在 0..255 内，因此不产生最高位进位。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "有符号溢出发生，因为两个正数相加得到负号；无符号 127+1=128 在 0..255 内，因此不产生最高位进位。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "有符号结果 128 超过上界 127，截断解释为 -128；此例最高位没有无符号进位，不能仅检查进位标志。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:overflow"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "overflow"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "有符号溢出与无符号进位不同；同号数相加结果异号是补码溢出的判据。",
+      "deliverable": "判断示例的有符号溢出与无符号进位。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:shift",
+    "kind": "engineering",
+    "title": "逻辑移位与算术移位 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n8 位补码 -8 为 11111000，分别右移一位。\n\n任务：给出两种右移结果。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "逻辑右移得 01111100，即无符号 124；算术右移得 11111100，按补码为 -4，应先说明位宽和移位类型。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "逻辑右移得 01111100，即无符号 124；算术右移得 11111100，按补码为 -4，应先说明位宽和移位类型。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "算术右移对负奇数通常向负无穷取整，不等同所有语言的有符号除法；语言层行为还受类型与规范限制。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:shift"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "shift"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "逻辑右移左端补零，算术右移通常复制符号位；左移丢弃高位，需检查溢出。",
+      "deliverable": "给出两种右移结果。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:floating-point",
+    "kind": "engineering",
+    "title": "IEEE 754 单精度与规格化数 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n1.5 = 1.1₂ × 2^0；阶码偏置 127。\n\n任务：写出 1.5 的符号、阶码和尾数字段。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "符号 0，阶码 01111111，小数域 10000000000000000000000；对应十六进制 0x3FC00000。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "符号 0，阶码 01111111，小数域 10000000000000000000000；对应十六进制 0x3FC00000。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "阶码全 0 用于零和非规格化数，全 1 用于无穷与 NaN；浮点加法可能舍入，不能直接套整数精确运算。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:floating-point"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "floating-point"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "binary32 由 1 位符号、8 位阶码、23 位小数域组成，规格化有效数隐含前导 1。",
+      "deliverable": "写出 1.5 的符号、阶码和尾数字段。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:endianness",
+    "kind": "engineering",
+    "title": "大端、小端与对齐访问 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n把 32 位 0x12345678 存在地址 0x1000..0x1003。\n\n任务：写出大端和小端按地址递增的字节序列。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "大端为 12 34 56 78，小端为 78 56 34 12；最低地址存最高有效字节为大端，存最低有效字节为小端。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "大端为 12 34 56 78，小端为 78 56 34 12；最低地址存最高有效字节为大端，存最低有效字节为小端。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "端序不改变字节内部的位权；未对齐访问的支持和成本取决于架构，不能一概断言必然崩溃。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:endianness"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "endianness"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "端序描述多字节数据在地址上的排列，对齐描述地址与访问粒度的关系。",
+      "deliverable": "写出大端和小端按地址递增的字节序列。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:performance",
+    "kind": "engineering",
+    "title": "CPU 时间、CPI 与频率 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n程序执行 10^9 条指令，平均 CPI=2，频率 2GHz。\n\n任务：求执行时间，若 CPI 降为 1.5 而频率不变则加速比多少？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "原时间 1 秒，新时间 0.75 秒，加速比 1/0.75≈1.333；不能只比较 CPI 的绝对差。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "原时间 1 秒，新时间 0.75 秒，加速比 1/0.75≈1.333；不能只比较 CPI 的绝对差。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "比较机器必须考虑指令数和 CPI 也可能改变；时钟周期是频率倒数，GHz 表示每秒 10^9 周期。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:performance"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "performance"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "CPU 执行时间=指令数×平均 CPI÷时钟频率，提高频率不必然同比提高程序速度。",
+      "deliverable": "求执行时间，若 CPI 降为 1.5 而频率不变则加速比多少？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:amdahl",
+    "kind": "engineering",
+    "title": "Amdahl 定律与局部优化上限 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n原程序 40% 时间用于可加速部分，该部分提升为 4 倍。\n\n任务：求整体加速比和该部分无限快时的上限。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "整体 S=1/(0.6+0.4/4)=10/7≈1.429；无限加速上限 1/0.6≈1.667。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "整体 S=1/(0.6+0.4/4)=10/7≈1.429；无限加速上限 1/0.6≈1.667。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "以原运行时间占比计算 S=1/((1-p)+p/s)；p/s 是优化后的贡献，不可直接用 p*s。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:amdahl"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "amdahl"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "只有一部分运行时间可被加速时，总加速比受到未优化部分限制。",
+      "deliverable": "求整体加速比和该部分无限快时的上限。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:memory-expansion",
+    "kind": "engineering",
+    "title": "存储器字扩展、位扩展与芯片数 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n用 8K×8 位芯片构成 32K×16 位存储器。\n\n任务：求芯片数量、总地址线和每片地址线数量。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "位扩展需 2 片，字扩展需 4 组，共 8 片；总地址线 15 根，每片地址线 13 根，另 2 位用于组选择。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "位扩展需 2 片，字扩展需 4 组，共 8 片；总地址线 15 根，每片地址线 13 根，另 2 位用于组选择。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "同一字组内芯片并联数据线的不同位，字组间通过高位地址片选；K 在本题为 1024。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:memory-expansion"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "memory-expansion"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "位扩展增加数据宽度，字扩展增加可寻址单元数，组合时还需地址译码。",
+      "deliverable": "求芯片数量、总地址线和每片地址线数量。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:cache-locality",
+    "kind": "engineering",
+    "title": "存储层次与局部性 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n二维行优先数组，比较按行扫描与按列扫描的缓存访问。\n\n任务：为什么大数组逐行访问常比逐列访问更友好？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "同行元素连续，逐行能充分使用一个缓存块内的多个元素；逐列步长大，可能每次访问都引入新块并发生容量或冲突未命中。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "同行元素连续，逐行能充分使用一个缓存块内的多个元素；逐列步长大，可能每次访问都引入新块并发生容量或冲突未命中。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "缓存按块搬运，访问顺序影响未命中率；实际效果还取决于数组大小、缓存容量和编译优化。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:cache-locality"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "cache-locality"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "时间局部性是近期使用的数据可能再次使用，空间局部性是邻近地址可能随后使用。",
+      "deliverable": "为什么大数组逐行访问常比逐列访问更友好？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:cache-mapping",
+    "kind": "engineering",
+    "title": "Cache 标记、组索引与块内偏移 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n32 位字节地址，数据区容量 32KiB，块大小 64B，4 路组相联。\n\n任务：求偏移、组索引与标记位数。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "共 128 组，块内偏移 6 位、组索引 7 位、标记 32-6-7=19 位。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "共 128 组，块内偏移 6 位、组索引 7 位、标记 32-6-7=19 位。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "组数=数据容量/(块大小×路数)，容量不包含标记与状态位；偏移位数依据字节寻址。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:cache-mapping"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "cache-mapping"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "组相联缓存通过索引选组、标记比较识别内存块，块内偏移定位数据。",
+      "deliverable": "求偏移、组索引与标记位数。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:cache-amat",
+    "kind": "engineering",
+    "title": "平均访存时间 AMAT · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n命中时间 1ns，未命中率 5%，额外访存代价 80ns。\n\n任务：计算平均访存时间，并说明降低未命中率的收益。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "AMAT=1+0.05×80=5ns；若未命中率降为 2%，则为 2.6ns，其他参数不变时收益来自少付高额未命中代价。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "AMAT=1+0.05×80=5ns；若未命中率降为 2%，则为 2.6ns，其他参数不变时收益来自少付高额未命中代价。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "题干若给出的是含查缓存时间的未命中总时延，应避免重复计算；多级缓存要区分局部与全局未命中率。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:cache-amat"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "cache-amat"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "一级 Cache 平均访存时间=命中时间+未命中率×额外未命中代价。",
+      "deliverable": "计算平均访存时间，并说明降低未命中率的收益。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:cache-write",
+    "kind": "engineering",
+    "title": "写直达、写回与写分配 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n写回缓存修改块 X 后尚未替换，随后因冲突需淘汰 X。\n\n任务：淘汰 X 前应做什么？说明写回的优势与代价。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "若 X 为脏块先回写下层，之后才能复用该行；多次写可合并减少流量，但需要脏位和一致性管理，不能直接丢弃修改。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "若 X 为脏块先回写下层，之后才能复用该行；多次写可合并减少流量，但需要脏位和一致性管理，不能直接丢弃修改。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "写回需脏位，淘汰脏块要写下层；写直达常用写缓冲；写回与写分配是两个独立维度。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:cache-write"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "cache-write"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "写策略决定何时更新下层存储以及写未命中时是否把块载入缓存。",
+      "deliverable": "淘汰 X 前应做什么？说明写回的优势与代价。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:instruction-format",
+    "kind": "engineering",
+    "title": "指令格式与寻址方式 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n指令给出基址寄存器 1000、位移 24；按基址寻址读取一个字。\n\n任务：求有效地址，并区别立即寻址操作数 24。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "基址寻址有效地址为 1024，操作数为 M[1024]；立即寻址的操作数直接是 24，不需为取该操作数额外访问数据存储器。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "基址寻址有效地址为 1024，操作数为 M[1024]；立即寻址的操作数直接是 24，不需为取该操作数额外访问数据存储器。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "区分操作数、有效地址与操作数所在内存内容；若按字节寻址，位移通常也以字节计，依 ISA 规定。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:instruction-format"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "instruction-format"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "有效地址由指令寻址规则计算，立即数是操作数本身，间接地址还需进一步访存。",
+      "deliverable": "求有效地址，并区别立即寻址操作数 24。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:datapath",
+    "kind": "engineering",
+    "title": "数据通路、ALU 与控制信号 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n执行 load R1,[R2+8]：先取指、译码、算地址、读存储器、写回。\n\n任务：说明 load 与寄存器加法的写回来源差异。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "load 写回来自数据存储器；add 写回来自 ALU 运算结果；控制器需选择不同的多路复用器输入与访存使能。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "load 写回来自数据存储器；add 写回来自 ALU 运算结果；控制器需选择不同的多路复用器输入与访存使能。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "load 的 ALU 通常做有效地址加法；读取存储器结果才是寄存器写回值；并非每条指令都使用所有功能部件。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:datapath"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "datapath"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "数据通路负责搬运和运算，控制器选择寄存器写入、ALU 操作与内存访问等动作。",
+      "deliverable": "说明 load 与寄存器加法的写回来源差异。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:instruction-cycle",
+    "kind": "engineering",
+    "title": "指令周期、中断周期与 PC · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n固定 4 字节指令，当前 PC=0x1000，顺序执行且没有分支中断。\n\n任务：顺序下一条地址是多少？为什么时钟周期不等于指令周期？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "下一条地址为 0x1004；取指、访存和执行可能占多个时钟周期，流水线还能让多条指令重叠，二者不能简单等同。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "下一条地址为 0x1004；取指、访存和执行可能占多个时钟周期，流水线还能让多条指令重叠，二者不能简单等同。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "指令周期可含多个时钟周期；PC 更新与具体流水线实现有关，不能把 PC 一律当当前执行指令的地址。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:instruction-cycle"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "instruction-cycle"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "指令执行涉及取指、译码和执行，PC 通常指向下一条待取指地址。",
+      "deliverable": "顺序下一条地址是多少？为什么时钟周期不等于指令周期？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:pipeline",
+    "kind": "engineering",
+    "title": "流水线吞吐率、延迟与理想加速 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n理想 5 级流水，每级 1ns，无停顿，处理 100 条指令。\n\n任务：求总时间、首条延迟和稳定吞吐率。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "总时间 (5+100-1)×1=104ns，首条延迟 5ns，稳定吞吐率每 ns 一条；非流水顺序执行同样工作需 500ns。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "总时间 (5+100-1)×1=104ns，首条延迟 5ns，稳定吞吐率每 ns 一条；非流水顺序执行同样工作需 500ns。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "理想总周期 k+n-1；阶段不均衡和流水寄存器开销会拉长周期，不能直接宣称真实速度提升等于级数。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:pipeline"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "pipeline"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "流水线通过阶段重叠提高吞吐率，一条指令的端到端延迟不一定下降。",
+      "deliverable": "求总时间、首条延迟和稳定吞吐率。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:pipeline-hazards",
+    "kind": "engineering",
+    "title": "结构、数据与控制冒险 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n经典 5 级流水：load R1,[R2] 后紧跟 add R3,R1,R4。\n\n任务：识别冒险并给出处理方式。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "这是 RAW 数据冒险；可停顿等待并前递，或编译器调入独立指令填槽；前递不能凭空提前产生 load 的返回数据。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "这是 RAW 数据冒险；可停顿等待并前递，或编译器调入独立指令填槽；前递不能凭空提前产生 load 的返回数据。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "在经典模型即使有前递，紧邻 load-use 常仍需一个气泡；具体停顿取决于数据可用阶段与硬件通路。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:pipeline-hazards"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "pipeline-hazards"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "结构冒险争用硬件，数据冒险依赖尚未产生的值，控制冒险源于下一条地址尚未确定。",
+      "deliverable": "识别冒险并给出处理方式。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:branch-prediction",
+    "kind": "engineering",
+    "title": "分支预测与误预测代价 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n分支占 20%，其中 10% 误预测，每次额外损失 3 个周期，基础 CPI=1。\n\n任务：计算平均 CPI。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "附加 CPI=0.2×0.1×3=0.06，总 CPI=1.06；该模型忽略其他冒险和缓存未命中。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "附加 CPI=0.2×0.1×3=0.06，总 CPI=1.06；该模型忽略其他冒险和缓存未命中。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "附加 CPI=分支比例×误预测率×罚时；只有实际错误的预测承担罚时，不能把所有分支都算失败。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:branch-prediction"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "branch-prediction"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "分支预测猜测方向和目标以维持取指，预测错误后需清空错误路径工作。",
+      "deliverable": "计算平均 CPI。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:interrupt",
+    "kind": "engineering",
+    "title": "中断、异常与现场保护 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n程序计算中定时器到期；另一条指令发生缺页。\n\n任务：区分两个事件并说明为何保存 PC 和状态。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "定时器到期属于中断，缺页属于异常；保存 PC 与状态用于处理结束后恢复正确执行位置和权限，缺页修复后通常重试原指令。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "定时器到期属于中断，缺页属于异常；保存 PC 与状态用于处理结束后恢复正确执行位置和权限，缺页修复后通常重试原指令。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "定时器是外部中断，缺页是同步异常；需保存可恢复现场，哪些由硬件、哪些由软件完成依架构而定。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:interrupt"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "interrupt"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "外部中断通常异步到来，异常通常由当前指令触发，处理后需按体系结构恢复或转移执行。",
+      "deliverable": "区分两个事件并说明为何保存 PC 和状态。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:dma",
+    "kind": "engineering",
+    "title": "程序查询、中断 I/O 与 DMA · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n磁盘向内存传输一个大块，CPU 设置地址、长度和方向，传输完成后收到通知。\n\n任务：说明本过程属于哪种方式及 CPU 的职责。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "属于 DMA；CPU 负责提交描述符或配置、处理完成和错误，数据阶段由 DMA 访问内存，仍可能与 CPU 争用总线或内存带宽。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "属于 DMA；CPU 负责提交描述符或配置、处理完成和错误，数据阶段由 DMA 访问内存，仍可能与 CPU 争用总线或内存带宽。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "DMA 减少逐字搬运开销，但配置、完成处理及缓存一致性仍可能需要 CPU 参与，不等于完全无需 CPU。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:dma"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "dma"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "查询靠 CPU 轮询，中断方式按事件通知，DMA 由控制器完成成批设备与内存数据传送。",
+      "deliverable": "说明本过程属于哪种方式及 CPU 的职责。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:bus-bandwidth",
+    "kind": "engineering",
+    "title": "总线带宽与传输效率 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n64 位数据总线，频率 100MHz，每周期传 2 次。\n\n任务：求理论峰值，以十进制 MB/s 表示。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "64/8×100×10^6×2=1.6×10^9 B/s，即 1600 MB/s；实际有效吞吐通常低于此值。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "64/8×100×10^6×2=1.6×10^9 B/s，即 1600 MB/s；实际有效吞吐通常低于此值。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "位与字节差 8 倍，十进制 MB/s 与二进制 MiB/s 不同；地址、仲裁和等待周期会降低有效带宽。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:bus-bandwidth"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "bus-bandwidth"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "峰值带宽取决于每次传输位宽、传输频率和每周期传输次数，实际带宽还受协议开销限制。",
+      "deliverable": "求理论峰值，以十进制 MB/s 表示。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:memory-interleaving",
+    "kind": "engineering",
+    "title": "多体交叉存储与连续访问 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n4 个存储体低位交叉，按字寻址，地址 0、1、2、3、4 依次访问。\n\n任务：写出体号，说明步长 4 访问为何不利。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "体号依次 0、1、2、3、0；步长为 4 的序列始终落同一体，容易发生体冲突，不能充分利用 4 体重叠能力。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "体号依次 0、1、2、3、0；步长为 4 的序列始终落同一体，容易发生体冲突，不能充分利用 4 体重叠能力。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "存储体号通常取地址模体数；同一体的连续请求仍受恢复周期限制，冲突步长可抵消并行收益。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:memory-interleaving"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "memory-interleaving"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "低位交叉把连续地址分散到不同存储体，利用重叠访问提高顺序吞吐。",
+      "deliverable": "写出体号，说明步长 4 访问为何不利。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:virtual-address",
+    "kind": "engineering",
+    "title": "虚拟地址、物理地址与 TLB · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n32 位虚拟地址，页大小 4KiB；某虚拟页映射到物理页框 0x123。\n\n任务：求页内偏移位数与虚拟页号位数，并区分两种未命中。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "偏移 12 位、虚拟页号 20 位；TLB 未命中需查页表，只有页不驻留等条件才触发缺页异常，不能直接访问磁盘。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "偏移 12 位、虚拟页号 20 位；TLB 未命中需查页表，只有页不驻留等条件才触发缺页异常，不能直接访问磁盘。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "页内偏移在转换中不变；TLB 未命中不等于缺页，页表可能已有有效映射。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:virtual-address"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "virtual-address"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "虚拟地址先经页表映射为物理地址，TLB 缓存近期地址转换结果。",
+      "deliverable": "求页内偏移位数与虚拟页号位数，并区分两种未命中。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:storage-reliability",
+    "kind": "engineering",
+    "title": "磁盘访问时间与 RAID 基本权衡 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n7200rpm 磁盘；4 块等容量 D 的盘组成 RAID5，忽略元数据。\n\n任务：求平均旋转等待和 RAID5 可用容量。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "每转 60/7200 秒约 8.333ms，平均等待约 4.167ms；可用容量 (4-1)D=3D，可容忍一块盘故障，不防误删或逻辑破坏。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "每转 60/7200 秒约 8.333ms，平均等待约 4.167ms；可用容量 (4-1)D=3D，可容忍一块盘故障，不防误删或逻辑破坏。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "平均旋转等待约为半转；RAID5 可容忍一块盘故障但重建有额外风险，RAID 不能替代备份。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:storage-reliability"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "storage-reliability"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "机械盘访问含寻道、旋转等待和传输；RAID 提供不同容量、性能和容错权衡。",
+      "deliverable": "求平均旋转等待和 RAID5 可用容量。"
+    }
+  }
+]

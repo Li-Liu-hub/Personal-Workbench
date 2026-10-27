@@ -164,6 +164,7 @@ mod tests {
                 weak_points: vec![],
                 sql: None,
                 project: None,
+                coding: None,
             };
             let attempt = db
                 .record_study_attempt(&p, g.clone(), "fixture", 1)
@@ -229,7 +230,7 @@ mod tests {
             curriculum::BUILTIN_COUNT
         );
         let sql = db.practice_candidates("SQL 命令").unwrap();
-        assert_eq!(sql.len(), 91);
+        assert_eq!(sql.len(), 107);
         assert!(
             sql.iter()
                 .all(|r| curriculum::category(&r.card.topic) == "SQL 训练")

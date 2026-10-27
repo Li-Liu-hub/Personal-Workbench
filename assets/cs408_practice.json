@@ -1,0 +1,3458 @@
+[
+  {
+    "id": "knowledge:ref:cs408:complexity",
+    "kind": "engineering",
+    "title": "时间复杂度与空间复杂度 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\nfor i=1..n: j=1; while j<n: j*=2\n\n任务：求示例的时间复杂度和额外空间复杂度。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "外层 n 次，内层约 log2(n) 次，总时间 O(n log n)，只用固定数量变量时额外空间 O(1)。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "外层 n 次，内层约 log2(n) 次，总时间 O(n log n)，只用固定数量变量时额外空间 O(1)。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "对数底数不影响渐进阶；循环嵌套要按实际执行次数求和，递归空间要计调用栈。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:complexity"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "complexity"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "用基本操作次数随输入规模的增长描述成本，区分最坏、平均与摊还复杂度。",
+      "deliverable": "求示例的时间复杂度和额外空间复杂度。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:amortized",
+    "kind": "engineering",
+    "title": "动态数组扩容与摊还分析 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n容量依次为 1、2、4、8；向空数组连续尾插 n 个元素。\n\n任务：说明倍增扩容为什么尾插摊还 O(1)，并区别最坏复杂度。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "复制总量为几何级数 1+2+4+…<2n，加上 n 次写入总计 O(n)，所以摊还 O(1)，单次扩容仍可 O(n)。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "复制总量为几何级数 1+2+4+…<2n，加上 n 次写入总计 O(n)，所以摊还 O(1)，单次扩容仍可 O(n)。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "一次扩容最坏 O(n)，不代表每次尾插都 O(n)；若每次只增加固定容量，总复制可能退化为 O(n²)。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:amortized"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "amortized"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "按倍数扩容能把多次尾插的总复制成本控制在线性数量级。",
+      "deliverable": "说明倍增扩容为什么尾插摊还 O(1)，并区别最坏复杂度。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:linear-list",
+    "kind": "engineering",
+    "title": "顺序表与链表的访问和插入 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n在长度 n 的表中按下标访问第 i 项；随后在已知结点 p 后插入 q。\n\n任务：比较两种结构的随机访问和已知位置插入。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "顺序表下标访问 O(1)、中间插入 O(n)；单链表按下标访问 O(n)、已知 p 后插入 O(1)，定位成本应另计。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "顺序表下标访问 O(1)、中间插入 O(n)；单链表按下标访问 O(n)、已知 p 后插入 O(1)，定位成本应另计。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "链表结点已知时局部插入 O(1)，按下标查找结点通常 O(n)；顺序表中间插入需移动元素。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:linear-list"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "linear-list"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "顺序表可随机访问，链表通过指针定位；插入成本必须说明是否已找到位置。",
+      "deliverable": "比较两种结构的随机访问和已知位置插入。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:stack-queue",
+    "kind": "engineering",
+    "title": "栈、队列与循环队列判空判满 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n数组容量 8，front=6，rear=2；入队推进 rear，出队推进 front。\n\n任务：计算当前长度并写出空满条件。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "长度为 (2-6+8)%8=4；front==rear 为空，(rear+1)%8==front 为满。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "长度为 (2-6+8)%8=4；front==rear 为空，(rear+1)%8==front 为满。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "约定 front 指向队头、rear 指向下一写入位置；采用空一格方案时可存 7 项。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:stack-queue"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "stack-queue"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "栈先进后出，队列先进先出；循环队列常用预留一个空位区分满与空。",
+      "deliverable": "计算当前长度并写出空满条件。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:expression",
+    "kind": "engineering",
+    "title": "表达式求值与运算符栈 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n中缀 3+4*2；后缀 3 4 2 * +。\n\n任务：给出 (8-3)*2 的后缀形式与求值过程。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "后缀为 8 3 - 2 *；先算 8-3=5，再算 5*2=10，不能把减法写成 3-8。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "后缀为 8 3 - 2 *；先算 8-3=5，再算 5*2=10，不能把减法写成 3-8。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "减法和除法先弹出的数是右操作数；括号只控制顺序，不出现在后缀结果中。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:expression"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "expression"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "中缀转后缀用栈处理优先级与括号，后缀求值按操作数顺序弹栈。",
+      "deliverable": "给出 (8-3)*2 的后缀形式与求值过程。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:kmp",
+    "kind": "engineering",
+    "title": "KMP 前缀函数与模式回退 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n模式串 ababaca；前缀函数 pi[i] 表示截至 i 的最长相等真前后缀长度。\n\n任务：写出模式的 pi 数组，并解释 i=5 时为何回退。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "pi=[0,0,1,2,3,0,1]；处理字符 c 时已匹配的 aba 等后缀无法接上 c，按 pi 逐级回退至 0。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "pi=[0,0,1,2,3,0,1]；处理字符 c 时已匹配的 aba 等后缀无法接上 c，按 pi 逐级回退至 0。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "pi 数组与教材 next 数组存在下标和定义差异，作答应先说明约定；匹配总时间 O(n+m)。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:kmp"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "kmp"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "失配时利用已匹配前后缀信息移动模式位置，主串指针无需回退。",
+      "deliverable": "写出模式的 pi 数组，并解释 i=5 时为何回退。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:tree-properties",
+    "kind": "engineering",
+    "title": "二叉树结点关系与完全二叉树 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n一棵二叉树有 7 个度为 2 的结点；完全二叉树按从 1 开始编号。\n\n任务：求叶子数，并写出编号 i 的父结点和子结点编号。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "叶子数为 8；父结点 floor(i/2)，左孩子 2i，右孩子 2i+1，孩子编号超过总数时不存在。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "叶子数为 8；父结点 floor(i/2)，左孩子 2i，右孩子 2i+1，孩子编号超过总数时不存在。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "等式来自边数 n-1=n1+2n2；完全二叉树不等于每层都满的满二叉树。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:tree-properties"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "tree-properties"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "非空二叉树满足叶子数 n0=n2+1；完全二叉树可用连续数组编号表示。",
+      "deliverable": "求叶子数，并写出编号 i 的父结点和子结点编号。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:tree-traversal",
+    "kind": "engineering",
+    "title": "二叉树遍历与由序列还原 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n先序 A B D E C，中序 D B E A C。\n\n任务：还原左右子树并写出后序。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "根 A，左子树根 B、左右孩子 D 和 E，右孩子 C；后序 D E B C A。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "根 A，左子树根 B、左右孩子 D 和 E，右孩子 C；后序 D E B C A。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "单独先序和后序一般不能唯一还原，含重复值时还需额外标识；递归栈最坏 O(n)。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:tree-traversal"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "tree-traversal"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "先序先根，中序根在左右子树之间，后序根在最后；不同结点值时先序加中序可唯一还原。",
+      "deliverable": "还原左右子树并写出后序。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:bst",
+    "kind": "engineering",
+    "title": "二叉搜索树删除与性能退化 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n依次插入 1、2、3、4、5 到空的普通 BST。\n\n任务：示例树高与查找 5 的比较次数如何变化？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "树退化为单链；若树高按边计为 4，查找 5 需比较 5 个结点，最坏 O(n)，不能一概说 O(log n)。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "树退化为单链；若树高按边计为 4，查找 5 需比较 5 个结点，最坏 O(n)，不能一概说 O(log n)。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "查找、插入、删除成本均随树高 h 变化；普通 BST 不自动保证平衡，重复键策略需显式约定。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:bst"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "bst"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "BST 左子树键小于根、右子树键大于根；删除双子结点常以中序后继替换。",
+      "deliverable": "示例树高与查找 5 的比较次数如何变化？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:avl",
+    "kind": "engineering",
+    "title": "AVL 平衡因子与四类旋转 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n依次插入 30、10、20；约定平衡因子=左高-右高。\n\n任务：指出失衡类型并给出旋转后的结构。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "30 处为 LR 失衡；先对 10 左旋，再对 30 右旋，得到根 20、左孩子 10、右孩子 30。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "30 处为 LR 失衡；先对 10 左旋，再对 30 右旋，得到根 20、左孩子 10、右孩子 30。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "失衡发生在左孩子的右子树是 LR，需要先左旋左孩子、再右旋失衡根；旋转保持中序顺序。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:avl"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "avl"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "AVL 要求每个结点左右子树高度差绝对值不超过 1，用局部旋转维持对数树高。",
+      "deliverable": "指出失衡类型并给出旋转后的结构。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:bplus",
+    "kind": "engineering",
+    "title": "B 树与 B+ 树的结构差异 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n一棵叶层相连的 B+ 树上查询键区间 [30,80]。\n\n任务：为什么 B+ 树适合外存范围检索？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "高扇出降低树高与随机 I/O，叶层有序且相连可连续扫描范围；不能仅以二叉树的比较次数解释磁盘成本。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "高扇出降低树高与随机 I/O，叶层有序且相连可连续扫描范围；不能仅以二叉树的比较次数解释磁盘成本。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "不同教材对阶数与最少孩子数的定义可能不同，按题干约定；范围查询先定位起点再沿叶层扫描。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:bplus"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "bplus"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "多路平衡搜索树通过提高分支数降低外存访问层数；B+ 树内部结点用作导航、数据项集中在叶层。",
+      "deliverable": "为什么 B+ 树适合外存范围检索？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:heap",
+    "kind": "engineering",
+    "title": "堆与自底向上建堆 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n从数组底部最后一个非叶结点开始逐个向下调整，建立 n 项大根堆。\n\n任务：说明堆顶意义、建堆复杂度和删除堆顶复杂度。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "堆顶是最大键；自底向上建堆 O(n)，以末项替换堆顶再下沉一次为 O(log n)。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "堆顶是最大键；自底向上建堆 O(n)，以末项替换堆顶再下沉一次为 O(log n)。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "底层结点多但高度低，按高度累计调整工作量为 O(n)；连续插入建堆的上界则为 O(n log n)。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:heap"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "heap"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "大根堆只要求父键不小于孩子，不保证左右子树之间有序。",
+      "deliverable": "说明堆顶意义、建堆复杂度和删除堆顶复杂度。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:huffman",
+    "kind": "engineering",
+    "title": "哈夫曼树与带权路径长度 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n权重为 1、2、3、4；每次取最小两项合并。\n\n任务：写出合并过程和 WPL。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "先 1+2=3，再 3+3=6，最后 4+6=10；WPL=3+6+10=19，编码树可不唯一但最优 WPL 相同。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "先 1+2=3，再 3+3=6，最后 4+6=10；WPL=3+6+10=19，编码树可不唯一但最优 WPL 相同。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "WPL=各叶权重乘深度之和，也等于所有合并权值之和；相同权值可使树形不唯一。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:huffman"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "huffman"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "每次合并当前最小的两个权值得到最小带权路径长度的前缀编码树。",
+      "deliverable": "写出合并过程和 WPL。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:graph-storage",
+    "kind": "engineering",
+    "title": "邻接矩阵、邻接表与图的度 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n无向简单图 V=1000、E=1500，需遍历所有结点和边。\n\n任务：比较空间与全图遍历成本。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "邻接矩阵空间 O(V²)、遍历邻边常需扫描整行；邻接表空间 O(V+E)，全图遍历 O(V+E)，此处无向度数和 3000。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "邻接矩阵空间 O(V²)、遍历邻边常需扫描整行；邻接表空间 O(V+E)，全图遍历 O(V+E)，此处无向度数和 3000。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "无向图度数和为 2E；邻接表通常为每条无向边存两个邻接项；有向图入度和、出度和均为 E。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:graph-storage"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "graph-storage"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "邻接矩阵适合直接判断边，邻接表适合稀疏图邻居遍历。",
+      "deliverable": "比较空间与全图遍历成本。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:bfs-dfs",
+    "kind": "engineering",
+    "title": "BFS、DFS 与无权最短路径 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n无权图边为 A-B、A-C、B-D、C-E、E-D，从 A 出发。\n\n任务：求 A 到 D 的最短边数，并说明 DFS 首次到达是否保证最短。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "BFS 得到距离 2，路径 A-B-D；DFS 首次找到的路径未必最短，例如可能走 A-C-E-D。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "BFS 得到距离 2，路径 A-B-D；DFS 首次找到的路径未必最短，例如可能走 A-C-E-D。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "使用访问标记防止重复和环；邻接表实现 BFS/DFS 均为 O(V+E)，具体遍历次序依赖邻接顺序。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:bfs-dfs"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "bfs-dfs"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "BFS 按距离分层入队，首次发现即可确定无权图最少边数；DFS 适合深度探索。",
+      "deliverable": "求 A 到 D 的最短边数，并说明 DFS 首次到达是否保证最短。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:topological",
+    "kind": "engineering",
+    "title": "拓扑排序与有向无环图 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n边 A-C、B-C、C-D；初始入度 A=0、B=0、C=2、D=1。\n\n任务：给出两个合法拓扑序并描述加上 D-A 后的结果。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "A B C D 和 B A C D 均合法；加 D-A 后出现 A-C-D-A 环，不能生成覆盖全部结点的拓扑序。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "A B C D 和 B A C D 均合法；加 D-A 后出现 A-C-D-A 环，不能生成覆盖全部结点的拓扑序。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "拓扑序可不唯一；无向图不能直接套用有向图拓扑定义；时间 O(V+E)。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:topological"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "topological"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Kahn 算法反复移除入度为 0 的结点；未能处理全部结点说明图存在有向环。",
+      "deliverable": "给出两个合法拓扑序并描述加上 D-A 后的结果。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:critical-path",
+    "kind": "engineering",
+    "title": "AOE 网络关键路径与活动余量 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n活动 A-B=3，A-C=2，B-D=4，C-D=3。\n\n任务：求工期、关键路径与 C-D 的余量。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "D 最早为 max(3+4,2+3)=7，工期 7；关键路径 A-B-D；vl[D]=7，C-D 最迟开始 4、最早开始 2，余量 2。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "D 最早为 max(3+4,2+3)=7，工期 7；关键路径 A-B-D；vl[D]=7，C-D 最迟开始 4、最早开始 2，余量 2。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "先拓扑求 ve，再逆拓扑求 vl；活动最早 ve[u]、最迟 vl[v]-w；关键路径可能多条。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:critical-path"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "critical-path"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "AOE 用边表示活动，关键活动最早与最迟开始时间相等，决定项目最短完成工期。",
+      "deliverable": "求工期、关键路径与 C-D 的余量。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:mst",
+    "kind": "engineering",
+    "title": "最小生成树与 Prim、Kruskal · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n三角形 A-B=1、B-C=2、A-C=5。\n\n任务：给出 MST 并区分它与从 A 出发的最短路径树目标。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "MST 取 A-B 和 B-C，总权 3；其目标是全树边权和最小，最短路径树的目标是根到每个顶点距离最小，二者一般不同。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "MST 取 A-B 和 B-C，总权 3；其目标是全树边权和最小，最短路径树的目标是根到每个顶点距离最小，二者一般不同。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "Kruskal 按权选边并用并查集防环；Prim 扩张已选顶点集合；负权不妨碍 MST，非连通图得到森林。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:mst"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "mst"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "连通无向带权图的 MST 连接全部顶点且总权最小，含 V-1 条边。",
+      "deliverable": "给出 MST 并区分它与从 A 出发的最短路径树目标。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:shortest-path",
+    "kind": "engineering",
+    "title": "Dijkstra、Bellman-Ford 与 Floyd · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\nA-B=2、A-C=5、C-B=-4，求 A 到 B 最短距离。\n\n任务：给出正确距离并解释为何不能直接用标准 Dijkstra。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "最短路 A-C-B 为 1；Dijkstra 可能先将距离 2 的 B 定为最终值，负边破坏贪心前提，可用 Bellman-Ford。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "最短路 A-C-B 为 1；Dijkstra 可能先将距离 2 的 B 定为最终值，负边破坏贪心前提，可用 Bellman-Ford。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "标准 Dijkstra 依赖非负边；Bellman-Ford 可处理负边并检测源点可达负环；Floyd 用中间点动态规划求全源距离。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:shortest-path"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "shortest-path"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "最短路径算法的选择取决于是否有负权、是否求单源以及图规模。",
+      "deliverable": "给出正确距离并解释为何不能直接用标准 Dijkstra。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:binary-search",
+    "kind": "engineering",
+    "title": "折半查找与区间不变量 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n在升序 [1,3,3,5] 中找第一个不小于 3 的位置，维护 [lo,hi)，初始 [0,4)。\n\n任务：给出返回下标并说明相等时为何移动 hi。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "返回下标 1；遇到相等值还可能在左侧有更早位置，因此保留左半区、令 hi=mid，复杂度 O(log n)。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "返回下标 1；遇到相等值还可能在左侧有更早位置，因此保留左半区、令 hi=mid，复杂度 O(log n)。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "lower_bound 在 a[mid]<x 时令 lo=mid+1，否则 hi=mid；返回 n 代表所有元素均小于 x。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:binary-search"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "binary-search"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "折半查找需已排序且可高效访问中点，循环边界取决于闭区间或半开区间约定。",
+      "deliverable": "给出返回下标并说明相等时为何移动 hi。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:hashing",
+    "kind": "engineering",
+    "title": "散列表冲突、装填因子与删除 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n长度 7 的线性探测表，散列函数 k%7，依次插入 10、17、24。\n\n任务：写出三个键位置，并解释删除 17 的处理。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "键依次位于 3、4、5；位置 4 标墓碑，查询 24 时经过墓碑继续探测至 5，不能在 4 提前判断不存在。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "键依次位于 3、4、5；位置 4 标墓碑，查询 24 时经过墓碑继续探测至 5，不能在 4 提前判断不存在。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "开放定址删除不能直接改为从未使用的空槽，否则会截断后续探测链；通常使用墓碑并定期重建。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:hashing"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "hashing"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "哈希碰撞不可避免，链地址和开放定址采用不同的冲突处理方式。",
+      "deliverable": "写出三个键位置，并解释删除 17 的处理。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:sorting",
+    "kind": "engineering",
+    "title": "排序的稳定性、复杂度与适用条件 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n记录 (2,A)、(1,B)、(2,C)，按第一字段升序排序。\n\n任务：给出稳定排序结果并比较归并和堆排序空间。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "稳定结果 (1,B)、(2,A)、(2,C)；数组归并通常辅助空间 O(n)，原地堆排序额外空间 O(1)，二者最坏时间均 O(n log n)。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "稳定结果 (1,B)、(2,A)、(2,C)；数组归并通常辅助空间 O(n)，原地堆排序额外空间 O(1)，二者最坏时间均 O(n log n)。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "标准插入、冒泡、归并可稳定，选择、堆、常规原地快排通常不稳定；归并相等时先取左侧才保持稳定。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:sorting"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "sorting"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "稳定排序保留相等键原有顺序；复杂度、空间与稳定性需同时比较。",
+      "deliverable": "给出稳定排序结果并比较归并和堆排序空间。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:quicksort",
+    "kind": "engineering",
+    "title": "快速排序划分与最坏退化 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n已升序数组每轮选择末元素为枢轴，并将其余元素划到一侧。\n\n任务：写出退化递推式，并说明两种改善方法。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "T(n)=T(n-1)+O(n)=O(n²)；可随机化或三数取中改善划分，重复键采用三路划分，亦可用内省排序限制最坏退化。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "T(n)=T(n-1)+O(n)=O(n²)；可随机化或三数取中改善划分，重复键采用三路划分，亦可用内省排序限制最坏退化。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "随机枢轴降低退化概率但不改变理论最坏界；大量重复值可用三路划分；递归深度需防止栈溢出。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:quicksort"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "quicksort"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "划分后枢轴落入最终位置，平均时间 O(n log n)，极端不均衡划分会退化为 O(n²)。",
+      "deliverable": "写出退化递推式，并说明两种改善方法。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:external-sort",
+    "kind": "engineering",
+    "title": "外部排序与多路归并 I/O · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n初始有 16 个有序段，一次可四路归并，每轮读写全部数据。\n\n任务：求归并轮数及归并阶段总数据传输量。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "四路归并 16 段需 2 轮；若总数据 N 块，每轮约 2N 块 I/O，归并阶段共约 4N，不包含最初生成有序段的读写。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "四路归并 16 段需 2 轮；若总数据 N 块，每轮约 2N 块 I/O，归并阶段共约 4N，不包含最初生成有序段的读写。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "归并轮数为 ceil(log_k r)；忽略缓存与不完整末轮时每轮读一次写一次；缓冲区通常至少要 k 个输入与一个输出。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "knowledge_ids": [
+      "ref:cs408:external-sort"
+    ],
+    "tags": [
+      "408",
+      "数据结构",
+      "考研408",
+      "external-sort"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "数据大于内存时先生成有序段，再以多路归并减少整批读写轮数。",
+      "deliverable": "求归并轮数及归并阶段总数据传输量。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:number-representation",
+    "kind": "engineering",
+    "title": "原码、反码、补码与表示范围 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n8 位补码：+5=00000101，-5=11111011。\n\n任务：把 11111011 分别按无符号和 8 位补码解释。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "无符号为 251；最高位权重为 -128 的补码解释为 -5，两种解释共享相同比特但数值不同。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "无符号为 251；最高位权重为 -128 的补码解释为 -5，两种解释共享相同比特但数值不同。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "补码取负是按位取反加一；最小负数取负无法在同位宽带符号数内表示；必须区分无符号解释。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:number-representation"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "number-representation"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "n 位补码范围为 -2^(n-1) 到 2^(n-1)-1，可统一加减法电路。",
+      "deliverable": "把 11111011 分别按无符号和 8 位补码解释。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:overflow",
+    "kind": "engineering",
+    "title": "补码加法溢出与进位标志 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n8 位：01111111 + 00000001 = 10000000。\n\n任务：判断示例的有符号溢出与无符号进位。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "有符号溢出发生，因为两个正数相加得到负号；无符号 127+1=128 在 0..255 内，因此不产生最高位进位。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "有符号溢出发生，因为两个正数相加得到负号；无符号 127+1=128 在 0..255 内，因此不产生最高位进位。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "有符号结果 128 超过上界 127，截断解释为 -128；此例最高位没有无符号进位，不能仅检查进位标志。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:overflow"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "overflow"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "有符号溢出与无符号进位不同；同号数相加结果异号是补码溢出的判据。",
+      "deliverable": "判断示例的有符号溢出与无符号进位。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:shift",
+    "kind": "engineering",
+    "title": "逻辑移位与算术移位 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n8 位补码 -8 为 11111000，分别右移一位。\n\n任务：给出两种右移结果。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "逻辑右移得 01111100，即无符号 124；算术右移得 11111100，按补码为 -4，应先说明位宽和移位类型。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "逻辑右移得 01111100，即无符号 124；算术右移得 11111100，按补码为 -4，应先说明位宽和移位类型。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "算术右移对负奇数通常向负无穷取整，不等同所有语言的有符号除法；语言层行为还受类型与规范限制。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:shift"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "shift"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "逻辑右移左端补零，算术右移通常复制符号位；左移丢弃高位，需检查溢出。",
+      "deliverable": "给出两种右移结果。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:floating-point",
+    "kind": "engineering",
+    "title": "IEEE 754 单精度与规格化数 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n1.5 = 1.1₂ × 2^0；阶码偏置 127。\n\n任务：写出 1.5 的符号、阶码和尾数字段。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "符号 0，阶码 01111111，小数域 10000000000000000000000；对应十六进制 0x3FC00000。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "符号 0，阶码 01111111，小数域 10000000000000000000000；对应十六进制 0x3FC00000。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "阶码全 0 用于零和非规格化数，全 1 用于无穷与 NaN；浮点加法可能舍入，不能直接套整数精确运算。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:floating-point"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "floating-point"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "binary32 由 1 位符号、8 位阶码、23 位小数域组成，规格化有效数隐含前导 1。",
+      "deliverable": "写出 1.5 的符号、阶码和尾数字段。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:endianness",
+    "kind": "engineering",
+    "title": "大端、小端与对齐访问 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n把 32 位 0x12345678 存在地址 0x1000..0x1003。\n\n任务：写出大端和小端按地址递增的字节序列。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "大端为 12 34 56 78，小端为 78 56 34 12；最低地址存最高有效字节为大端，存最低有效字节为小端。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "大端为 12 34 56 78，小端为 78 56 34 12；最低地址存最高有效字节为大端，存最低有效字节为小端。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "端序不改变字节内部的位权；未对齐访问的支持和成本取决于架构，不能一概断言必然崩溃。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:endianness"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "endianness"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "端序描述多字节数据在地址上的排列，对齐描述地址与访问粒度的关系。",
+      "deliverable": "写出大端和小端按地址递增的字节序列。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:performance",
+    "kind": "engineering",
+    "title": "CPU 时间、CPI 与频率 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n程序执行 10^9 条指令，平均 CPI=2，频率 2GHz。\n\n任务：求执行时间，若 CPI 降为 1.5 而频率不变则加速比多少？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "原时间 1 秒，新时间 0.75 秒，加速比 1/0.75≈1.333；不能只比较 CPI 的绝对差。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "原时间 1 秒，新时间 0.75 秒，加速比 1/0.75≈1.333；不能只比较 CPI 的绝对差。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "比较机器必须考虑指令数和 CPI 也可能改变；时钟周期是频率倒数，GHz 表示每秒 10^9 周期。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:performance"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "performance"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "CPU 执行时间=指令数×平均 CPI÷时钟频率，提高频率不必然同比提高程序速度。",
+      "deliverable": "求执行时间，若 CPI 降为 1.5 而频率不变则加速比多少？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:amdahl",
+    "kind": "engineering",
+    "title": "Amdahl 定律与局部优化上限 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n原程序 40% 时间用于可加速部分，该部分提升为 4 倍。\n\n任务：求整体加速比和该部分无限快时的上限。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "整体 S=1/(0.6+0.4/4)=10/7≈1.429；无限加速上限 1/0.6≈1.667。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "整体 S=1/(0.6+0.4/4)=10/7≈1.429；无限加速上限 1/0.6≈1.667。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "以原运行时间占比计算 S=1/((1-p)+p/s)；p/s 是优化后的贡献，不可直接用 p*s。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:amdahl"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "amdahl"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "只有一部分运行时间可被加速时，总加速比受到未优化部分限制。",
+      "deliverable": "求整体加速比和该部分无限快时的上限。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:memory-expansion",
+    "kind": "engineering",
+    "title": "存储器字扩展、位扩展与芯片数 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n用 8K×8 位芯片构成 32K×16 位存储器。\n\n任务：求芯片数量、总地址线和每片地址线数量。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "位扩展需 2 片，字扩展需 4 组，共 8 片；总地址线 15 根，每片地址线 13 根，另 2 位用于组选择。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "位扩展需 2 片，字扩展需 4 组，共 8 片；总地址线 15 根，每片地址线 13 根，另 2 位用于组选择。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "同一字组内芯片并联数据线的不同位，字组间通过高位地址片选；K 在本题为 1024。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:memory-expansion"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "memory-expansion"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "位扩展增加数据宽度，字扩展增加可寻址单元数，组合时还需地址译码。",
+      "deliverable": "求芯片数量、总地址线和每片地址线数量。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:cache-locality",
+    "kind": "engineering",
+    "title": "存储层次与局部性 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n二维行优先数组，比较按行扫描与按列扫描的缓存访问。\n\n任务：为什么大数组逐行访问常比逐列访问更友好？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "同行元素连续，逐行能充分使用一个缓存块内的多个元素；逐列步长大，可能每次访问都引入新块并发生容量或冲突未命中。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "同行元素连续，逐行能充分使用一个缓存块内的多个元素；逐列步长大，可能每次访问都引入新块并发生容量或冲突未命中。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "缓存按块搬运，访问顺序影响未命中率；实际效果还取决于数组大小、缓存容量和编译优化。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:cache-locality"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "cache-locality"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "时间局部性是近期使用的数据可能再次使用，空间局部性是邻近地址可能随后使用。",
+      "deliverable": "为什么大数组逐行访问常比逐列访问更友好？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:cache-mapping",
+    "kind": "engineering",
+    "title": "Cache 标记、组索引与块内偏移 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n32 位字节地址，数据区容量 32KiB，块大小 64B，4 路组相联。\n\n任务：求偏移、组索引与标记位数。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "共 128 组，块内偏移 6 位、组索引 7 位、标记 32-6-7=19 位。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "共 128 组，块内偏移 6 位、组索引 7 位、标记 32-6-7=19 位。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "组数=数据容量/(块大小×路数)，容量不包含标记与状态位；偏移位数依据字节寻址。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:cache-mapping"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "cache-mapping"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "组相联缓存通过索引选组、标记比较识别内存块，块内偏移定位数据。",
+      "deliverable": "求偏移、组索引与标记位数。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:cache-amat",
+    "kind": "engineering",
+    "title": "平均访存时间 AMAT · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n命中时间 1ns，未命中率 5%，额外访存代价 80ns。\n\n任务：计算平均访存时间，并说明降低未命中率的收益。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "AMAT=1+0.05×80=5ns；若未命中率降为 2%，则为 2.6ns，其他参数不变时收益来自少付高额未命中代价。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "AMAT=1+0.05×80=5ns；若未命中率降为 2%，则为 2.6ns，其他参数不变时收益来自少付高额未命中代价。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "题干若给出的是含查缓存时间的未命中总时延，应避免重复计算；多级缓存要区分局部与全局未命中率。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:cache-amat"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "cache-amat"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "一级 Cache 平均访存时间=命中时间+未命中率×额外未命中代价。",
+      "deliverable": "计算平均访存时间，并说明降低未命中率的收益。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:cache-write",
+    "kind": "engineering",
+    "title": "写直达、写回与写分配 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n写回缓存修改块 X 后尚未替换，随后因冲突需淘汰 X。\n\n任务：淘汰 X 前应做什么？说明写回的优势与代价。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "若 X 为脏块先回写下层，之后才能复用该行；多次写可合并减少流量，但需要脏位和一致性管理，不能直接丢弃修改。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "若 X 为脏块先回写下层，之后才能复用该行；多次写可合并减少流量，但需要脏位和一致性管理，不能直接丢弃修改。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "写回需脏位，淘汰脏块要写下层；写直达常用写缓冲；写回与写分配是两个独立维度。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:cache-write"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "cache-write"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "写策略决定何时更新下层存储以及写未命中时是否把块载入缓存。",
+      "deliverable": "淘汰 X 前应做什么？说明写回的优势与代价。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:instruction-format",
+    "kind": "engineering",
+    "title": "指令格式与寻址方式 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n指令给出基址寄存器 1000、位移 24；按基址寻址读取一个字。\n\n任务：求有效地址，并区别立即寻址操作数 24。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "基址寻址有效地址为 1024，操作数为 M[1024]；立即寻址的操作数直接是 24，不需为取该操作数额外访问数据存储器。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "基址寻址有效地址为 1024，操作数为 M[1024]；立即寻址的操作数直接是 24，不需为取该操作数额外访问数据存储器。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "区分操作数、有效地址与操作数所在内存内容；若按字节寻址，位移通常也以字节计，依 ISA 规定。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:instruction-format"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "instruction-format"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "有效地址由指令寻址规则计算，立即数是操作数本身，间接地址还需进一步访存。",
+      "deliverable": "求有效地址，并区别立即寻址操作数 24。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:datapath",
+    "kind": "engineering",
+    "title": "数据通路、ALU 与控制信号 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n执行 load R1,[R2+8]：先取指、译码、算地址、读存储器、写回。\n\n任务：说明 load 与寄存器加法的写回来源差异。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "load 写回来自数据存储器；add 写回来自 ALU 运算结果；控制器需选择不同的多路复用器输入与访存使能。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "load 写回来自数据存储器；add 写回来自 ALU 运算结果；控制器需选择不同的多路复用器输入与访存使能。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "load 的 ALU 通常做有效地址加法；读取存储器结果才是寄存器写回值；并非每条指令都使用所有功能部件。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:datapath"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "datapath"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "数据通路负责搬运和运算，控制器选择寄存器写入、ALU 操作与内存访问等动作。",
+      "deliverable": "说明 load 与寄存器加法的写回来源差异。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:instruction-cycle",
+    "kind": "engineering",
+    "title": "指令周期、中断周期与 PC · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n固定 4 字节指令，当前 PC=0x1000，顺序执行且没有分支中断。\n\n任务：顺序下一条地址是多少？为什么时钟周期不等于指令周期？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "下一条地址为 0x1004；取指、访存和执行可能占多个时钟周期，流水线还能让多条指令重叠，二者不能简单等同。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "下一条地址为 0x1004；取指、访存和执行可能占多个时钟周期，流水线还能让多条指令重叠，二者不能简单等同。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "指令周期可含多个时钟周期；PC 更新与具体流水线实现有关，不能把 PC 一律当当前执行指令的地址。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:instruction-cycle"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "instruction-cycle"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "指令执行涉及取指、译码和执行，PC 通常指向下一条待取指地址。",
+      "deliverable": "顺序下一条地址是多少？为什么时钟周期不等于指令周期？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:pipeline",
+    "kind": "engineering",
+    "title": "流水线吞吐率、延迟与理想加速 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n理想 5 级流水，每级 1ns，无停顿，处理 100 条指令。\n\n任务：求总时间、首条延迟和稳定吞吐率。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "总时间 (5+100-1)×1=104ns，首条延迟 5ns，稳定吞吐率每 ns 一条；非流水顺序执行同样工作需 500ns。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "总时间 (5+100-1)×1=104ns，首条延迟 5ns，稳定吞吐率每 ns 一条；非流水顺序执行同样工作需 500ns。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "理想总周期 k+n-1；阶段不均衡和流水寄存器开销会拉长周期，不能直接宣称真实速度提升等于级数。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:pipeline"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "pipeline"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "流水线通过阶段重叠提高吞吐率，一条指令的端到端延迟不一定下降。",
+      "deliverable": "求总时间、首条延迟和稳定吞吐率。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:pipeline-hazards",
+    "kind": "engineering",
+    "title": "结构、数据与控制冒险 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n经典 5 级流水：load R1,[R2] 后紧跟 add R3,R1,R4。\n\n任务：识别冒险并给出处理方式。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "这是 RAW 数据冒险；可停顿等待并前递，或编译器调入独立指令填槽；前递不能凭空提前产生 load 的返回数据。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "这是 RAW 数据冒险；可停顿等待并前递，或编译器调入独立指令填槽；前递不能凭空提前产生 load 的返回数据。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "在经典模型即使有前递，紧邻 load-use 常仍需一个气泡；具体停顿取决于数据可用阶段与硬件通路。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:pipeline-hazards"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "pipeline-hazards"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "结构冒险争用硬件，数据冒险依赖尚未产生的值，控制冒险源于下一条地址尚未确定。",
+      "deliverable": "识别冒险并给出处理方式。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:branch-prediction",
+    "kind": "engineering",
+    "title": "分支预测与误预测代价 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n分支占 20%，其中 10% 误预测，每次额外损失 3 个周期，基础 CPI=1。\n\n任务：计算平均 CPI。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "附加 CPI=0.2×0.1×3=0.06，总 CPI=1.06；该模型忽略其他冒险和缓存未命中。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "附加 CPI=0.2×0.1×3=0.06，总 CPI=1.06；该模型忽略其他冒险和缓存未命中。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "附加 CPI=分支比例×误预测率×罚时；只有实际错误的预测承担罚时，不能把所有分支都算失败。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:branch-prediction"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "branch-prediction"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "分支预测猜测方向和目标以维持取指，预测错误后需清空错误路径工作。",
+      "deliverable": "计算平均 CPI。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:interrupt",
+    "kind": "engineering",
+    "title": "中断、异常与现场保护 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n程序计算中定时器到期；另一条指令发生缺页。\n\n任务：区分两个事件并说明为何保存 PC 和状态。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "定时器到期属于中断，缺页属于异常；保存 PC 与状态用于处理结束后恢复正确执行位置和权限，缺页修复后通常重试原指令。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "定时器到期属于中断，缺页属于异常；保存 PC 与状态用于处理结束后恢复正确执行位置和权限，缺页修复后通常重试原指令。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "定时器是外部中断，缺页是同步异常；需保存可恢复现场，哪些由硬件、哪些由软件完成依架构而定。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:interrupt"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "interrupt"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "外部中断通常异步到来，异常通常由当前指令触发，处理后需按体系结构恢复或转移执行。",
+      "deliverable": "区分两个事件并说明为何保存 PC 和状态。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:dma",
+    "kind": "engineering",
+    "title": "程序查询、中断 I/O 与 DMA · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n磁盘向内存传输一个大块，CPU 设置地址、长度和方向，传输完成后收到通知。\n\n任务：说明本过程属于哪种方式及 CPU 的职责。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "属于 DMA；CPU 负责提交描述符或配置、处理完成和错误，数据阶段由 DMA 访问内存，仍可能与 CPU 争用总线或内存带宽。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "属于 DMA；CPU 负责提交描述符或配置、处理完成和错误，数据阶段由 DMA 访问内存，仍可能与 CPU 争用总线或内存带宽。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "DMA 减少逐字搬运开销，但配置、完成处理及缓存一致性仍可能需要 CPU 参与，不等于完全无需 CPU。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:dma"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "dma"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "查询靠 CPU 轮询，中断方式按事件通知，DMA 由控制器完成成批设备与内存数据传送。",
+      "deliverable": "说明本过程属于哪种方式及 CPU 的职责。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:bus-bandwidth",
+    "kind": "engineering",
+    "title": "总线带宽与传输效率 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n64 位数据总线，频率 100MHz，每周期传 2 次。\n\n任务：求理论峰值，以十进制 MB/s 表示。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "64/8×100×10^6×2=1.6×10^9 B/s，即 1600 MB/s；实际有效吞吐通常低于此值。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "64/8×100×10^6×2=1.6×10^9 B/s，即 1600 MB/s；实际有效吞吐通常低于此值。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "位与字节差 8 倍，十进制 MB/s 与二进制 MiB/s 不同；地址、仲裁和等待周期会降低有效带宽。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:bus-bandwidth"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "bus-bandwidth"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "峰值带宽取决于每次传输位宽、传输频率和每周期传输次数，实际带宽还受协议开销限制。",
+      "deliverable": "求理论峰值，以十进制 MB/s 表示。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:memory-interleaving",
+    "kind": "engineering",
+    "title": "多体交叉存储与连续访问 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n4 个存储体低位交叉，按字寻址，地址 0、1、2、3、4 依次访问。\n\n任务：写出体号，说明步长 4 访问为何不利。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "体号依次 0、1、2、3、0；步长为 4 的序列始终落同一体，容易发生体冲突，不能充分利用 4 体重叠能力。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "体号依次 0、1、2、3、0；步长为 4 的序列始终落同一体，容易发生体冲突，不能充分利用 4 体重叠能力。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "存储体号通常取地址模体数；同一体的连续请求仍受恢复周期限制，冲突步长可抵消并行收益。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:memory-interleaving"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "memory-interleaving"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "低位交叉把连续地址分散到不同存储体，利用重叠访问提高顺序吞吐。",
+      "deliverable": "写出体号，说明步长 4 访问为何不利。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:virtual-address",
+    "kind": "engineering",
+    "title": "虚拟地址、物理地址与 TLB · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n32 位虚拟地址，页大小 4KiB；某虚拟页映射到物理页框 0x123。\n\n任务：求页内偏移位数与虚拟页号位数，并区分两种未命中。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "偏移 12 位、虚拟页号 20 位；TLB 未命中需查页表，只有页不驻留等条件才触发缺页异常，不能直接访问磁盘。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "偏移 12 位、虚拟页号 20 位；TLB 未命中需查页表，只有页不驻留等条件才触发缺页异常，不能直接访问磁盘。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "页内偏移在转换中不变；TLB 未命中不等于缺页，页表可能已有有效映射。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:virtual-address"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "virtual-address"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "虚拟地址先经页表映射为物理地址，TLB 缓存近期地址转换结果。",
+      "deliverable": "求页内偏移位数与虚拟页号位数，并区分两种未命中。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:storage-reliability",
+    "kind": "engineering",
+    "title": "磁盘访问时间与 RAID 基本权衡 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n7200rpm 磁盘；4 块等容量 D 的盘组成 RAID5，忽略元数据。\n\n任务：求平均旋转等待和 RAID5 可用容量。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "每转 60/7200 秒约 8.333ms，平均等待约 4.167ms；可用容量 (4-1)D=3D，可容忍一块盘故障，不防误删或逻辑破坏。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "每转 60/7200 秒约 8.333ms，平均等待约 4.167ms；可用容量 (4-1)D=3D，可容忍一块盘故障，不防误删或逻辑破坏。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "平均旋转等待约为半转；RAID5 可容忍一块盘故障但重建有额外风险，RAID 不能替代备份。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:storage-reliability"
+    ],
+    "tags": [
+      "408",
+      "计算机组成原理",
+      "考研408",
+      "storage-reliability"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "机械盘访问含寻道、旋转等待和传输；RAID 提供不同容量、性能和容错权衡。",
+      "deliverable": "求平均旋转等待和 RAID5 可用容量。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:process-thread",
+    "kind": "engineering",
+    "title": "进程、线程与资源共享 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n同一进程两个线程读写全局计数器，各自调用函数并使用局部变量。\n\n任务：指出哪些资源共享，为什么 counter++ 可能丢失更新。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "全局计数器和堆共享，栈与寄存器各自独立；counter++ 包含读取、加一、写回，交错时两个线程可能基于同一旧值写回。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "全局计数器和堆共享，栈与寄存器各自独立；counter++ 包含读取、加一、写回，交错时两个线程可能基于同一旧值写回。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "通常共享堆、全局区与打开文件描述符表，各线程拥有自己的寄存器和栈；共享变量读改写需要同步。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:process-thread"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "process-thread"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "进程承载地址空间等资源，线程是调度执行流，同进程线程共享多数资源但各有执行上下文。",
+      "deliverable": "指出哪些资源共享，为什么 counter++ 可能丢失更新。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:process-states",
+    "kind": "engineering",
+    "title": "就绪、运行、阻塞与状态转换 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n运行进程发起同步读磁盘，等待期间另一个进程占用 CPU。\n\n任务：描述发起读、完成读和时间片耗尽时的状态变化。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "发起需等待的读：运行到阻塞；I/O 完成：阻塞到就绪；时间片耗尽：运行到就绪；被调度后才由就绪转运行。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "发起需等待的读：运行到阻塞；I/O 完成：阻塞到就绪；时间片耗尽：运行到就绪；被调度后才由就绪转运行。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "阻塞转就绪由等待事件满足触发；就绪转运行由调度触发，不能把 I/O 完成等同立即运行。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:process-states"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "process-states"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "就绪等待 CPU，阻塞等待事件；事件完成后通常先回到就绪再参与调度。",
+      "deliverable": "描述发起读、完成读和时间片耗尽时的状态变化。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:context-switch",
+    "kind": "engineering",
+    "title": "上下文切换、模式切换与系统调用 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n线程调用一个可立即返回的获取时间系统调用；另一次调用 read 时阻塞。\n\n任务：两次调用是否必然产生进程切换？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "可立即完成的系统调用只需进入和退出内核，不必切进程；阻塞 read 通常让出 CPU 给其他可运行执行流，才发生上下文切换。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "可立即完成的系统调用只需进入和退出内核，不必切进程；阻塞 read 通常让出 CPU 给其他可运行执行流，才发生上下文切换。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "进入内核不必然切换进程；调度切换涉及寄存器、栈等上下文，切换地址空间还可能影响 TLB。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:context-switch"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "context-switch"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "系统调用可能只切换特权级，上下文切换才会把 CPU 执行流换给另一线程或进程。",
+      "deliverable": "两次调用是否必然产生进程切换？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:scheduling",
+    "kind": "engineering",
+    "title": "FCFS、SJF 与周转时间 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\nA、B、C 同在时刻 0 到达，CPU 运行时间分别 6、2、1，按 A B C 排列。\n\n任务：比较 FCFS 与 SJF 的平均周转时间。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "FCFS 完成为 6、8、9，平均 23/3；SJF 顺序 C B A，完成为 1、3、9，平均 13/3。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "FCFS 完成为 6、8、9，平均 23/3；SJF 顺序 C B A，完成为 1、3、9，平均 13/3。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "本例无 I/O、不可抢占；SJF 假定知道运行时长，长作业可能饥饿；平均周转与响应时间不是同一指标。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:scheduling"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "scheduling"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "周转时间=完成-到达，等待时间扣除实际运行和阻塞；短作业优先可降低特定条件下平均等待。",
+      "deliverable": "比较 FCFS 与 SJF 的平均周转时间。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:round-robin",
+    "kind": "engineering",
+    "title": "时间片轮转与响应时间 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\nA、B 同时到达，运行时间 5、3，时间片 2，忽略切换成本，A 先运行。\n\n任务：列出调度区间与完成时间。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "A[0,2)、B[2,4)、A[4,6)、B[6,7)、A[7,8)；B 在 7 完成，A 在 8 完成。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "A[0,2)、B[2,4)、A[4,6)、B[6,7)、A[7,8)；B 在 7 完成，A 在 8 完成。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "时间片过大接近 FCFS；过小增加切换开销；新到达进程的入队规则应按题干说明。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:round-robin"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "round-robin"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "轮转让就绪进程轮流运行一个时间片，片长在交互响应和切换开销间折中。",
+      "deliverable": "列出调度区间与完成时间。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:critical-section",
+    "kind": "engineering",
+    "title": "临界区、互斥锁与原子性 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n两个线程都执行 balance=balance+1，初始 balance=0。\n\n任务：给出一种使最终结果稳定为 2 的方案。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "把读、加一、写回整体放入同一互斥锁保护的临界区，或使用原子 fetch_add；只锁读取或仅声明 volatile 都不够。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "把读、加一、写回整体放入同一互斥锁保护的临界区，或使用原子 fetch_add；只锁读取或仅声明 volatile 都不够。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "临界区应覆盖整个读改写；锁的正确性还要求所有相关访问遵守同一规则，并关注死锁和饥饿。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:critical-section"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "critical-section"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "对共享状态的复合操作需确保互斥或使用合适原子操作，volatile 不能普遍替代同步。",
+      "deliverable": "给出一种使最终结果稳定为 2 的方案。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:semaphore",
+    "kind": "engineering",
+    "title": "信号量 P/V 与生产者消费者 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n容量 N：empty=N、full=0、mutex=1；生产者先 P(empty)，再 P(mutex)。\n\n任务：写出生产者和消费者的操作顺序。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "生产者 P(empty),P(mutex),入队,V(mutex),V(full)；消费者 P(full),P(mutex),出队,V(mutex),V(empty)。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "生产者 P(empty),P(mutex),入队,V(mutex),V(full)；消费者 P(full),P(mutex),出队,V(mutex),V(empty)。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "消费者先 P(full)，再 P(mutex)；释放 mutex 后通知对方资源；不能持 mutex 等待 empty 或 full 导致无法推进。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:semaphore"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "semaphore"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "计数信号量表达可用资源数量，互斥信号量保护缓冲区结构。",
+      "deliverable": "写出生产者和消费者的操作顺序。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:condition-variable",
+    "kind": "engineering",
+    "title": "条件变量与 Mesa 语义 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n消费者：lock(m); while queue.empty(): wait(cv,m); pop(); unlock(m)。\n\n任务：为什么不能把 while 换为 if？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "被唤醒到重新取得锁之间，其他消费者可能已取走元素，或发生伪唤醒；while 会再次验证队列非空，if 可能对空队列出队。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "被唤醒到重新取得锁之间，其他消费者可能已取走元素，或发生伪唤醒；while 会再次验证队列非空，if 可能对空队列出队。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "唤醒不保证谓词仍真，可能有竞争或伪唤醒，因此用 while；通知并不自动转移锁所有权。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:condition-variable"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "condition-variable"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "条件变量用于等待共享谓词变化，等待时原子释放锁，唤醒后重新获取锁并检查条件。",
+      "deliverable": "为什么不能把 while 换为 if？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:deadlock",
+    "kind": "engineering",
+    "title": "死锁四条件与资源有序分配 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n线程 A 持锁 L1 等 L2，线程 B 持 L2 等 L1。\n\n任务：指出示例等待环并给出结构性预防方法。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "等待环 A→L2→B→L1→A；规定所有线程按统一锁序获取，避免反向持有，破坏循环等待条件。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "等待环 A→L2→B→L1→A；规定所有线程按统一锁序获取，避免反向持有，破坏循环等待条件。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "统一按 L1 再 L2 的全局顺序获取可破坏循环等待；超时重试还需释放已持资源和避免活锁。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:deadlock"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "deadlock"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "互斥、占有且等待、不可剥夺、循环等待同时存在才可能形成资源死锁。",
+      "deliverable": "指出示例等待环并给出结构性预防方法。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:banker",
+    "kind": "engineering",
+    "title": "银行家安全性检查 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n单资源：Available=3；P0 Allocation=1、Need=2；P1 Allocation=2、Need=4。\n\n任务：判断是否安全，给出安全序列。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "Work=3 可满足 P0 的 Need=2，假定其完成后 Work=4；再满足 P1 的 Need=4，故序列 P0、P1 安全。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "Work=3 可满足 P0 的 Need=2，假定其完成后 Work=4；再满足 P1 的 Need=4，故序列 P0、P1 安全。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "安全算法用 Work 模拟可分配资源，完成一个进程后加回 Allocation；Need=Max-Allocation。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:banker"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "banker"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "安全状态存在让所有进程依次完成的序列；不安全不等于已经死锁。",
+      "deliverable": "判断是否安全，给出安全序列。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:paging",
+    "kind": "engineering",
+    "title": "分页地址转换与页表 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n页大小 1KiB，逻辑地址 2500，页号 2 映射到物理页框 7。\n\n任务：求页号、偏移和物理地址。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "页号 floor(2500/1024)=2，偏移 452；物理地址 7×1024+452=7620。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "页号 floor(2500/1024)=2，偏移 452；物理地址 7×1024+452=7620。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "分页避免外部碎片但可能产生页内碎片；页号查表失败与越界、缺页等情况要按状态位区分。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:paging"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "paging"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "逻辑地址拆为页号和页内偏移，页表把页号映射为物理页框号。",
+      "deliverable": "求页号、偏移和物理地址。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:multilevel-page-table",
+    "kind": "engineering",
+    "title": "多级页表与稀疏地址空间 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n32 位地址、4KiB 页、每个页表项 4B，每张页表占一页，采用两级分页。\n\n任务：给出地址字段划分，说明末级页表无需全部分配的原因。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "字段为一级 10 位、二级 10 位、偏移 12 位；未使用的大段地址可以让一级项无效，从而不分配对应二级页表。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "字段为一级 10 位、二级 10 位、偏移 12 位；未使用的大段地址可以让一级项无效，从而不分配对应二级页表。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "一页装 1024 个表项，因此每级索引 10 位；多级减少稀疏空间成本，却会增加 TLB 未命中后的遍历次数。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:multilevel-page-table"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "multilevel-page-table"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "多级页表按需创建下级表，避免为空虚拟区域维护完整末级页表。",
+      "deliverable": "给出地址字段划分，说明末级页表无需全部分配的原因。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:tlb-eat",
+    "kind": "engineering",
+    "title": "TLB 命中率与有效访问时间 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n串行查 TLB=10ns，内存=100ns，命中率 90%，单级页表且不发生缺页。\n\n任务：求平均访问时间。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "EAT=0.9×110+0.1×210=120ns；未命中并不意味着访问磁盘，这里明确排除了缺页。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "EAT=0.9×110+0.1×210=120ns；未命中并不意味着访问磁盘，这里明确排除了缺页。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "命中耗时 10+100，未命中需页表与数据两次内存访问，耗时 10+200；题干模型变化会改变公式。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:tlb-eat"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "tlb-eat"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "TLB 命中可避免额外页表访存，计算平均时延必须声明串行或并行查询模型。",
+      "deliverable": "求平均访问时间。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:page-fault",
+    "kind": "engineering",
+    "title": "缺页处理与脏页写回 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n访问页 P 缺页，内存已满，选中的牺牲页 Q 为脏页。\n\n任务：列出主要处理顺序。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "陷入内核并检查合法性，选择 Q，必要时写回 Q，读入 P，更新页表及相关 TLB 状态，将进程置就绪并在恢复后重试原访存指令。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "陷入内核并检查合法性，选择 Q，必要时写回 Q，读入 P，更新页表及相关 TLB 状态，将进程置就绪并在恢复后重试原访存指令。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "先检查地址和权限；脏页可能需写回后才能复用页框；更新页表并处理 TLB，原指令通常重试。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:page-fault"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "page-fault"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "访问合法但不驻留的页面时发生缺页，系统分配页框、读入页面并恢复指令。",
+      "deliverable": "列出主要处理顺序。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:replacement",
+    "kind": "engineering",
+    "title": "FIFO、LRU、OPT 与 Belady 异常 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n3 个初始空页框，访问串 1、2、3、1、4、2。\n\n任务：分别计算 FIFO 和 LRU 的缺页次数。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "FIFO 在 1、2、3、4 处缺页，共 4 次；LRU 在 1、2、3、4、最后的 2 处缺页，共 5 次，本串不代表 LRU 对所有输入优于 FIFO。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "FIFO 在 1、2、3、4 处缺页，共 4 次；LRU 在 1、2、3、4、最后的 2 处缺页，共 5 次，本串不代表 LRU 对所有输入优于 FIFO。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "LRU 淘汰最久未使用的页，FIFO 淘汰最早装入的页，OPT 依赖未来访问仅作为理论比较；命中不改变 FIFO 装入顺序。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:replacement"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "replacement"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "页面置换策略按不同信息选择牺牲页；FIFO 可能增加页框反而更多缺页。",
+      "deliverable": "分别计算 FIFO 和 LRU 的缺页次数。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:working-set",
+    "kind": "engineering",
+    "title": "工作集、局部性与抖动 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n多个进程同时运行，缺页率高，磁盘忙但 CPU 利用率低。\n\n任务：解释现象并给出优先处理方向。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "进程工作集总需求超过可用内存，时间花在换页；减少活跃进程或增加可用页框并测量缺页率，比单纯增加并发更合适。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "进程工作集总需求超过可用内存，时间花在换页；减少活跃进程或增加可用页框并测量缺页率，比单纯增加并发更合适。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "盲目增加多道程序度可能加剧抖动；可调低并发、给进程更多页框，结合缺页频率控制。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:working-set"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "working-set"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "工作集是近期窗口内使用的页集合，内存不足以容纳活跃工作集时会频繁缺页。",
+      "deliverable": "解释现象并给出优先处理方向。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:segmentation",
+    "kind": "engineering",
+    "title": "分段、分页与碎片 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n某段基址 4000、长度 600，访问段内偏移 580 和 620。\n\n任务：判断两次访问并给出合法物理地址。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "偏移 580 合法，对应 4580；偏移 620 越界，应产生地址或保护异常，不能直接相加访问 4620。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "偏移 580 合法，对应 4580；偏移 620 越界，应产生地址或保护异常，不能直接相加访问 4620。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "分段需检查偏移小于段长，段式分配可能有外部碎片；分页最后一页可能有内部碎片。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:segmentation"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "segmentation"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "分段按逻辑模块形成可变长度区域，分页按固定大小管理映射，两者保护和共享粒度不同。",
+      "deliverable": "判断两次访问并给出合法物理地址。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:file-allocation",
+    "kind": "engineering",
+    "title": "连续、链式与索引文件分配 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n文件不断增长，需随机读取中间第 k 个逻辑块。\n\n任务：为随机访问和可增长文件选择结构并说明代价。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "可用索引或多级索引分配，逻辑块号定位对应数据块，无需遍历前 k 块；代价是索引块空间和可能的额外元数据 I/O。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "可用索引或多级索引分配，逻辑块号定位对应数据块，无需遍历前 k 块；代价是索引块空间和可能的额外元数据 I/O。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "链式分配定位通常需沿链行走，索引分配用索引块定位；连续分配随机访问简单但扩容可能受相邻空间限制。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:file-allocation"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "file-allocation"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "文件块组织影响随机定位、扩展能力、碎片和元数据开销。",
+      "deliverable": "为随机访问和可增长文件选择结构并说明代价。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:inode-link",
+    "kind": "engineering",
+    "title": "inode、目录项与硬链接 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n同一文件有名字 a 和 b，删除 a 时进程仍打开该文件。\n\n任务：删除 a 是否立即删除数据？为什么？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "不立即删除，因为 b 仍引用同一 inode，且还有打开引用；删除文件名与回收存储不是同一时刻。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "不立即删除，因为 b 仍引用同一 inode，且还有打开引用；删除文件名与回收存储不是同一时刻。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "删除目录项减少链接计数；常见 Unix 语义下链接计数为零且最后打开引用释放后才回收数据；符号链接是独立文件。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:inode-link"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "inode-link"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "目录项把名字映射到 inode，inode 记录文件元数据与数据块映射；硬链接为同一 inode 增加名字。",
+      "deliverable": "删除 a 是否立即删除数据？为什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:disk-scheduling",
+    "kind": "engineering",
+    "title": "磁盘调度 FCFS、SSTF 与 SCAN · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n磁头在 50，请求为 10、55、58、90，采用 SSTF。\n\n任务：求 SSTF 服务顺序与总移动距离。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "顺序 55、58、90、10；移动 5+3+32+80=120 个柱面；若距离并列需按题干决定选择规则。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "顺序 55、58、90、10；移动 5+3+32+80=120 个柱面；若距离并列需按题干决定选择规则。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "SSTF 每步选择距离当前磁头最近的请求，可能使远端请求饥饿；SCAN 还需指定初始方向和端点范围。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:disk-scheduling"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "disk-scheduling"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "机械盘调度通过减少寻道改进访问，需同时考虑公平性与饥饿。",
+      "deliverable": "求 SSTF 服务顺序与总移动距离。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:io-buffering",
+    "kind": "engineering",
+    "title": "缓冲、缓存与假脱机 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n多个进程把打印任务写入磁盘队列，打印服务逐个输出。\n\n任务：识别打印队列机制并区别它与缓存。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "这是假脱机 SPOOLing，利用磁盘队列让进程提交任务后继续执行；缓存旨在复用已取得的数据，不能把排队等待打印等同缓存命中。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "这是假脱机 SPOOLing，利用磁盘队列让进程提交任务后继续执行；缓存旨在复用已取得的数据，不能把排队等待打印等同缓存命中。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "假脱机不意味着物理打印机可同时输出多个任务；双缓冲可以把处理与 I/O 重叠，缓存命中则可避免重复读取。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:io-buffering"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "io-buffering"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "缓冲调节生产消费速率和传输粒度，缓存复用已有数据，假脱机用磁盘排队模拟设备共享。",
+      "deliverable": "识别打印队列机制并区别它与缓存。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:protection",
+    "kind": "engineering",
+    "title": "用户态、内核态与访问保护 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n用户程序试图直接修改页表，或通过 write 系统调用写文件。\n\n任务：解释直接修改页表为何被禁止，而 write 可以受控执行。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "页表控制内存隔离，修改它属于受保护操作；write 进入内核后检查地址、文件描述符与权限，再由内核代为操作，用户代码不能绕过检查。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "页表控制内存隔离，修改它属于受保护操作；write 进入内核后检查地址、文件描述符与权限，再由内核代为操作，用户代码不能绕过检查。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "系统调用由陷入入口执行参数与权限检查；内核态不等于拥有所有业务授权，仍需检查文件权限等策略。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:protection"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "protection"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "特权级和页权限限制普通程序对设备及其他进程内存的访问，内核通过受控入口提供服务。",
+      "deliverable": "解释直接修改页表为何被禁止，而 write 可以受控执行。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:ipc",
+    "kind": "engineering",
+    "title": "管道、共享内存与消息传递 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n两个进程通过共享环形缓冲区传递任务，维护读写索引。\n\n任务：共享内存为什么仍要锁、信号量或原子协议？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "进程可能同时更新索引并读到尚未完成的数据，需要互斥或原子与内存序保证发布顺序，并用计数或事件协调空满状态。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "进程可能同时更新索引并读到尚未完成的数据，需要互斥或原子与内存序保证发布顺序，并用计数或事件协调空满状态。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "共享内存可让双方映射同一物理页，但不能自动保证索引原子性与可见性；管道提供字节流并可阻塞读写。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:ipc"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "ipc"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "IPC 的数据传递方式与同步机制应分别考虑，共享内存减少复制但仍需协调并发。",
+      "deliverable": "共享内存为什么仍要锁、信号量或原子协议？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:resource-lifecycle",
+    "kind": "engineering",
+    "title": "僵尸进程、孤儿进程与 wait · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n子进程已退出，父进程长期不调用 wait；另一个子进程仍运行而父进程先退出。\n\n任务：区别两个场景并给出僵尸的处理原则。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "已退出未被 wait 的是僵尸，仍运行但父进程退出的是孤儿；应让父进程正确 wait 或由收养进程回收，不能把两者混为仍占 CPU 的进程。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "已退出未被 wait 的是僵尸，仍运行但父进程退出的是孤儿；应让父进程正确 wait 或由收养进程回收，不能把两者混为仍占 CPU 的进程。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "前者可能成为僵尸，后者是孤儿并由适当的收养进程接管；僵尸已不执行，不能靠再次杀死它回收退出记录。",
+        "points": 40
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:resource-lifecycle"
+    ],
+    "tags": [
+      "408",
+      "操作系统",
+      "考研408",
+      "resource-lifecycle"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "进程退出后保留供父进程获取的退出信息，父进程 wait 后才完成相应回收。",
+      "deliverable": "区别两个场景并给出僵尸的处理原则。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:layering",
+    "kind": "engineering",
+    "title": "OSI、TCP/IP 与封装 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n浏览器发送应用消息，经 TCP、IP、以太网逐层封装后上链路。\n\n任务：给出 TCP、IP、以太网的数据单位和主要寻址信息。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "TCP 传输段使用端口，IP 分组使用 IP 地址，以太网帧使用 MAC 地址；跨路由跳时链路层源目的地址随下一跳重建。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "TCP 传输段使用端口，IP 分组使用 IP 地址，以太网帧使用 MAC 地址；跨路由跳时链路层源目的地址随下一跳重建。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "协议层并不等同物理设备；路由器转发时通常重建下一跳链路帧，端到端 IP 地址一般保持，NAT 等情况另论。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:layering"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "layering"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "分层把应用语义、端到端传输、跨网路由和链路交付拆成不同职责。",
+      "deliverable": "给出 TCP、IP、以太网的数据单位和主要寻址信息。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:delay",
+    "kind": "engineering",
+    "title": "发送时延、传播时延与排队时延 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n1000 字节分组，链路 10Mb/s，距离 2000km，传播速度 2×10^8m/s。\n\n任务：求发送时延、传播时延和总计。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "发送 8000/10^7=0.8ms，传播 2×10^6/(2×10^8)=10ms，合计 10.8ms。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "发送 8000/10^7=0.8ms，传播 2×10^6/(2×10^8)=10ms，合计 10.8ms。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "字节转换成比特需乘 8；忽略处理和排队时才可直接相加，长距离不一定表示发送时延大。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:delay"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "delay"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "发送时延由比特数除以速率决定，传播时延由距离除以信号传播速度决定。",
+      "deliverable": "求发送时延、传播时延和总计。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:bandwidth-delay",
+    "kind": "engineering",
+    "title": "带宽时延积与停等利用率 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n速率 100Mb/s，往返传播时延 RTT=40ms，忽略确认发送时延。\n\n任务：求填满窗口所需在途比特数和字节数。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "100×10^6×0.04=4×10^6 bit，即 500000 字节；窗口远小于此值时可能无法持续占满链路。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "100×10^6×0.04=4×10^6 bit，即 500000 字节；窗口远小于此值时可能无法持续占满链路。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "本题用 RTT 估算填满往返管道所需窗口；若讨论单向链路容量应用单向传播时延，须说明口径。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:bandwidth-delay"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "bandwidth-delay"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "带宽时延积表示链路可容纳的在途数据量；停等协议容易浪费长时延链路容量。",
+      "deliverable": "求填满窗口所需在途比特数和字节数。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:encoding",
+    "kind": "engineering",
+    "title": "奈奎斯特与香农容量边界 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n带宽 B=3000Hz，信噪比 S/N=31，使用香农公式。\n\n任务：求容量上界，若给 30dB 应如何换算？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "C=3000×log2(32)=15000bit/s；30dB 对应线性功率比 10^(30/10)=1000，再代入公式而非直接代入 30。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "C=3000×log2(32)=15000bit/s；30dB 对应线性功率比 10^(30/10)=1000，再代入公式而非直接代入 30。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "C=B log2(1+S/N)，分贝需先转线性比；理论上界不是实际协议吞吐率，编码和开销还会降低可用速率。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:encoding"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "encoding"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "奈奎斯特从无噪声带限信道码元速率出发，香农从带宽与信噪比给出可靠容量上界。",
+      "deliverable": "求容量上界，若给 30dB 应如何换算？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:crc",
+    "kind": "engineering",
+    "title": "CRC 差错检测与模二除法 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n数据 1101，生成比特串 1011，先补 3 个零再做异或长除法。\n\n任务：给出余数和发送码字，并说明接收校验。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "1101000 除以 1011 的余数为 001，发送 1101001；接收方再除以 1011，余数非零可判错，余数零也不能排除所有差错。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "1101000 除以 1011 的余数为 001，发送 1101001；接收方再除以 1011，余数非零可判错，余数零也不能排除所有差错。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "模二加减均为异或，无进位借位；r 次生成多项式附加 r 位余数；检测能力依赖生成多项式。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:crc"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "crc"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "CRC 用生成多项式的模二除法余数检查传输差错，不能保证发现一切错误模式。",
+      "deliverable": "给出余数和发送码字，并说明接收校验。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:sliding-window",
+    "kind": "engineering",
+    "title": "停等、GBN 与选择重传 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n序号字段 3 位；经典 GBN 接收窗口为 1，SR 发送与接收窗口等大。\n\n任务：给出两种协议最大发送窗口及丢帧时差异。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "GBN 最大 7，SR 最大 4；GBN 超时常重传丢帧及之后未确认帧，SR 对各帧单独确认并只重传需要的帧。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "GBN 最大 7，SR 最大 4；GBN 超时常重传丢帧及之后未确认帧，SR 对各帧单独确认并只重传需要的帧。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "防止新旧帧混淆，GBN 最大发送窗口 2^k-1，SR 等大窗口最多 2^(k-1)，前提为经典协议模型。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:sliding-window"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "sliding-window"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "流水 ARQ 用窗口允许多个未确认帧在途，GBN 与 SR 的接收缓存和重传范围不同。",
+      "deliverable": "给出两种协议最大发送窗口及丢帧时差异。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:ethernet-switch",
+    "kind": "engineering",
+    "title": "MAC 学习、交换转发与广播域 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n交换表为空，主机 A 从端口 1 给 B 发帧，B 在端口 2 回帧。\n\n任务：说明两次发帧后的表项与转发行为。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "先学 A→1，未知 B 因此泛洪；B 回帧时学 B→2，并按 A→1 单播转发，此后可对 A、B 都做已知单播。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "先学 A→1，未知 B 因此泛洪；B 回帧时学 B→2，并按 A→1 单播转发，此后可对 A、B 都做已知单播。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "交换机学习源地址而非目的地址；VLAN 划分广播域，生成树等机制用于避免二层环路引起广播风暴。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:ethernet-switch"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "ethernet-switch"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "交换机从收到帧的源 MAC 学习端口，对未知目的地址在同 VLAN 其他端口泛洪。",
+      "deliverable": "说明两次发帧后的表项与转发行为。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:csma",
+    "kind": "engineering",
+    "title": "CSMA/CD、全双工与冲突域 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n共享半双工链路速率 10Mb/s，最大往返传播 51.2μs。\n\n任务：计算最短帧长度，并指出适用条件。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "10^7×51.2×10^-6=512bit=64字节，适用于题干共享半双工碰撞检测模型；全双工链路不存在这种竞争碰撞。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "10^7×51.2×10^-6=512bit=64字节，适用于题干共享半双工碰撞检测模型；全双工链路不存在这种竞争碰撞。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "要在最短帧发送结束前发现最远碰撞，帧发送时长至少覆盖往返传播；半双工模型不能套到全双工交换口。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:csma"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "csma"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "经典共享以太网用载波侦听和碰撞检测；现代全双工交换链路不使用碰撞检测竞争。",
+      "deliverable": "计算最短帧长度，并指出适用条件。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:ipv4-cidr",
+    "kind": "engineering",
+    "title": "IPv4 子网划分与 CIDR · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n地址 192.168.10.130/26，按普通 IPv4 LAN 子网规则。\n\n任务：求网络、广播、主机范围和数量。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "网络 192.168.10.128，广播 192.168.10.191，可用 129..190，共 62 个普通主机地址。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "网络 192.168.10.128，广播 192.168.10.191，可用 129..190，共 62 个普通主机地址。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "/26 掩码 255.255.255.192，每块 64 地址；/31 点到点与 /32 主机路由有例外，不能机械减 2。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc4632.html",
+    "knowledge_ids": [
+      "ref:cs408:ipv4-cidr"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "ipv4-cidr"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "CIDR 前缀确定网络部分，主机部分决定地址块大小，普通子网还需区分网络和广播地址。",
+      "deliverable": "求网络、广播、主机范围和数量。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:longest-prefix",
+    "kind": "engineering",
+    "title": "路由最长前缀匹配 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n路由 0.0.0.0/0→A，10.0.0.0/8→B，10.1.0.0/16→C；目的 10.1.2.3。\n\n任务：选择下一跳并解释。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "选择 C，因为 /16 比 /8 和 /0 更具体；并不是先遇到的项优先，也不是数值最大的下一跳优先。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "选择 C，因为 /16 比 /8 和 /0 更具体；并不是先遇到的项优先，也不是数值最大的下一跳优先。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "先比较匹配长度，同一前缀的多条候选还要按路由策略和度量选择；默认路由只是最宽匹配。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc4632.html",
+    "knowledge_ids": [
+      "ref:cs408:longest-prefix"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "longest-prefix"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "多个路由项匹配目的地址时，优先选择前缀最长的有效项。",
+      "deliverable": "选择下一跳并解释。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:arp",
+    "kind": "engineering",
+    "title": "ARP、下一跳与 IP 地址保持 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n主机 192.168.1.10/24 要访问 8.8.8.8，网关 192.168.1.1。\n\n任务：第一跳以太网目的 MAC 和 IP 目的地址分别是谁？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "MAC 为网关 192.168.1.1 的 MAC，经 ARP 获取；IP 目的仍为 8.8.8.8，不能把 IP 目的也改成网关。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "MAC 为网关 192.168.1.1 的 MAC，经 ARP 获取；IP 目的仍为 8.8.8.8，不能把 IP 目的也改成网关。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "ARP 请求在本地二层广播域内，路由器不按普通转发方式跨网广播；ARP 易被欺骗，不能视为认证协议。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc826.html",
+    "knowledge_ids": [
+      "ref:cs408:arp"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "arp"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "IPv4 同链路转发需知道下一跳 MAC，跨子网时通常解析默认网关而非远端主机的 MAC。",
+      "deliverable": "第一跳以太网目的 MAC 和 IP 目的地址分别是谁？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:fragmentation",
+    "kind": "engineering",
+    "title": "IPv4 分片、MTU 与偏移 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\nIP 数据报总长 4000B，首部固定 20B，链路 MTU=1500B，允许分片。\n\n任务：列出每片数据长度、总长、偏移与 MF。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "三片数据 1480、1480、1020，总长 1500、1500、1040；偏移 0、185、370，MF 依次 1、1、0。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "三片数据 1480、1480、1020，总长 1500、1500、1040；偏移 0、185、370，MF 依次 1、1、0。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "可装数据上限 1480B 且可被 8 整除；重组通常由目的主机完成；DF 置位时不能按此分片。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc791.html",
+    "knowledge_ids": [
+      "ref:cs408:fragmentation"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "fragmentation"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "IPv4 分片以字节偏移的 8 倍单位记录位置，除末片外数据长度通常为 8 的倍数。",
+      "deliverable": "列出每片数据长度、总长、偏移与 MF。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:icmp",
+    "kind": "engineering",
+    "title": "ICMP、TTL 与路径探测 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\ntraceroute 逐步增加探测包 TTL，路由器转发时递减 TTL。\n\n任务：解释如何得知第 k 跳以及星号的含义边界。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "TTL 设为 k 的探测可能在第 k 个路由器到期，借 ICMP 回报识别该跳；星号仅说明超时未收到预期回应，不能直接证明那一跳故障。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "TTL 设为 k 的探测可能在第 k 个路由器到期，借 ICMP 回报识别该跳；星号仅说明超时未收到预期回应，不能直接证明那一跳故障。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "TTL 到期通常返回 Time Exceeded，但防火墙可能过滤或限速；无应答不必然代表目标不可达；ICMP 不保证原包重传。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc792.html",
+    "knowledge_ids": [
+      "ref:cs408:icmp"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "icmp"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "ICMP 承载网络层差错与诊断，TTL 限制分组在路由中的生存跳数。",
+      "deliverable": "解释如何得知第 k 跳以及星号的含义边界。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:ipv6",
+    "kind": "engineering",
+    "title": "IPv6 地址、邻居发现与分片 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\nIPv6 主机发送包超过下一跳 MTU，收到 ICMPv6 Packet Too Big。\n\n任务：应由谁调整或分片？本链路地址解析是否用 ARP？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "由源端调整包大小，必要时源端分片；本链路使用基于 ICMPv6 的邻居发现，不使用 IPv4 ARP。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "由源端调整包大小，必要时源端分片；本链路使用基于 ICMPv6 的邻居发现，不使用 IPv4 ARP。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "发送端据此调整包大小或按需源端分片；IPv6 无广播，使用多播等机制；不能套用 IPv4 路由器分片流程。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc8200.html",
+    "knowledge_ids": [
+      "ref:cs408:ipv6"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "ipv6"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "IPv6 使用 128 位地址，以邻居发现替代 IPv4 ARP，路由器不直接对 IPv6 包分片。",
+      "deliverable": "应由谁调整或分片？本链路地址解析是否用 ARP？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:routing-protocols",
+    "kind": "engineering",
+    "title": "距离向量、链路状态与路由环 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n两台距离向量路由器在目的网络失效后互相声称可经对方到达。\n\n任务：识别问题并比较两类协议掌握的信息。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "这是距离向量的路由环与计数到无穷问题；距离向量主要知道邻居宣告的距离，链路状态维护更完整的区域拓扑并本地计算路径。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "这是距离向量的路由环与计数到无穷问题；距离向量主要知道邻居宣告的距离，链路状态维护更完整的区域拓扑并本地计算路径。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "距离向量可能产生计数到无穷；水平分割、毒性逆转等可缓解但不是任意拓扑下的万能解；链路状态常用 Dijkstra。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:routing-protocols"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "routing-protocols"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "距离向量交换到目标的距离信息，链路状态传播拓扑并各自计算最短路。",
+      "deliverable": "识别问题并比较两类协议掌握的信息。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:udp-tcp",
+    "kind": "engineering",
+    "title": "UDP、TCP 与消息边界 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n应用连续 write 两条各 100 字节消息，接收端调用 read 读取 TCP 流。\n\n任务：接收方如何正确还原两条应用消息？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "应用约定长度前缀、定长或可转义分隔符并维护接收缓冲，按协议累计和拆分；不能假设一次 write 对应一次 read。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "应用约定长度前缀、定长或可转义分隔符并维护接收缓冲，按协议累计和拆分；不能假设一次 write 对应一次 read。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "read 可能读到半条、整条或多条消息；所谓粘包是应用缺乏分帧，不是 TCP 出错；UDP 仍可能丢失、重复或乱序。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:udp-tcp"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "udp-tcp"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "UDP 保留数据报边界，TCP 提供可靠有序字节流但不保留应用消息边界。",
+      "deliverable": "接收方如何正确还原两条应用消息？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:tcp-handshake",
+    "kind": "engineering",
+    "title": "TCP 三次握手与序号确认 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n客户端 ISN=100，服务端 ISN=500，无握手数据。\n\n任务：写出三次握手的 seq 和 ack。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "客户端 SYN seq=100；服务端 SYN+ACK seq=500、ack=101；客户端 ACK seq=101、ack=501。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "客户端 SYN seq=100；服务端 SYN+ACK seq=500、ack=101；客户端 ACK seq=101、ack=501。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "第三次 ACK 的 ack=服务端 ISN+1；纯 ACK 不消耗序号；异常、重传和同时打开须按 TCP 状态机讨论。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc9293.html",
+    "knowledge_ids": [
+      "ref:cs408:tcp-handshake"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "tcp-handshake"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "握手同步双方初始序号并确认双向收发能力，SYN 本身占用一个序号。",
+      "deliverable": "写出三次握手的 seq 和 ack。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:tcp-close",
+    "kind": "engineering",
+    "title": "TCP 连接关闭、半关闭与 TIME_WAIT · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\nA 主动发送 FIN，B 确认后仍发送剩余数据，再发送 FIN，A 最后确认。\n\n任务：为何 B 确认 A 的 FIN 后还能发送数据？TIME_WAIT 有何作用？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "A 的 FIN 仅结束 A→B 的数据流，B→A 可继续；TIME_WAIT 让旧段在网络中消失，并在对端重传 FIN 时重新发送最终 ACK。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "A 的 FIN 仅结束 A→B 的数据流，B→A 可继续；TIME_WAIT 让旧段在网络中消失，并在对端重传 FIN 时重新发送最终 ACK。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "ACK 与 FIN 可能合并，关闭不一定恰好四个报文；通常主动关闭方进入 TIME_WAIT，具体由实际状态转移决定。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc9293.html",
+    "knowledge_ids": [
+      "ref:cs408:tcp-close"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "tcp-close"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "TCP 双方向独立关闭，FIN 占一个序号；TIME_WAIT 用于处理旧段并允许最终确认重发。",
+      "deliverable": "为何 B 确认 A 的 FIN 后还能发送数据？TIME_WAIT 有何作用？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:tcp-sequence",
+    "kind": "engineering",
+    "title": "TCP 累积确认、重传与字节编号 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n收到 seq=100、有效载荷 50B；之后收到 seq=200、50B，但 150..199 缺失。\n\n任务：两次接收后的累计 ACK 分别是多少？缺口补齐后是多少？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "第一段后 ACK=150；收到乱序段后累计 ACK 仍为 150；补齐 150..199 后连续到 249，累计 ACK=250。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "第一段后 ACK=150；收到乱序段后累计 ACK 仍为 150；补齐 150..199 后连续到 249，累计 ACK=250。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "乱序数据可缓存但累计 ACK 不能跳过缺口；SACK 可额外告知已收到的非连续区间；序号按模 2^32 处理。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc9293.html",
+    "knowledge_ids": [
+      "ref:cs408:tcp-sequence"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "tcp-sequence"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "TCP 序号按字节编号，ACK 表示下一个期望收到的连续字节序号。",
+      "deliverable": "两次接收后的累计 ACK 分别是多少？缺口补齐后是多少？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:flow-control",
+    "kind": "engineering",
+    "title": "TCP 流量控制与接收窗口 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n接收端通告 rwnd=4000B，发送端已有 1500B 尚未确认，暂忽略拥塞窗口。\n\n任务：还能新增发送多少？它与拥塞控制的目标有何区别？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "还能发 2500B；流量控制保护接收端缓冲，拥塞控制调节网络中的负载，二者共同限制发送。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "还能发 2500B；流量控制保护接收端缓冲，拥塞控制调节网络中的负载，二者共同限制发送。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "可发送量还受拥塞窗口和实现约束；简化模型用可用窗口减在途字节，窗口扩大选项影响实际编码范围。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc9293.html",
+    "knowledge_ids": [
+      "ref:cs408:flow-control"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "flow-control"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "接收窗口约束发送端不要压垮接收缓存，零窗口需要探测机制避免窗口更新丢失导致停滞。",
+      "deliverable": "还能新增发送多少？它与拥塞控制的目标有何区别？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:congestion-control",
+    "kind": "engineering",
+    "title": "慢启动、拥塞避免与发送上限 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n经典教学模型：初始 cwnd=1 MSS，每段均被确认，阈值为 8 MSS，忽略延迟 ACK。\n\n任务：给出前四轮开始时窗口，并说明 rwnd=3 MSS 时的限制。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "前四轮开始约为 1、2、4、8 MSS；若 rwnd=3 MSS，发送上限最多为 min(cwnd,3 MSS)，已在途数据还占用窗口。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "前四轮开始约为 1、2、4、8 MSS；若 rwnd=3 MSS，发送上限最多为 min(cwnd,3 MSS)，已在途数据还占用窗口。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "慢启动阶段每 RTT 约翻倍，达到阈值后转加性增长；实际初始窗口与算法可能不同，不能把教学参数当所有实现默认值。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc5681.html",
+    "knowledge_ids": [
+      "ref:cs408:congestion-control"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "congestion-control"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "经典拥塞控制用 cwnd 调节在途数据，实际发送上限受 min(cwnd,rwnd) 约束。",
+      "deliverable": "给出前四轮开始时窗口，并说明 rwnd=3 MSS 时的限制。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:dns",
+    "kind": "engineering",
+    "title": "DNS 递归、迭代与缓存 TTL · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n本机缓存为空，递归解析器也没有某域名缓存，要取得 A 记录。\n\n任务：描述基本解析链并说明 TTL 的作用。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "客户端问递归解析器，解析器依次获得根、顶级域、权威服务器指引并取回记录，再返回并缓存；TTL 限制缓存有效期，不保证全球立即同步更新。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "客户端问递归解析器，解析器依次获得根、顶级域、权威服务器指引并取回记录，再返回并缓存；TTL 限制缓存有效期，不保证全球立即同步更新。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "DNS 同时可用 UDP 与 TCP，不能说只用 UDP；缓存 TTL 到期通常需重新查询，权威回答与缓存回答须区分。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc1034.html",
+    "knowledge_ids": [
+      "ref:cs408:dns"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "dns"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "客户端常向递归解析器提问，解析器可通过根、顶级域和权威服务器的迭代查询找答案。",
+      "deliverable": "描述基本解析链并说明 TTL 的作用。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:http-tls",
+    "kind": "engineering",
+    "title": "HTTP 语义、连接复用与 TLS · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\nHTTP/1.1 与 HTTP/2 常经 TCP；HTTP/3 经基于 UDP 的 QUIC；HTTPS 校验服务器证书。\n\n任务：为什么不能说所有 HTTP 都基于 TCP？证书校验主要解决什么？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "HTTP/3 使用 QUIC/UDP，因此所有 HTTP 基于 TCP 的说法不成立；证书校验在信任体系下验证服务端身份，协商密钥后保护通信内容。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "HTTP/3 使用 QUIC/UDP，因此所有 HTTP 基于 TCP 的说法不成立；证书校验在信任体系下验证服务端身份，协商密钥后保护通信内容。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "HTTP/2 多路复用仍可能受 TCP 层丢包队头阻塞；TLS 不隐藏所有元数据，证书验证还需主机名与信任链等检查。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc9114.html",
+    "knowledge_ids": [
+      "ref:cs408:http-tls"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "http-tls"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "HTTP 定义请求响应语义，TLS 为传输提供认证、机密性与完整性，连接承载方式随 HTTP 版本不同。",
+      "deliverable": "为什么不能说所有 HTTP 都基于 TCP？证书校验主要解决什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:nat-dhcp",
+    "kind": "engineering",
+    "title": "NAT 端口映射、DHCP 与网关 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n两台内网主机均从本地端口 5000 访问同一公网服务器；出口只有一个公网 IPv4。\n\n任务：为何不能只靠同一个公网 IP 区分两个连接？DHCP 网关配置有何用途？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "回包还需端口及协议等映射信息才能定位内网连接；默认网关指示跨本地子网目的应交给哪一个下一跳路由器。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "回包还需端口及协议等映射信息才能定位内网连接；默认网关指示跨本地子网目的应交给哪一个下一跳路由器。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "PAT 为两条流分配可区分的公网端口并维护回程映射；DHCP 可下发掩码、网关与 DNS；NAT 不能替代完整安全策略。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc3022.html",
+    "knowledge_ids": [
+      "ref:cs408:nat-dhcp"
+    ],
+    "tags": [
+      "408",
+      "计算机网络",
+      "考研408",
+      "nat-dhcp"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "NAT/PAT 通过地址和端口映射复用公网出口，DHCP 向主机分配地址及网络配置。",
+      "deliverable": "为何不能只靠同一个公网 IP 区分两个连接？DHCP 网关配置有何用途？"
+    }
+  }
+]

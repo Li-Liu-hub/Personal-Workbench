@@ -198,7 +198,14 @@ fn knowledge_metadata_search_and_exact_practice_links_cover_the_catalog() {
         for c in &cards {
             c.card.validate().unwrap();
             assert!(c.card.knowledge_ids.contains(&item.id));
-            assert!(c.card.tags.contains(&item.language));
+            assert!(
+                c.card.tags.contains(&item.language),
+                "entry {} card {} tags {:?} lacks language {}",
+                item.id,
+                c.card.id,
+                c.card.tags,
+                item.language
+            );
         }
     }
     for (query, expected) in [

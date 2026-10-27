@@ -15,7 +15,7 @@ pub const AREAS: [&str; 8] = [
 ];
 pub const MIXED: &str = "__free_mixed__";
 #[cfg(test)]
-pub const BUILTIN_COUNT: u32 = 603;
+pub const BUILTIN_COUNT: u32 = 1055;
 pub fn with_profile(mut card: Card) -> Card {
     if card.kind == "engineering" && card.training.is_none() {
         card.training = Some(profile(&card));

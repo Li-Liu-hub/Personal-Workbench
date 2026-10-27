@@ -24,6 +24,8 @@ pub enum Scope {
     Credentials,
     Folders,
     Documents,
+    Resume,
+    JobHunt,
     Inventory,
     Websites,
     Contacts,
@@ -45,6 +47,8 @@ impl Scope {
             Section::Credentials => Self::Credentials,
             Section::Folders => Self::Folders,
             Section::Documents => Self::Documents,
+            Section::Resume => Self::Resume,
+            Section::JobHunt => Self::JobHunt,
             Section::Inventory => Self::Inventory,
             Section::Websites => Self::Websites,
             Section::Contacts => Self::Contacts,
@@ -65,6 +69,8 @@ impl Scope {
             Self::Credentials => "账号密码",
             Self::Folders => "快捷路径",
             Self::Documents => "文档",
+            Self::Resume => "简历",
+            Self::JobHunt => "求职",
             Self::Inventory => "物品清单",
             Self::Websites => "网站收藏",
             Self::Contacts => "联系人",
@@ -233,6 +239,12 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
             warnings: vec![],
         };
         let mut counts = BTreeMap::new();
+        if scope.includes(Scope::Resume) {
+            let configured = snapshot.setting("resume.directory")?;
+            let directory = crate::resume::directory(data_dir, configured.as_deref());
+            package.tree(&directory, "docs/简历")?;
+            counts.insert("简历", usize::from(directory.join("resume.json").is_file()));
+        }
         let favorites = snapshot
             .favorites()?
             .into_iter()
@@ -331,10 +343,39 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
                 package.json("练习规则.json", &snapshot.study_rules())?;
             }
         }
-        if scope.includes(Scope::Tools) {
+        if scope.includes(Scope::Tools) || scope == Scope::JobHunt {
             let records = snapshot.app_tools()?;
             counts.insert("小工具", records.len());
             package.json("小工具.json", &records)?;
+            let campus = snapshot.campus_jobs()?;
+            counts.insert("校招岗位", campus.len());
+            package.json("校招岗位.json", &campus)?;
+            let sites = snapshot.jobhunt_sites()?;
+            counts.insert("求职网站", sites.len());
+            package.json("求职网站.json", &sites)?;
+            package.json("校招搜索条件.json", &snapshot.setting("campus.options")?)?;
+            let hiring = data_dir.join("hiring");
+            if hiring.join("hiring.sqlite").is_file() {
+                let connection = rusqlite::Connection::open_with_flags(
+                    hiring.join("hiring.sqlite"),
+                    rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+                )?;
+                let destination = snapshot_dir.path().join("hiring.sqlite");
+                Database::snapshot_connection(&connection, &destination)?;
+                package.file(&destination, "data/hiring/hiring.sqlite")?;
+                let tracking = crate::hiring::tracking::read(snapshot_dir.path())
+                    .map_err(DeskError::InvalidInput)?;
+                counts.insert("投递记录", tracking.attempts.len());
+                package.json("投递记录.json", &tracking.attempts)?;
+            }
+            for name in ["settings.json", "profile.md"] {
+                if hiring.join(name).is_file() {
+                    package.file(&hiring.join(name), &format!("data/hiring/{name}"))?;
+                }
+            }
+            if hiring.is_dir() {
+                package.bytes("data/hiring/恢复说明.txt","关闭办公台后可将本目录恢复到数据目录的 hiring 文件夹。浏览器登录态及接码密钥不包含在导出中，恢复后重新登录和配置手机转发。".as_bytes())?;
+            }
         }
         if scope.includes(Scope::LegacyChats) {
             let settings = snapshot
@@ -406,6 +447,25 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
             }
         }
         if scope.includes(Scope::Books) {
+            let assets = data_dir.join("writing-assets");
+            if assets.is_dir() {
+                for entry in walkdir::WalkDir::new(&assets).follow_links(false) {
+                    let entry = entry.map_err(|e| DeskError::InvalidPath(e.to_string()))?;
+                    if entry.file_type().is_file() {
+                        let relative = entry
+                            .path()
+                            .strip_prefix(&assets)
+                            .map_err(|e| DeskError::InvalidPath(e.to_string()))?;
+                        package.file(
+                            entry.path(),
+                            &format!(
+                                "writing-assets/{}",
+                                relative.to_string_lossy().replace('\\', "/")
+                            ),
+                        )?;
+                    }
+                }
+            }
             let books = snapshot.books()?;
             let mut pages = vec![];
             for book in &books {

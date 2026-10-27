@@ -1,0 +1,11 @@
+# 接码接收端配置
+# 只绑定热点/局域网网卡；不要改成 0.0.0.0
+otp:
+  bind_ip: auto
+  port: 8765
+  ttl_seconds: 120
+  token_file: ./data/otp_token.txt
+  url_file: ./data/otp_url.txt
+  runtime_file: ./data/otp_runtime.json
+  max_clock_skew_seconds: 600
+  max_requests_per_minute: 60

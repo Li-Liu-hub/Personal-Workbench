@@ -95,6 +95,13 @@ impl PersonalDeskApp {
         }
     }
     pub(super) fn prepare_english_base(&mut self, s: &mut Session, base: Card, mode: String) {
+        if mode == "听写" || mode == "释义" {
+            match crate::english::exercise(&base, &mode, None) {
+                Ok(card) => self.install_english(s, card),
+                Err(error) => self.study.error = error,
+            }
+            return;
+        }
         if mode == "语法" {
             if base.id.starts_with("english:grammar:v3:") {
                 self.install_english(s, base);
@@ -288,6 +295,31 @@ impl PersonalDeskApp {
             .inner_margin(8)
             .show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
+                    ui.add_enabled_ui(!self.study.busy && !self.audio_active(), |ui| {
+                        egui::ComboBox::from_id_salt("active-model")
+                            .width(150.)
+                            .selected_text(if self.study.speech_selected {
+                                "Kokoro · 朗读"
+                            } else {
+                                "Spark2.6 Q4"
+                            })
+                            .show_ui(ui, |ui| {
+                                ui.selectable_value(
+                                    &mut self.study.speech_selected,
+                                    false,
+                                    "Spark2.6 Q4",
+                                );
+                                ui.selectable_value(
+                                    &mut self.study.speech_selected,
+                                    true,
+                                    "Kokoro · 朗读",
+                                );
+                            });
+                    });
+                    if self.study.speech_selected {
+                        self.render_kokoro_controls(ui);
+                        return;
+                    }
                     let loaded = self.study.ai.is_loaded();
                     let generating = self
                         .study
@@ -299,19 +331,7 @@ impl PersonalDeskApp {
                         .add_enabled(!self.study.busy && !loaded, egui::Button::new("启动模型"))
                         .clicked()
                     {
-                        self.study.busy = true;
-                        self.study.operation = "启动模型".into();
-                        self.study.error.clear();
-                        let ai = self.study.ai.clone();
-                        let config = self.study.config.clone();
-                        let log = self.data_dir.join("study-model.log");
-                        let sender = self.sender.clone();
-                        thread::spawn(move || {
-                            let result = ai.warmup(&config, &log);
-                            let _ = sender.send(BackgroundMessage::Learning(
-                                LearningMessage::Started(result),
-                            ));
-                        });
+                        self.start_text_model();
                     }
                     if ui
                         .add_enabled(
@@ -390,7 +410,9 @@ impl PersonalDeskApp {
             }
             return;
         }
-        if !self.study.tutor_open {
+        if !self.study.tutor_open
+            || s.card.as_ref().is_some_and(|c| c.topic == "听写") && s.result.is_none()
+        {
             self.render_study_question(ui, kind, s);
             return;
         }
@@ -407,7 +429,7 @@ impl PersonalDeskApp {
             ui.allocate_ui_with_layout(
                 egui::vec2(right, height),
                 egui::Layout::top_down(egui::Align::Min),
-                |ui| self.render_tutor(ui, kind, s, height),
+                |ui| self.render_tutor(ui, kind, s),
             );
         });
     }
@@ -471,7 +493,7 @@ impl PersonalDeskApp {
             }));
         });
     }
-    fn render_tutor(&mut self, ui: &mut egui::Ui, kind: &str, s: &mut Session, height: f32) {
+    fn render_tutor(&mut self, ui: &mut egui::Ui, kind: &str, s: &mut Session) {
         let Some(card) = s.card.clone() else {
             return;
         };
@@ -483,143 +505,41 @@ impl PersonalDeskApp {
                 .unwrap_or_default();
             s.chat_for = Some(card.id.clone());
         }
-        let mut ask = None;
-        egui::Frame::new()
-            .fill(surface())
-            .stroke(egui::Stroke::new(0.7, border()))
-            .corner_radius(14)
-            .inner_margin(14)
-            .show(ui, |ui| {
-                ui.set_width((ui.available_width() - 2.).max(220.));
-                ui.label(RichText::new("讲解与追问").size(18.).strong());
-                ui.add_space(8.);
-                ui.horizontal_wrapped(|ui| {
-                    for (label, prompt) in [
-                        ("AI 解答", "从基础讲解这道题，给出一个完整解答和具体例子。"),
-                        ("提示一步", "只给我下一步提示，不要直接给完整答案。"),
-                        (
-                            "解释反馈",
-                            "结合我的答案和批改结果，讲清我错在哪里以及应该怎样改。",
-                        ),
-                    ] {
-                        if ui
-                            .add_enabled(!self.study.busy, egui::Button::new(label).small())
-                            .clicked()
-                        {
-                            ask = Some(prompt.into());
-                        }
-                    }
-                    if ui.small_button("参考解答").clicked() {
-                        s.reference_open = !s.reference_open;
-                        if s.reference_open
-                            && s.result.is_none()
-                            && let Some(p) = &s.pending
-                            && let Some(db) = self.db.as_mut()
-                            && let Err(error) = db.mark_study_help(&p.id)
-                        {
-                            self.study.error = error.to_string();
-                        }
-                    }
-                });
-                ui.add_space(8.);
-                egui::ScrollArea::vertical()
-                    .id_salt(("tutor", kind, &card.id))
-                    .max_height((height - 260.).max(90.))
-                    .min_scrolled_height((height - 260.).max(90.))
-                    .auto_shrink([false, false])
-                    .stick_to_bottom(true)
-                    .show(ui, |ui| {
-                        if s.reference_open {
-                            ui.label(RichText::new("参考解答").strong().color(accent()));
-                            let reference = if let Some(lab) = &card.sql
-                                && lab.runnable
-                            {
-                                format!("```sql\n{}\n```\n\n{}", lab.reference, lab.explanation)
-                            } else {
-                                card.answer.clone()
-                            };
-                            egui_commonmark::CommonMarkViewer::new().show(
-                                ui,
-                                &mut self.study.markdown,
-                                &reference,
-                            );
-                            if ui.small_button("复制参考解答").clicked() {
-                                ui.ctx().copy_text(reference);
-                            }
-                            ui.separator();
-                        }
-                        if s.chat.is_empty() && !s.reference_open {
-                            ui.label(
-                                RichText::new("可以让 AI 讲解整道题，也可以只问你不理解的一步。")
-                                    .size(13.)
-                                    .color(muted()),
-                            );
-                        }
-                        for message in &s.chat {
-                            ui.push_id(&message.id, |ui| {
-                                ui.add_space(10.);
-                                ui.label(
-                                    RichText::new(if message.role == "user" {
-                                        "我"
-                                    } else {
-                                        "AI"
-                                    })
-                                    .small()
-                                    .color(accent()),
-                                );
-                                egui_commonmark::CommonMarkViewer::new().show(
-                                    ui,
-                                    &mut self.study.markdown,
-                                    &message.content,
-                                );
-                                if message.role == "assistant"
-                                    && ui.small_button("复制回答").clicked()
-                                {
-                                    ui.ctx().copy_text(message.content.clone());
-                                }
-                            });
-                        }
-                        if self.study.busy && self.study.operation == "讲解与追问" {
-                            let live = self.study.ai.snapshot();
-                            if !live.active || live.partial.is_empty() {
-                                ui.spinner();
-                            } else {
-                                egui_commonmark::CommonMarkViewer::new().show(
-                                    ui,
-                                    &mut self.study.markdown,
-                                    &live.partial,
-                                );
-                            }
-                        }
-                    });
-                ui.separator();
-                ui.add_enabled_ui(!self.study.busy, |ui| {
-                    ui.add(
-                        egui::TextEdit::multiline(&mut s.chat_input)
-                            .desired_rows(3)
-                            .desired_width(f32::INFINITY)
-                            .hint_text("哪里没看懂？直接问…"),
-                    );
-                    ui.horizontal(|ui| {
-                        if ui
-                            .add_enabled(
-                                !s.chat_input.trim().is_empty(),
-                                primary_button("发送追问"),
-                            )
-                            .clicked()
-                        {
-                            ask = Some(s.chat_input.clone());
-                        }
-                        if s.chat.last().is_some_and(|m| m.role == "user")
-                            && ui.button("重试").clicked()
-                        {
-                            ask = s.chat.last().map(|m| m.content.clone());
-                        }
-                    });
-                });
-            });
-        if let Some(question) = ask {
-            self.ask_tutor(kind, s, question);
+        use crate::ui_components::tutor::{self, Action, TutorPanel};
+        let reference = s.reference_open.then(|| {
+            if let Some(lab) = &card.sql
+                && lab.runnable
+            {
+                format!("```sql\n{}\n```\n\n{}", lab.reference, lab.explanation)
+            } else {
+                card.answer.clone()
+            }
+        });
+        let live = self.study.ai.snapshot();
+        let action = TutorPanel {
+            id: tutor::panel_id(kind, &card.id),
+            input: &mut s.chat_input,
+            messages: &s.chat,
+            reference: reference.as_deref(),
+            busy: self.study.busy,
+            generating: self.study.busy && self.study.operation == "讲解与追问",
+            partial: if live.active { &live.partial } else { "" },
+        }
+        .show(ui, &mut self.study.markdown);
+        match action {
+            Some(Action::Ask(question)) => self.ask_tutor(kind, s, question),
+            Some(Action::ToggleReference) => {
+                s.reference_open = !s.reference_open;
+                if s.reference_open
+                    && s.result.is_none()
+                    && let Some(p) = &s.pending
+                    && let Some(db) = self.db.as_mut()
+                    && let Err(error) = db.mark_study_help(&p.id)
+                {
+                    self.study.error = error.to_string();
+                }
+            }
+            None => {}
         }
     }
 }

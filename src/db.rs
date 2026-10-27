@@ -1,12 +1,23 @@
 use std::path::{Path, PathBuf};
 
+#[cfg(test)]
+mod audit_tests;
+mod campus;
+mod coding;
 mod contacts;
 mod curriculum;
 mod encyclopedia;
 #[cfg(test)]
+mod encyclopedia_cs408_tests;
+#[cfg(test)]
+mod encyclopedia_deep_tests;
+#[cfg(test)]
+mod encyclopedia_other_languages_tests;
+#[cfg(test)]
 mod encyclopedia_tests;
 mod essays;
 mod games;
+mod jobhunt;
 #[cfg(test)]
 mod knowledge_tests;
 mod library;
@@ -17,6 +28,7 @@ mod reference_tests;
 mod study;
 mod tag_cache;
 mod writing;
+mod writing_import;
 pub(crate) use writing::WRITING_ROOT;
 
 use rusqlite::{Connection, OptionalExtension, params};
@@ -231,6 +243,7 @@ impl Database {
             CREATE TABLE IF NOT EXISTS book_page_drafts(id TEXT PRIMARY KEY,book_id TEXT NOT NULL,writer TEXT NOT NULL,page_json TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS book_page_versions(page_id TEXT NOT NULL,revision INTEGER NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,tags_json TEXT NOT NULL,PRIMARY KEY(page_id,revision));")?;
         for (table, column, kind) in [
+            ("books", "parent_id", "TEXT"),
             ("documents", "hidden", "INTEGER NOT NULL DEFAULT 0"),
             ("shortcuts", "hidden", "INTEGER NOT NULL DEFAULT 0"),
             ("inventory_items", "brand", "TEXT NOT NULL DEFAULT ''"),
@@ -277,6 +290,13 @@ impl Database {
                 )?;
             }
         }
+        desk.execute_batch(
+            "CREATE VIEW IF NOT EXISTS live_books AS
+            WITH RECURSIVE visible(id) AS (
+                SELECT id FROM books WHERE parent_id IS NULL AND deleted=0
+                UNION SELECT b.id FROM books b JOIN visible v ON b.parent_id=v.id WHERE b.deleted=0
+            ) SELECT b.rowid AS rowid,b.* FROM books b JOIN visible v ON b.id=v.id;",
+        )?;
         migrate_inventory_categories(&mut desk)?;
         migrate_website_categories(&mut desk)?;
         let migration_notice = match legacy_credentials::import(&mut desk, data_dir) {
@@ -293,6 +313,8 @@ impl Database {
         database.prepare_reference()?;
         database.prepare_essays()?;
         database.prepare_games()?;
+        database.init_campus()?;
+        database.init_jobhunt()?;
         Ok(database)
     }
 
@@ -447,7 +469,8 @@ impl Database {
         if changed == 0 {
             return Err(DeskError::InvalidPath("标签已不存在，请重新选择".into()));
         }
-        tx.execute(&format!("UPDATE {} SET tags_json=(SELECT json_group_array(CASE WHEN value=?1 THEN ?2 ELSE value END) FROM json_each(tags_json))
+        let revision = page_tag_revision(scope);
+        tx.execute(&format!("UPDATE {} SET tags_json=(SELECT json_group_array(CASE WHEN value=?1 THEN ?2 ELSE value END) FROM json_each(tags_json)){revision}
             WHERE EXISTS(SELECT 1 FROM json_each(tags_json) WHERE value=?1)",scope.table()), params![original,name])?;
         sync_inventory_category(&tx, scope)?;
         if scope == TagScope::BookPages {
@@ -463,7 +486,8 @@ impl Database {
             "DELETE FROM tags WHERE scope=?1 AND name=?2",
             params![scope.key(), name],
         )?;
-        tx.execute(&format!("UPDATE {} SET tags_json=(SELECT json_group_array(value) FROM json_each(tags_json) WHERE value<>?1)
+        let revision = page_tag_revision(scope);
+        tx.execute(&format!("UPDATE {} SET tags_json=(SELECT json_group_array(value) FROM json_each(tags_json) WHERE value<>?1){revision}
             WHERE EXISTS(SELECT 1 FROM json_each(tags_json) WHERE value=?1)",scope.table()), [name])?;
         sync_inventory_category(&tx, scope)?;
         if scope == TagScope::BookPages {
@@ -476,9 +500,14 @@ impl Database {
     pub fn set_record_tags(&mut self, scope: TagScope, id: &str, values: &[String]) -> Result<()> {
         let values = tags::normalize(values)?;
         let tx = self.desk.transaction()?;
+        let revision = if scope == TagScope::BookPages {
+            ",revision=revision+(tags_json<>?1)"
+        } else {
+            ""
+        };
         let changed = tx.execute(
             &format!(
-                "UPDATE {} SET tags_json=?1 WHERE {}=?2",
+                "UPDATE {} SET tags_json=?1{revision} WHERE {}=?2",
                 scope.table(),
                 scope.id_column()
             ),
@@ -583,6 +612,7 @@ impl Database {
     }
 
     pub fn save_website_classified(&mut self, item: &Website, tags: &[String]) -> Result<()> {
+        let item = crate::websites::prepare(item.clone())?;
         let values = crate::tags::normalize(tags)?;
         let tx = self.desk.transaction()?;
         ensure_tags(&tx, TagScope::Websites, &values)?;
@@ -964,6 +994,14 @@ impl Database {
         self.desk
             .execute("DELETE FROM inventory_items WHERE id=?1", [id])?;
         Ok(())
+    }
+}
+
+fn page_tag_revision(scope: TagScope) -> &'static str {
+    if scope == TagScope::BookPages {
+        ",revision=revision+1"
+    } else {
+        ""
     }
 }
 

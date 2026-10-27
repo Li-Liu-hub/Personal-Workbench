@@ -14,6 +14,17 @@ impl PersonalDeskApp {
         let mut launch = None;
         let mut add = false;
         collection(ui, "tools-gallery", self.view_mode(), |ui, layout| {
+            if self.is_favorite("tools", campus_ui::TOOL_ID) {
+                self.render_campus_entry(ui, layout);
+            }
+            self.render_hiring_entries(ui, layout, true);
+            if self.is_favorite("tools", pdf_images_ui::TOOL_ID) {
+                self.render_pdf_images_entry(ui, layout);
+            }
+            let mut builtin_rendered = self.is_favorite("tools", excel_merge_ui::TOOL_ID);
+            if builtin_rendered {
+                self.render_excel_merge_entry(ui, layout);
+            }
             let visible = records
                 .iter()
                 .filter(|item| {
@@ -26,6 +37,10 @@ impl PersonalDeskApp {
                 .cloned()
                 .collect::<Vec<_>>();
             for item in &visible {
+                if !builtin_rendered && !self.is_favorite("tools", &item.id) {
+                    self.render_excel_merge_entry(ui, layout);
+                    builtin_rendered = true;
+                }
                 let labels = self.record_labels(TagScope::Tools, &item.id);
                 let response = tagged_entry(
                     ui,
@@ -55,6 +70,16 @@ impl PersonalDeskApp {
                     }
                 });
             }
+            if !builtin_rendered {
+                self.render_excel_merge_entry(ui, layout);
+            }
+            if !self.is_favorite("tools", pdf_images_ui::TOOL_ID) {
+                self.render_pdf_images_entry(ui, layout);
+            }
+            self.render_hiring_entries(ui, layout, false);
+            if !self.is_favorite("tools", campus_ui::TOOL_ID) {
+                self.render_campus_entry(ui, layout);
+            }
             add = entry(
                 ui,
                 "add",
@@ -82,6 +107,45 @@ impl PersonalDeskApp {
         }
         if let Some(path) = launch {
             self.tool_launch_request = Some(path);
+        }
+    }
+    fn render_excel_merge_entry(
+        &mut self,
+        ui: &mut egui::Ui,
+        layout: crate::ui_components::EntryLayout,
+    ) {
+        let id = excel_merge_ui::TOOL_ID;
+        if self.record_matches_filter(TagScope::Tools, id)
+            && matches_query(
+                &self.search_query.to_lowercase(),
+                &[
+                    "Excel 批量合并",
+                    "excel xlsx xlsm xls xlsb ods 表格 文件夹 分表 内置工具",
+                ],
+            )
+        {
+            let response = entry(
+                ui,
+                id,
+                "Excel 批量合并",
+                if self.excel_merge.busy() {
+                    "正在合并 · 点击查看进度"
+                } else {
+                    "内置工具 · 合并文件夹中全部工作表"
+                },
+                TileKind::Document,
+                layout,
+            );
+            self.favorite_control(ui, &response, "tools", id);
+            if response.clicked() {
+                self.excel_merge.open = true;
+            }
+            response.context_menu(|ui| {
+                if ui.button("打开 Excel 合并").clicked() {
+                    self.excel_merge.open = true;
+                    ui.close();
+                }
+            });
         }
     }
     pub(super) fn add_tool(&mut self) {

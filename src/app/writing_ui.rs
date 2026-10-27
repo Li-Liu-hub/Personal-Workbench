@@ -2,6 +2,10 @@ use super::*;
 use crate::library::{Page, WritingSummary};
 use egui_commonmark::{CommonMarkCache, CommonMarkViewer};
 
+mod book_navigation;
+mod floating;
+mod hierarchy;
+
 pub(super) struct WritingState {
     pub page: Option<Page>,
     pub dirty: bool,
@@ -11,9 +15,14 @@ pub(super) struct WritingState {
     writer: String,
     focus_body: bool,
     cache: CommonMarkCache,
-    catalog_key: Option<(u64, String)>,
+    pub(super) catalog_key: Option<(u64, String)>,
     catalog: Vec<WritingSummary>,
     chars: usize,
+    pub(super) floating: bool,
+    floating_pinned: bool,
+    floating_essay: bool,
+    book_navigation: book_navigation::BookNavigation,
+    book_directory_width: Option<f32>,
 }
 impl Default for WritingState {
     fn default() -> Self {
@@ -29,6 +38,11 @@ impl Default for WritingState {
             catalog_key: None,
             catalog: vec![],
             chars: 0,
+            floating: false,
+            floating_pinned: true,
+            floating_essay: false,
+            book_navigation: Default::default(),
+            book_directory_width: None,
         }
     }
 }
@@ -44,6 +58,13 @@ impl PersonalDeskApp {
             return false;
         }
         let day = day.format("%Y-%m-%d").to_string();
+        let book_id = self
+            .writing
+            .page
+            .as_ref()
+            .filter(|page| page.book_id != crate::db::WRITING_ROOT)
+            .map(|page| page.book_id.clone())
+            .or_else(|| self.library.book.as_ref().map(|book| book.id.clone()));
         let result = self
             .db
             .as_mut()
@@ -51,7 +72,7 @@ impl PersonalDeskApp {
             .and_then(|db| {
                 db.create_writing(
                     if log { &day } else { "未命名文档" },
-                    self.library.book.as_ref().map(|b| b.id.as_str()),
+                    book_id.as_deref(),
                     log.then_some(day.as_str()),
                 )
             });
@@ -68,6 +89,7 @@ impl PersonalDeskApp {
         }
     }
     pub(super) fn set_writing_page(&mut self, page: Page) {
+        self.writing.floating = false;
         self.library.book = if page.book_id == crate::db::WRITING_ROOT {
             None
         } else {
@@ -219,26 +241,62 @@ impl PersonalDeskApp {
             .cloned()
             .collect::<Vec<_>>();
         notes.sort_by_key(|p| !self.is_favorite("book_pages", &p.id));
-        let books = if self.library.book.is_none() {
-            self.db
-                .as_ref()
-                .and_then(|db| db.books().ok())
-                .unwrap_or_default()
-        } else {
-            vec![]
-        };
+        let all_books = self
+            .db
+            .as_ref()
+            .and_then(|db| db.books().ok())
+            .unwrap_or_default();
+        let books = all_books
+            .iter()
+            .filter(|b| b.parent_id.as_deref() == self.library.book.as_ref().map(|b| b.id.as_str()))
+            .cloned()
+            .collect::<Vec<_>>();
         let mut open = None;
         let mut remove = None;
         let mut add = false;
-        let mut group = None;
         let mut book_open = None;
+        let mut drop_action = None;
+        if let Some(book) = self.library.book.clone() {
+            ui.horizontal(|ui| {
+                if ui
+                    .button(if book.parent_id.is_some() {
+                        "← 上一级"
+                    } else {
+                        "← 全部图书"
+                    })
+                    .clicked()
+                {
+                    self.open_parent_book();
+                }
+                ui.label(&book.title);
+                if ui.button("删除图书").clicked() {
+                    self.request_library_deletion(&book.id, &book.title, false);
+                }
+            });
+            ui.add_space(8.);
+        }
+        if ui.button("创建图书").clicked() {
+            self.new_child_book();
+        }
+        ui.label(
+            RichText::new("文档拖到文档上合成图书；拖到图书上放入其中，图书也可拖入图书。")
+                .small()
+                .color(muted()),
+        );
+        if self.library.book.is_some() && self.render_nested_book_catalog(ui, &books, &filter) {
+            return;
+        }
+        let at_root = self.library.book.is_none();
         collection(ui, "writing-documents", self.view_mode(), |ui, layout| {
-            for book in &books {
+            for book in books.iter().filter(|_| at_root) {
                 let members = self
                     .writing
                     .catalog
                     .iter()
-                    .filter(|p| p.book_id == book.id && filter.matches(&p.tags))
+                    .filter(|p| {
+                        hierarchy::is_within(&all_books, &p.book_id, &book.id)
+                            && filter.matches(&p.tags)
+                    })
                     .collect::<Vec<_>>();
                 if (!self.search_query.is_empty() || filter != TagFilter::All) && members.is_empty()
                 {
@@ -256,23 +314,28 @@ impl PersonalDeskApp {
                 if response.clicked() {
                     book_open = Some(book.clone());
                 }
-                if let Some(payload) = response.dnd_release_payload::<WritingDrag>() {
-                    group = Some((vec![payload.0.clone()], Some(book.id.clone())));
-                }
-                if response.dnd_hover_payload::<WritingDrag>().is_some() {
-                    ui.painter().rect_stroke(
-                        response.rect,
-                        12,
-                        egui::Stroke::new(2., accent()),
-                        egui::StrokeKind::Inside,
-                    );
+                response.dnd_set_drag_payload(hierarchy::BookDrag(book.id.clone()));
+                if let Some(action) = hierarchy::book_drop(ui, &response, &book.id) {
+                    drop_action = Some(action);
                 }
                 response.context_menu(|ui| {
                     if ui.button("重命名图书").clicked() {
                         self.library.dialog = Some(book.clone());
                         ui.close();
                     }
+                    if book.parent_id.is_some() && ui.button("移到上一级").clicked() {
+                        let parent = self
+                            .parent_of(book.parent_id.as_deref())
+                            .and_then(|b| b.parent_id);
+                        drop_action = Some(hierarchy::LibraryDrop::Book(book.id.clone(), parent));
+                        ui.close();
+                    }
                     self.record_tag_menu(ui, TagScope::Books, &book.id);
+                    ui.separator();
+                    if ui.button("删除图书").clicked() {
+                        remove = Some((book.id.clone(), book.title.clone(), false));
+                        ui.close();
+                    }
                 });
             }
             for note in &notes {
@@ -291,25 +354,9 @@ impl PersonalDeskApp {
                 );
                 self.favorite_control(ui, &response, "book_pages", &note.id);
                 self.record_classification_dropdown(ui, &response, TagScope::BookPages, &note.id);
-                let drag = response.clone().interact(egui::Sense::click_and_drag());
-                drag.dnd_set_drag_payload(WritingDrag(note.id.clone()));
-                if let Some(payload) = drag.dnd_hover_payload::<WritingDrag>()
-                    && payload.0 != note.id
-                {
-                    ui.painter().rect_stroke(
-                        response.rect,
-                        12,
-                        egui::Stroke::new(2., accent()),
-                        egui::StrokeKind::Inside,
-                    );
-                }
-                if let Some(payload) = drag.dnd_release_payload::<WritingDrag>()
-                    && payload.0 != note.id
-                {
-                    // A page inside a book is a destination in that book, not a new book.
-                    let target =
-                        (note.book_id != crate::db::WRITING_ROOT).then(|| note.book_id.clone());
-                    group = Some((vec![note.id.clone(), payload.0.clone()], target));
+                response.dnd_set_drag_payload(WritingDrag(note.id.clone()));
+                if let Some(action) = hierarchy::page_drop(ui, &response, &note.id) {
+                    drop_action = Some(action);
                 }
                 if response.clicked() {
                     open = Some(note.id.clone());
@@ -317,35 +364,22 @@ impl PersonalDeskApp {
                 response.context_menu(|ui| {
                     self.record_tag_menu(ui, TagScope::BookPages, &note.id);
                     if ui.button("删除文档").clicked() {
-                        remove = Some(note.id.clone());
+                        remove = Some((note.id.clone(), note.title.clone(), true));
                         ui.close();
                     }
                 });
             }
             add = entry(ui, "add-writing", "新建文档", "", TileKind::Add, layout).clicked();
         });
-        if let Some((ids, target)) = group {
-            self.group_written_documents(&ids, target.as_deref());
+        if let Some(action) = drop_action {
+            self.apply_library_drop(action);
             return;
         }
         if let Some(book) = book_open {
-            let first = self
-                .db
-                .as_ref()
-                .and_then(|db| db.book_pages(&book.id).ok())
-                .and_then(|pages| pages.first().map(|p| p.id.clone()));
-            self.library.book = Some(book);
-            if let Some(id) = first {
-                self.open_writing(&id);
-            } else {
-                self.new_writing(false);
-            }
+            self.enter_book(book);
         }
-        if let Some(id) = remove
-            && let Some(db) = self.db.as_mut()
-            && let Err(e) = db.set_library_deleted(&id, true, true)
-        {
-            self.notice = e.to_string();
+        if let Some((id, title, page)) = remove {
+            self.request_library_deletion(&id, &title, page);
         }
         if let Some(id) = open {
             self.open_writing(&id);
@@ -361,11 +395,15 @@ impl PersonalDeskApp {
         let mut save = false;
         let mut export = false;
         let mut copy = false;
-        ui.horizontal(|ui| {
+        let mut float = false;
+        let mut remove = None;
+        ui.horizontal_wrapped(|ui| {
             ui.set_min_height(38.);
             back = ui
                 .button(if self.section == Section::Essays {
                     "← 随笔"
+                } else if self.section == Section::Books {
+                    "← 图书"
                 } else {
                     "← 文档"
                 })
@@ -390,60 +428,78 @@ impl PersonalDeskApp {
                     .small()
                     .color(muted()),
             );
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if self.section != Section::Essays && ui.add(primary_button("新建")).clicked() {
-                    self.new_writing(false);
-                }
-                if self.section != Section::Essays && ui.button("生成日志").clicked() {
-                    self.new_writing(true);
-                }
-                crate::ui_components::chrome::segmented(
-                    ui,
-                    &mut self.writing.preview,
-                    &[(false, "写作"), (true, "预览")],
-                );
-                ui.menu_button("更多", |ui| {
-                    save = ui.button("保存 · Ctrl+S").clicked();
-                    export = ui.button("导出 Markdown").clicked();
-                    if !self.writing.error.is_empty() {
-                        copy = ui.button("另存为新文档").clicked();
-                    }
-                    let options = self.names_for_scope(TagScope::BookPages);
-                    if let Some(page) = self.writing.page.as_mut()
-                        && crate::ui_components::classification_dropdown(
-                            ui,
-                            "writing-tags",
-                            &mut page.tags,
-                            &options,
-                            160.,
-                        )
-                    {
-                        self.mark_writing_changed(ui.input(|i| i.time));
-                    }
-                    if ui.button("管理标签").clicked() {
-                        self.open_tag_manager(TagScope::BookPages);
+            if self.section != Section::Essays
+                && ui.button("删除页面").clicked()
+                && let Some(page) = self.writing.page.as_ref()
+            {
+                remove = Some((page.id.clone(), page.title.clone(), true));
+            }
+            if self.section != Section::Essays && ui.add(primary_button("新建")).clicked() {
+                self.new_writing(false);
+            }
+            if self.section != Section::Essays && ui.button("生成日志").clicked() {
+                self.new_writing(true);
+            }
+            float = ui
+                .button("悬浮窗")
+                .on_hover_text("置顶小窗，方便对照简历或聊天记录写总结")
+                .clicked();
+            crate::ui_components::chrome::segmented(
+                ui,
+                &mut self.writing.preview,
+                &[(false, "写作"), (true, "预览")],
+            );
+            self.render_writing_zoom(ui);
+            ui.menu_button("更多", |ui| {
+                if let Some(book) = self.library.book.as_ref() {
+                    if ui.button("删除图书").clicked() {
+                        remove = Some((book.id.clone(), book.title.clone(), false));
                         ui.close();
                     }
                     ui.separator();
-                    for (label, syntax) in [
-                        ("标题", "# "),
-                        ("加粗", "**文字**"),
-                        ("列表", "- "),
-                        ("待办", "- [ ] "),
-                        ("引用", "> "),
-                    ] {
-                        if ui.button(label).clicked() {
-                            format = Some(syntax);
-                            ui.close();
-                        }
+                }
+                save = ui.button("保存 · Ctrl+S").clicked();
+                export = ui.button("导出 Markdown").clicked();
+                if !self.writing.error.is_empty() {
+                    copy = ui.button("另存为新文档").clicked();
+                }
+                let options = self.names_for_scope(TagScope::BookPages);
+                if let Some(page) = self.writing.page.as_mut()
+                    && crate::ui_components::classification_dropdown(
+                        ui,
+                        "writing-tags",
+                        &mut page.tags,
+                        &options,
+                        160.,
+                    )
+                {
+                    self.mark_writing_changed(ui.input(|i| i.time));
+                }
+                if ui.button("管理标签").clicked() {
+                    self.open_tag_manager(TagScope::BookPages);
+                    ui.close();
+                }
+                ui.separator();
+                for (label, syntax) in [
+                    ("标题", "# "),
+                    ("加粗", "**文字**"),
+                    ("列表", "- "),
+                    ("待办", "- [ ] "),
+                    ("引用", "> "),
+                ] {
+                    if ui.button(label).clicked() {
+                        format = Some(syntax);
+                        ui.close();
                     }
-                });
+                }
             });
         });
+        if let Some((id, title, page)) = remove {
+            self.request_library_deletion(&id, &title, page);
+        }
         if back && self.flush_writing() {
             self.essay.active = None;
             self.writing.page = None;
-            self.library.book = None;
             return;
         }
         if save {
@@ -455,39 +511,32 @@ impl PersonalDeskApp {
         if export {
             self.export_writing();
         }
+        if float {
+            self.open_floating_writer();
+        }
         if self.writing.page.is_none() {
             return;
         }
-        if self.section != Section::Essays
-            && let Some(book) = self.library.book.clone()
-        {
-            let pages = self
-                .db
-                .as_ref()
-                .and_then(|db| db.book_pages(&book.id).ok())
-                .unwrap_or_default();
-            let mut selected = None;
-            egui::ScrollArea::horizontal()
-                .id_salt("writing-tabs")
-                .max_height(34.)
-                .show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        for page in &pages {
-                            if ui
-                                .selectable_label(
-                                    self.writing.page.as_ref().is_some_and(|p| p.id == page.id),
-                                    &page.title,
-                                )
-                                .clicked()
-                            {
-                                selected = Some(page.id.clone());
-                            }
-                        }
-                    });
-                });
-            if let Some(id) = selected {
-                self.open_writing(&id);
-            }
+        if self.writing.floating {
+            ui.add_space(30.);
+            ui.heading(&self.writing.page.as_ref().unwrap().title);
+            ui.label("正在悬浮窗中写作，可切换到简历或其他应用。内容自动保存到这份文档。");
+            ui.horizontal(|ui| {
+                if ui.button("显示悬浮窗").clicked() {
+                    ui.ctx().send_viewport_cmd_to(
+                        floating::viewport_id(),
+                        egui::ViewportCommand::Minimized(false),
+                    );
+                    ui.ctx().send_viewport_cmd_to(
+                        floating::viewport_id(),
+                        egui::ViewportCommand::Focus,
+                    );
+                }
+                if ui.button("回到主窗口").clicked() {
+                    self.close_floating_writer();
+                }
+            });
+            return;
         }
         if !self.writing.error.is_empty() {
             ui.colored_label(Color32::from_rgb(184, 65, 71), &self.writing.error);
@@ -504,10 +553,23 @@ impl PersonalDeskApp {
             ui.label(RichText::new(&a.topic.prompt).color(muted()));
         }
         ui.add_space(12.);
+        if self.section != Section::Essays
+            && let Some(book) = self.library.book.clone()
+        {
+            self.render_book_workspace(ui, &book, format);
+        } else {
+            self.render_writing_paper(ui, format);
+        }
+    }
+
+    fn render_writing_paper(&mut self, ui: &mut egui::Ui, format: Option<&str>) {
+        let Some(page) = self.writing.page.as_ref() else {
+            return;
+        };
         let mut changed = false;
         let available = ui.available_width();
         let width = available.min(820.);
-        let id = self.writing.page.as_ref().unwrap().id.clone();
+        let id = page.id.clone();
         let body_id = egui::Id::unique(("writing-body", &id));
         if let Some(syntax) = format {
             self.writing.preview = false;
@@ -527,7 +589,7 @@ impl PersonalDeskApp {
                         .inner_margin(egui::Margin::symmetric(38, 30))
                         .show(ui, |ui| {
                             ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
-                                ui.set_width((width - 76.).max(220.));
+                                ui.set_width((width - 76.).max(120.));
                                 ui.set_min_height(
                                     (ui.ctx().content_rect().height() - 200.).max(300.),
                                 );

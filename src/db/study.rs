@@ -63,6 +63,7 @@ impl Database {
             sql: None,
             origin: None,
             project: None,
+            coding: None,
             training: None,
         }));
         self.import_study_cards(&cards)?;
@@ -141,12 +142,11 @@ impl Database {
         Ok(added)
     }
     pub fn study_rules(&self) -> Rules {
-        self.settings()
+        self.setting("study.rules")
             .ok()
-            .and_then(|s| {
-                s.get("study.rules")
-                    .and_then(|v| serde_json::from_str(v).ok())
-            })
+            .flatten()
+            .and_then(|v| serde_json::from_str::<Rules>(&v).ok())
+            .filter(|rules| rules.validate().is_ok())
             .unwrap_or_default()
     }
     pub fn save_study_rules(&mut self, rules: &Rules) -> Result<()> {

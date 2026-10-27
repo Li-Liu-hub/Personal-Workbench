@@ -1,7 +1,7 @@
 use super::*;
 pub(super) struct Capture {
     output: PathBuf,
-    step: usize,
+    pub(super) step: usize,
     frames: usize,
     waiting: bool,
     completed: std::sync::Arc<std::sync::atomic::AtomicBool>,
@@ -62,9 +62,25 @@ impl PersonalDeskApp {
         self.flush_writing();
         self.section = Section::Documents;
         self.notice.clear();
+        let pdf_only = std::env::var_os("PERSONAL_DESK_PREVIEW_PDF_ONLY").is_some();
+        if pdf_only {
+            self.section = Section::Tools;
+            self.pdf_images.open = true;
+        }
+        let hiring_only = std::env::var_os("PERSONAL_DESK_PREVIEW_HIRING_ONLY").is_some();
+        if hiring_only {
+            self.section = Section::Tools;
+            self.hiring.preview_tab(0);
+        }
         self.preview_capture = Some(Capture {
             output,
-            step: 0,
+            step: if hiring_only {
+                59
+            } else if pdf_only {
+                57
+            } else {
+                0
+            },
             frames: 0,
             waiting: false,
             completed: Default::default(),
@@ -277,13 +293,115 @@ impl PersonalDeskApp {
                     41 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
                         1000., 680.,
                     ))),
+                    42 => {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1280., 800.,
+                        )));
+                        self.section = Section::Practice;
+                        self.prepare_learning_preview("coding");
+                    }
+                    43 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                        1000., 680.,
+                    ))),
+                    44 => {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1280., 800.,
+                        )));
+                        self.section = Section::Words;
+                        self.prepare_learning_preview("dictation");
+                    }
+                    45 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                        1000., 680.,
+                    ))),
+                    46 => {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1280., 800.,
+                        )));
+                        self.section = Section::Reference;
+                        self.reference.filter = Default::default();
+                        self.reference.loaded = None;
+                        self.search_query.clear();
+                        let mut state = std::mem::take(&mut self.reference);
+                        self.select_reference(&mut state, "ref:java:01");
+                        self.reference = state;
+                    }
+                    48 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                        1000., 680.,
+                    ))),
+                    49 => {
+                        self.excel_merge.open = true;
+                    }
+                    50 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                        1280., 800.,
+                    ))),
+                    51 => {
+                        self.excel_merge.open = false;
+                        self.section = Section::Resume;
+                    }
+                    52 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                        1000., 680.,
+                    ))),
+                    53 => {
+                        self.section = Section::Settings;
+                        self.view_modes.set(Section::Settings, ViewMode::Grid);
+                    }
+                    54 => {
+                        self.view_modes.set(Section::Settings, ViewMode::List);
+                    }
+                    55 => {
+                        self.settings_detail = Some("版本历史".into());
+                    }
+                    56 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                        1280., 800.,
+                    ))),
+                    57 => {
+                        self.settings_detail = None;
+                        self.section = Section::Tools;
+                        self.pdf_images.open = true;
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1000., 680.,
+                        )));
+                    }
+                    58 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                        1280., 800.,
+                    ))),
+                    59 => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+                    60 => self.hiring.preview_tab(1),
+                    61 => self.hiring.preview_tab(2),
+                    62 => {
+                        self.hiring.preview_tab(0);
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1000., 680.,
+                        )));
+                    }
+                    63 => self.hiring.preview_tab(1),
+                    64 => self.hiring.preview_tab(2),
+                    65 => {
+                        self.hiring.open = false;
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1280., 800.,
+                        )));
+                    }
                     _ => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
                 }
             }
             return;
         }
+        if c.step == 57 && c.frames == 0 {
+            ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(1000., 680.)));
+        }
         c.frames += 1;
+        if matches!(c.step, 51 | 52) && !self.resume.preview_ready() && self.resume.error.is_empty()
+        {
+            return;
+        }
         if c.frames < 6 {
+            return;
+        }
+        let campus_preview = std::env::var_os("PERSONAL_DESK_PREVIEW_CAMPUS").is_some()
+            || std::env::var_os("PERSONAL_DESK_PREVIEW_JOBHUNT").is_some();
+        if campus_preview && c.step >= 59 {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             return;
         }
         let name = [
@@ -329,7 +447,49 @@ impl PersonalDeskApp {
             "tetris-game-small",
             "grammar-foundations",
             "grammar-foundations-small",
+            "coding-editor",
+            "coding-editor-small",
+            "english-dictation",
+            "english-dictation-small",
+            "reference-coding",
+            "tools-gallery",
+            "tools-gallery-small",
+            "excel-merge-small",
+            "excel-merge",
+            "resume-editor",
+            "resume-editor-small",
+            "settings-grid-small",
+            "settings-list-small",
+            "version-history-small",
+            "version-history",
+            "pdf-images-small",
+            "pdf-images",
+            "hiring-boss",
+            "hiring-official",
+            "hiring-otp",
+            "hiring-boss-small",
+            "hiring-official-small",
+            "hiring-otp-small",
+            "hiring-tools-gallery",
         ][c.step];
+        let name = if campus_preview {
+            if c.step == 57 {
+                "campus-search-small"
+            } else {
+                "campus-search"
+            }
+        } else {
+            name
+        };
+        let name = if std::env::var_os("PERSONAL_DESK_PREVIEW_JOBHUNT").is_some() {
+            if c.step == 57 {
+                "jobhunt-small"
+            } else {
+                "jobhunt"
+            }
+        } else {
+            name
+        };
         let path = c.output.join(format!("{name}.png"));
         let completed = c.completed.clone();
         c.waiting = true;

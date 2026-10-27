@@ -14,7 +14,7 @@ pub const LANGUAGES: [&str; 8] = [
 ];
 pub const SEED_VERSION: &str = "2";
 #[cfg(test)]
-pub const BUILTIN_COUNT: usize = 491;
+pub const BUILTIN_COUNT: usize = 931;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Entry {

@@ -36,6 +36,7 @@ pub fn grammar_card(sequence: u64) -> Result<Card, String> {
         sql: None,
         origin: None,
         project: None,
+        coding: None,
         training: None,
     };
     let mut card = super::exercise(

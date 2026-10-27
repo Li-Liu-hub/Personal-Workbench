@@ -43,3 +43,42 @@ impl Journal {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_journal_is_empty_and_invalid_history_is_preserved() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(Journal::open(dir.path()).sources().is_empty());
+        assert!(Journal::open(dir.path()).error.is_empty());
+        let path = dir.path().join("undo-journal.json");
+        fs::write(&path, "invalid history").unwrap();
+        let journal = Journal::open(dir.path());
+        assert!(!journal.error.is_empty());
+        assert!(journal.sources().is_empty());
+        assert_eq!(fs::read_to_string(path).unwrap(), "invalid history");
+    }
+
+    #[test]
+    fn reading_history_returns_sources_without_moving_or_deleting_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let source = dir.path().join("source.txt");
+        let quarantine = dir.path().join("quarantine.txt");
+        fs::write(&source, "keep source").unwrap();
+        fs::write(&quarantine, "keep quarantine").unwrap();
+        fs::write(
+            dir.path().join("undo-journal.json"),
+            serde_json::to_vec(&serde_json::json!([{"original":source,"quarantine":quarantine}]))
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            Journal::open(dir.path()).sources(),
+            vec![(source.clone(), quarantine.clone())]
+        );
+        assert_eq!(fs::read_to_string(source).unwrap(), "keep source");
+        assert_eq!(fs::read_to_string(quarantine).unwrap(), "keep quarantine");
+    }
+}

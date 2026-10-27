@@ -1,5 +1,9 @@
 use super::*;
 
+mod history;
+#[cfg(test)]
+mod tests;
+
 impl PersonalDeskApp {
     pub(super) fn render_settings(&mut self, ui: &mut egui::Ui) {
         egui::Frame::group(ui.style())
@@ -52,6 +56,19 @@ impl PersonalDeskApp {
         collection(ui, "settings-gallery", self.view_mode(), |ui, side| {
             if entry(
                 ui,
+                "version-history",
+                "版本历史",
+                "查看每个版本的新增功能与修复",
+                TileKind::Setting,
+                side,
+            )
+            .clicked()
+            {
+                crate::ui_components::reset_dialog_scroll(ui.ctx(), "settings-details");
+                self.settings_detail = Some("版本历史".into());
+            }
+            if entry(
+                ui,
                 "edit-theme",
                 "编辑主题",
                 "颜色、背景图片与透明度",
@@ -88,5 +105,33 @@ impl PersonalDeskApp {
                 self.settings_detail = Some("本地数据".into());
             }
         });
+    }
+
+    pub(super) fn render_version_history(&self, ui: &mut egui::Ui) {
+        ui.label(
+            RichText::new(format!("当前版本  v{}", crate::updater::VERSION))
+                .strong()
+                .color(accent()),
+        );
+        ui.label(
+            RichText::new("从新到旧排列，点击版本展开更新内容。")
+                .small()
+                .color(muted()),
+        );
+        ui.add_space(4.0);
+        for release in history::releases() {
+            egui::CollapsingHeader::new(format!("v{} · {}", release.version, release.title))
+                .id_salt(("release-history", &release.version))
+                .default_open(release.version == crate::updater::VERSION)
+                .show(ui, |ui| {
+                    for change in &release.changes {
+                        ui.horizontal_top(|ui| {
+                            ui.label(RichText::new("•").color(accent()));
+                            ui.add(egui::Label::new(change).wrap());
+                        });
+                    }
+                });
+            ui.separator();
+        }
     }
 }

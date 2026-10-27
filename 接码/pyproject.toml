@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "otp-receiver"
+version = "0.1.0"
+description = "本地短信验证码接收端，供 SmsForwarder Webhook 使用"
+requires-python = ">=3.10"
+dependencies = ["pyyaml>=6.0"]
+readme = "README.md"
+
+[project.scripts]
+otp-receiver = "otp_receiver.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/otp_receiver"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 120
+indent-width = 4

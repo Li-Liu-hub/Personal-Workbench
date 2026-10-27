@@ -27,6 +27,19 @@ impl Default for Config {
         }
     }
 }
+
+impl Config {
+    pub const MODEL_NAME: &str = "Spark-X2.6-4B-Q4_K_M.gguf";
+    pub fn pin_spark_q4(&mut self) {
+        if self
+            .model
+            .file_name()
+            .is_none_or(|name| name != Self::MODEL_NAME)
+        {
+            self.model = Self::default().model;
+        }
+    }
+}
 struct Runtime {
     child: Option<Child>,
     #[cfg(windows)]
@@ -279,14 +292,35 @@ impl LocalAi {
             self.set_status("正在按评分点批改…");
             let mut request = grade_request(card, answer, execution.as_ref());
             let mut reviewed = false;
+            let mut high_grade: Option<Grade> = None;
             let mut repairs = 0;
+            let mut teaching_reviewed = false;
             loop {
                 let content = self.complete(port, request.clone())?;
+                #[cfg(test)]
+                if let Some(path) = std::env::var_os("PERSONAL_DESK_LIVE_EVIDENCE") {
+                    let path = std::path::PathBuf::from(path);
+                    let _ = std::fs::create_dir_all(&path);
+                    let _ = std::fs::write(
+                        path.join(format!("raw-grade-{}.json", uuid::Uuid::new_v4())),
+                        serde_json::json!({"request":request,"response":content}).to_string(),
+                    );
+                }
                 match checked_grade(&content, card, answer) {
                     Ok(mut grade) => {
-                        if grade.completion(card, answer).map_err(|e| e.to_string())? == 0
-                            && !reviewed
-                        {
+                        let score = grade.completion(card, answer).map_err(|e| e.to_string())?;
+                        if score >= 85 && high_grade.is_none() && !reviewed {
+                            high_grade = Some(grade);
+                            self.set_status("正在独立复核高分结果…");
+                            request = grade_request(card, answer, execution.as_ref());
+                            let system = request["messages"][0]["content"].as_str().unwrap();
+                            request["messages"][0]["content"] = serde_json::json!(format!(
+                                "{system}\n本轮是独立复核。不要假定答案正确，逐项寻找可以核实的错误、遗漏和不自然搭配。造句时尤其检查目标词的真实含义、主语和谓语、动词后接结构、单复数、冠词与句意。仅按学生原文评价，不能在脑中替学生改正后评分。正确的不同表达仍应给满分，不得为扣分而捏造错误。"
+                            ));
+                            repairs = 0;
+                            continue;
+                        }
+                        if score == 0 && !reviewed && high_grade.is_none() {
                             reviewed = true;
                             self.set_status("正在独立复核零分结果…");
                             request = grade_request(card, answer, execution.as_ref());
@@ -294,13 +328,39 @@ impl LocalAi {
                                 "{}\n你现在独立复核一份初评零分的答案。不要默认原评分正确，重新寻找每个评分点已答对的部分；区分错误、遗漏和表述不够完整。若确实全部错误或无关，仍应给0分。不要仅为提高分数而给分。",
                                 request["messages"][0]["content"].as_str().unwrap()
                             ));
+                            repairs = 0;
                             continue;
                         }
+                        let high_reviewed = high_grade.is_some();
+                        if let Some(initial) = high_grade {
+                            grade = grading::conservative_review(initial, grade);
+                        }
                         grade.assessment = Some(crate::study::Assessment {
-                            version: 2,
+                            version: 3,
                             zero_reviewed: reviewed,
+                            high_reviewed,
                         });
-                        grade.sql = execution;
+                        grade.sql = execution.clone();
+                        self.set_status("正在讲解改法并生成例子…");
+                        match teaching::teach(self, port, card, answer, &mut grade) {
+                            Err(error)
+                                if error.starts_with("评分与改法不一致") && !teaching_reviewed =>
+                            {
+                                teaching_reviewed = true;
+                                high_grade = None;
+                                reviewed = false;
+                                repairs = 0;
+                                request = grade_request(card, answer, grade.sql.as_ref());
+                                let system = request["messages"][0]["content"].as_str().unwrap();
+                                request["messages"][0]["content"] = serde_json::json!(format!(
+                                    "{system}\n独立教学发现需要核对的改动：{error}。请重新按学生原文检查实际错误，不可替学生改正后给满分；若只是合理风格差异仍应满分，并在改句中保留正确原文。"
+                                ));
+                                self.set_status("正在复核评分与改法的一致性…");
+                                continue;
+                            }
+                            Err(error) => return Err(error),
+                            Ok(()) => {}
+                        }
                         return Ok(grade);
                     }
                     Err(error) if repairs == 0 => {
@@ -309,7 +369,7 @@ impl LocalAi {
                         request["messages"].as_array_mut().unwrap().extend([
                             serde_json::json!({"role":"assistant","content":content}),
                             serde_json::json!({"role":"user","content":format!(
-                                "上一份评分未通过程序校验：{error}。请修正并完整重新返回评分 JSON。c_matched只写本项已答对的具体事实，没有则为空；d_missing写本项尚未回答或答错的明确要求，完整正确时为空。b_evidence 必须逐字复制 student_answer 中一小段真实原文，保留原来的空格、标点和代码，不得改写或摘抄参考答案。没有对应证据则c_matched必须为空。不要改变学生答案或题目。")}),
+                                "上一份评分未通过程序校验：{error}。请按原schema修正并完整重新返回JSON。所有证据和错误引用必须是student_answer中的连续原文，保留空格、标点和代码。造句的扣分项须对应issue，有issue的项不能correct。其他任务的c_matched只写实际已答对的事实，d_missing只写本项的缺口。不要改变学生答案或题目。")}),
                         ]);
                     }
                     Err(error) => return Err(error),
@@ -323,6 +383,8 @@ impl LocalAi {
 
 mod conversation;
 mod grading;
+mod sentence;
+mod teaching;
 pub use conversation::Dialogue;
 use grading::checked_grade;
 pub use grading::grade_request;
@@ -338,6 +400,9 @@ pub(crate) struct ProcessJob(isize);
 #[cfg(windows)]
 impl ProcessJob {
     pub(crate) fn attach(child: &Child) -> std::io::Result<Self> {
+        Self::attach_limited(child, 0)
+    }
+    pub(crate) fn attach_limited(child: &Child, memory_bytes: usize) -> std::io::Result<Self> {
         use std::os::windows::io::AsRawHandle;
         use windows_sys::Win32::System::JobObjects::*;
         unsafe {
@@ -348,6 +413,10 @@ impl ProcessJob {
             let job = Self(handle as isize);
             let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
             info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+            if memory_bytes > 0 {
+                info.BasicLimitInformation.LimitFlags |= JOB_OBJECT_LIMIT_JOB_MEMORY;
+                info.JobMemoryLimit = memory_bytes;
+            }
             if SetInformationJobObject(
                 handle,
                 JobObjectExtendedLimitInformation,

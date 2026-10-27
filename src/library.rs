@@ -1,4 +1,18 @@
 use serde::{Deserialize, Serialize};
+
+#[derive(Deserialize)]
+pub struct WritingImportBook {
+    pub book: Book,
+    pub pages: Vec<WritingImportPage>,
+}
+
+#[derive(Deserialize)]
+pub struct WritingImportPage {
+    pub source: String,
+    pub title: String,
+    pub body: String,
+    pub tags: Vec<String>,
+}
 #[derive(Clone, Debug)]
 pub struct WritingSummary {
     pub id: String,
@@ -10,6 +24,8 @@ pub struct WritingSummary {
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Book {
+    #[serde(default)]
+    pub parent_id: Option<String>,
     pub id: String,
     pub title: String,
     pub tags: Vec<String>,
@@ -18,6 +34,7 @@ impl Book {
     pub fn new() -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
+            parent_id: None,
             title: "未命名图书".into(),
             tags: vec![],
         }

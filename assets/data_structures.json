@@ -1,0 +1,410 @@
+[
+  {
+    "id": "ref:cs408:complexity",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "时间复杂度与空间复杂度",
+    "summary": "用基本操作次数随输入规模的增长描述成本，区分最坏、平均与摊还复杂度。",
+    "syntax": "for i=1..n: j=1; while j<n: j*=2",
+    "example": "for i=1..n: j=1; while j<n: j*=2",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：对数底数不影响渐进阶；循环嵌套要按实际执行次数求和，递归空间要计调用栈。\n\n自检：求示例的时间复杂度和额外空间复杂度。\n参考结论：外层 n 次，内层约 log2(n) 次，总时间 O(n log n)，只用固定数量变量时额外空间 O(1)。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "complexity"
+    ]
+  },
+  {
+    "id": "ref:cs408:amortized",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "动态数组扩容与摊还分析",
+    "summary": "按倍数扩容能把多次尾插的总复制成本控制在线性数量级。",
+    "syntax": "容量依次为 1、2、4、8；向空数组连续尾插 n 个元素。",
+    "example": "容量依次为 1、2、4、8；向空数组连续尾插 n 个元素。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：一次扩容最坏 O(n)，不代表每次尾插都 O(n)；若每次只增加固定容量，总复制可能退化为 O(n²)。\n\n自检：说明倍增扩容为什么尾插摊还 O(1)，并区别最坏复杂度。\n参考结论：复制总量为几何级数 1+2+4+…<2n，加上 n 次写入总计 O(n)，所以摊还 O(1)，单次扩容仍可 O(n)。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "amortized"
+    ]
+  },
+  {
+    "id": "ref:cs408:linear-list",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "顺序表与链表的访问和插入",
+    "summary": "顺序表可随机访问，链表通过指针定位；插入成本必须说明是否已找到位置。",
+    "syntax": "在长度 n 的表中按下标访问第 i 项；随后在已知结点 p 后插入 q。",
+    "example": "在长度 n 的表中按下标访问第 i 项；随后在已知结点 p 后插入 q。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：链表结点已知时局部插入 O(1)，按下标查找结点通常 O(n)；顺序表中间插入需移动元素。\n\n自检：比较两种结构的随机访问和已知位置插入。\n参考结论：顺序表下标访问 O(1)、中间插入 O(n)；单链表按下标访问 O(n)、已知 p 后插入 O(1)，定位成本应另计。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "linear-list"
+    ]
+  },
+  {
+    "id": "ref:cs408:stack-queue",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "栈、队列与循环队列判空判满",
+    "summary": "栈先进后出，队列先进先出；循环队列常用预留一个空位区分满与空。",
+    "syntax": "数组容量 8，front=6，rear=2；入队推进 rear，出队推进 front。",
+    "example": "数组容量 8，front=6，rear=2；入队推进 rear，出队推进 front。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：约定 front 指向队头、rear 指向下一写入位置；采用空一格方案时可存 7 项。\n\n自检：计算当前长度并写出空满条件。\n参考结论：长度为 (2-6+8)%8=4；front==rear 为空，(rear+1)%8==front 为满。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "stack-queue"
+    ]
+  },
+  {
+    "id": "ref:cs408:expression",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "表达式求值与运算符栈",
+    "summary": "中缀转后缀用栈处理优先级与括号，后缀求值按操作数顺序弹栈。",
+    "syntax": "中缀 3+4*2；后缀 3 4 2 * +。",
+    "example": "中缀 3+4*2；后缀 3 4 2 * +。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：减法和除法先弹出的数是右操作数；括号只控制顺序，不出现在后缀结果中。\n\n自检：给出 (8-3)*2 的后缀形式与求值过程。\n参考结论：后缀为 8 3 - 2 *；先算 8-3=5，再算 5*2=10，不能把减法写成 3-8。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "expression"
+    ]
+  },
+  {
+    "id": "ref:cs408:kmp",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "KMP 前缀函数与模式回退",
+    "summary": "失配时利用已匹配前后缀信息移动模式位置，主串指针无需回退。",
+    "syntax": "模式串 ababaca；前缀函数 pi[i] 表示截至 i 的最长相等真前后缀长度。",
+    "example": "模式串 ababaca；前缀函数 pi[i] 表示截至 i 的最长相等真前后缀长度。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：pi 数组与教材 next 数组存在下标和定义差异，作答应先说明约定；匹配总时间 O(n+m)。\n\n自检：写出模式的 pi 数组，并解释 i=5 时为何回退。\n参考结论：pi=[0,0,1,2,3,0,1]；处理字符 c 时已匹配的 aba 等后缀无法接上 c，按 pi 逐级回退至 0。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "kmp"
+    ]
+  },
+  {
+    "id": "ref:cs408:tree-properties",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "二叉树结点关系与完全二叉树",
+    "summary": "非空二叉树满足叶子数 n0=n2+1；完全二叉树可用连续数组编号表示。",
+    "syntax": "一棵二叉树有 7 个度为 2 的结点；完全二叉树按从 1 开始编号。",
+    "example": "一棵二叉树有 7 个度为 2 的结点；完全二叉树按从 1 开始编号。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：等式来自边数 n-1=n1+2n2；完全二叉树不等于每层都满的满二叉树。\n\n自检：求叶子数，并写出编号 i 的父结点和子结点编号。\n参考结论：叶子数为 8；父结点 floor(i/2)，左孩子 2i，右孩子 2i+1，孩子编号超过总数时不存在。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "tree-properties"
+    ]
+  },
+  {
+    "id": "ref:cs408:tree-traversal",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "二叉树遍历与由序列还原",
+    "summary": "先序先根，中序根在左右子树之间，后序根在最后；不同结点值时先序加中序可唯一还原。",
+    "syntax": "先序 A B D E C，中序 D B E A C。",
+    "example": "先序 A B D E C，中序 D B E A C。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：单独先序和后序一般不能唯一还原，含重复值时还需额外标识；递归栈最坏 O(n)。\n\n自检：还原左右子树并写出后序。\n参考结论：根 A，左子树根 B、左右孩子 D 和 E，右孩子 C；后序 D E B C A。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "tree-traversal"
+    ]
+  },
+  {
+    "id": "ref:cs408:bst",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "二叉搜索树删除与性能退化",
+    "summary": "BST 左子树键小于根、右子树键大于根；删除双子结点常以中序后继替换。",
+    "syntax": "依次插入 1、2、3、4、5 到空的普通 BST。",
+    "example": "依次插入 1、2、3、4、5 到空的普通 BST。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：查找、插入、删除成本均随树高 h 变化；普通 BST 不自动保证平衡，重复键策略需显式约定。\n\n自检：示例树高与查找 5 的比较次数如何变化？\n参考结论：树退化为单链；若树高按边计为 4，查找 5 需比较 5 个结点，最坏 O(n)，不能一概说 O(log n)。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "bst"
+    ]
+  },
+  {
+    "id": "ref:cs408:avl",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "AVL 平衡因子与四类旋转",
+    "summary": "AVL 要求每个结点左右子树高度差绝对值不超过 1，用局部旋转维持对数树高。",
+    "syntax": "依次插入 30、10、20；约定平衡因子=左高-右高。",
+    "example": "依次插入 30、10、20；约定平衡因子=左高-右高。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：失衡发生在左孩子的右子树是 LR，需要先左旋左孩子、再右旋失衡根；旋转保持中序顺序。\n\n自检：指出失衡类型并给出旋转后的结构。\n参考结论：30 处为 LR 失衡；先对 10 左旋，再对 30 右旋，得到根 20、左孩子 10、右孩子 30。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "avl"
+    ]
+  },
+  {
+    "id": "ref:cs408:bplus",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "B 树与 B+ 树的结构差异",
+    "summary": "多路平衡搜索树通过提高分支数降低外存访问层数；B+ 树内部结点用作导航、数据项集中在叶层。",
+    "syntax": "一棵叶层相连的 B+ 树上查询键区间 [30,80]。",
+    "example": "一棵叶层相连的 B+ 树上查询键区间 [30,80]。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：不同教材对阶数与最少孩子数的定义可能不同，按题干约定；范围查询先定位起点再沿叶层扫描。\n\n自检：为什么 B+ 树适合外存范围检索？\n参考结论：高扇出降低树高与随机 I/O，叶层有序且相连可连续扫描范围；不能仅以二叉树的比较次数解释磁盘成本。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "bplus"
+    ]
+  },
+  {
+    "id": "ref:cs408:heap",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "堆与自底向上建堆",
+    "summary": "大根堆只要求父键不小于孩子，不保证左右子树之间有序。",
+    "syntax": "从数组底部最后一个非叶结点开始逐个向下调整，建立 n 项大根堆。",
+    "example": "从数组底部最后一个非叶结点开始逐个向下调整，建立 n 项大根堆。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：底层结点多但高度低，按高度累计调整工作量为 O(n)；连续插入建堆的上界则为 O(n log n)。\n\n自检：说明堆顶意义、建堆复杂度和删除堆顶复杂度。\n参考结论：堆顶是最大键；自底向上建堆 O(n)，以末项替换堆顶再下沉一次为 O(log n)。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "heap"
+    ]
+  },
+  {
+    "id": "ref:cs408:huffman",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "哈夫曼树与带权路径长度",
+    "summary": "每次合并当前最小的两个权值得到最小带权路径长度的前缀编码树。",
+    "syntax": "权重为 1、2、3、4；每次取最小两项合并。",
+    "example": "权重为 1、2、3、4；每次取最小两项合并。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：WPL=各叶权重乘深度之和，也等于所有合并权值之和；相同权值可使树形不唯一。\n\n自检：写出合并过程和 WPL。\n参考结论：先 1+2=3，再 3+3=6，最后 4+6=10；WPL=3+6+10=19，编码树可不唯一但最优 WPL 相同。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "huffman"
+    ]
+  },
+  {
+    "id": "ref:cs408:graph-storage",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "邻接矩阵、邻接表与图的度",
+    "summary": "邻接矩阵适合直接判断边，邻接表适合稀疏图邻居遍历。",
+    "syntax": "无向简单图 V=1000、E=1500，需遍历所有结点和边。",
+    "example": "无向简单图 V=1000、E=1500，需遍历所有结点和边。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：无向图度数和为 2E；邻接表通常为每条无向边存两个邻接项；有向图入度和、出度和均为 E。\n\n自检：比较空间与全图遍历成本。\n参考结论：邻接矩阵空间 O(V²)、遍历邻边常需扫描整行；邻接表空间 O(V+E)，全图遍历 O(V+E)，此处无向度数和 3000。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "graph-storage"
+    ]
+  },
+  {
+    "id": "ref:cs408:bfs-dfs",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "BFS、DFS 与无权最短路径",
+    "summary": "BFS 按距离分层入队，首次发现即可确定无权图最少边数；DFS 适合深度探索。",
+    "syntax": "无权图边为 A-B、A-C、B-D、C-E、E-D，从 A 出发。",
+    "example": "无权图边为 A-B、A-C、B-D、C-E、E-D，从 A 出发。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：使用访问标记防止重复和环；邻接表实现 BFS/DFS 均为 O(V+E)，具体遍历次序依赖邻接顺序。\n\n自检：求 A 到 D 的最短边数，并说明 DFS 首次到达是否保证最短。\n参考结论：BFS 得到距离 2，路径 A-B-D；DFS 首次找到的路径未必最短，例如可能走 A-C-E-D。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "bfs-dfs"
+    ]
+  },
+  {
+    "id": "ref:cs408:topological",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "拓扑排序与有向无环图",
+    "summary": "Kahn 算法反复移除入度为 0 的结点；未能处理全部结点说明图存在有向环。",
+    "syntax": "边 A-C、B-C、C-D；初始入度 A=0、B=0、C=2、D=1。",
+    "example": "边 A-C、B-C、C-D；初始入度 A=0、B=0、C=2、D=1。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：拓扑序可不唯一；无向图不能直接套用有向图拓扑定义；时间 O(V+E)。\n\n自检：给出两个合法拓扑序并描述加上 D-A 后的结果。\n参考结论：A B C D 和 B A C D 均合法；加 D-A 后出现 A-C-D-A 环，不能生成覆盖全部结点的拓扑序。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "topological"
+    ]
+  },
+  {
+    "id": "ref:cs408:critical-path",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "AOE 网络关键路径与活动余量",
+    "summary": "AOE 用边表示活动，关键活动最早与最迟开始时间相等，决定项目最短完成工期。",
+    "syntax": "活动 A-B=3，A-C=2，B-D=4，C-D=3。",
+    "example": "活动 A-B=3，A-C=2，B-D=4，C-D=3。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：先拓扑求 ve，再逆拓扑求 vl；活动最早 ve[u]、最迟 vl[v]-w；关键路径可能多条。\n\n自检：求工期、关键路径与 C-D 的余量。\n参考结论：D 最早为 max(3+4,2+3)=7，工期 7；关键路径 A-B-D；vl[D]=7，C-D 最迟开始 4、最早开始 2，余量 2。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "critical-path"
+    ]
+  },
+  {
+    "id": "ref:cs408:mst",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "最小生成树与 Prim、Kruskal",
+    "summary": "连通无向带权图的 MST 连接全部顶点且总权最小，含 V-1 条边。",
+    "syntax": "三角形 A-B=1、B-C=2、A-C=5。",
+    "example": "三角形 A-B=1、B-C=2、A-C=5。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：Kruskal 按权选边并用并查集防环；Prim 扩张已选顶点集合；负权不妨碍 MST，非连通图得到森林。\n\n自检：给出 MST 并区分它与从 A 出发的最短路径树目标。\n参考结论：MST 取 A-B 和 B-C，总权 3；其目标是全树边权和最小，最短路径树的目标是根到每个顶点距离最小，二者一般不同。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "mst"
+    ]
+  },
+  {
+    "id": "ref:cs408:shortest-path",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "Dijkstra、Bellman-Ford 与 Floyd",
+    "summary": "最短路径算法的选择取决于是否有负权、是否求单源以及图规模。",
+    "syntax": "A-B=2、A-C=5、C-B=-4，求 A 到 B 最短距离。",
+    "example": "A-B=2、A-C=5、C-B=-4，求 A 到 B 最短距离。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：标准 Dijkstra 依赖非负边；Bellman-Ford 可处理负边并检测源点可达负环；Floyd 用中间点动态规划求全源距离。\n\n自检：给出正确距离并解释为何不能直接用标准 Dijkstra。\n参考结论：最短路 A-C-B 为 1；Dijkstra 可能先将距离 2 的 B 定为最终值，负边破坏贪心前提，可用 Bellman-Ford。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "shortest-path"
+    ]
+  },
+  {
+    "id": "ref:cs408:binary-search",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "折半查找与区间不变量",
+    "summary": "折半查找需已排序且可高效访问中点，循环边界取决于闭区间或半开区间约定。",
+    "syntax": "在升序 [1,3,3,5] 中找第一个不小于 3 的位置，维护 [lo,hi)，初始 [0,4)。",
+    "example": "在升序 [1,3,3,5] 中找第一个不小于 3 的位置，维护 [lo,hi)，初始 [0,4)。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：lower_bound 在 a[mid]<x 时令 lo=mid+1，否则 hi=mid；返回 n 代表所有元素均小于 x。\n\n自检：给出返回下标并说明相等时为何移动 hi。\n参考结论：返回下标 1；遇到相等值还可能在左侧有更早位置，因此保留左半区、令 hi=mid，复杂度 O(log n)。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "binary-search"
+    ]
+  },
+  {
+    "id": "ref:cs408:hashing",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "散列表冲突、装填因子与删除",
+    "summary": "哈希碰撞不可避免，链地址和开放定址采用不同的冲突处理方式。",
+    "syntax": "长度 7 的线性探测表，散列函数 k%7，依次插入 10、17、24。",
+    "example": "长度 7 的线性探测表，散列函数 k%7，依次插入 10、17、24。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：开放定址删除不能直接改为从未使用的空槽，否则会截断后续探测链；通常使用墓碑并定期重建。\n\n自检：写出三个键位置，并解释删除 17 的处理。\n参考结论：键依次位于 3、4、5；位置 4 标墓碑，查询 24 时经过墓碑继续探测至 5，不能在 4 提前判断不存在。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "hashing"
+    ]
+  },
+  {
+    "id": "ref:cs408:sorting",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "排序的稳定性、复杂度与适用条件",
+    "summary": "稳定排序保留相等键原有顺序；复杂度、空间与稳定性需同时比较。",
+    "syntax": "记录 (2,A)、(1,B)、(2,C)，按第一字段升序排序。",
+    "example": "记录 (2,A)、(1,B)、(2,C)，按第一字段升序排序。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：标准插入、冒泡、归并可稳定，选择、堆、常规原地快排通常不稳定；归并相等时先取左侧才保持稳定。\n\n自检：给出稳定排序结果并比较归并和堆排序空间。\n参考结论：稳定结果 (1,B)、(2,A)、(2,C)；数组归并通常辅助空间 O(n)，原地堆排序额外空间 O(1)，二者最坏时间均 O(n log n)。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "sorting"
+    ]
+  },
+  {
+    "id": "ref:cs408:quicksort",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "快速排序划分与最坏退化",
+    "summary": "划分后枢轴落入最终位置，平均时间 O(n log n)，极端不均衡划分会退化为 O(n²)。",
+    "syntax": "已升序数组每轮选择末元素为枢轴，并将其余元素划到一侧。",
+    "example": "已升序数组每轮选择末元素为枢轴，并将其余元素划到一侧。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：随机枢轴降低退化概率但不改变理论最坏界；大量重复值可用三路划分；递归深度需防止栈溢出。\n\n自检：写出退化递推式，并说明两种改善方法。\n参考结论：T(n)=T(n-1)+O(n)=O(n²)；可随机化或三数取中改善划分，重复键采用三路划分，亦可用内省排序限制最坏退化。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "quicksort"
+    ]
+  },
+  {
+    "id": "ref:cs408:external-sort",
+    "language": "数据结构",
+    "category": "数据结构",
+    "title": "外部排序与多路归并 I/O",
+    "summary": "数据大于内存时先生成有序段，再以多路归并减少整批读写轮数。",
+    "syntax": "初始有 16 个有序段，一次可四路归并，每轮读写全部数据。",
+    "example": "初始有 16 个有序段，一次可四路归并，每轮读写全部数据。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：归并轮数为 ceil(log_k r)；忽略缓存与不完整末轮时每轮读一次写一次；缓冲区通常至少要 k 个输入与一个输出。\n\n自检：求归并轮数及归并阶段总数据传输量。\n参考结论：四路归并 16 段需 2 轮；若总数据 N 块，每轮约 2N 块 I/O，归并阶段共约 4N，不包含最初生成有序段的读写。",
+    "source": "https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/",
+    "entry_type": "原理",
+    "tags": [
+      "数据结构",
+      "考研408",
+      "external-sort"
+    ]
+  }
+]

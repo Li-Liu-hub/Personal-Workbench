@@ -1,14 +1,21 @@
 param(
     [Parameter(Mandatory=$true)][string]$Executable,
     [string]$OutputDirectory = (Join-Path $PSScriptRoot '../dist/release'),
-    [string]$Compiler
+    [string]$Compiler,
+    [string]$TypstDirectory = (Join-Path $PSScriptRoot '../.artifacts/resume/typst/typst-x86_64-pc-windows-msvc'),
+    [string]$MetadataDirectory
 )
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$line = Get-Content (Join-Path $root 'Cargo.toml') | Where-Object { $_ -match '^version\s*=\s*"([^" ]+)"' } | Select-Object -First 1
+$metadataRoot = if ($MetadataDirectory) { (Resolve-Path -LiteralPath $MetadataDirectory).Path } else { $root }
+$line = Get-Content (Join-Path $metadataRoot 'Cargo.toml') | Where-Object { $_ -match '^version\s*=\s*"([^" ]+)"' } | Select-Object -First 1
 if ($line -notmatch '^version\s*=\s*"([^" ]+)"') { throw 'Missing package version' }
 $version = $Matches[1]
 $Executable = (Resolve-Path -LiteralPath $Executable).Path
+$binaryVersion = (Get-Item -LiteralPath $Executable).VersionInfo.ProductVersion
+if ($binaryVersion -ne $version) {
+    throw "Executable version '$binaryVersion' does not match package version '$version'. Build the current version before packaging."
+}
 $OutputDirectory = [IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 $portable = Join-Path $OutputDirectory 'PersonalDesk.exe'
@@ -23,6 +30,7 @@ $text = @"
 默认数据目录：%LOCALAPPDATA%\PersonalDesk。
 游戏会保存棋盘、关卡和成绩。设置中可开启/关闭开机自启动。
 本地模型和模型运行时不随客户端打包，客户端本身可独立使用。
+简历功能的 Typst 引擎如随包提供，位于 tools/typst；个人简历资料不随程序包提供。
 导出全部数据可备份记录及办公台文档；快捷路径只保存地址。
 更新只替换程序；安装包不会包含个人账号、文档或模型文件。
 
@@ -30,9 +38,28 @@ $text = @"
 "@
 [IO.File]::WriteAllText($readme,$text,[Text.UTF8Encoding]::new($false))
 $portableZip = Join-Path $OutputDirectory "PersonalDesk-$version-Windows-x64.zip"
-Compress-Archive -LiteralPath $portable,$readme -DestinationPath $portableZip -Force
+$portableFiles = @($portable, $readme)
+$hiringLicense = Join-Path $metadataRoot 'assets/hiring/BossHunter-LICENSE.txt'
+if (Test-Path -LiteralPath $hiringLicense) {
+    $licenseDirectory = Join-Path $OutputDirectory 'licenses'
+    New-Item -ItemType Directory -Path $licenseDirectory -Force | Out-Null
+    Copy-Item -LiteralPath $hiringLicense -Destination (Join-Path $licenseDirectory 'BossHunter-LICENSE.txt') -Force
+    $portableFiles += $licenseDirectory
+}
+$typstFiles = $null
+if (Test-Path -LiteralPath (Join-Path $TypstDirectory 'typst.exe')) {
+    $typstFiles = Join-Path $OutputDirectory 'tools/typst'
+    New-Item -ItemType Directory -Path $typstFiles -Force | Out-Null
+    foreach ($name in @('typst.exe', 'LICENSE', 'NOTICE', 'README.md')) {
+        Copy-Item -LiteralPath (Join-Path $TypstDirectory $name) -Destination (Join-Path $typstFiles $name) -Force
+    }
+    $portableFiles += (Join-Path $OutputDirectory 'tools')
+}
+Compress-Archive -LiteralPath $portableFiles -DestinationPath $portableZip -Force
 if ($Compiler) {
-    & $Compiler "/DAppVersion=$version" "/DAppExe=$portable" "/DOutputDir=$OutputDirectory" (Join-Path $root 'packaging/windows/setup.iss')
+    $compilerArgs = @("/DAppVersion=$version", "/DAppExe=$portable", "/DOutputDir=$OutputDirectory")
+    if ($typstFiles) { $compilerArgs += "/DTypstDir=$typstFiles" }
+    & $Compiler @compilerArgs (Join-Path $root 'packaging/windows/setup.iss')
     if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed' }
 }
 $assets = @($portable,$portableZip)

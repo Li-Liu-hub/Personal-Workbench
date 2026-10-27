@@ -1,0 +1,1515 @@
+[
+  {
+    "id": "knowledge:ref:cs408:process-thread",
+    "kind": "engineering",
+    "title": "进程、线程与共享计数 · 精读推演",
+    "topic": "八股题",
+    "prompt": "同一进程的两个线程各执行 `counter++` 100 万次，最终 `counter` 约为 130 万而不是 200 万；另有第三个线程在另一进程里修改同名全局变量，两个进程互不影响。\n\n1. 解释为什么同进程两个线程会丢失更新，而两个进程不会互相影响。\n2. 列出该进程中线程共享和私有的资源各两项。\n3. 给出两种让结果正确达到 200 万的方案，并说明代价。",
+    "answer": "1. `counter++` 不是原子操作，通常拆成 load、add、store。两个线程可能同时读到同一个旧值，各自加一后写回，后写覆盖先写，导致丢失更新。两个进程有独立的虚拟地址空间，同名全局变量映射到不同物理页，因此互不影响。\n\n2. 共享：代码段、堆、全局数据、打开文件描述符表、地址空间。私有：栈、寄存器/程序计数器、线程局部存储（TLS）、线程 ID。\n\n3. 方案一：用互斥锁把 `counter++` 包在临界区，保证读-改-写原子；代价是锁竞争和上下文切换。方案二：用 `AtomicInteger`/原子指令，无锁但高竞争时自旋消耗 CPU；也可以每个线程累加本地计数，最后合并，代价是需要额外的汇总步骤。",
+    "rubric": [
+      {
+        "id": "pt1",
+        "text": "用 load-add-store 交错解释同进程线程丢失更新",
+        "points": 30
+      },
+      {
+        "id": "pt2",
+        "text": "正确列出共享（地址空间/堆/文件表）与私有（栈/寄存器/TLS）资源",
+        "points": 25
+      },
+      {
+        "id": "pt3",
+        "text": "说明进程独立地址空间带来隔离，因此不互相影响",
+        "points": 20
+      },
+      {
+        "id": "pt4",
+        "text": "给出锁、原子变量或本地累加合并等方案及代价",
+        "points": 25
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:process-thread"
+    ],
+    "tags": [
+      "操作系统",
+      "考研408",
+      "process-thread",
+      "进程",
+      "线程",
+      "地址空间",
+      "竞态",
+      "精读"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "从资源共享与竞态角度解释进程/线程差异，并选择同步方案。",
+      "deliverable": "写出竞态交错、共享/私有资源清单和两种修复代价。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:context-switch",
+    "kind": "engineering",
+    "title": "上下文切换、模式切换与系统调用 · 精读推演",
+    "topic": "八股题",
+    "prompt": "程序先调用 `gettimeofday()` 读取时间，随后从空管道 `read()` 数据并阻塞；监控显示第二次调用后发生了上下文切换，第一次没有。\n\n1. 分别说明两次调用是否发生模式切换、是否发生上下文切换。\n2. 解释为什么 `gettimeofday()` 可能连内核都不进入。\n3. 比较线程切换与进程切换在地址空间/TLB 上的差异。",
+    "answer": "1. `gettimeofday()` 通常由 vDSO 在用户态完成，可能既没有模式切换也没有上下文切换；即使陷入内核，快速返回同一任务也不一定切换。`read()` 空管道会阻塞，进程进入睡眠，内核调度另一个任务，发生上下文切换（同时必然有一次用户态到内核态的模式切换）。\n\n2. vDSO 把内核维护的时间数据映射到用户空间，用户态直接读取，避免 syscall 开销；因此第一次调用可能完全没有特权级切换。\n\n3. 线程切换在同一地址空间内进行，主要保存/恢复寄存器、栈指针和 TLS，不切换页表；进程切换要切换页表基址，可能导致 TLB 失效或需要 PCID/ASID 标记，开销通常更大。两者都需要调度器选择任务并保存 CPU 上下文。",
+    "rubric": [
+      {
+        "id": "cs1",
+        "text": "正确区分 gettimeofday 与阻塞 read 的模式/上下文切换",
+        "points": 35
+      },
+      {
+        "id": "cs2",
+        "text": "说明 vDSO 让时间读取留在用户态",
+        "points": 20
+      },
+      {
+        "id": "cs3",
+        "text": "比较线程切换（同地址空间）与进程切换（页表/TLB）",
+        "points": 30
+      },
+      {
+        "id": "cs4",
+        "text": "指出模式切换不等于上下文切换",
+        "points": 15
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:context-switch"
+    ],
+    "tags": [
+      "操作系统",
+      "考研408",
+      "context-switch",
+      "上下文切换",
+      "模式切换",
+      "系统调用",
+      "TLB",
+      "精读"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "用系统调用路径和调度行为区分模式切换与上下文切换。",
+      "deliverable": "判断两次调用的切换类型，并比较线程/进程切换开销。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:scheduling",
+    "kind": "engineering",
+    "title": "FCFS、SJF 与周转时间 · 精读推演",
+    "topic": "八股题",
+    "prompt": "A、B、C 三个作业在时刻 0 同时到达，运行时间分别为 6、2、1。\n\n1. 分别计算 FCFS（A,B,C）和 SJF 的平均周转时间与平均等待时间。\n2. 解释 FCFS 的护航效应，以及 SJF 为什么在这种模型下更优。\n3. 如果改用 RR、时间片 Q=1，响应时间会怎样变化？Q 过小有什么代价？",
+    "answer": "1. FCFS：完成时间 6、8、9，周转 6、8、9，平均 23/3≈7.67；等待 0、6、8，平均 14/3≈4.67。SJF：顺序 C、B、A，完成 1、3、9，周转 1、3、9，平均 13/3≈4.33；等待 0、1、3，平均 4/3≈1.33。\n\n2. FCFS 让长作业 A 先占用 CPU 6 个时间单位，短作业 B、C 排在后面等待，平均等待被拉高，这就是护航效应。SJF 先运行最短作业，让更多短作业尽早完成，因此在所有作业同时到达、运行时间已知的非抢占模型下平均周转最优。\n\n3. Q=1 时三个作业交替执行，短作业能更早获得首次响应，响应时间更均匀；但时间片过小会增加上下文切换次数和调度开销，CPU 有效利用率下降。Q 应大于切换开销，并结合交互性要求选择。",
+    "rubric": [
+      {
+        "id": "sc1",
+        "text": "FCFS 平均周转 23/3、平均等待 14/3 计算正确",
+        "points": 25
+      },
+      {
+        "id": "sc2",
+        "text": "SJF 平均周转 13/3、平均等待 4/3 计算正确",
+        "points": 25
+      },
+      {
+        "id": "sc3",
+        "text": "解释护航效应与 SJF 最优条件/饥饿边界",
+        "points": 30
+      },
+      {
+        "id": "sc4",
+        "text": "说明 RR 时间片对响应与切换开销的取舍",
+        "points": 20
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:scheduling"
+    ],
+    "tags": [
+      "操作系统",
+      "考研408",
+      "scheduling",
+      "调度",
+      "FCFS",
+      "SJF",
+      "RR",
+      "周转时间",
+      "精读"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "按周转/等待公式比较调度算法，并解释护航效应与时间片取舍。",
+      "deliverable": "写出两组计算结果、SJF 最优条件与 RR 的 Q 取舍。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:paging",
+    "kind": "engineering",
+    "title": "分页地址转换与页表 · 精读推演",
+    "topic": "八股题",
+    "prompt": "页大小 1KiB，逻辑地址 2500，页号 2 映射到物理页框 7。系统使用 32 位地址、4B 页表项。\n\n1. 求页号、页内偏移和物理地址。\n2. 单级页表需要多少页表项、占多少内存？为什么实际系统常用多级页表？\n3. 访问的页不在内存时会发生什么？页表项的有效位起什么作用？",
+    "answer": "1. 页号=2500/1024=2，偏移=2500%1024=452；物理地址=7×1024+452=7620。\n\n2. 32 位地址、4KiB 页 => 页内偏移 12 位，VPN 20 位，共 2^20≈1048576 个页表项；每项 4B，单级页表约 4MiB/进程。多级页表把 VPN 再分段，只为实际使用的地址区域分配下级页表，减少常驻内存；代价是地址转换可能需要多次访存，靠 TLB 缓解。\n\n3. MMU 查页表发现有效位为 0，触发缺页异常；操作系统分配页框、从磁盘/交换区加载页面、更新页表，再重新执行指令。有效位表示该页是否在当前进程的物理内存中，也用于保护检查。",
+    "rubric": [
+      {
+        "id": "pg1",
+        "text": "页号 2、偏移 452、物理地址 7620 计算正确",
+        "points": 30
+      },
+      {
+        "id": "pg2",
+        "text": "算出 2^20 个 PTE、约 4MiB，并解释多级页表省内存",
+        "points": 30
+      },
+      {
+        "id": "pg3",
+        "text": "说明缺页异常的处理流程与有效位作用",
+        "points": 25
+      },
+      {
+        "id": "pg4",
+        "text": "指出分页的内部碎片/页表开销边界",
+        "points": 15
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:paging"
+    ],
+    "tags": [
+      "操作系统",
+      "考研408",
+      "paging",
+      "分页",
+      "页表",
+      "地址转换",
+      "缺页",
+      "精读"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "完成分页地址转换，并估算页表开销与缺页处理。",
+      "deliverable": "写出地址拆分、页表大小和多级页表/缺页的边界。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:tlb-eat",
+    "kind": "engineering",
+    "title": "TLB 命中率与有效访问时间 · 精读推演",
+    "topic": "八股题",
+    "prompt": "TLB 查询 10ns，内存访问 100ns，TLB 命中率 90%，不发生缺页。分别考虑单级页表和两级页表（每次页表遍历都是一次内存访问）。\n\n1. 按串行模型计算两种页表结构下的 EAT。\n2. 若要求 EAT 不超过 125ns，两级页表下 TLB 命中率至少要多少？\n3. 说明大页（huge page）为什么可能降低 EAT，以及它的一个代价。",
+    "answer": "1. 单级：命中时 10+100，未命中时 10+100+100；EAT=0.9×110+0.1×210=120ns（等价于 10+100+0.1×100）。两级：未命中多一次页表访存，EAT=10+100+0.1×200=130ns。\n\n2. 110+200×(1-h)≤125 => 200×(1-h)≤15 => 1-h≤0.075 => h≥92.5%。\n\n3. 大页减少页表层级和 TLB 覆盖的页数，同样数量的 TLB 项能覆盖更大工作集，命中率提高，页表遍历次数也可能减少，从而降低 EAT。代价是内部碎片增加、页面分配/回收更粗粒度，大页的透明使用还可能带来内存浪费或延迟毛刺。",
+    "rubric": [
+      {
+        "id": "te1",
+        "text": "单级 120ns、两级 130ns 计算正确并写出模型",
+        "points": 30
+      },
+      {
+        "id": "te2",
+        "text": "由 110+200(1-h)<=125 推出 h>=92.5%",
+        "points": 30
+      },
+      {
+        "id": "te3",
+        "text": "解释大页减少 TLB 覆盖压力/页表层级",
+        "points": 25
+      },
+      {
+        "id": "te4",
+        "text": "指出大页内部碎片或分配延迟的代价",
+        "points": 15
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:tlb-eat"
+    ],
+    "tags": [
+      "操作系统",
+      "考研408",
+      "tlb-eat",
+      "TLB",
+      "EAT",
+      "页表",
+      "大页",
+      "精读"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "按串行模型计算 TLB 有效访问时间，并解释大页的影响。",
+      "deliverable": "写出两种页表结构的 EAT、命中率下界和大页取舍。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:deadlock",
+    "kind": "engineering",
+    "title": "死锁四条件与资源有序分配 · 精读推演",
+    "topic": "八股题",
+    "prompt": "线程 A 持有 L1 后请求 L2；线程 B 持有 L2 后请求 L1，两个线程都永久阻塞。\n\n1. 画出资源分配图中的环，并指出四个必要条件在本例中如何满足。\n2. 给出一种不改变业务语义的预防方案，并解释它破坏了哪个条件。\n3. 如果把其中一方改成 `tryLock` 超时重试，可能带来什么新问题？如何缓解？",
+    "answer": "1. A 持有 L1、请求 L2；B 持有 L2、请求 L1。图中存在 A→L2→B→L1→A 的环。互斥：L1/L2 一次只能一个线程持有；占有且等待：A 持有 L1 同时等 L2，B 反之；不可剥夺：已持有的锁不能被强行拿走；循环等待：A 等 B 持有的 L2，B 等 A 持有的 L1。\n\n2. 规定全局锁顺序，例如所有线程必须先获取 L1 再获取 L2；这样不会出现一方持 L2 等 L1 的反向边，破坏了循环等待条件。也可一次性申请两把锁，破坏占有且等待。\n\n3. 超时重试可能变成活锁：两个线程同时释放又同时重试，反复冲突；还可能因为超时时间设置不当导致正常业务失败。缓解方法是随机退避、限制重试次数、按资源 ID 排序后再尝试，或直接采用锁排序。",
+    "rubric": [
+      {
+        "id": "dl1",
+        "text": "正确画出 A→L2→B→L1→A 的环",
+        "points": 25
+      },
+      {
+        "id": "dl2",
+        "text": "逐条对应互斥/占有等待/不可剥夺/循环等待",
+        "points": 30
+      },
+      {
+        "id": "dl3",
+        "text": "给出锁排序或一次性申请，并指出破坏的条件",
+        "points": 25
+      },
+      {
+        "id": "dl4",
+        "text": "指出 tryLock 可能活锁，并给出退避/排序缓解",
+        "points": 20
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:deadlock"
+    ],
+    "tags": [
+      "操作系统",
+      "考研408",
+      "deadlock",
+      "死锁",
+      "锁排序",
+      "资源分配图",
+      "tryLock",
+      "精读"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "用资源分配图和四个条件分析死锁，并选择预防/避免策略。",
+      "deliverable": "写出等待环、四条件对应关系和锁排序/超时方案。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:delay",
+    "kind": "engineering",
+    "title": "发送时延、传播时延与排队时延 · 精读推演",
+    "topic": "八股题",
+    "prompt": "一个 1500B 的分组经 100Mb/s 链路传输，链路长 1000km，信号传播速度 2×10^8 m/s，忽略排队和处理时延。\n\n1. 求发送时延、传播时延和总时延。\n2. 求该链路的带宽-delay 积（按单向传播时延），并说明它的含义。\n3. 若把带宽从 100Mb/s 提升到 1Gb/s，总时延能降到多少？为什么跨洋链路的 RTT 不能靠加带宽消除？",
+    "answer": "1. 1500B=12000bit；发送=12000/100×10^6=0.12ms；传播=1000×10^3/2×10^8=5ms；总时延≈5.12ms。\n\n2. BDP=100Mb/s×5ms=500kb=62.5KB，表示链路上“在途”的最大比特数；发送窗口小于它时，链路容量无法被填满。\n\n3. 1Gb/s 时发送=12000/1×10^9=0.012ms，总时延≈5.012ms。带宽只缩短发送时延，传播时延由距离和介质速度决定；跨洋距离大，RTT 的物理下限仍然存在，只能通过 CDN/边缘节点缩短距离，不能靠提高带宽消除。",
+    "rubric": [
+      {
+        "id": "de1",
+        "text": "发送 0.12ms、传播 5ms、总 5.12ms 计算正确",
+        "points": 30
+      },
+      {
+        "id": "de2",
+        "text": "BDP 62.5KB 计算正确并解释在途比特",
+        "points": 25
+      },
+      {
+        "id": "de3",
+        "text": "提升带宽后发送时延降低、总时延约 5.012ms",
+        "points": 20
+      },
+      {
+        "id": "de4",
+        "text": "说明传播时延由距离决定，CDN/边缘可缩短而不能消除",
+        "points": 25
+      }
+    ],
+    "source": "https://www.computer-networking.info/",
+    "knowledge_ids": [
+      "ref:cs408:delay"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "delay",
+      "时延",
+      "带宽",
+      "BDP",
+      "存储转发",
+      "精读"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "完成时延与 BDP 计算，并区分带宽和传播距离的影响。",
+      "deliverable": "写出四项时延、BDP 含义和带宽提升后的边界。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:tcp-handshake",
+    "kind": "engineering",
+    "title": "TCP 三次握手与序号确认 · 精读推演",
+    "topic": "八股题",
+    "prompt": "客户端初始序号 ISN=100，服务端 ISN=500，握手阶段不携带数据。\n\n1. 写出三次握手的 seq 和 ack。\n2. 为什么 SYN 要占用一个序号？第三次 ACK 的 seq 为什么从 101 开始？\n3. 如果只用两次握手，可能出什么问题？SYN flood 又利用了什么？",
+    "answer": "1. 第一次：SYN, seq=100；第二次：SYN+ACK, seq=500, ack=101；第三次：ACK, seq=101, ack=501。\n\n2. SYN 是建立连接的控制报文，但它也占用序号空间，这样后续数据可以从 x+1 开始，ACK 能明确确认 SYN 已被接收。客户端收到 SYN-ACK 后，自己的下一个发送序号是 101，所以第三次 ACK 的 seq=101。\n\n3. 两次握手时，服务端发出 SYN-ACK 就认为连接建立，但不知道客户端是否收到；迟到的旧 SYN 可能让服务端建立无效连接并占用资源。SYN flood 发送大量 SYN 但不完成第三次握手，占满服务端半连接队列；SYN cookie 用加密 cookie 代替半连接状态来缓解。",
+    "rubric": [
+      {
+        "id": "th1",
+        "text": "三次握手的 seq/ack 全部正确",
+        "points": 30
+      },
+      {
+        "id": "th2",
+        "text": "解释 SYN 占序号及第三次 ACK 从 101 开始",
+        "points": 25
+      },
+      {
+        "id": "th3",
+        "text": "说明两次握手无法确认客户端收到服务端 ISN/旧 SYN 风险",
+        "points": 25
+      },
+      {
+        "id": "th4",
+        "text": "说明 SYN flood 占半连接队列与 SYN cookie 思路",
+        "points": 20
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc9293.html",
+    "knowledge_ids": [
+      "ref:cs408:tcp-handshake"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "tcp-handshake",
+      "TCP",
+      "三次握手",
+      "ISN",
+      "SYN flood",
+      "精读"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "掌握 TCP 握手的序号变化与安全边界。",
+      "deliverable": "写出 seq/ack、SYN 占序号的原因和两次握手/SYN flood 风险。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:flow-control",
+    "kind": "engineering",
+    "title": "TCP 流量控制与接收窗口 · 精读推演",
+    "topic": "八股题",
+    "prompt": "接收端通告 rwnd=4000B，发送端已有 1500B 未确认，暂忽略拥塞窗口。\n\n1. 发送端还能新增发送多少字节？\n2. 若接收端应用一直不读，rwnd 变为 0，TCP 如何避免永久停滞？\n3. 流量控制和拥塞控制的目标有何区别？实际发送上限如何确定？",
+    "answer": "1. 可新增 = rwnd - 在途未确认 = 4000 - 1500 = 2500B。\n\n2. 发送端启动 persist 定时器，周期性发送零窗口探测；接收端恢复缓存后返回新的窗口更新，发送端再继续发送。这样即使窗口更新报文丢失，也不会永久停滞。\n\n3. 流量控制保护接收端缓存，避免发送速度超过应用读取速度；拥塞控制保护网络，避免过多在途数据造成路由器和链路拥塞。实际发送上限受 min(cwnd, rwnd) 约束，同时还要考虑已发送未确认的数据。",
+    "rubric": [
+      {
+        "id": "fc1",
+        "text": "可新增 2500B 计算正确",
+        "points": 30
+      },
+      {
+        "id": "fc2",
+        "text": "解释零窗口 persist 探测与窗口更新丢失",
+        "points": 30
+      },
+      {
+        "id": "fc3",
+        "text": "区分 rwnd 保护接收端、cwnd 保护网络",
+        "points": 25
+      },
+      {
+        "id": "fc4",
+        "text": "指出发送上限取 min(cwnd,rwnd) 且需扣除在途数据",
+        "points": 15
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc9293.html",
+    "knowledge_ids": [
+      "ref:cs408:flow-control"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "flow-control",
+      "TCP",
+      "流量控制",
+      "接收窗口",
+      "零窗口",
+      "精读"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "用接收窗口和 persist 机制解释流量控制，并区分拥塞控制。",
+      "deliverable": "写出可发送量、零窗口恢复和 rwnd/cwnd 的分工。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:congestion-control",
+    "kind": "engineering",
+    "title": "慢启动、拥塞避免与发送上限 · 精读推演",
+    "topic": "八股题",
+    "prompt": "经典教学模型：初始 cwnd=1 MSS，ssthresh=8 MSS，每个报文都被确认，忽略延迟 ACK。\n\n1. 写出前四轮开始时的 cwnd，并说明从哪一轮进入拥塞避免。\n2. 若接收窗口 rwnd=3 MSS，实际发送上限是多少？\n3. 若在第 4 轮结束后发生超时，ssthresh 和下一轮 cwnd 如何变化？",
+    "answer": "1. 第 1 轮 1，第 2 轮 2，第 3 轮 4，第 4 轮 8；第 4 轮达到 ssthresh 后不再翻倍，之后进入拥塞避免，每 RTT 约 +1 MSS（第 5 轮约 9）。\n\n2. 实际在途上限 = min(cwnd, rwnd) = min(8, 3) = 3 MSS；即使 cwnd 继续增长，也不能超过接收窗口。\n\n3. 超时通常把 ssthresh 设为当前 cwnd 的一半，即 4 MSS，并把 cwnd 降回 1 MSS，重新慢启动；之后 cwnd 增长到 4 时切换到拥塞避免。若使用快速重传/快速恢复，则 cwnd 可能减半而不是回到 1，具体取决于算法。",
+    "rubric": [
+      {
+        "id": "cc1",
+        "text": "前四轮 cwnd=1/2/4/8，并指出第 4 轮后进入拥塞避免",
+        "points": 30
+      },
+      {
+        "id": "cc2",
+        "text": "rwnd=3 时上限为 3 MSS",
+        "points": 20
+      },
+      {
+        "id": "cc3",
+        "text": "超时后 ssthresh=4、cwnd=1，重新慢启动",
+        "points": 30
+      },
+      {
+        "id": "cc4",
+        "text": "指出快速恢复/算法差异，不把超时与三次重复 ACK 混为一谈",
+        "points": 20
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc5681.html",
+    "knowledge_ids": [
+      "ref:cs408:congestion-control"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "congestion-control",
+      "拥塞控制",
+      "cwnd",
+      "慢启动",
+      "快速恢复",
+      "精读"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "推演 cwnd 的慢启动/拥塞避免，并结合 rwnd 与丢包事件。",
+      "deliverable": "写出前四轮窗口、min(cwnd,rwnd) 限制和超时后的变化。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:dns",
+    "kind": "engineering",
+    "title": "DNS 递归、迭代与缓存 TTL · 精读推演",
+    "topic": "八股题",
+    "prompt": "本机缓存为空，递归解析器也没有 `www.example.com` 的缓存，需要取得 A 记录。\n\n1. 描述从客户端到权威服务器的基本解析链，指出哪些步骤是递归、哪些是迭代。\n2. TTL 在这里起什么作用？把 TTL 从 1 小时改成 60 秒有什么利弊？\n3. 如果 `www` 是 CNAME，解析过程会多出什么？DNS 为什么主要用 UDP，又何时用 TCP？",
+    "answer": "1. 客户端向递归解析器发出递归请求；递归解析器依次向根、.com TLD、example.com 权威服务器做迭代查询，最后把 A 记录返回客户端。递归发生在客户端与解析器之间，迭代发生在解析器与各级服务器之间。\n\n2. TTL 决定解析器/客户端缓存多久；未过期直接返回缓存，过期后重新查询。TTL 60 秒能让记录变更更快生效，但会增加权威服务器和解析器负载；TTL 1 小时减少查询压力，但故障切换/迁移时旧记录存活更久。\n\n3. CNAME 表示别名，解析器要先解析 CNAME 目标，再查询目标的 A/AAAA，可能增加一次或多次查询和延迟。DNS 主要用 UDP 53 以减少连接开销；响应超过 UDP 大小、区域传送或需要可靠传输时使用 TCP（以及 DoT）。",
+    "rubric": [
+      {
+        "id": "dn1",
+        "text": "正确区分客户端-解析器递归与解析器-各级服务器迭代",
+        "points": 30
+      },
+      {
+        "id": "dn2",
+        "text": "说明 TTL 缓存作用及长短利弊",
+        "points": 25
+      },
+      {
+        "id": "dn3",
+        "text": "说明 CNAME 会追加目标解析",
+        "points": 20
+      },
+      {
+        "id": "dn4",
+        "text": "指出 UDP 为主、TCP 用于大响应/区域传送等场景",
+        "points": 25
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc1034.html",
+    "knowledge_ids": [
+      "ref:cs408:dns"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "dns",
+      "DNS",
+      "递归",
+      "迭代",
+      "TTL",
+      "CNAME",
+      "精读"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "描述 DNS 解析链路与缓存，并解释记录类型和传输选择。",
+      "deliverable": "写出递归/迭代链路、TTL 取舍和 CNAME/UDP-TCP 边界。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:http-tls",
+    "kind": "engineering",
+    "title": "HTTP 语义、连接复用与 TLS · 精读推演",
+    "topic": "八股题",
+    "prompt": "一个 HTTPS API 同时支持 HTTP/2 和 HTTP/3；某客户端仍用 HTTP/1.1，另一个客户端证书过期后仍尝试连接。\n\n1. 比较 HTTP/1.1、HTTP/2、HTTP/3 的连接承载和队头阻塞差异。\n2. 为什么不能说“所有 HTTP 都基于 TCP”？\n3. TLS 证书校验主要解决什么？证书过期时客户端应看到什么？HSTS 又起什么作用？",
+    "answer": "1. HTTP/1.1 通常每条连接一个请求在途，持久连接减少建连但有应用层队头阻塞；HTTP/2 在一条 TCP 连接上多路复用多个流，消除 HTTP 层队头阻塞，但 TCP 丢包仍会阻塞所有流；HTTP/3 基于 QUIC/UDP，每个流独立，减少 TCP 层队头阻塞，并支持 0-RTT 和连接迁移。\n\n2. HTTP/3 使用 QUIC（基于 UDP），不是 TCP；HTTP 语义与传输解耦，因此“HTTP 基于 TCP”只适用于 HTTP/1.1 和 HTTP/2 的常见部署。\n\n3. 证书校验确认服务器身份：证书链可信、主机名匹配、有效期和吊销状态正常，并协商加密密钥，提供认证、机密性和完整性。证书过期时客户端应拒绝连接或显示证书错误，而不是静默降级。HSTS 让浏览器在指定时间内强制使用 HTTPS，防止降级和部分中间人攻击。TLS 1.3 的细节见 RFC 8446。",
+    "rubric": [
+      {
+        "id": "ht1",
+        "text": "正确比较 HTTP/1.1/2/3 的承载与队头阻塞",
+        "points": 30
+      },
+      {
+        "id": "ht2",
+        "text": "指出 HTTP/3 基于 QUIC/UDP，不能一概说基于 TCP",
+        "points": 20
+      },
+      {
+        "id": "ht3",
+        "text": "说明证书链/主机名/有效期校验及过期行为",
+        "points": 30
+      },
+      {
+        "id": "ht4",
+        "text": "解释 HSTS 防降级，并指出 TLS 终止/内网明文边界",
+        "points": 20
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc9110.html",
+    "knowledge_ids": [
+      "ref:cs408:http-tls"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "http-tls",
+      "HTTP",
+      "TLS",
+      "HTTP/2",
+      "HTTP/3",
+      "证书",
+      "精读"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "比较 HTTP 版本差异，并解释 TLS 认证与证书校验。",
+      "deliverable": "写出三种 HTTP 的传输/队头阻塞、证书校验步骤和 HSTS 作用。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:complexity",
+    "kind": "engineering",
+    "title": "时间复杂度与空间复杂度 · 精读推演",
+    "topic": "八股题",
+    "prompt": "分析下面两段代码：\n\n```java\nfor (int i = 1; i <= n; i++) {\n    int j = 1;\n    while (j < n) { work(); j *= 2; }\n}\n\nint f(int n) {\n    if (n <= 1) return 1;\n    return f(n/2) + f(n/2) + n;\n}\n```\n\n1. 分别求两段代码的时间复杂度和额外空间复杂度。\n2. 为什么第一段不是 O(n^2)？第二段的递归栈为什么是 O(log n)？\n3. 动态数组 append 的摊还复杂度为什么是 O(1)？单次 append 最坏是多少？",
+    "answer": "1. 第一段外层 n 次、内层 j 倍增 O(log n)，时间 O(n log n)，额外空间 O(1)。第二段递归式 T(n)=2T(n/2)+n，时间 O(n log n)，递归深度 O(log n)，额外空间 O(log n)。\n\n2. 内层不是固定 n 次，而是每轮乘 2，最多 log2 n 次，所以总操作是 n×log n 而不是 n×n。第二段每次把规模减半，递归树高度 log2 n，栈上同时只有一条路径的帧，因此栈空间 O(log n)。\n\n3. 动态数组容量按倍数增长，n 次 append 的总搬迁成本是 1+2+4+...+n<2n，均摊到 n 次是 O(1)；单次 append 在扩容时最坏 O(n)，但不会每次都发生。",
+    "rubric": [
+      {
+        "id": "cx1",
+        "text": "第一段 O(n log n)、O(1) 正确",
+        "points": 25
+      },
+      {
+        "id": "cx2",
+        "text": "第二段 O(n log n)、栈 O(log n) 正确",
+        "points": 30
+      },
+      {
+        "id": "cx3",
+        "text": "解释内层倍增/递归树高度，不误判 O(n^2)",
+        "points": 25
+      },
+      {
+        "id": "cx4",
+        "text": "说明摊还 O(1) 与单次最坏 O(n) 的区别",
+        "points": 20
+      }
+    ],
+    "source": "https://opendatastructures.org/",
+    "knowledge_ids": [
+      "ref:cs408:complexity"
+    ],
+    "tags": [
+      "数据结构",
+      "考研408",
+      "complexity",
+      "复杂度",
+      "摊还分析",
+      "递归",
+      "空间复杂度",
+      "精读"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "从循环和递归式推导复杂度，并区分摊还与单次最坏。",
+      "deliverable": "写出两段时间/空间复杂度、推导依据和动态数组摊还分析。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:hashing",
+    "kind": "engineering",
+    "title": "散列表冲突、装填因子与删除 · 精读推演",
+    "topic": "八股题",
+    "prompt": "长度 7 的线性探测表，散列函数 h(k)=k%7，依次插入 10、17、24。\n\n1. 写出三个键最终所在的槽位，并给出查找 24 的探测序列。\n2. 如果删除 17 时直接把槽位清空，查找 24 会发生什么？给出正确删除方式。\n3. 当前装填因子是多少？如果继续插入大量元素，开放定址会遇到什么边界？",
+    "answer": "1. 10→3；17→3 冲突，探测到 4；24→3 冲突，4 也冲突，探测到 5。查找 24 依次探测 3、4、5。\n\n2. 若把槽 4 清空，查找 24 在槽 3 看到 10，槽 4 看到空就停止，误判 24 不存在，截断了探测链。应把槽 4 标记为 tombstone（已删除），查找遇到墓碑继续探测，插入时可以复用墓碑；或者在删除后对整个表 rehash。\n\n3. 装填因子=3/7≈0.43。开放定址的装填因子接近 1 时，空槽很少，探测长度急剧上升，插入可能失败；需要扩容/rehash，且删除产生的墓碑也会增加探测成本。",
+    "rubric": [
+      {
+        "id": "hs1",
+        "text": "槽位 3/4/5 与查找序列正确",
+        "points": 30
+      },
+      {
+        "id": "hs2",
+        "text": "说明直接置空会截断探测链，给出 tombstone/rehash",
+        "points": 30
+      },
+      {
+        "id": "hs3",
+        "text": "装填因子 3/7≈0.43 计算正确",
+        "points": 15
+      },
+      {
+        "id": "hs4",
+        "text": "指出开放定址装填因子<1、墓碑积累和扩容边界",
+        "points": 25
+      }
+    ],
+    "source": "https://opendatastructures.org/",
+    "knowledge_ids": [
+      "ref:cs408:hashing"
+    ],
+    "tags": [
+      "数据结构",
+      "考研408",
+      "hashing",
+      "哈希表",
+      "线性探测",
+      "tombstone",
+      "装填因子",
+      "精读"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "模拟线性探测的插入/查找/删除，并解释墓碑与装填因子。",
+      "deliverable": "写出槽位和探测序列、删除修复方式及扩容边界。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:bplus",
+    "kind": "engineering",
+    "title": "B 树与 B+ 树的结构差异 · 精读推演",
+    "topic": "八股题",
+    "prompt": "某数据库索引使用 B+ 树，扇出 200，叶结点容量 100 条记录，表有 1,000,000 条记录。\n\n1. 估算叶结点数、内部结点数和树高。\n2. 为什么 B+ 树适合范围查询 [30,80]？B 树在同样查询上有什么额外成本？\n3. 如果索引键从 8B 增长到 64B，扇出和树高会怎样变化？这对查询意味着什么？",
+    "answer": "1. 叶结点=1,000,000/100=10,000；上一层=ceil(10,000/200)=50；根=1；树高 3 层。\n\n2. B+ 树所有数据在叶层且叶层链表相连，定位到 30 所在叶后顺序扫描到 80 即可；内部结点只做导航，不需要回溯。B 树的数据分散在内部结点和叶结点，范围查询需要中序遍历并在层级间回溯，随机 I/O 更多。\n\n3. 键变长会降低每个内部结点能容纳的键/指针数量，扇出下降；同样记录数下树高可能增加，范围查询和点查多一次或多次磁盘 I/O。实际数据库会用前缀压缩、缩短主键等方式控制键长度。",
+    "rubric": [
+      {
+        "id": "bp1",
+        "text": "叶 10,000、内部 50、树高 3 计算正确",
+        "points": 30
+      },
+      {
+        "id": "bp2",
+        "text": "说明 B+ 叶层链表顺序扫描，B 树需中序回溯",
+        "points": 30
+      },
+      {
+        "id": "bp3",
+        "text": "指出键变长降低扇出、增加树高和 I/O",
+        "points": 25
+      },
+      {
+        "id": "bp4",
+        "text": "提到页分裂/空间利用率或聚簇/二级索引差异",
+        "points": 15
+      }
+    ],
+    "source": "https://www.sqlite.org/fileformat2.html",
+    "knowledge_ids": [
+      "ref:cs408:bplus"
+    ],
+    "tags": [
+      "数据结构",
+      "考研408",
+      "bplus",
+      "B+ 树",
+      "B 树",
+      "范围查询",
+      "磁盘 I/O",
+      "精读"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "用扇出/树高解释 B+ 树的磁盘 I/O 优势与键长影响。",
+      "deliverable": "写出树高估算、范围查询路径和键长变化的后果。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:heap",
+    "kind": "engineering",
+    "title": "堆与自底向上建堆 · 精读推演",
+    "topic": "八股题",
+    "prompt": "数组 [3,9,2,6,8,1] 按大根堆自底向上建堆。\n\n1. 写出建堆过程和最终数组。\n2. 删除堆顶一次后，数组是什么？说明下沉过程。\n3. 为什么自底向上建堆是 O(n)，而插入建堆是 O(n log n)？堆能否直接支持查找第 3 大元素？",
+    "answer": "1. 从 i=2（值 2）开始，不交换；i=1（9）不交换；i=0（3）与 9 交换得 [9,3,2,6,8,1]，再在 i=1 与 8 交换得 [9,8,2,6,3,1]。\n\n2. 9 与末尾 1 交换并移除，得到 [1,8,2,6,3]；1 与 8 交换得 [8,1,2,6,3]，再与 6 交换得 [8,6,2,1,3]。\n\n3. 自底向上建堆的总代价是各结点高度之和，约 2n，因此 O(n)；逐个插入时每个元素可能上浮 O(log n)，总计 O(n log n)。堆只保证父>=子，第 3 大元素不一定是某个固定位置，不能 O(1) 直接得到；需要多次删除堆顶或使用选择算法。",
+    "rubric": [
+      {
+        "id": "hp1",
+        "text": "建堆最终 [9,8,2,6,3,1] 正确",
+        "points": 30
+      },
+      {
+        "id": "hp2",
+        "text": "删除堆顶后 [8,6,2,1,3] 且下沉过程正确",
+        "points": 30
+      },
+      {
+        "id": "hp3",
+        "text": "解释建堆 O(n) 与插入建堆 O(n log n) 的差异",
+        "points": 25
+      },
+      {
+        "id": "hp4",
+        "text": "指出堆只保证偏序，不能直接查第 3 大",
+        "points": 15
+      }
+    ],
+    "source": "https://opendatastructures.org/",
+    "knowledge_ids": [
+      "ref:cs408:heap"
+    ],
+    "tags": [
+      "数据结构",
+      "考研408",
+      "heap",
+      "堆",
+      "建堆",
+      "堆排序",
+      "优先队列",
+      "精读"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "手动建堆/删除堆顶，并解释建堆复杂度与偏序边界。",
+      "deliverable": "写出建堆和下沉步骤、两种建堆复杂度及 Top-K 边界。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:shortest-path",
+    "kind": "engineering",
+    "title": "Dijkstra、Bellman-Ford 与 Floyd · 精读推演",
+    "topic": "八股题",
+    "prompt": "图中有 A-B=2、A-C=5、C-B=-4，求 A 到 B 的最短距离。\n\n1. 给出正确答案和路径。\n2. 用执行过程解释标准 Dijkstra 为什么会得到错误结果。\n3. 应该改用哪种算法？它如何检测负环？Floyd 适合什么场景？",
+    "answer": "1. 最短路径 A→C→B，距离 5+(-4)=1。\n\n2. Dijkstra 从 A 出发，dist[B]=2、dist[C]=5，先取出 B 并认为其最短距离已确定；之后处理 C 时发现 A→C→B=1，但 B 已出队，不再更新，最终返回 2。负边破坏了“取出即最终”的贪心前提。\n\n3. 应使用 Bellman-Ford：对所有边做最多 V-1 轮松弛，能得到 1；再执行一轮，若仍有边可松弛，说明存在从源点可达的负环。Floyd 适合求所有点对的最短路径或稠密图，O(V^3)，可处理负边但要求无负环；Johnson 可用于稀疏图的负权全源最短路。",
+    "rubric": [
+      {
+        "id": "sp1",
+        "text": "正确距离 1、路径 A→C→B",
+        "points": 25
+      },
+      {
+        "id": "sp2",
+        "text": "用 B 先出队/负边破坏贪心解释 Dijkstra 失败",
+        "points": 35
+      },
+      {
+        "id": "sp3",
+        "text": "选择 Bellman-Ford，说明 V-1 轮松弛与第 V 轮检测负环",
+        "points": 30
+      },
+      {
+        "id": "sp4",
+        "text": "指出 Floyd 全源/O(V^3) 的适用场景",
+        "points": 10
+      }
+    ],
+    "source": "https://opendatastructures.org/",
+    "knowledge_ids": [
+      "ref:cs408:shortest-path"
+    ],
+    "tags": [
+      "数据结构",
+      "考研408",
+      "shortest-path",
+      "最短路径",
+      "Dijkstra",
+      "Bellman-Ford",
+      "Floyd",
+      "负环",
+      "精读"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "按边权条件选择最短路算法，并用反例解释 Dijkstra 的局限。",
+      "deliverable": "写出正确路径、Dijkstra 失败过程、Bellman-Ford 负环检测。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:sorting",
+    "kind": "engineering",
+    "title": "排序的稳定性、复杂度与适用条件 · 精读推演",
+    "topic": "八股题",
+    "prompt": "记录 (2,A)、(1,B)、(2,C)，按第一字段升序排序。\n\n1. 写出稳定排序的结果，并说明 A/C 的顺序。\n2. 比较归并排序和堆排序的时间、空间、稳定性。\n3. 如果数据几乎有序，选哪种排序？如果快排总选第一个元素为 pivot，已排序输入会怎样？",
+    "answer": "1. 稳定结果：(1,B)、(2,A)、(2,C)；两个 2 的原有顺序 A 在 C 前保持不变。\n\n2. 归并：O(n log n)，O(n) 额外空间，稳定；堆排：O(n log n)，O(1) 额外空间，不稳定。两者都达到比较排序下界，归并胜在稳定但费内存，堆排胜在就地但缓存局部性较差且不稳定。\n\n3. 几乎有序时插入排序接近 O(n)，是最佳选择之一；归并排序也能保持稳定但仍有 O(n log n)。快排若固定选第一个元素为 pivot，已排序输入每次划分一边为空，递归深度 O(n)，退化为 O(n^2)；应随机化 pivot、三数取中或使用 introsort。",
+    "rubric": [
+      {
+        "id": "so1",
+        "text": "稳定结果 (1,B),(2,A),(2,C) 正确",
+        "points": 25
+      },
+      {
+        "id": "so2",
+        "text": "归并/堆排的时间、空间、稳定性比较正确",
+        "points": 30
+      },
+      {
+        "id": "so3",
+        "text": "几乎有序选插入排序并说明 O(n)",
+        "points": 20
+      },
+      {
+        "id": "so4",
+        "text": "解释固定 pivot 在已排序输入退化为 O(n^2) 及缓解",
+        "points": 25
+      }
+    ],
+    "source": "https://opendatastructures.org/",
+    "knowledge_ids": [
+      "ref:cs408:sorting"
+    ],
+    "tags": [
+      "数据结构",
+      "考研408",
+      "sorting",
+      "排序",
+      "稳定性",
+      "归并排序",
+      "快速排序",
+      "堆排序",
+      "精读"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "按稳定性/复杂度/数据分布选择排序算法，并识别快排最坏情况。",
+      "deliverable": "写出稳定结果、归并/堆排对比和快排退化条件。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:number-representation",
+    "kind": "engineering",
+    "title": "原码、反码、补码与表示范围 · 精读推演",
+    "topic": "八股题",
+    "prompt": "8 位补码：+5=00000101，-5=11111011。\n\n1. 把 11111011 分别按无符号和 8 位补码解释。\n2. 计算 127+1 的 8 位结果，判断是否溢出并说明依据。\n3. 把 0xFB 符号扩展到 16 位，结果是什么？为什么不能简单补 0？",
+    "answer": "1. 无符号：11111011=251；8 位补码：251-256=-5。\n\n2. 01111111+00000001=10000000，按补码是 -128；两个正数相加得到负数，符号位发生错误，说明溢出。也可看符号位进位与最高位进位不一致。\n\n3. 0xFB 是 8 位负数 -5，符号扩展后 16 位为 0xFFFB（仍为 -5）。不能补 0，因为补 0 会得到 +251，改变数值；符号扩展要复制符号位到高位。",
+    "rubric": [
+      {
+        "id": "nr1",
+        "text": "251 与 -5 解释正确",
+        "points": 25
+      },
+      {
+        "id": "nr2",
+        "text": "127+1=-128 且能说明正+正得负/进位判断溢出",
+        "points": 30
+      },
+      {
+        "id": "nr3",
+        "text": "0xFB 符号扩展为 0xFFFB 并解释补 0 会变值",
+        "points": 30
+      },
+      {
+        "id": "nr4",
+        "text": "指出 n 位补码范围或无符号/有符号解释差异",
+        "points": 15
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:number-representation"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "number-representation",
+      "补码",
+      "溢出",
+      "符号扩展",
+      "表示范围",
+      "精读"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "掌握补码转换、溢出判断与符号扩展。",
+      "deliverable": "写出无符号/补码解释、127+1 溢出依据和 16 位扩展结果。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:floating-point",
+    "kind": "engineering",
+    "title": "IEEE 754 单精度与规格化数 · 精读推演",
+    "topic": "八股题",
+    "prompt": "binary32 的阶码偏置为 127，规格化数隐含前导 1。\n\n1. 写出 1.5 的符号、阶码和尾数字段，并给出十六进制编码。\n2. 写出 -0.375 的编码，说明阶码为什么是 125。\n3. 为什么 `0.1 + 0.2 == 0.3` 在 binary32/double 中通常为 false？应该怎样比较浮点数？",
+    "answer": "1. 1.5=1.1₂×2^0；sign=0，exponent=127=01111111，fraction=100…0；编码 0x3FC00000。\n\n2. -0.375=-1.1₂×2^-2；sign=1，exponent=-2+127=125=01111101，fraction=100…0；编码 0xBEC00000。\n\n3. 0.1、0.2、0.3 的二进制都是无限循环小数，binary32/double 只能舍入到有限尾数；0.1+0.2 的舍入结果与 0.3 的舍入结果不相等。应使用容差比较（如 `abs(a-b) < 1e-6`）或 `BigDecimal`/定点数做精确十进制运算，不要用 `==`。",
+    "rubric": [
+      {
+        "id": "fp1",
+        "text": "1.5 字段与 0x3FC00000 正确",
+        "points": 30
+      },
+      {
+        "id": "fp2",
+        "text": "-0.375 字段与 0xBEC00000、阶码 125 正确",
+        "points": 30
+      },
+      {
+        "id": "fp3",
+        "text": "解释无限循环二进制与舍入导致 0.1+0.2 != 0.3",
+        "points": 25
+      },
+      {
+        "id": "fp4",
+        "text": "给出容差比较或 BigDecimal/定点数方案",
+        "points": 15
+      }
+    ],
+    "source": "https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html",
+    "knowledge_ids": [
+      "ref:cs408:floating-point"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "floating-point",
+      "IEEE 754",
+      "浮点数",
+      "阶码",
+      "舍入误差",
+      "精读"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "完成 IEEE 754 编码，并解释舍入误差与比较边界。",
+      "deliverable": "写出两组字段/十六进制编码和浮点比较方案。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:cache-mapping",
+    "kind": "engineering",
+    "title": "Cache 标记、组索引与块内偏移 · 精读推演",
+    "topic": "八股题",
+    "prompt": "32 位字节地址，数据区容量 32KiB，块大小 64B，4 路组相联。\n\n1. 求偏移、组索引与标记的位数。\n2. 把地址 0x12345678 分解为 tag、index、offset。\n3. 如果改成直接映射，字段位数和冲突行为会怎样变化？",
+    "answer": "1. 块数=32KiB/64B=512；组数=512/4=128；偏移 6 位，索引 7 位，标记 32-7-6=19 位。\n\n2. offset=0x78&0x3F=0x38；index=(0x12345678>>6)&0x7F=0x59=89；tag=0x12345678>>13=0x91A2。\n\n3. 直接映射每组只有 1 行，组数=512，索引 9 位、偏移 6 位、标记 17 位；同一组只能放一个块，冲突未命中比 4 路更频繁。4 路组相联允许同组 4 个块共存，减少冲突但需要 4 路比较和替换策略。",
+    "rubric": [
+      {
+        "id": "cm1",
+        "text": "偏移 6、索引 7、标记 19 位正确",
+        "points": 30
+      },
+      {
+        "id": "cm2",
+        "text": "地址分解 tag=0x91A2、index=89、offset=0x38 正确",
+        "points": 30
+      },
+      {
+        "id": "cm3",
+        "text": "直接映射索引 9/标记 17 位，冲突更频繁",
+        "points": 25
+      },
+      {
+        "id": "cm4",
+        "text": "指出组相联的比较器/替换成本取舍",
+        "points": 15
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:cache-mapping"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "cache-mapping",
+      "Cache",
+      "组相联",
+      "标记",
+      "组索引",
+      "精读"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "由缓存几何计算字段位数，并比较映射方式的冲突与成本。",
+      "deliverable": "写出位数、地址分解和直接映射对比。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:cache-amat",
+    "kind": "engineering",
+    "title": "平均访存时间 AMAT · 精读推演",
+    "topic": "八股题",
+    "prompt": "一级 Cache 命中时间 1ns，未命中率 5%，未命中额外代价 80ns。\n\n1. 计算 AMAT。\n2. 若加入 L2：L2 命中时间 20ns，L2 未命中率 40%，内存访问 100ns，重新计算 AMAT。\n3. 方案 A 把 L1 未命中率降到 2.5%（命中时间不变），方案 B 把命中时间升到 2ns、未命中率降到 2%，哪个更好？说明理由。",
+    "answer": "1. AMAT=1+0.05×80=5ns。\n\n2. AMAT=1+0.05×(20+0.4×100)=1+0.05×60=4ns。\n\n3. 方案 A：1+0.025×80=3ns；方案 B：2+0.02×80=3.6ns。方案 A 更好。虽然 B 的未命中率更低，但命中时间增加 1ns 抵消了收益；优化要看 AMAT 总成本，而不是单独追求低未命中率。若 B 还能降低其他开销或改善尾延迟，需要结合整体指标评估。",
+    "rubric": [
+      {
+        "id": "am1",
+        "text": "单级 AMAT=5ns 正确",
+        "points": 25
+      },
+      {
+        "id": "am2",
+        "text": "两级 AMAT=4ns 且公式正确",
+        "points": 30
+      },
+      {
+        "id": "am3",
+        "text": "方案 A=3ns、方案 B=3.6ns，选择 A",
+        "points": 30
+      },
+      {
+        "id": "am4",
+        "text": "说明命中时间与未命中率的权衡，不只看命中率",
+        "points": 15
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:cache-amat"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "cache-amat",
+      "AMAT",
+      "Cache",
+      "未命中率",
+      "多级缓存",
+      "精读"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "套用 AMAT 公式比较多级缓存与优化方案。",
+      "deliverable": "写出单级/两级 AMAT 和 A/B 方案对比。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:pipeline-hazards",
+    "kind": "engineering",
+    "title": "结构、数据与控制冒险 · 精读推演",
+    "topic": "八股题",
+    "prompt": "经典 5 级流水线（IF/ID/EX/MEM/WB）执行：\n\n```asm\nlw  r1, 0(r2)\nadd r3, r1, r4\nsub r5, r6, r7\nbeq r3, r5, target\n```\n\n1. 指出 `lw` 与 `add` 之间的冒险类型，并解释即使有转发为什么还要停顿 1 拍。\n2. `beq` 带来哪类冒险？若预测错误，流水线要做什么？\n3. 给出三种降低冒险代价的硬件/编译技术。",
+    "answer": "1. 这是 load-use 数据冒险：`add` 在 EX 阶段需要 r1，而 `lw` 的数据在 MEM 阶段末尾才可用。即使有 MEM→EX 转发，也要等 load 的 MEM 完成，因此必须插入 1 个停顿（气泡），不能完全靠转发消除。\n\n2. `beq` 是控制冒险：分支结果和目标地址尚未确定时，流水线已经取入后续指令；若预测错误，要冲刷错误路径的指令，重新从正确目标取指，产生若干拍惩罚。\n\n3. 转发（减少数据冒险停顿）、分支预测 + 冲刷（降低控制冒险）、延迟槽/指令调度（编译器填充有用指令）、分离指令和数据缓存或增加端口（缓解结构冒险）、乱序执行/寄存器重命名（更高级）。",
+    "rubric": [
+      {
+        "id": "ph1",
+        "text": "识别 load-use 数据冒险并说明至少 1 拍停顿",
+        "points": 30
+      },
+      {
+        "id": "ph2",
+        "text": "解释转发不能消除 load-use 间隙的原因",
+        "points": 20
+      },
+      {
+        "id": "ph3",
+        "text": "识别 beq 控制冒险，说明预测错误冲刷",
+        "points": 25
+      },
+      {
+        "id": "ph4",
+        "text": "给出转发/预测/调度/双端口等至少三种技术",
+        "points": 25
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-004-computation-structures-spring-2017/",
+    "knowledge_ids": [
+      "ref:cs408:pipeline-hazards"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "pipeline-hazards",
+      "流水线",
+      "数据冒险",
+      "load-use",
+      "分支预测",
+      "精读"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "识别流水线三类冒险，并解释转发、停顿与分支预测的边界。",
+      "deliverable": "写出 load-use 停顿原因、控制冒险处理和三种缓解技术。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:virtual-address",
+    "kind": "engineering",
+    "title": "虚拟地址、物理地址与 TLB · 精读推演",
+    "topic": "八股题",
+    "prompt": "32 位虚拟地址，页大小 4KiB；某虚拟页 VPN=0x12345 映射到物理页框 0x123。\n\n1. 求页内偏移位数和 VPN 位数。\n2. 把 VA 0x12345678 转换为物理地址。\n3. 区分 TLB miss、缺页异常和权限保护异常；为什么 TLB miss 不等于缺页？",
+    "answer": "1. 4KiB=2^12，偏移 12 位；32-12=20 位 VPN。\n\n2. VA 0x12345678 的 offset=0x678，VPN=0x12345；PFN=0x123；PA=0x123×0x1000+0x678=0x123678。\n\n3. TLB miss 表示 TLB 中没有该 VPN 的缓存映射，MMU 还可以查页表；若页表项有效且权限允许，转换成功，只是多一次/多次访存。缺页异常表示页表项有效位为 0，页面不在内存，需要操作系统加载。权限保护异常表示 PTE 存在但当前访问类型（读/写/执行）不被允许。三者处理路径不同，不能混为一谈。",
+    "rubric": [
+      {
+        "id": "va1",
+        "text": "偏移 12 位、VPN 20 位正确",
+        "points": 25
+      },
+      {
+        "id": "va2",
+        "text": "VA 0x12345678 的 VPN=0x12345、offset=0x678",
+        "points": 25
+      },
+      {
+        "id": "va3",
+        "text": "PA=0x123678 计算正确",
+        "points": 20
+      },
+      {
+        "id": "va4",
+        "text": "正确区分 TLB miss/缺页/权限异常",
+        "points": 30
+      }
+    ],
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "knowledge_ids": [
+      "ref:cs408:virtual-address"
+    ],
+    "tags": [
+      "计算机组成原理",
+      "考研408",
+      "virtual-address",
+      "虚拟地址",
+      "TLB",
+      "缺页",
+      "页表",
+      "精读"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "完成虚拟地址转换，并区分 TLB 未命中、缺页与保护异常。",
+      "deliverable": "写出地址分解、物理地址和三种异常的区别。"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql_internals:clustered-secondary",
+    "kind": "engineering",
+    "title": "聚簇索引、二级索引与回表 · 精读推演",
+    "topic": "八股题",
+    "prompt": "表 `users(id BIGINT PRIMARY KEY, email VARCHAR(255) UNIQUE, name VARCHAR(64), created_at DATETIME)`，查询：\n\n```sql\nSELECT name FROM users WHERE email = 'a@example.com';\n```\n\n1. 说明这条查询在聚簇索引和二级索引上的访问路径，为什么会回表。\n2. 如何设计索引避免回表？写出索引定义和新的访问路径。\n3. 如果把主键改成随机 UUID，会对二级索引和写入产生什么影响？",
+    "answer": "1. InnoDB 先查 `idx_email` 二级索引，叶页得到 email 和主键 id；因为 name 不在二级索引中，再用 id 回聚簇索引取整行，最后返回 name。\n\n2. 建立联合索引 `(email, name)`，查询所需列都在二级索引叶页中，优化器可做覆盖索引扫描，不再回表。索引定义：`ALTER TABLE users ADD INDEX idx_email_name (email, name);`。\n\n3. 随机 UUID 主键插入位置分散，容易触发页分裂和随机 I/O，写入更慢；每个二级索引项都要存主键，UUID 更长会使二级索引更大、缓存效率更低。自增/有序主键更适合 InnoDB 聚簇索引，但也要考虑业务唯一性和安全边界。",
+    "rubric": [
+      {
+        "id": "cs1",
+        "text": "正确描述二级索引取主键、再回聚簇索引取 name",
+        "points": 35
+      },
+      {
+        "id": "cs2",
+        "text": "给出 (email,name) 覆盖索引并说明避免回表",
+        "points": 30
+      },
+      {
+        "id": "cs3",
+        "text": "说明 UUID 随机插入导致页分裂/随机 I/O",
+        "points": 20
+      },
+      {
+        "id": "cs4",
+        "text": "指出主键长度会增加所有二级索引体积",
+        "points": 15
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-index-types.html",
+    "knowledge_ids": [
+      "ref:mysql_internals:clustered-secondary"
+    ],
+    "tags": [
+      "MySQL",
+      "索引、日志与恢复",
+      "数据库原理",
+      "clustered-secondary",
+      "聚簇索引",
+      "二级索引",
+      "回表",
+      "覆盖索引",
+      "精读"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "用聚簇/二级索引结构解释回表，并设计覆盖索引。",
+      "deliverable": "写出访问路径、覆盖索引定义和 UUID 主键代价。"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql_internals:composite-index",
+    "kind": "engineering",
+    "title": "联合索引、最左前缀与范围条件 · 精读推演",
+    "topic": "八股题",
+    "prompt": "表 t 有联合索引 `(a,b,c)`，查询：\n\n```sql\nSELECT * FROM t WHERE a = 1 AND b > 10 AND c = 3;\n```\n\n1. 这个索引能用到哪些列？c 是否完全没有作用？\n2. 如何用 EXPLAIN 验证 c 是否参与了过滤？\n3. 如果业务还有查询 `a=1 AND c=3`，应如何设计索引？说明取舍。",
+    "answer": "1. a 是等值条件，b 是范围条件，索引能定位到 a=1 且 b>10 的区间；c 不能再缩小索引扫描范围，但 c 在索引中，可通过索引条件下推（ICP）在回表前过滤，减少回表次数。所以 c 不是完全没用。\n\n2. 用 `EXPLAIN` 看 `key` 是否为 idx_abc、`Extra` 是否出现 `Using index condition`；再用 `EXPLAIN ANALYZE` 看实际扫描行数和回表次数。也可以对比关闭 ICP 前后的执行计划/扫描行数。\n\n3. 查询 `a=1 AND c=3` 没有 b 条件，`(a,b,c)` 只能用到 a 前缀，c 不能直接定位；可考虑 `(a,c)` 或 `(a,c,b)`。若两个查询都常用，需要权衡：`(a,c,b)` 对 `a=1,c=3` 更精确，对 `a=1,b>10,c=3` 也能用 a、c 等值 + b 范围；但会增加索引数量和写放大。最终用 EXPLAIN 和真实数据分布验证。",
+    "rubric": [
+      {
+        "id": "ci1",
+        "text": "说明 a 等值、b 范围、c 通过 ICP 过滤而非缩小范围",
+        "points": 35
+      },
+      {
+        "id": "ci2",
+        "text": "给出 EXPLAIN 的 key/Extra/EXPLAIN ANALYZE 验证方式",
+        "points": 25
+      },
+      {
+        "id": "ci3",
+        "text": "为 a=1 AND c=3 设计 (a,c) 或 (a,c,b) 并说明取舍",
+        "points": 25
+      },
+      {
+        "id": "ci4",
+        "text": "指出最左前缀/范围后列失效/索引写放大边界",
+        "points": 15
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/multiple-column-indexes.html",
+    "knowledge_ids": [
+      "ref:mysql_internals:composite-index"
+    ],
+    "tags": [
+      "MySQL",
+      "索引、日志与恢复",
+      "数据库原理",
+      "composite-index",
+      "联合索引",
+      "最左前缀",
+      "ICP",
+      "范围查询",
+      "精读"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "按等值/范围条件设计联合索引，并用执行计划验证。",
+      "deliverable": "写出索引可用列、ICP 验证方法和第二查询的索引设计。"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql_internals:mvcc",
+    "kind": "engineering",
+    "title": "MVCC 多版本并发控制 · 精读推演",
+    "topic": "八股题",
+    "prompt": "初始 `balance=100`。A 在 RR 事务中第一次普通 SELECT 得到 100；B 更新为 80 并提交；A 再次普通 SELECT。\n\n1. A 第二次读到的值是多少？说明 ReadView 的作用。\n2. 如果 A 接着执行 `UPDATE account SET balance=balance-10 WHERE id=1`，再普通 SELECT，结果是多少？为什么？\n3. MVCC 是否让所有读都不加锁？RR 下幻读如何处理？",
+    "answer": "1. 仍是 100。A 在第一次快照读时创建 ReadView，B 的事务不在可见集合中，A 沿 undo 版本链读到旧版本 100；RR 的快照在整个事务内复用。\n\n2. 70。UPDATE 是当前读，会读取最新已提交的 80 并加锁，减去 10 得 70；A 自己的修改对后续读可见，所以普通 SELECT 返回 70。\n\n3. 不是。普通快照读不加锁，但 `SELECT ... FOR UPDATE`、`UPDATE`、`DELETE` 是当前读，会加记录锁/间隙锁/next-key lock。RR 下快照读看不到新插入的行，能在一定程度上避免幻读；但当前读仍可能看到新数据，需要 next-key lock 等锁机制配合。长事务会阻止 undo purge，要避免。",
+    "rubric": [
+      {
+        "id": "mv1",
+        "text": "第二次快照读仍为 100，并解释 ReadView/undo 版本链",
+        "points": 35
+      },
+      {
+        "id": "mv2",
+        "text": "UPDATE 后为 70，说明当前读与自己的修改可见",
+        "points": 30
+      },
+      {
+        "id": "mv3",
+        "text": "指出 MVCC 只对快照读有效，当前读加锁",
+        "points": 20
+      },
+      {
+        "id": "mv4",
+        "text": "说明 RR 幻读与 next-key lock/长事务 undo 膨胀边界",
+        "points": 15
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-multi-versioning.html",
+    "knowledge_ids": [
+      "ref:mysql_internals:mvcc"
+    ],
+    "tags": [
+      "MySQL",
+      "事务与 MVCC",
+      "数据库原理",
+      "mvcc",
+      "MVCC",
+      "ReadView",
+      "undo",
+      "快照读",
+      "当前读",
+      "精读"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 3,
+      "goal": "用 ReadView 和 undo 版本链推演 RR 下的读取与更新。",
+      "deliverable": "写出两次读/更新后的值，并区分快照读与当前读。"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql_internals:record-gap-next-key",
+    "kind": "engineering",
+    "title": "记录锁、间隙锁与 next-key lock · 精读推演",
+    "topic": "八股题",
+    "prompt": "索引键有 10、20、30，事务 A 在 RR 下执行 `SELECT * FROM t WHERE id BETWEEN 15 AND 25 FOR UPDATE`，事务 B 尝试插入 18 和 28。\n\n1. 区分 record lock、gap lock 和 next-key lock，并说明 A 的范围查询可能锁住哪些区间。\n2. B 插入 18/28 时可能发生什么？插入意向锁与间隙锁是什么关系？\n3. 为什么不能仅凭 `WHERE id BETWEEN 15 AND 25` 就断言所有锁？",
+    "answer": "1. record lock 锁索引记录；gap lock 锁两条记录之间的开区间；next-key lock 是记录锁加前面间隙。A 的范围查询会扫描包含 20 的区间，可能对 (10,20]、(20,30] 等加 next-key/间隙锁，具体边界取决于索引和扫描方式；15..25 的空隙也在保护范围内，防止插入幻影行。\n\n2. B 插入 18 落在被锁间隙，需要获取插入意向锁；插入意向锁与间隙锁冲突，B 会等待，直到 A 提交/回滚。插入 28 若落在 (20,30] 的间隙，也可能等待。多个事务以不同顺序插入/加锁可能形成死锁。\n\n3. 锁加在索引记录和间隙上，具体范围取决于是否使用索引、索引是否唯一、记录是否存在、范围边界和隔离级别。如果查询没走索引，可能锁住更多记录；唯一索引等值命中与范围查询的锁也不同。应用 `performance_schema.data_locks`/`data_lock_waits` 和实际执行计划验证，不能只看 WHERE 文本。",
+    "rubric": [
+      {
+        "id": "lk1",
+        "text": "区分 record/gap/next-key 并说明范围查询可能锁区间",
+        "points": 30
+      },
+      {
+        "id": "lk2",
+        "text": "说明插入意向锁与间隙锁冲突，18/28 可能等待",
+        "points": 30
+      },
+      {
+        "id": "lk3",
+        "text": "指出锁依赖索引/唯一性/记录存在/隔离级别",
+        "points": 25
+      },
+      {
+        "id": "lk4",
+        "text": "提到 performance_schema.data_locks 验证或死锁风险",
+        "points": 15
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-locking.html",
+    "knowledge_ids": [
+      "ref:mysql_internals:record-gap-next-key"
+    ],
+    "tags": [
+      "MySQL",
+      "InnoDB 锁与并发",
+      "数据库原理",
+      "record-gap-next-key",
+      "记录锁",
+      "间隙锁",
+      "next-key lock",
+      "插入意向锁",
+      "精读"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 3,
+      "goal": "用索引锁类型解释范围查询与插入的冲突，并强调执行计划依赖。",
+      "deliverable": "写出三种锁的区别、插入等待原因和验证方式。"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql_internals:undo-redo-binlog",
+    "kind": "engineering",
+    "title": "undo、redo 与 binlog 的职责 · 精读推演",
+    "topic": "八股题",
+    "prompt": "事务修改余额后提交，数据页尚未刷盘时 MySQL 进程崩溃；另一次崩溃发生在 redo prepare 之后、binlog 写入之前。\n\n1. 第一类崩溃由哪种日志恢复？说明 WAL 的作用。\n2. 第二类崩溃恢复时应该提交还是回滚？为什么？\n3. undo、redo、binlog 能否互相替代？`innodb_flush_log_at_trx_commit=1` 和 `sync_binlog=1` 各控制什么？",
+    "answer": "1. 由 redo 恢复。redo 是页级 WAL，事务提交时先持久化 redo，数据页可以延迟刷盘；崩溃后从 checkpoint 重放 redo，把已提交的页修改恢复出来。\n\n2. 应回滚。redo 处于 prepare 但 binlog 没有记录，说明事务尚未完成提交；回滚可保证主库数据与 binlog/从库一致，避免从库出现主库没有的事务。若 binlog 已完整写入而 redo 未 commit，恢复通常会提交，保证 binlog 与数据一致。\n\n3. 不能互相替代：undo 用于回滚和 MVCC，redo 用于崩溃恢复，binlog 用于复制和 PITR。`innodb_flush_log_at_trx_commit=1` 要求每次事务提交都把 redo 刷到磁盘；`sync_binlog=1` 要求每次事务提交都同步 binlog。两者都为 1 时持久性最强，但 fsync 开销最大。",
+    "rubric": [
+      {
+        "id": "ur1",
+        "text": "第一类崩溃由 redo/WAL 恢复，解释先日志后数据页",
+        "points": 30
+      },
+      {
+        "id": "ur2",
+        "text": "第二类崩溃回滚，保证 binlog 与数据一致",
+        "points": 30
+      },
+      {
+        "id": "ur3",
+        "text": "说明 undo/redo/binlog 各自职责，不能互相替代",
+        "points": 25
+      },
+      {
+        "id": "ur4",
+        "text": "解释 flush_log_at_trx_commit 与 sync_binlog 的持久性/性能取舍",
+        "points": 15
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/innodb-redo-log.html",
+    "knowledge_ids": [
+      "ref:mysql_internals:undo-redo-binlog"
+    ],
+    "tags": [
+      "MySQL",
+      "索引、日志与恢复",
+      "数据库原理",
+      "undo-redo-binlog",
+      "undo",
+      "redo",
+      "binlog",
+      "WAL",
+      "两阶段提交",
+      "精读"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 3,
+      "goal": "用 WAL 与两阶段提交解释崩溃恢复和日志职责。",
+      "deliverable": "写出两类崩溃的恢复选择、三类日志分工和持久性参数。"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql_internals:explain",
+    "kind": "engineering",
+    "title": "EXPLAIN、估算与执行验证 · 精读推演",
+    "topic": "八股题",
+    "prompt": "某查询 `SELECT * FROM orders WHERE user_id = 42` 的 EXPLAIN 显示 `rows=100`，但 EXPLAIN ANALYZE 显示实际扫描 100000 行，响应很慢。\n\n1. 说明 EXPLAIN 的 rows 与 EXPLAIN ANALYZE 的 actual rows 有什么区别。\n2. 列出三种可能导致估算严重偏低的常见原因。\n3. 给出排查和验证步骤，并说明什么情况下应考虑直方图或重写 SQL。",
+    "answer": "1. EXPLAIN 的 rows 是优化器基于统计信息的估算，不执行语句；EXPLAIN ANALYZE 实际执行并返回每步的 actual rows/time/loops。两者差距大说明统计信息或成本模型与实际分布不符。\n\n2. 常见原因：统计信息过期（大量增删改后未 ANALYZE）、数据倾斜（user_id=42 的行远多于平均值）、条件写法导致索引/估算失效（函数包裹列、隐式类型转换、前导模糊 LIKE）、以及 join/子查询的基数估算错误。\n\n3. 先看 `EXPLAIN` 的 type/key/rows/filtered/Extra，再用 `EXPLAIN ANALYZE` 对比实际行数和时间；检查 `SHOW INDEX` 的基数、`ANALYZE TABLE` 更新统计信息；对倾斜列建立直方图（`UPDATE HISTOGRAM ... WITH N BUCKETS`）；重写条件避免函数/隐式转换，确认索引可用。若数据分布极端或查询模式特殊，再考虑索引调整或 SQL 重写，而不是盲目 `FORCE INDEX`。",
+    "rubric": [
+      {
+        "id": "ex1",
+        "text": "区分 EXPLAIN 估算 rows 与 ANALYZE 实际 rows/loops",
+        "points": 30
+      },
+      {
+        "id": "ex2",
+        "text": "列出统计过期/数据倾斜/函数或隐式转换等至少三种原因",
+        "points": 30
+      },
+      {
+        "id": "ex3",
+        "text": "给出 EXPLAIN+ANALYZE、SHOW INDEX、ANALYZE TABLE 的排查步骤",
+        "points": 25
+      },
+      {
+        "id": "ex4",
+        "text": "说明直方图适用倾斜列及 FORCE INDEX 的局限",
+        "points": 15
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.4/en/explain.html",
+    "knowledge_ids": [
+      "ref:mysql_internals:explain"
+    ],
+    "tags": [
+      "MySQL",
+      "索引、日志与恢复",
+      "数据库原理",
+      "explain",
+      "EXPLAIN",
+      "EXPLAIN ANALYZE",
+      "统计信息",
+      "索引失效",
+      "精读"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 3,
+      "goal": "用估算/实际对比定位错误执行计划，并选择统计信息或 SQL 修复。",
+      "deliverable": "写出 rows 差异含义、三类原因和可执行排查步骤。"
+    }
+  }
+]

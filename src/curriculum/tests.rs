@@ -8,6 +8,17 @@ fn candidates() -> Vec<Candidate> {
         include_str!("../../assets/reference_practice.json"),
         include_str!("../../assets/learning_variants.json"),
         include_str!("../../assets/java_ecosystem_practice.json"),
+        include_str!("../../assets/other_languages_practice.json"),
+        include_str!("../../assets/mysql_internals_practice.json"),
+        include_str!("../../assets/data_structures_practice.json"),
+        include_str!("../../assets/computer_organization_practice.json"),
+        include_str!("../../assets/operating_systems_practice.json"),
+        include_str!("../../assets/computer_networks_practice.json"),
+        include_str!("../../assets/coding_standards_practice.json"),
+        include_str!("../../assets/backend_interview_practice.json"),
+        include_str!("../../assets/python_practice.json"),
+        include_str!("../../assets/more_languages_practice.json"),
+        include_str!("../../assets/coding.json"),
     ] {
         for card in serde_json::from_str::<Vec<Card>>(text).unwrap() {
             cards.insert(card.id.clone(), card);

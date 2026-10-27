@@ -1,6 +1,31 @@
 use super::*;
 
 impl PersonalDeskApp {
+    pub(in crate::app) fn open_linked_practice(&mut self, card: Card) {
+        if self.study.busy || !self.flush_writing() || !self.flush_study_answer() {
+            return;
+        }
+        let scope = self
+            .reference
+            .selected
+            .as_ref()
+            .map(|e| (e.id.clone(), e.title.clone()));
+        let saved = self
+            .db
+            .as_ref()
+            .and_then(|db| db.study_pending("engineering").ok())
+            .and_then(|rows| rows.into_iter().find(|p| p.card_id == card.id));
+        self.study.practice = Session {
+            answer: saved.as_ref().map(|p| p.answer.clone()).unwrap_or_default(),
+            pending: saved.or_else(|| Some(pending(&card, ""))),
+            card: Some(card),
+            knowledge: scope,
+            topic: crate::curriculum::MIXED.into(),
+            ..Default::default()
+        };
+        self.section = Section::Practice;
+        self.search_query.clear();
+    }
     pub(in crate::app) fn practice_knowledge(&mut self, entry: &crate::reference::Entry) {
         if self.study.busy || self.study.running_sql {
             self.notice = "当前练习处理完成后即可切换知识点".into();

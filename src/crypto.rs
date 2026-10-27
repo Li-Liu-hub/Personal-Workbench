@@ -148,3 +148,36 @@ pub fn decrypt(
 fn associated_data(key_id: &str, record_id: &str) -> Vec<u8> {
     format!("PersonalDesk/entry/v1/{key_id}/{record_id}").into_bytes()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn legacy_cipher_rejects_wrong_key_identity_nonce_and_modified_payload() {
+        let key = VaultKey(Zeroizing::new([7; 32]));
+        let nonce = [3; 12];
+        let ciphertext = encrypt(&key, "vault", "entry", b"private", &nonce).unwrap();
+        assert_eq!(
+            decrypt(&key, "vault", "entry", &ciphertext, &nonce).unwrap(),
+            b"private"
+        );
+        assert!(decrypt(&key, "other", "entry", &ciphertext, &nonce).is_err());
+        assert!(decrypt(&key, "vault", "other", &ciphertext, &nonce).is_err());
+        assert!(decrypt(&key, "vault", "entry", &ciphertext, &[4; 12]).is_err());
+        assert!(
+            decrypt(
+                &VaultKey(Zeroizing::new([8; 32])),
+                "vault",
+                "entry",
+                &ciphertext,
+                &nonce
+            )
+            .is_err()
+        );
+        let mut changed = ciphertext;
+        changed[0] ^= 1;
+        assert!(decrypt(&key, "vault", "entry", &changed, &nonce).is_err());
+        assert!(decrypt(&key, "vault", "entry", &[], &nonce).is_err());
+    }
+}

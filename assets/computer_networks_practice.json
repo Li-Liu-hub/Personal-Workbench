@@ -1,0 +1,842 @@
+[
+  {
+    "id": "knowledge:ref:cs408:layering",
+    "kind": "engineering",
+    "title": "OSI、TCP/IP 与封装 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n浏览器发送应用消息，经 TCP、IP、以太网逐层封装后上链路。\n\n任务：给出 TCP、IP、以太网的数据单位和主要寻址信息。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "TCP 传输段使用端口，IP 分组使用 IP 地址，以太网帧使用 MAC 地址；跨路由跳时链路层源目的地址随下一跳重建。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "TCP 传输段使用端口，IP 分组使用 IP 地址，以太网帧使用 MAC 地址；跨路由跳时链路层源目的地址随下一跳重建。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "协议层并不等同物理设备；路由器转发时通常重建下一跳链路帧，端到端 IP 地址一般保持，NAT 等情况另论。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:layering"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "layering"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "分层把应用语义、端到端传输、跨网路由和链路交付拆成不同职责。",
+      "deliverable": "给出 TCP、IP、以太网的数据单位和主要寻址信息。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:delay",
+    "kind": "engineering",
+    "title": "发送时延、传播时延与排队时延 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n1000 字节分组，链路 10Mb/s，距离 2000km，传播速度 2×10^8m/s。\n\n任务：求发送时延、传播时延和总计。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "发送 8000/10^7=0.8ms，传播 2×10^6/(2×10^8)=10ms，合计 10.8ms。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "发送 8000/10^7=0.8ms，传播 2×10^6/(2×10^8)=10ms，合计 10.8ms。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "字节转换成比特需乘 8；忽略处理和排队时才可直接相加，长距离不一定表示发送时延大。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:delay"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "delay"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "发送时延由比特数除以速率决定，传播时延由距离除以信号传播速度决定。",
+      "deliverable": "求发送时延、传播时延和总计。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:bandwidth-delay",
+    "kind": "engineering",
+    "title": "带宽时延积与停等利用率 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n速率 100Mb/s，往返传播时延 RTT=40ms，忽略确认发送时延。\n\n任务：求填满窗口所需在途比特数和字节数。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "100×10^6×0.04=4×10^6 bit，即 500000 字节；窗口远小于此值时可能无法持续占满链路。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "100×10^6×0.04=4×10^6 bit，即 500000 字节；窗口远小于此值时可能无法持续占满链路。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "本题用 RTT 估算填满往返管道所需窗口；若讨论单向链路容量应用单向传播时延，须说明口径。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:bandwidth-delay"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "bandwidth-delay"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "带宽时延积表示链路可容纳的在途数据量；停等协议容易浪费长时延链路容量。",
+      "deliverable": "求填满窗口所需在途比特数和字节数。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:encoding",
+    "kind": "engineering",
+    "title": "奈奎斯特与香农容量边界 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n带宽 B=3000Hz，信噪比 S/N=31，使用香农公式。\n\n任务：求容量上界，若给 30dB 应如何换算？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "C=3000×log2(32)=15000bit/s；30dB 对应线性功率比 10^(30/10)=1000，再代入公式而非直接代入 30。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "C=3000×log2(32)=15000bit/s；30dB 对应线性功率比 10^(30/10)=1000，再代入公式而非直接代入 30。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "C=B log2(1+S/N)，分贝需先转线性比；理论上界不是实际协议吞吐率，编码和开销还会降低可用速率。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:encoding"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "encoding"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "奈奎斯特从无噪声带限信道码元速率出发，香农从带宽与信噪比给出可靠容量上界。",
+      "deliverable": "求容量上界，若给 30dB 应如何换算？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:crc",
+    "kind": "engineering",
+    "title": "CRC 差错检测与模二除法 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n数据 1101，生成比特串 1011，先补 3 个零再做异或长除法。\n\n任务：给出余数和发送码字，并说明接收校验。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "1101000 除以 1011 的余数为 001，发送 1101001；接收方再除以 1011，余数非零可判错，余数零也不能排除所有差错。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "1101000 除以 1011 的余数为 001，发送 1101001；接收方再除以 1011，余数非零可判错，余数零也不能排除所有差错。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "模二加减均为异或，无进位借位；r 次生成多项式附加 r 位余数；检测能力依赖生成多项式。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:crc"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "crc"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "CRC 用生成多项式的模二除法余数检查传输差错，不能保证发现一切错误模式。",
+      "deliverable": "给出余数和发送码字，并说明接收校验。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:sliding-window",
+    "kind": "engineering",
+    "title": "停等、GBN 与选择重传 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n序号字段 3 位；经典 GBN 接收窗口为 1，SR 发送与接收窗口等大。\n\n任务：给出两种协议最大发送窗口及丢帧时差异。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "GBN 最大 7，SR 最大 4；GBN 超时常重传丢帧及之后未确认帧，SR 对各帧单独确认并只重传需要的帧。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "GBN 最大 7，SR 最大 4；GBN 超时常重传丢帧及之后未确认帧，SR 对各帧单独确认并只重传需要的帧。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "防止新旧帧混淆，GBN 最大发送窗口 2^k-1，SR 等大窗口最多 2^(k-1)，前提为经典协议模型。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:sliding-window"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "sliding-window"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "流水 ARQ 用窗口允许多个未确认帧在途，GBN 与 SR 的接收缓存和重传范围不同。",
+      "deliverable": "给出两种协议最大发送窗口及丢帧时差异。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:ethernet-switch",
+    "kind": "engineering",
+    "title": "MAC 学习、交换转发与广播域 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n交换表为空，主机 A 从端口 1 给 B 发帧，B 在端口 2 回帧。\n\n任务：说明两次发帧后的表项与转发行为。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "先学 A→1，未知 B 因此泛洪；B 回帧时学 B→2，并按 A→1 单播转发，此后可对 A、B 都做已知单播。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "先学 A→1，未知 B 因此泛洪；B 回帧时学 B→2，并按 A→1 单播转发，此后可对 A、B 都做已知单播。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "交换机学习源地址而非目的地址；VLAN 划分广播域，生成树等机制用于避免二层环路引起广播风暴。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:ethernet-switch"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "ethernet-switch"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "交换机从收到帧的源 MAC 学习端口，对未知目的地址在同 VLAN 其他端口泛洪。",
+      "deliverable": "说明两次发帧后的表项与转发行为。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:csma",
+    "kind": "engineering",
+    "title": "CSMA/CD、全双工与冲突域 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n共享半双工链路速率 10Mb/s，最大往返传播 51.2μs。\n\n任务：计算最短帧长度，并指出适用条件。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "10^7×51.2×10^-6=512bit=64字节，适用于题干共享半双工碰撞检测模型；全双工链路不存在这种竞争碰撞。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "10^7×51.2×10^-6=512bit=64字节，适用于题干共享半双工碰撞检测模型；全双工链路不存在这种竞争碰撞。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "要在最短帧发送结束前发现最远碰撞，帧发送时长至少覆盖往返传播；半双工模型不能套到全双工交换口。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:csma"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "csma"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "经典共享以太网用载波侦听和碰撞检测；现代全双工交换链路不使用碰撞检测竞争。",
+      "deliverable": "计算最短帧长度，并指出适用条件。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:ipv4-cidr",
+    "kind": "engineering",
+    "title": "IPv4 子网划分与 CIDR · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n地址 192.168.10.130/26，按普通 IPv4 LAN 子网规则。\n\n任务：求网络、广播、主机范围和数量。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "网络 192.168.10.128，广播 192.168.10.191，可用 129..190，共 62 个普通主机地址。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "网络 192.168.10.128，广播 192.168.10.191，可用 129..190，共 62 个普通主机地址。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "/26 掩码 255.255.255.192，每块 64 地址；/31 点到点与 /32 主机路由有例外，不能机械减 2。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc4632.html",
+    "knowledge_ids": [
+      "ref:cs408:ipv4-cidr"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "ipv4-cidr"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "CIDR 前缀确定网络部分，主机部分决定地址块大小，普通子网还需区分网络和广播地址。",
+      "deliverable": "求网络、广播、主机范围和数量。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:longest-prefix",
+    "kind": "engineering",
+    "title": "路由最长前缀匹配 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n路由 0.0.0.0/0→A，10.0.0.0/8→B，10.1.0.0/16→C；目的 10.1.2.3。\n\n任务：选择下一跳并解释。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "选择 C，因为 /16 比 /8 和 /0 更具体；并不是先遇到的项优先，也不是数值最大的下一跳优先。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "选择 C，因为 /16 比 /8 和 /0 更具体；并不是先遇到的项优先，也不是数值最大的下一跳优先。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "先比较匹配长度，同一前缀的多条候选还要按路由策略和度量选择；默认路由只是最宽匹配。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc4632.html",
+    "knowledge_ids": [
+      "ref:cs408:longest-prefix"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "longest-prefix"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "多个路由项匹配目的地址时，优先选择前缀最长的有效项。",
+      "deliverable": "选择下一跳并解释。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:arp",
+    "kind": "engineering",
+    "title": "ARP、下一跳与 IP 地址保持 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n主机 192.168.1.10/24 要访问 8.8.8.8，网关 192.168.1.1。\n\n任务：第一跳以太网目的 MAC 和 IP 目的地址分别是谁？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "MAC 为网关 192.168.1.1 的 MAC，经 ARP 获取；IP 目的仍为 8.8.8.8，不能把 IP 目的也改成网关。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "MAC 为网关 192.168.1.1 的 MAC，经 ARP 获取；IP 目的仍为 8.8.8.8，不能把 IP 目的也改成网关。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "ARP 请求在本地二层广播域内，路由器不按普通转发方式跨网广播；ARP 易被欺骗，不能视为认证协议。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc826.html",
+    "knowledge_ids": [
+      "ref:cs408:arp"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "arp"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "IPv4 同链路转发需知道下一跳 MAC，跨子网时通常解析默认网关而非远端主机的 MAC。",
+      "deliverable": "第一跳以太网目的 MAC 和 IP 目的地址分别是谁？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:fragmentation",
+    "kind": "engineering",
+    "title": "IPv4 分片、MTU 与偏移 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\nIP 数据报总长 4000B，首部固定 20B，链路 MTU=1500B，允许分片。\n\n任务：列出每片数据长度、总长、偏移与 MF。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "三片数据 1480、1480、1020，总长 1500、1500、1040；偏移 0、185、370，MF 依次 1、1、0。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "三片数据 1480、1480、1020，总长 1500、1500、1040；偏移 0、185、370，MF 依次 1、1、0。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "可装数据上限 1480B 且可被 8 整除；重组通常由目的主机完成；DF 置位时不能按此分片。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc791.html",
+    "knowledge_ids": [
+      "ref:cs408:fragmentation"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "fragmentation"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "IPv4 分片以字节偏移的 8 倍单位记录位置，除末片外数据长度通常为 8 的倍数。",
+      "deliverable": "列出每片数据长度、总长、偏移与 MF。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:icmp",
+    "kind": "engineering",
+    "title": "ICMP、TTL 与路径探测 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\ntraceroute 逐步增加探测包 TTL，路由器转发时递减 TTL。\n\n任务：解释如何得知第 k 跳以及星号的含义边界。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "TTL 设为 k 的探测可能在第 k 个路由器到期，借 ICMP 回报识别该跳；星号仅说明超时未收到预期回应，不能直接证明那一跳故障。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "TTL 设为 k 的探测可能在第 k 个路由器到期，借 ICMP 回报识别该跳；星号仅说明超时未收到预期回应，不能直接证明那一跳故障。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "TTL 到期通常返回 Time Exceeded，但防火墙可能过滤或限速；无应答不必然代表目标不可达；ICMP 不保证原包重传。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc792.html",
+    "knowledge_ids": [
+      "ref:cs408:icmp"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "icmp"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "ICMP 承载网络层差错与诊断，TTL 限制分组在路由中的生存跳数。",
+      "deliverable": "解释如何得知第 k 跳以及星号的含义边界。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:ipv6",
+    "kind": "engineering",
+    "title": "IPv6 地址、邻居发现与分片 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\nIPv6 主机发送包超过下一跳 MTU，收到 ICMPv6 Packet Too Big。\n\n任务：应由谁调整或分片？本链路地址解析是否用 ARP？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "由源端调整包大小，必要时源端分片；本链路使用基于 ICMPv6 的邻居发现，不使用 IPv4 ARP。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "由源端调整包大小，必要时源端分片；本链路使用基于 ICMPv6 的邻居发现，不使用 IPv4 ARP。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "发送端据此调整包大小或按需源端分片；IPv6 无广播，使用多播等机制；不能套用 IPv4 路由器分片流程。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc8200.html",
+    "knowledge_ids": [
+      "ref:cs408:ipv6"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "ipv6"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "IPv6 使用 128 位地址，以邻居发现替代 IPv4 ARP，路由器不直接对 IPv6 包分片。",
+      "deliverable": "应由谁调整或分片？本链路地址解析是否用 ARP？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:routing-protocols",
+    "kind": "engineering",
+    "title": "距离向量、链路状态与路由环 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n两台距离向量路由器在目的网络失效后互相声称可经对方到达。\n\n任务：识别问题并比较两类协议掌握的信息。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "这是距离向量的路由环与计数到无穷问题；距离向量主要知道邻居宣告的距离，链路状态维护更完整的区域拓扑并本地计算路径。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "这是距离向量的路由环与计数到无穷问题；距离向量主要知道邻居宣告的距离，链路状态维护更完整的区域拓扑并本地计算路径。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "距离向量可能产生计数到无穷；水平分割、毒性逆转等可缓解但不是任意拓扑下的万能解；链路状态常用 Dijkstra。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:routing-protocols"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "routing-protocols"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "距离向量交换到目标的距离信息，链路状态传播拓扑并各自计算最短路。",
+      "deliverable": "识别问题并比较两类协议掌握的信息。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:udp-tcp",
+    "kind": "engineering",
+    "title": "UDP、TCP 与消息边界 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n应用连续 write 两条各 100 字节消息，接收端调用 read 读取 TCP 流。\n\n任务：接收方如何正确还原两条应用消息？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "应用约定长度前缀、定长或可转义分隔符并维护接收缓冲，按协议累计和拆分；不能假设一次 write 对应一次 read。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "应用约定长度前缀、定长或可转义分隔符并维护接收缓冲，按协议累计和拆分；不能假设一次 write 对应一次 read。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "read 可能读到半条、整条或多条消息；所谓粘包是应用缺乏分帧，不是 TCP 出错；UDP 仍可能丢失、重复或乱序。",
+        "points": 40
+      }
+    ],
+    "source": "https://ocw.mit.edu/courses/6-829-computer-networks-fall-2002/",
+    "knowledge_ids": [
+      "ref:cs408:udp-tcp"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "udp-tcp"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "UDP 保留数据报边界，TCP 提供可靠有序字节流但不保留应用消息边界。",
+      "deliverable": "接收方如何正确还原两条应用消息？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:tcp-handshake",
+    "kind": "engineering",
+    "title": "TCP 三次握手与序号确认 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n客户端 ISN=100，服务端 ISN=500，无握手数据。\n\n任务：写出三次握手的 seq 和 ack。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "客户端 SYN seq=100；服务端 SYN+ACK seq=500、ack=101；客户端 ACK seq=101、ack=501。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "客户端 SYN seq=100；服务端 SYN+ACK seq=500、ack=101；客户端 ACK seq=101、ack=501。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "第三次 ACK 的 ack=服务端 ISN+1；纯 ACK 不消耗序号；异常、重传和同时打开须按 TCP 状态机讨论。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc9293.html",
+    "knowledge_ids": [
+      "ref:cs408:tcp-handshake"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "tcp-handshake"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "握手同步双方初始序号并确认双向收发能力，SYN 本身占用一个序号。",
+      "deliverable": "写出三次握手的 seq 和 ack。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:tcp-close",
+    "kind": "engineering",
+    "title": "TCP 连接关闭、半关闭与 TIME_WAIT · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\nA 主动发送 FIN，B 确认后仍发送剩余数据，再发送 FIN，A 最后确认。\n\n任务：为何 B 确认 A 的 FIN 后还能发送数据？TIME_WAIT 有何作用？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "A 的 FIN 仅结束 A→B 的数据流，B→A 可继续；TIME_WAIT 让旧段在网络中消失，并在对端重传 FIN 时重新发送最终 ACK。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "A 的 FIN 仅结束 A→B 的数据流，B→A 可继续；TIME_WAIT 让旧段在网络中消失，并在对端重传 FIN 时重新发送最终 ACK。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "ACK 与 FIN 可能合并，关闭不一定恰好四个报文；通常主动关闭方进入 TIME_WAIT，具体由实际状态转移决定。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc9293.html",
+    "knowledge_ids": [
+      "ref:cs408:tcp-close"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "tcp-close"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "TCP 双方向独立关闭，FIN 占一个序号；TIME_WAIT 用于处理旧段并允许最终确认重发。",
+      "deliverable": "为何 B 确认 A 的 FIN 后还能发送数据？TIME_WAIT 有何作用？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:tcp-sequence",
+    "kind": "engineering",
+    "title": "TCP 累积确认、重传与字节编号 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n收到 seq=100、有效载荷 50B；之后收到 seq=200、50B，但 150..199 缺失。\n\n任务：两次接收后的累计 ACK 分别是多少？缺口补齐后是多少？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "第一段后 ACK=150；收到乱序段后累计 ACK 仍为 150；补齐 150..199 后连续到 249，累计 ACK=250。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "第一段后 ACK=150；收到乱序段后累计 ACK 仍为 150；补齐 150..199 后连续到 249，累计 ACK=250。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "乱序数据可缓存但累计 ACK 不能跳过缺口；SACK 可额外告知已收到的非连续区间；序号按模 2^32 处理。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc9293.html",
+    "knowledge_ids": [
+      "ref:cs408:tcp-sequence"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "tcp-sequence"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "TCP 序号按字节编号，ACK 表示下一个期望收到的连续字节序号。",
+      "deliverable": "两次接收后的累计 ACK 分别是多少？缺口补齐后是多少？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:flow-control",
+    "kind": "engineering",
+    "title": "TCP 流量控制与接收窗口 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n接收端通告 rwnd=4000B，发送端已有 1500B 尚未确认，暂忽略拥塞窗口。\n\n任务：还能新增发送多少？它与拥塞控制的目标有何区别？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "还能发 2500B；流量控制保护接收端缓冲，拥塞控制调节网络中的负载，二者共同限制发送。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "还能发 2500B；流量控制保护接收端缓冲，拥塞控制调节网络中的负载，二者共同限制发送。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "可发送量还受拥塞窗口和实现约束；简化模型用可用窗口减在途字节，窗口扩大选项影响实际编码范围。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc9293.html",
+    "knowledge_ids": [
+      "ref:cs408:flow-control"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "flow-control"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "接收窗口约束发送端不要压垮接收缓存，零窗口需要探测机制避免窗口更新丢失导致停滞。",
+      "deliverable": "还能新增发送多少？它与拥塞控制的目标有何区别？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:congestion-control",
+    "kind": "engineering",
+    "title": "慢启动、拥塞避免与发送上限 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n经典教学模型：初始 cwnd=1 MSS，每段均被确认，阈值为 8 MSS，忽略延迟 ACK。\n\n任务：给出前四轮开始时窗口，并说明 rwnd=3 MSS 时的限制。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "前四轮开始约为 1、2、4、8 MSS；若 rwnd=3 MSS，发送上限最多为 min(cwnd,3 MSS)，已在途数据还占用窗口。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "前四轮开始约为 1、2、4、8 MSS；若 rwnd=3 MSS，发送上限最多为 min(cwnd,3 MSS)，已在途数据还占用窗口。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "慢启动阶段每 RTT 约翻倍，达到阈值后转加性增长；实际初始窗口与算法可能不同，不能把教学参数当所有实现默认值。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc5681.html",
+    "knowledge_ids": [
+      "ref:cs408:congestion-control"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "congestion-control"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "经典拥塞控制用 cwnd 调节在途数据，实际发送上限受 min(cwnd,rwnd) 约束。",
+      "deliverable": "给出前四轮开始时窗口，并说明 rwnd=3 MSS 时的限制。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:dns",
+    "kind": "engineering",
+    "title": "DNS 递归、迭代与缓存 TTL · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n本机缓存为空，递归解析器也没有某域名缓存，要取得 A 记录。\n\n任务：描述基本解析链并说明 TTL 的作用。\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "客户端问递归解析器，解析器依次获得根、顶级域、权威服务器指引并取回记录，再返回并缓存；TTL 限制缓存有效期，不保证全球立即同步更新。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "客户端问递归解析器，解析器依次获得根、顶级域、权威服务器指引并取回记录，再返回并缓存；TTL 限制缓存有效期，不保证全球立即同步更新。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "DNS 同时可用 UDP 与 TCP，不能说只用 UDP；缓存 TTL 到期通常需重新查询，权威回答与缓存回答须区分。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc1034.html",
+    "knowledge_ids": [
+      "ref:cs408:dns"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "dns"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "客户端常向递归解析器提问，解析器可通过根、顶级域和权威服务器的迭代查询找答案。",
+      "deliverable": "描述基本解析链并说明 TTL 的作用。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:http-tls",
+    "kind": "engineering",
+    "title": "HTTP 语义、连接复用与 TLS · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\nHTTP/1.1 与 HTTP/2 常经 TCP；HTTP/3 经基于 UDP 的 QUIC；HTTPS 校验服务器证书。\n\n任务：为什么不能说所有 HTTP 都基于 TCP？证书校验主要解决什么？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "HTTP/3 使用 QUIC/UDP，因此所有 HTTP 基于 TCP 的说法不成立；证书校验在信任体系下验证服务端身份，协商密钥后保护通信内容。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "HTTP/3 使用 QUIC/UDP，因此所有 HTTP 基于 TCP 的说法不成立；证书校验在信任体系下验证服务端身份，协商密钥后保护通信内容。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "HTTP/2 多路复用仍可能受 TCP 层丢包队头阻塞；TLS 不隐藏所有元数据，证书验证还需主机名与信任链等检查。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc9114.html",
+    "knowledge_ids": [
+      "ref:cs408:http-tls"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "http-tls"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "HTTP 定义请求响应语义，TLS 为传输提供认证、机密性与完整性，连接承载方式随 HTTP 版本不同。",
+      "deliverable": "为什么不能说所有 HTTP 都基于 TCP？证书校验主要解决什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cs408:nat-dhcp",
+    "kind": "engineering",
+    "title": "NAT 端口映射、DHCP 与网关 · 推演练习",
+    "topic": "八股题",
+    "prompt": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n情境：\n两台内网主机均从本地端口 5000 访问同一公网服务器；出口只有一个公网 IPv4。\n\n任务：为何不能只靠同一个公网 IP 区分两个连接？DHCP 网关配置有何用途？\n写出推导、关键假设和结论；接受语义等价的正确回答。",
+    "answer": "回包还需端口及协议等映射信息才能定位内网连接；默认网关指示跨本地子网目的应交给哪一个下一跳路由器。",
+    "rubric": [
+      {
+        "id": "conclusion",
+        "text": "回包还需端口及协议等映射信息才能定位内网连接；默认网关指示跨本地子网目的应交给哪一个下一跳路由器。",
+        "points": 60
+      },
+      {
+        "id": "reasoning",
+        "text": "PAT 为两条流分配可区分的公网端口并维护回程映射；DHCP 可下发掩码、网关与 DNS；NAT 不能替代完整安全策略。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.rfc-editor.org/rfc/rfc3022.html",
+    "knowledge_ids": [
+      "ref:cs408:nat-dhcp"
+    ],
+    "tags": [
+      "计算机网络",
+      "考研408",
+      "nat-dhcp"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 2,
+      "goal": "NAT/PAT 通过地址和端口映射复用公网出口，DHCP 向主机分配地址及网络配置。",
+      "deliverable": "为何不能只靠同一个公网 IP 区分两个连接？DHCP 网关配置有何用途？"
+    }
+  }
+]

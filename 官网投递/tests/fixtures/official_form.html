@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>示例公司 2027 届校园招聘</title>
+  <style>
+    body { font-family: "Microsoft YaHei", sans-serif; max-width: 760px; margin: 40px auto; }
+    .field { margin: 14px 0; }
+    label { display: inline-block; min-width: 110px; }
+    input[type=text], input[type=email], select { width: 280px; padding: 4px; }
+    .select { display: inline-block; width: 280px; padding: 5px; border: 1px solid #888; cursor: pointer; }
+    .options { display: none; position: absolute; width: 280px; margin: 0; padding: 0; list-style: none; border: 1px solid #888; background: #fff; }
+    .options.open { display: block; }
+    .options li { padding: 6px; cursor: pointer; }
+    .options li:hover { background: #eee; }
+    .error { color: #c00; }
+  </style>
+</head>
+<body>
+  <h1>后端开发工程师（2027 届校园招聘）</h1>
+  <form id="applyForm" onsubmit="return false">
+    <div class="field">
+      <label for="name">姓名 *</label>
+      <input id="name" name="name" type="text" required>
+    </div>
+    <div class="field">
+      <label for="phone">手机号 *</label>
+      <input id="phone" name="phone" type="text" required>
+    </div>
+    <div class="field">
+      <label for="email">邮箱 *</label>
+      <input id="email" name="email" type="email" required>
+    </div>
+    <div class="field">
+      <label for="currentCity">现居城市 *</label>
+      <select id="currentCity" name="currentCity" required>
+        <option value="">请选择</option>
+        <option value="上海">上海</option>
+        <option value="北京">北京</option>
+        <option value="长春">长春</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>性别 *</label>
+      <label><input type="radio" name="gender" value="男" required> 男</label>
+      <label><input type="radio" name="gender" value="女"> 女</label>
+    </div>
+    <div class="field">
+      <label for="degree">学历 *</label>
+      <select id="degree" name="degree" required>
+        <option value="">请选择</option>
+        <option value="本科">本科</option>
+        <option value="硕士">硕士</option>
+        <option value="博士">博士</option>
+      </select>
+    </div>
+    <div class="field">
+      <label id="expectedCityLabel">期望城市 *</label>
+      <div id="expectedCity" class="select" role="combobox" aria-haspopup="listbox"
+           aria-labelledby="expectedCityLabel" aria-required="true" tabindex="0">请选择</div>
+      <ul id="expectedCityOptions" class="options" role="listbox">
+        <li role="option" data-value="上海">上海</li>
+        <li role="option" data-value="深圳">深圳</li>
+        <li role="option" data-value="北京">北京</li>
+      </ul>
+    </div>
+    <div class="field">
+      <label for="resume">上传简历 *</label>
+      <input id="resume" name="resume" type="file" accept=".pdf,.doc,.docx" required>
+    </div>
+    <div class="field">
+      <label>
+        <input id="agree" name="agree" type="checkbox" required>
+        我已阅读并同意《隐私政策》 *
+      </label>
+    </div>
+    <div class="field">
+      <button type="button" id="submitBtn" onclick="submitForm()">提交申请</button>
+    </div>
+    <div id="result" class="error"></div>
+  </form>
+  <script>
+    const custom = document.getElementById('expectedCity');
+    const options = document.getElementById('expectedCityOptions');
+    custom.addEventListener('click', () => options.classList.toggle('open'));
+    options.addEventListener('click', (event) => {
+      const item = event.target.closest('li[role=option]');
+      if (!item) return;
+      custom.textContent = item.textContent;
+      custom.dataset.value = item.dataset.value;
+      options.classList.remove('open');
+    });
+    function submitForm() {
+      const result = document.getElementById('result');
+      const name = document.getElementById('name').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const city = document.getElementById('currentCity').value;
+      const degree = document.getElementById('degree').value;
+      const gender = document.querySelector('input[name=gender]:checked');
+      const expected = custom.dataset.value || '';
+      const resume = document.getElementById('resume').files.length;
+      const agree = document.getElementById('agree').checked;
+      const missing = [];
+      if (!name) missing.push('姓名');
+      if (!phone) missing.push('手机号');
+      if (!email) missing.push('邮箱');
+      if (!city) missing.push('现居城市');
+      if (!gender) missing.push('性别');
+      if (!degree) missing.push('学历');
+      if (!expected) missing.push('期望城市');
+      if (!resume) missing.push('简历');
+      if (!agree) missing.push('隐私政策');
+      if (missing.length) {
+        result.textContent = '请完善：' + missing.join('、');
+        return;
+      }
+      result.className = '';
+      result.innerHTML = '提交成功！我们已收到你的申请。<br>' +
+        '姓名：' + name + ' | 手机：' + phone + ' | 邮箱：' + email + '<br>' +
+        '现居城市：' + city + ' | 性别：' + gender.value + ' | 学历：' + degree +
+        ' | 期望城市：' + expected + ' | 简历：' + document.getElementById('resume').files[0].name;
+      document.getElementById('submitBtn').disabled = true;
+    }
+  </script>
+</body>
+</html>

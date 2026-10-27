@@ -130,6 +130,16 @@ impl Database {
             let Ok(mut page) = serde_json::from_str::<Page>(&json) else {
                 continue;
             };
+            // Keep drafts for deleted records dormant instead of recreating their contents
+            // as new root documents on the next launch (including drafts from other writers).
+            let deleted: bool = self.desk.query_row(
+                "SELECT EXISTS(SELECT 1 FROM book_pages p WHERE p.id=?1 AND (p.deleted=1 OR NOT EXISTS(SELECT 1 FROM live_books b WHERE b.id=p.book_id)))",
+                [&page.id],
+                |r| r.get(0),
+            )?;
+            if deleted {
+                continue;
+            }
             if self.writing_page(&page.id)?.is_some_and(|saved| {
                 saved.title == page.title && saved.body == page.body && saved.tags == page.tags
             }) {
@@ -161,7 +171,7 @@ impl Database {
             [WRITING_ROOT],
         )?;
         let book: bool = tx.query_row(
-            "SELECT EXISTS(SELECT 1 FROM books WHERE id=?1 AND deleted=0)",
+            "SELECT EXISTS(SELECT 1 FROM live_books WHERE id=?1 AND deleted=0)",
             [&page.book_id],
             |r| r.get(0),
         )?;
@@ -185,6 +195,9 @@ impl Database {
         book: Option<&str>,
         day: Option<&str>,
     ) -> Result<Page> {
+        if title.trim().is_empty() {
+            return Err(DeskError::InvalidInput("请填写文档名称".into()));
+        }
         if let Some(day) = day {
             let existing = self
                 .desk
@@ -207,6 +220,14 @@ impl Database {
             "INSERT OR IGNORE INTO books(id,title) VALUES(?1,'文档')",
             [WRITING_ROOT],
         )?;
+        let live_book: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM live_books WHERE id=?1 AND deleted=0)",
+            [&page.book_id],
+            |r| r.get(0),
+        )?;
+        if !live_book {
+            return Err(DeskError::InvalidInput("目标图书已不存在".into()));
+        }
         tx.execute(
             "INSERT INTO book_pages(id,book_id,title,body,revision) VALUES(?1,?2,?3,'',1)",
             params![page.id, page.book_id, page.title],
@@ -219,7 +240,7 @@ impl Database {
         Ok(page)
     }
     pub fn writing_pages(&self) -> Result<Vec<Page>> {
-        let mut statement=self.desk.prepare("SELECT p.id,p.book_id,p.title,p.body,p.tags_json,p.revision,p.updated_at FROM book_pages p JOIN books b ON b.id=p.book_id WHERE p.deleted=0 AND b.deleted=0 ORDER BY p.updated_at DESC,p.rowid DESC")?;
+        let mut statement=self.desk.prepare("SELECT p.id,p.book_id,p.title,p.body,p.tags_json,p.revision,p.updated_at FROM book_pages p JOIN live_books b ON b.id=p.book_id WHERE p.deleted=0 AND b.deleted=0 ORDER BY p.updated_at DESC,p.rowid DESC")?;
         Ok(statement
             .query_map([], |r| {
                 Ok(Page {
@@ -238,7 +259,7 @@ impl Database {
         self.desk.total_changes()
     }
     pub fn writing_summaries(&self, query: &str) -> Result<Vec<crate::library::WritingSummary>> {
-        let mut s=self.desk.prepare("SELECT p.id,p.book_id,p.title,substr(p.body,1,120),p.tags_json,p.updated_at FROM book_pages p JOIN books b ON b.id=p.book_id WHERE p.deleted=0 AND b.deleted=0 AND instr(lower(p.title||char(10)||p.body||p.tags_json),lower(?1))>0 ORDER BY p.updated_at DESC,p.rowid DESC")?;
+        let mut s=self.desk.prepare("SELECT p.id,p.book_id,p.title,substr(p.body,1,120),p.tags_json,p.updated_at FROM book_pages p JOIN live_books b ON b.id=p.book_id WHERE p.deleted=0 AND b.deleted=0 AND instr(lower(p.title||char(10)||p.body||p.tags_json),lower(?1))>0 ORDER BY p.updated_at DESC,p.rowid DESC")?;
         Ok(s.query_map([query.trim()], |r| {
             Ok(crate::library::WritingSummary {
                 id: r.get(0)?,
@@ -252,14 +273,17 @@ impl Database {
         .collect::<std::result::Result<Vec<_>, _>>()?)
     }
     pub fn writing_page(&self, id: &str) -> Result<Option<Page>> {
-        Ok(self.desk.query_row("SELECT id,book_id,title,body,tags_json,revision,updated_at FROM book_pages WHERE id=?1 AND deleted=0",[id],|r|Ok(Page{id:r.get(0)?,book_id:r.get(1)?,title:r.get(2)?,body:r.get(3)?,tags:read_tags(r,4)?,revision:r.get(5)?,updated_at:r.get(6)?})).optional()?)
+        Ok(self.desk.query_row("SELECT id,book_id,title,body,tags_json,revision,updated_at FROM book_pages WHERE id=?1 AND deleted=0 AND EXISTS(SELECT 1 FROM live_books WHERE id=book_id AND deleted=0)",[id],|r|Ok(Page{id:r.get(0)?,book_id:r.get(1)?,title:r.get(2)?,body:r.get(3)?,tags:read_tags(r,4)?,revision:r.get(5)?,updated_at:r.get(6)?})).optional()?)
     }
     pub fn finish_writing_save(&mut self, writer: &str, page: &mut Page) -> Result<()> {
-        self.save_book_page(page)?;
-        self.desk.execute(
+        let tx = self.desk.transaction()?;
+        super::library::write_page(&tx, page)?;
+        tx.execute(
             "DELETE FROM book_page_drafts WHERE id=?1",
             [format!("{writer}:{}", page.id)],
         )?;
+        tx.commit()?;
+        super::library::page_saved(page);
         Ok(())
     }
     pub fn group_writing(&mut self, ids: &[String], target: Option<&str>) -> Result<Book> {
@@ -280,21 +304,41 @@ impl Database {
         } else {
             let mut b = Book::new();
             b.title = "新建图书".into();
+            let pages = unique
+                .iter()
+                .map(|id| {
+                    self.writing_page(id)?
+                        .ok_or_else(|| DeskError::InvalidInput("文档已不存在".into()))
+                })
+                .collect::<Result<Vec<_>>>()?;
+            let parent = &pages[0].book_id;
+            if pages.iter().any(|p| &p.book_id != parent) {
+                return Err(DeskError::InvalidInput("请在同一目录中合并文档".into()));
+            }
+            b.parent_id = (parent != WRITING_ROOT).then(|| parent.clone());
             b
         };
         let tx = self.desk.transaction()?;
         tx.execute(
-            "INSERT OR IGNORE INTO books(id,title,tags_json) VALUES(?1,?2,?3)",
-            params![book.id, book.title, serde_json::to_string(&book.tags)?],
+            "INSERT OR IGNORE INTO books(id,title,tags_json,parent_id) VALUES(?1,?2,?3,?4)",
+            params![
+                book.id,
+                book.title,
+                serde_json::to_string(&book.tags)?,
+                book.parent_id
+            ],
         )?;
         for id in unique {
             let current: Option<String> = tx
                 .query_row(
-                    "SELECT book_id FROM book_pages WHERE id=?1 AND deleted=0",
+                    "SELECT book_id FROM book_pages WHERE id=?1 AND deleted=0 AND book_id IN (SELECT id FROM live_books)",
                     [&id],
                     |r| r.get(0),
                 )
                 .optional()?;
+            if current.is_none() {
+                return Err(DeskError::InvalidInput("文档已不存在".into()));
+            }
             if current.as_deref() == Some(&book.id) {
                 continue;
             }

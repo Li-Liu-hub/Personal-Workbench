@@ -1,0 +1,600 @@
+[
+  {
+    "id": "coding:v1:java-sum",
+    "kind": "engineering",
+    "topic": "编码题",
+    "title": "Java · 求和与整数范围",
+    "prompt": "输入两个绝对值不超过 10 亿的整数，输出它们的和。\n编写完整程序，从标准输入读取，只向标准输出打印结果。主类名称为 Main，使用 Java 17。运行样例可反复调试，提交后将本次源码与测试结果记入记录本。",
+    "answer": "import java.util.*;\nimport java.math.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner in = new Scanner(System.in);\n        long a=in.nextLong(), b=in.nextLong();\n        System.out.println(a+b);\n    }\n}\n",
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/",
+    "rubric": [
+      {
+        "id": "cases",
+        "text": "按实际运行通过的样例比例计分；编译错误、运行失败和超时不得分",
+        "points": 100
+      }
+    ],
+    "knowledge_ids": [
+      "ref:java:01"
+    ],
+    "tags": [
+      "Java",
+      "编码题",
+      "实际运行"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 1,
+      "goal": "输入两个绝对值不超过 10 亿的整数，输出它们的和。",
+      "deliverable": "完整源码及标准输出；用样例验证边界。"
+    },
+    "coding": {
+      "language": "Java",
+      "starter": "import java.util.*;\nimport java.math.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner in = new Scanner(System.in);\n        // TODO: read input and print the answer\n    }\n}\n",
+      "cases": [
+        {
+          "input": "2 3\n",
+          "expected": "5\n"
+        },
+        {
+          "input": "-7 7\n",
+          "expected": "0\n"
+        },
+        {
+          "input": "1000000000 1000000000\n",
+          "expected": "2000000000\n"
+        }
+      ]
+    }
+  },
+  {
+    "id": "coding:v1:java-frequency",
+    "kind": "engineering",
+    "topic": "编码题",
+    "title": "Java · 单词频次",
+    "prompt": "输入 n（0～100），随后输入 n 个小写单词；按字典序输出每个不同单词及次数，每行形如 apple 2。n=0 时不输出。\n编写完整程序，从标准输入读取，只向标准输出打印结果。主类名称为 Main，使用 Java 17。运行样例可反复调试，提交后将本次源码与测试结果记入记录本。",
+    "answer": "import java.util.*;\nimport java.math.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner in = new Scanner(System.in);\n        int n=in.nextInt();\n        Map<String,Integer> counts=new TreeMap<>();\n        for(int i=0;i<n;i++) counts.merge(in.next(),1,Integer::sum);\n        counts.forEach((k,v)->System.out.println(k+\" \"+v));\n    }\n}\n",
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/",
+    "rubric": [
+      {
+        "id": "cases",
+        "text": "按实际运行通过的样例比例计分；编译错误、运行失败和超时不得分",
+        "points": 100
+      }
+    ],
+    "knowledge_ids": [
+      "ref:java:07",
+      "ref:java:11"
+    ],
+    "tags": [
+      "Java",
+      "编码题",
+      "实际运行"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "输入 n（0～100），随后输入 n 个小写单词；按字典序输出每个不同单词及次数，每行形如 apple 2。n=0 时不输出。",
+      "deliverable": "完整源码及标准输出；用样例验证边界。"
+    },
+    "coding": {
+      "language": "Java",
+      "starter": "import java.util.*;\nimport java.math.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner in = new Scanner(System.in);\n        // TODO: read input and print the answer\n    }\n}\n",
+      "cases": [
+        {
+          "input": "5 apple pear apple banana pear\n",
+          "expected": "apple 2\nbanana 1\npear 2\n"
+        },
+        {
+          "input": "0\n",
+          "expected": ""
+        },
+        {
+          "input": "3 x x x\n",
+          "expected": "x 3\n"
+        }
+      ]
+    }
+  },
+  {
+    "id": "coding:v1:java-distinct",
+    "kind": "engineering",
+    "topic": "编码题",
+    "title": "Java · 保序去重",
+    "prompt": "输入 n（0～100）和 n 个整数；保留第一次出现的顺序，输出去重结果，以单个空格分隔。n=0 时输出空行。\n编写完整程序，从标准输入读取，只向标准输出打印结果。主类名称为 Main，使用 Java 17。运行样例可反复调试，提交后将本次源码与测试结果记入记录本。",
+    "answer": "import java.util.*;\nimport java.math.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner in = new Scanner(System.in);\n        int n=in.nextInt();\n        Set<Integer> seen=new LinkedHashSet<>();\n        for(int i=0;i<n;i++) seen.add(in.nextInt());\n        StringJoiner out=new StringJoiner(\" \");\n        for(int x:seen) out.add(String.valueOf(x));\n        System.out.println(out);\n    }\n}\n",
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/",
+    "rubric": [
+      {
+        "id": "cases",
+        "text": "按实际运行通过的样例比例计分；编译错误、运行失败和超时不得分",
+        "points": 100
+      }
+    ],
+    "knowledge_ids": [
+      "ref:java:08",
+      "ref:java:set-variants"
+    ],
+    "tags": [
+      "Java",
+      "编码题",
+      "实际运行"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "输入 n（0～100）和 n 个整数；保留第一次出现的顺序，输出去重结果，以单个空格分隔。n=0 时输出空行。",
+      "deliverable": "完整源码及标准输出；用样例验证边界。"
+    },
+    "coding": {
+      "language": "Java",
+      "starter": "import java.util.*;\nimport java.math.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner in = new Scanner(System.in);\n        // TODO: read input and print the answer\n    }\n}\n",
+      "cases": [
+        {
+          "input": "6 3 1 3 2 1 2\n",
+          "expected": "3 1 2\n"
+        },
+        {
+          "input": "0\n",
+          "expected": "\n"
+        },
+        {
+          "input": "4 -1 -1 0 -1\n",
+          "expected": "-1 0\n"
+        }
+      ]
+    }
+  },
+  {
+    "id": "coding:v1:java-brackets",
+    "kind": "engineering",
+    "topic": "编码题",
+    "title": "Java · 括号匹配",
+    "prompt": "输入一行仅包含 ()[]{} 的字符串，长度不超过 100；括号正确嵌套输出 true，否则 false。空行输出 true。\n编写完整程序，从标准输入读取，只向标准输出打印结果。主类名称为 Main，使用 Java 17。运行样例可反复调试，提交后将本次源码与测试结果记入记录本。",
+    "answer": "import java.util.*;\nimport java.math.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner in = new Scanner(System.in);\n        String s=in.nextLine();\n        Deque<Character> stack=new ArrayDeque<>();\n        boolean ok=true;\n        for(char c:s.toCharArray()) {\n            if(c=='('||c=='['||c=='{') stack.push(c);\n            else if(stack.isEmpty()) {ok=false;break;}\n            else {char p=stack.pop();if(c==')'&&p!='('||c==']'&&p!='['||c=='}'&&p!='{'){ok=false;break;}}\n        }\n        System.out.println(ok&&stack.isEmpty());\n    }\n}\n",
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/",
+    "rubric": [
+      {
+        "id": "cases",
+        "text": "按实际运行通过的样例比例计分；编译错误、运行失败和超时不得分",
+        "points": 100
+      }
+    ],
+    "knowledge_ids": [
+      "ref:java:09",
+      "ref:java:deque"
+    ],
+    "tags": [
+      "Java",
+      "编码题",
+      "实际运行"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 1,
+      "goal": "输入一行仅包含 ()[]{} 的字符串，长度不超过 100；括号正确嵌套输出 true，否则 false。空行输出 true。",
+      "deliverable": "完整源码及标准输出；用样例验证边界。"
+    },
+    "coding": {
+      "language": "Java",
+      "starter": "import java.util.*;\nimport java.math.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner in = new Scanner(System.in);\n        // TODO: read input and print the answer\n    }\n}\n",
+      "cases": [
+        {
+          "input": "([]){}\n",
+          "expected": "true\n"
+        },
+        {
+          "input": "([)]\n",
+          "expected": "false\n"
+        },
+        {
+          "input": "\n",
+          "expected": "true\n"
+        },
+        {
+          "input": ")\n",
+          "expected": "false\n"
+        }
+      ]
+    }
+  },
+  {
+    "id": "coding:v1:java-first-index",
+    "kind": "engineering",
+    "topic": "编码题",
+    "title": "Java · 第一个匹配下标",
+    "prompt": "输入 n（0～100）、n 个升序整数、目标值；输出目标第一次出现的从 0 开始下标，不存在输出 -1。要求用二分查找实现。样例只验证输出，复杂度需自行检查。\n编写完整程序，从标准输入读取，只向标准输出打印结果。主类名称为 Main，使用 Java 17。运行样例可反复调试，提交后将本次源码与测试结果记入记录本。",
+    "answer": "import java.util.*;\nimport java.math.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner in = new Scanner(System.in);\n        int n=in.nextInt(); int[] a=new int[n];\n        for(int i=0;i<n;i++) a[i]=in.nextInt();\n        int target=in.nextInt(), l=0,r=n;\n        while(l<r){int m=l+(r-l)/2;if(a[m]<target)l=m+1;else r=m;}\n        System.out.println(l<n&&a[l]==target?l:-1);\n    }\n}\n",
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/",
+    "rubric": [
+      {
+        "id": "cases",
+        "text": "按实际运行通过的样例比例计分；编译错误、运行失败和超时不得分",
+        "points": 100
+      }
+    ],
+    "knowledge_ids": [
+      "ref:java:02",
+      "ref:java:06"
+    ],
+    "tags": [
+      "Java",
+      "编码题",
+      "实际运行"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "输入 n（0～100）、n 个升序整数、目标值；输出目标第一次出现的从 0 开始下标，不存在输出 -1。要求用二分查找实现。样例只验证输出，复杂度需自行检查。",
+      "deliverable": "完整源码及标准输出；用样例验证边界。"
+    },
+    "coding": {
+      "language": "Java",
+      "starter": "import java.util.*;\nimport java.math.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner in = new Scanner(System.in);\n        // TODO: read input and print the answer\n    }\n}\n",
+      "cases": [
+        {
+          "input": "6 1 2 2 2 4 8 2\n",
+          "expected": "1\n"
+        },
+        {
+          "input": "3 1 3 5 4\n",
+          "expected": "-1\n"
+        },
+        {
+          "input": "0 9\n",
+          "expected": "-1\n"
+        },
+        {
+          "input": "1 7 7\n",
+          "expected": "0\n"
+        }
+      ]
+    }
+  },
+  {
+    "id": "coding:v1:java-money",
+    "kind": "engineering",
+    "topic": "编码题",
+    "title": "Java · 精确金额计算",
+    "prompt": "输入十进制单价（0～100000，最多两位小数）和数量（0～100）；精确相乘后保留两位小数输出，禁止使用浮点数进行金额运算。样例验证输出，类型选择需自行检查。\n编写完整程序，从标准输入读取，只向标准输出打印结果。主类名称为 Main，使用 Java 17。运行样例可反复调试，提交后将本次源码与测试结果记入记录本。",
+    "answer": "import java.util.*;\nimport java.math.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner in = new Scanner(System.in);\n        BigDecimal price=new BigDecimal(in.next());\n        int count=in.nextInt();\n        System.out.println(price.multiply(BigDecimal.valueOf(count)).setScale(2,RoundingMode.HALF_UP).toPlainString());\n    }\n}\n",
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/",
+    "rubric": [
+      {
+        "id": "cases",
+        "text": "按实际运行通过的样例比例计分；编译错误、运行失败和超时不得分",
+        "points": 100
+      }
+    ],
+    "knowledge_ids": [
+      "ref:java:bigdecimal"
+    ],
+    "tags": [
+      "Java",
+      "编码题",
+      "实际运行"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "输入十进制单价（0～100000，最多两位小数）和数量（0～100）；精确相乘后保留两位小数输出，禁止使用浮点数进行金额运算。样例验证输出，类型选择需自行检查。",
+      "deliverable": "完整源码及标准输出；用样例验证边界。"
+    },
+    "coding": {
+      "language": "Java",
+      "starter": "import java.util.*;\nimport java.math.*;\npublic class Main {\n    public static void main(String[] args) {\n        Scanner in = new Scanner(System.in);\n        // TODO: read input and print the answer\n    }\n}\n",
+      "cases": [
+        {
+          "input": "0.10 3\n",
+          "expected": "0.30\n"
+        },
+        {
+          "input": "19.99 10\n",
+          "expected": "199.90\n"
+        },
+        {
+          "input": "6 0\n",
+          "expected": "0.00\n"
+        }
+      ]
+    }
+  },
+  {
+    "id": "coding:v1:c-array-sum",
+    "kind": "engineering",
+    "topic": "编码题",
+    "title": "C · 数组求和",
+    "prompt": "输入 n（0～100）和 n 个绝对值不超过 10000 的整数，输出总和。n=0 时输出 0。\n编写完整程序，从标准输入读取，只向标准输出打印结果。使用 TinyCC 支持的 C99 子集。运行样例可反复调试，提交后将本次源码与测试结果记入记录本。",
+    "answer": "#include <stdio.h>\n#include <string.h>\n#include <stdlib.h>\nint main(void) {\n    int n,i,x,sum=0; scanf(\"%d\",&n);\n    for(i=0;i<n;i++){scanf(\"%d\",&x);sum+=x;}\n    printf(\"%d\\n\",sum);\n    return 0;\n}\n",
+    "source": "https://bellard.org/tcc/tcc-doc.html",
+    "rubric": [
+      {
+        "id": "cases",
+        "text": "按实际运行通过的样例比例计分；编译错误、运行失败和超时不得分",
+        "points": 100
+      }
+    ],
+    "knowledge_ids": [
+      "ref:c:02",
+      "ref:c:04"
+    ],
+    "tags": [
+      "C",
+      "编码题",
+      "实际运行"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 1,
+      "goal": "输入 n（0～100）和 n 个绝对值不超过 10000 的整数，输出总和。n=0 时输出 0。",
+      "deliverable": "完整源码及标准输出；用样例验证边界。"
+    },
+    "coding": {
+      "language": "C",
+      "starter": "#include <stdio.h>\n#include <string.h>\n#include <stdlib.h>\nint main(void) {\n    /* TODO: read input and print the answer */\n    return 0;\n}\n",
+      "cases": [
+        {
+          "input": "5 1 2 -3 4 5\n",
+          "expected": "9\n"
+        },
+        {
+          "input": "0\n",
+          "expected": "0\n"
+        },
+        {
+          "input": "2 -8 -9\n",
+          "expected": "-17\n"
+        }
+      ]
+    }
+  },
+  {
+    "id": "coding:v1:c-array-max",
+    "kind": "engineering",
+    "topic": "编码题",
+    "title": "C · 最大值与负数边界",
+    "prompt": "输入 n（1～100）和 n 个整数（-10000～10000），输出最大值。\n编写完整程序，从标准输入读取，只向标准输出打印结果。使用 TinyCC 支持的 C99 子集。运行样例可反复调试，提交后将本次源码与测试结果记入记录本。",
+    "answer": "#include <stdio.h>\n#include <string.h>\n#include <stdlib.h>\nint main(void) {\n    int n,i,x,best; scanf(\"%d%d\",&n,&best);\n    for(i=1;i<n;i++){scanf(\"%d\",&x);if(x>best)best=x;}\n    printf(\"%d\\n\",best);\n    return 0;\n}\n",
+    "source": "https://bellard.org/tcc/tcc-doc.html",
+    "rubric": [
+      {
+        "id": "cases",
+        "text": "按实际运行通过的样例比例计分；编译错误、运行失败和超时不得分",
+        "points": 100
+      }
+    ],
+    "knowledge_ids": [
+      "ref:c:04",
+      "ref:c:06"
+    ],
+    "tags": [
+      "C",
+      "编码题",
+      "实际运行"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "输入 n（1～100）和 n 个整数（-10000～10000），输出最大值。",
+      "deliverable": "完整源码及标准输出；用样例验证边界。"
+    },
+    "coding": {
+      "language": "C",
+      "starter": "#include <stdio.h>\n#include <string.h>\n#include <stdlib.h>\nint main(void) {\n    /* TODO: read input and print the answer */\n    return 0;\n}\n",
+      "cases": [
+        {
+          "input": "3 -9 -2 -5\n",
+          "expected": "-2\n"
+        },
+        {
+          "input": "1 -8\n",
+          "expected": "-8\n"
+        },
+        {
+          "input": "4 1 8 8 0\n",
+          "expected": "8\n"
+        }
+      ]
+    }
+  },
+  {
+    "id": "coding:v1:c-reverse",
+    "kind": "engineering",
+    "topic": "编码题",
+    "title": "C · 反转英文字符串",
+    "prompt": "输入一行长度 0～100 的 ASCII 字符串，可能含空格；反转后输出一行，不能把末尾换行反转到开头。\n编写完整程序，从标准输入读取，只向标准输出打印结果。使用 TinyCC 支持的 C99 子集。运行样例可反复调试，提交后将本次源码与测试结果记入记录本。",
+    "answer": "#include <stdio.h>\n#include <string.h>\n#include <stdlib.h>\nint main(void) {\n    char s[104]; int i;\n    if(!fgets(s,sizeof(s),stdin)) s[0]=0;\n    s[strcspn(s,\"\\r\\n\")]=0;\n    for(i=(int)strlen(s)-1;i>=0;i--) putchar(s[i]);\n    putchar(10);\n    return 0;\n}\n",
+    "source": "https://bellard.org/tcc/tcc-doc.html",
+    "rubric": [
+      {
+        "id": "cases",
+        "text": "按实际运行通过的样例比例计分；编译错误、运行失败和超时不得分",
+        "points": 100
+      }
+    ],
+    "knowledge_ids": [
+      "ref:c:05",
+      "ref:c:12"
+    ],
+    "tags": [
+      "C",
+      "编码题",
+      "实际运行"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "输入一行长度 0～100 的 ASCII 字符串，可能含空格；反转后输出一行，不能把末尾换行反转到开头。",
+      "deliverable": "完整源码及标准输出；用样例验证边界。"
+    },
+    "coding": {
+      "language": "C",
+      "starter": "#include <stdio.h>\n#include <string.h>\n#include <stdlib.h>\nint main(void) {\n    /* TODO: read input and print the answer */\n    return 0;\n}\n",
+      "cases": [
+        {
+          "input": "hello world\n",
+          "expected": "dlrow olleh\n"
+        },
+        {
+          "input": "\n",
+          "expected": "\n"
+        },
+        {
+          "input": "a b!\n",
+          "expected": "!b a\n"
+        }
+      ]
+    }
+  },
+  {
+    "id": "coding:v1:c-digits",
+    "kind": "engineering",
+    "topic": "编码题",
+    "title": "C · 统计数字字符",
+    "prompt": "输入一行长度不超过 100 的 ASCII 文本，输出其中数字字符 0～9 的数量。\n编写完整程序，从标准输入读取，只向标准输出打印结果。使用 TinyCC 支持的 C99 子集。运行样例可反复调试，提交后将本次源码与测试结果记入记录本。",
+    "answer": "#include <stdio.h>\n#include <string.h>\n#include <stdlib.h>\nint main(void) {\n    char s[104]; int i,count=0;\n    if(!fgets(s,sizeof(s),stdin)) s[0]=0;\n    for(i=0;s[i];i++) if(s[i]>='0'&&s[i]<='9') count++;\n    printf(\"%d\\n\",count);\n    return 0;\n}\n",
+    "source": "https://bellard.org/tcc/tcc-doc.html",
+    "rubric": [
+      {
+        "id": "cases",
+        "text": "按实际运行通过的样例比例计分；编译错误、运行失败和超时不得分",
+        "points": 100
+      }
+    ],
+    "knowledge_ids": [
+      "ref:c:05",
+      "ref:c:12"
+    ],
+    "tags": [
+      "C",
+      "编码题",
+      "实际运行"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 1,
+      "goal": "输入一行长度不超过 100 的 ASCII 文本，输出其中数字字符 0～9 的数量。",
+      "deliverable": "完整源码及标准输出；用样例验证边界。"
+    },
+    "coding": {
+      "language": "C",
+      "starter": "#include <stdio.h>\n#include <string.h>\n#include <stdlib.h>\nint main(void) {\n    /* TODO: read input and print the answer */\n    return 0;\n}\n",
+      "cases": [
+        {
+          "input": "room 20886\n",
+          "expected": "5\n"
+        },
+        {
+          "input": "hello\n",
+          "expected": "0\n"
+        },
+        {
+          "input": "0123456789\n",
+          "expected": "10\n"
+        }
+      ]
+    }
+  },
+  {
+    "id": "coding:v1:c-gcd",
+    "kind": "engineering",
+    "topic": "编码题",
+    "title": "C · 最大公约数",
+    "prompt": "输入两个 0～100000 的非负整数，用辗转相除法求最大公约数并输出，约定 gcd(0,0)=0。样例只验证结果。\n编写完整程序，从标准输入读取，只向标准输出打印结果。使用 TinyCC 支持的 C99 子集。运行样例可反复调试，提交后将本次源码与测试结果记入记录本。",
+    "answer": "#include <stdio.h>\n#include <string.h>\n#include <stdlib.h>\nint main(void) {\n    int a,b,t; scanf(\"%d%d\",&a,&b);\n    while(b){t=a%b;a=b;b=t;}\n    printf(\"%d\\n\",a);\n    return 0;\n}\n",
+    "source": "https://bellard.org/tcc/tcc-doc.html",
+    "rubric": [
+      {
+        "id": "cases",
+        "text": "按实际运行通过的样例比例计分；编译错误、运行失败和超时不得分",
+        "points": 100
+      }
+    ],
+    "knowledge_ids": [
+      "ref:c:02",
+      "ref:c:03"
+    ],
+    "tags": [
+      "C",
+      "编码题",
+      "实际运行"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "输入两个 0～100000 的非负整数，用辗转相除法求最大公约数并输出，约定 gcd(0,0)=0。样例只验证结果。",
+      "deliverable": "完整源码及标准输出；用样例验证边界。"
+    },
+    "coding": {
+      "language": "C",
+      "starter": "#include <stdio.h>\n#include <string.h>\n#include <stdlib.h>\nint main(void) {\n    /* TODO: read input and print the answer */\n    return 0;\n}\n",
+      "cases": [
+        {
+          "input": "48 18\n",
+          "expected": "6\n"
+        },
+        {
+          "input": "0 9\n",
+          "expected": "9\n"
+        },
+        {
+          "input": "0 0\n",
+          "expected": "0\n"
+        },
+        {
+          "input": "17 13\n",
+          "expected": "1\n"
+        }
+      ]
+    }
+  },
+  {
+    "id": "coding:v1:c-sort",
+    "kind": "engineering",
+    "topic": "编码题",
+    "title": "C · 排序与重复元素",
+    "prompt": "输入 n（0～100）和 n 个 -10000～10000 的整数，按升序输出，元素间一个空格；n=0 时输出空行。\n编写完整程序，从标准输入读取，只向标准输出打印结果。使用 TinyCC 支持的 C99 子集。运行样例可反复调试，提交后将本次源码与测试结果记入记录本。",
+    "answer": "#include <stdio.h>\n#include <string.h>\n#include <stdlib.h>\nint main(void) {\n    int a[100],n,i,j,t; scanf(\"%d\",&n);\n    for(i=0;i<n;i++)scanf(\"%d\",&a[i]);\n    for(i=0;i<n;i++)for(j=i+1;j<n;j++)if(a[i]>a[j]){t=a[i];a[i]=a[j];a[j]=t;}\n    for(i=0;i<n;i++)printf(i?\" %d\":\"%d\",a[i]);\n    putchar(10);\n    return 0;\n}\n",
+    "source": "https://bellard.org/tcc/tcc-doc.html",
+    "rubric": [
+      {
+        "id": "cases",
+        "text": "按实际运行通过的样例比例计分；编译错误、运行失败和超时不得分",
+        "points": 100
+      }
+    ],
+    "knowledge_ids": [
+      "ref:c:04",
+      "ref:c:14"
+    ],
+    "tags": [
+      "C",
+      "编码题",
+      "实际运行"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "输入 n（0～100）和 n 个 -10000～10000 的整数，按升序输出，元素间一个空格；n=0 时输出空行。",
+      "deliverable": "完整源码及标准输出；用样例验证边界。"
+    },
+    "coding": {
+      "language": "C",
+      "starter": "#include <stdio.h>\n#include <string.h>\n#include <stdlib.h>\nint main(void) {\n    /* TODO: read input and print the answer */\n    return 0;\n}\n",
+      "cases": [
+        {
+          "input": "5 3 -1 3 0 2\n",
+          "expected": "-1 0 2 3 3\n"
+        },
+        {
+          "input": "0\n",
+          "expected": "\n"
+        },
+        {
+          "input": "1 7\n",
+          "expected": "7\n"
+        }
+      ]
+    }
+  }
+]

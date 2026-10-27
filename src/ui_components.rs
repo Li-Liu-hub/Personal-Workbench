@@ -4,6 +4,7 @@ pub mod chrome;
 mod collection;
 mod credentials;
 pub mod table;
+pub mod tutor;
 mod website;
 pub use collection::EntryLayout;
 pub use collection::{collection, entry, tagged_entry, view_switcher};

@@ -4,6 +4,10 @@ impl PersonalDeskApp {
     pub(in crate::app) fn render_practice_selector(&mut self, ui: &mut egui::Ui, s: &mut Session) {
         let before = (s.topic.clone(), s.filter.clone());
         ui.add_enabled_ui(!self.study.busy, |ui| {
+            if ui.button("编码练习").clicked() {
+                s.topic = "编码题".into();
+                s.filter = Filter::default();
+            }
             egui::ComboBox::from_id_salt("study-topic")
                 .width(128.)
                 .height(340.)

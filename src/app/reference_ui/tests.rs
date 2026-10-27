@@ -73,6 +73,30 @@ fn reference_workspace_searches_edits_saves_and_preserves_unfinished_drafts() {
     assert!(!app.reference.rows.is_empty());
     assert!(app.reference.rows.iter().all(|r| r.language == "Rust"));
     assert!(app.reference.rows.iter().any(|r| r.id == "ref:rust:10"));
+    app.search_query.clear();
+    app.reference.filter.language = "数据结构".into();
+    app.reference.filter.category.clear();
+    input_frame(&mut app, &ctx, 1.1, vec![], vec![]);
+    assert_eq!(app.reference.rows.len(), 24);
+    assert!(app.reference.rows.iter().all(|r| r.language == "数据结构"));
+    app.reference.filter.language = "MySQL".into();
+    app.reference.filter.category.clear();
+    app.search_query = "MVCC".into();
+    input_frame(&mut app, &ctx, 1.2, vec![], vec![]);
+    assert!(
+        app.reference
+            .rows
+            .iter()
+            .any(|r| r.id == "ref:mysql_internals:mvcc")
+    );
+    let mut state = std::mem::take(&mut app.reference);
+    app.select_reference(&mut state, "ref:mysql_internals:mvcc");
+    assert_eq!(state.practices.len(), 1);
+    assert_eq!(
+        state.practices[0].knowledge_ids,
+        vec!["ref:mysql_internals:mvcc"]
+    );
+    app.reference = state;
 }
 
 #[test]
@@ -94,7 +118,7 @@ fn reference_workspace_controls_and_preview_fit_supported_window_sizes() {
             );
             out.textures_delta.clear();
         }
-        for label in ["+ 添加条目", "全部语言", "全部分类", "编辑", "复制示例"] {
+        for label in ["+ 添加条目", "全部领域", "全部分类", "编辑", "复制示例"] {
             let pos = center(&out, label);
             assert!(
                 pos.x > 184. && pos.x < size[0] - 16. && pos.y > 0. && pos.y < size[1] - 24.,
@@ -137,7 +161,8 @@ fn resetting_facets_keeps_language_and_search_and_cancel_refreshes_selection() {
     assert!(app.reference.filter.entry_type.is_empty());
     assert!(app.reference.filter.tag.is_empty());
     assert!(!app.reference.rows.is_empty());
-    assert_eq!(app.reference.total, 173);
+    // Java 语言条目 = reference 40 + java_ecosystem 133 + coding_standards 45。
+    assert_eq!(app.reference.total, 234);
 
     let original_id = app.reference.selected.as_ref().unwrap().id.clone();
     let original_tags = app.reference.selected.as_ref().unwrap().tags.clone();

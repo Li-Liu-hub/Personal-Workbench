@@ -2,7 +2,35 @@
 use crate::study::{Card, Grade};
 use serde::Deserialize;
 
+/// Keep each supported deduction when independently reviewing a high score.
+pub(super) fn conservative_review(initial: Grade, mut review: Grade) -> Grade {
+    let mut retained = false;
+    for check in &mut review.checks {
+        if let Some(previous) = initial.checks.iter().find(|c| c.id == check.id)
+            && previous.earned < check.earned
+        {
+            *check = previous.clone();
+            retained = true;
+        }
+    }
+    for point in initial.weak_points {
+        if !review.weak_points.contains(&point) {
+            review.weak_points.push(point);
+        }
+    }
+    if retained && review.summary != initial.summary {
+        review.summary = format!(
+            "高分复核保留两次检查发现的问题，详见各项反馈。\n{}",
+            initial.summary
+        );
+    }
+    review
+}
+
 pub(super) fn checked_grade(content: &str, card: &Card, answer: &str) -> Result<Grade, String> {
+    if super::sentence::handles(card) {
+        return super::sentence::checked_grade(content, card, answer);
+    }
     #[derive(Deserialize)]
     struct ModelCheck {
         a_id: String,
@@ -57,6 +85,7 @@ pub(super) fn checked_grade(content: &str, card: &Card, answer: &str) -> Result<
         assessment: None,
         sql: None,
         project: None,
+        coding: None,
     };
     grade.completion(card, answer).map_err(|e| e.to_string())?;
     Ok(grade)
@@ -66,6 +95,9 @@ pub fn grade_request(
     answer: &str,
     execution: Option<&crate::sql_practice::Report>,
 ) -> serde_json::Value {
+    if super::sentence::handles(card) {
+        return super::sentence::request(card, answer);
+    }
     // A small model selects actual excerpts rather than rewriting command punctuation.
     // Keep the choices bounded so long project sources do not exhaust the context.
     let evidence = evidence_choices(answer);
@@ -96,7 +128,7 @@ pub fn grade_request(
     ]})
 }
 
-fn evidence_choices(answer: &str) -> Vec<String> {
+pub(super) fn evidence_choices(answer: &str) -> Vec<String> {
     let pieces: Vec<String> = answer
         .split_inclusive(['\n', '。', '；', ';'])
         .flat_map(|line| {

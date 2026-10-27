@@ -8,7 +8,8 @@ fn encyclopedia_ecosystem_is_searchable_linked_and_replay_preserves_edits() {
         db.reference_count("").unwrap(),
         crate::reference::BUILTIN_COUNT
     );
-    assert_eq!(db.reference_count("Java").unwrap(), 173);
+    // Java 语言计数 = reference 40 + java_ecosystem 133 + coding_standards 45。
+    assert_eq!(db.reference_count("Java").unwrap(), 234);
     let additions: Vec<crate::reference::Entry> =
         serde_json::from_str(include_str!("../../assets/java_ecosystem.json")).unwrap();
     assert_eq!(additions.len(), 133);

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Moka 校园招聘 - 后端开发工程师</title>
+  <style>
+    body { font-family: "Microsoft YaHei", sans-serif; max-width: 860px; margin: 36px auto; color: #222; }
+    .blockTitle { font-size: 18px; font-weight: 700; margin: 26px 0 12px; border-left: 4px solid #1f6feb; padding-left: 10px; }
+    .apply-field { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+    .apply-field .title { min-width: 150px; }
+    .required-asterisk { color: #d00; margin-left: 2px; }
+    input[type=text], select { min-width: 220px; padding: 6px; border: 1px solid #bbb; border-radius: 4px; }
+    .hint { color: #777; font-size: 12px; }
+    #loginModal { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: center; justify-content: center; }
+    #loginModal .dialog-box { background: #fff; padding: 24px; border-radius: 8px; min-width: 320px; }
+    #loginModal.show { display: flex; }
+    #result { margin-top: 18px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <h1>后端开发工程师（2027 届校园招聘）</h1>
+  <p class="hint">本地 Moka 风格 fixture，用于验证一键填写；不会向任何真实公司提交。</p>
+
+  <form id="applyForm" onsubmit="return false">
+    <section class="form-section">
+      <div class="blockTitle">个人信息</div>
+      <div class="apply-field">
+        <label class="title">姓名 <span class="required-asterisk">*</span></label>
+        <input id="name" name="name" type="text" required>
+      </div>
+      <div class="apply-field">
+        <label class="title">最高学历 <span class="required-asterisk">*</span></label>
+        <select id="highestDegree" name="highestDegree" required>
+          <option value="">请选择</option>
+          <option value="本科">本科</option>
+          <option value="硕士">硕士</option>
+          <option value="博士">博士</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="form-section">
+      <div class="blockTitle">教育背景</div>
+      <div class="apply-field">
+        <label class="title">毕业院校 <span class="required-asterisk">*</span></label>
+        <input id="school" name="school" type="text" required>
+      </div>
+      <div class="apply-field">
+        <label class="title">专业 <span class="required-asterisk">*</span></label>
+        <input id="major" name="major" type="text" required>
+      </div>
+      <div class="apply-field">
+        <label class="title">学历 <span class="required-asterisk">*</span></label>
+        <select id="eduDegree" name="eduDegree" required>
+          <option value="">请选择</option>
+          <option value="本科">本科</option>
+          <option value="硕士">硕士</option>
+          <option value="博士">博士</option>
+        </select>
+      </div>
+      <div class="apply-field" id="startDateGroup">
+        <label class="title">开始时间 <span class="required-asterisk">*</span></label>
+        <select id="eduStartYear" aria-label="年" required>
+          <option value="">年</option>
+          <option value="2023">2023</option>
+          <option value="2024">2024</option>
+        </select>
+        <select id="eduStartMonth" aria-label="月" required>
+          <option value="">月</option>
+          <option value="09">09</option>
+          <option value="10">10</option>
+        </select>
+      </div>
+      <div class="apply-field" id="endDateGroup">
+        <label class="title">结束时间 <span class="required-asterisk">*</span></label>
+        <select id="eduEndYear" aria-label="年" required>
+          <option value="">年</option>
+          <option value="2026">2026</option>
+          <option value="2027">2027</option>
+        </select>
+        <select id="eduEndMonth" aria-label="月" required>
+          <option value="">月</option>
+          <option value="06">06</option>
+          <option value="07">07</option>
+        </select>
+      </div>
+      <div class="apply-field">
+        <label class="title">简历附件 <span class="required-asterisk">*</span></label>
+        <input id="resume" name="resume" type="file" accept=".pdf,.doc,.docx" required>
+      </div>
+    </section>
+
+    <section class="form-section">
+      <div class="blockTitle">家庭成员</div>
+      <div class="apply-field">
+        <label class="title">亲属姓名</label>
+        <input id="familyName" name="familyName" type="text">
+      </div>
+    </section>
+
+    <section class="form-section">
+      <div class="blockTitle">声明</div>
+      <div class="apply-field">
+        <label>
+          <input id="syncResume" name="syncResume" type="checkbox">
+          同步更新在线简历
+        </label>
+      </div>
+      <div class="apply-field">
+        <label>
+          <input id="declare" name="declare" type="checkbox" required>
+          确认 <span class="required-asterisk">*</span>
+        </label>
+      </div>
+    </section>
+
+    <div class="apply-field" style="margin-top: 24px;">
+      <button type="button" id="saveBtn">保存</button>
+      <button type="button" id="previewBtn"
+              onclick="document.body.dataset.submitted='1'; document.getElementById('result').textContent='提交成功';">
+        预览并提交
+      </button>
+    </div>
+    <div id="result"></div>
+  </form>
+
+  <div id="loginModal" role="dialog" class="modal">
+    <div class="dialog-box">
+      <h3>手机号登录</h3>
+      <p>登录后才能投递简历</p>
+      <input id="loginPhone" type="text" placeholder="手机号">
+      <input id="loginCode" type="text" placeholder="验证码">
+      <button type="button" id="loginBtn">登录</button>
+    </div>
+  </div>
+
+  <script>
+    window.showLoginModal = () => document.getElementById('loginModal').classList.add('show');
+    window.hideLoginModal = () => document.getElementById('loginModal').classList.remove('show');
+  </script>
+</body>
+</html>

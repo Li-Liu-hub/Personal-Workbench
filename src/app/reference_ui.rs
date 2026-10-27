@@ -16,6 +16,7 @@ pub(super) struct ReferenceState {
     cache: egui_commonmark::CommonMarkCache,
     pub(in crate::app) draft: Option<Entry>,
     error: String,
+    practices: Vec<crate::study::Card>,
 }
 impl PersonalDeskApp {
     #[cfg(debug_assertions)]
@@ -59,6 +60,11 @@ impl PersonalDeskApp {
                     s.cache = Default::default();
                 }
                 s.markdown = item.markdown();
+                s.practices = self
+                    .db
+                    .as_ref()
+                    .and_then(|db| db.knowledge_cards(id).ok())
+                    .unwrap_or_default();
                 s.selected = Some(item);
                 s.error.clear();
             }
@@ -154,14 +160,14 @@ impl PersonalDeskApp {
         ui.horizontal_wrapped(|ui| {
             egui::ComboBox::from_id_salt("reference-language")
                 .selected_text(if s.filter.language.is_empty() {
-                    "全部语言"
+                    "全部领域"
                 } else {
                     &s.filter.language
                 })
                 .width(136.)
                 .show_ui(ui, |ui| {
                     if ui
-                        .selectable_value(&mut s.filter.language, String::new(), "全部语言")
+                        .selectable_value(&mut s.filter.language, String::new(), "全部领域")
                         .changed()
                     {
                         s.filter.category.clear();
@@ -265,6 +271,7 @@ impl PersonalDeskApp {
         let height = ui.available_height().max(160.);
         let list_width = (ui.available_width() * 0.29).clamp(210., 320.);
         let mut practice = None;
+        let mut chosen_practice = None;
         let mut chosen = None;
         let mut deleted = None;
         ui.horizontal_top(|ui| {
@@ -373,6 +380,20 @@ impl PersonalDeskApp {
                         });
                     }
                     ui.add_space(8.);
+                    if s.draft.is_none() && !s.practices.is_empty() {
+                        ui.collapsing(format!("配套题目 · {} 道", s.practices.len()), |ui| {
+                            for card in &s.practices {
+                                let label = format!(
+                                    "{}{}",
+                                    if card.coding.is_some() { "⌨ " } else { "" },
+                                    card.title
+                                );
+                                if ui.link(label).clicked() {
+                                    chosen_practice = Some(card.clone());
+                                }
+                            }
+                        });
+                    }
                     egui::ScrollArea::vertical()
                         .id_salt((
                             "reference-detail",
@@ -516,6 +537,9 @@ impl PersonalDeskApp {
         self.reference = s;
         if let Some(item) = practice {
             self.practice_knowledge(&item);
+        }
+        if let Some(card) = chosen_practice {
+            self.open_linked_practice(card);
         }
         self.handle_workspace_shortcuts(&ui.ctx().clone());
     }

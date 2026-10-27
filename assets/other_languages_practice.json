@@ -1,0 +1,4034 @@
+[
+  {
+    "id": "knowledge:ref:js-advanced:finally-return",
+    "kind": "engineering",
+    "title": "finally 返回值与异常覆盖 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：ES2022+；浏览器 API 另行注明\n示例 / 场景：\nconst a = await Promise.resolve(7).finally(() => 99);\nconst b = await Promise.resolve(7).finally(() => { throw new Error(\"cleanup\"); }).catch(e => e.message);\nconsole.log(a, b);\n\n任务：写出 a、b 的值，并解释两个 finally 回调为何产生不同结果。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "a 为 7，b 为字符串 cleanup。\n\n普通返回值不改变原成功值；finally 抛出的异常使新 Promise 拒绝，随后被 catch 转成消息。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "a 为 7，b 为字符串 cleanup。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "普通返回值不改变原成功值；finally 抛出的异常使新 Promise 拒绝，随后被 catch 转成消息。",
+        "points": 40
+      }
+    ],
+    "source": "https://tc39.es/ecma262/multipage/control-abstraction-objects.html#sec-promise.prototype.finally",
+    "knowledge_ids": [
+      "ref:js-advanced:finally-return"
+    ],
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "异步与并发",
+      "finally-return"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "finally 通常透传原结果，但抛错或返回拒绝的 Promise 会替换结果；返回普通值不会改写成功值。",
+      "deliverable": "写出 a、b 的值，并解释两个 finally 回调为何产生不同结果。"
+    }
+  },
+  {
+    "id": "knowledge:ref:js-advanced:floating-promise",
+    "kind": "engineering",
+    "title": "遗漏 return 的悬浮 Promise · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：ES2022+；浏览器 API 另行注明\n示例 / 场景：\nPromise.resolve().then(() => {\n  return saveOrder();\n}).then(() => console.log(\"saved\")).catch(report);\n\n任务：若删掉 return，saved 是否仍代表保存完成？给出修复与错误传播解释。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不代表保存完成；保留 return saveOrder()，或在 async 回调中 await。\n\n返回的 Promise 会被链采用；遗漏返回则回调以 undefined 完成，保存失败不会沿该链传播。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不代表保存完成；保留 return saveOrder()，或在 async 回调中 await。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "返回的 Promise 会被链采用；遗漏返回则回调以 undefined 完成，保存失败不会沿该链传播。",
+        "points": 40
+      }
+    ],
+    "source": "https://tc39.es/ecma262/multipage/control-abstraction-objects.html#sec-promise.prototype.then",
+    "knowledge_ids": [
+      "ref:js-advanced:floating-promise"
+    ],
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "异步与并发",
+      "floating-promise"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "then 回调中的异步操作必须返回或等待，否则外层链无法感知它的完成和失败。",
+      "deliverable": "若删掉 return，saved 是否仍代表保存完成？给出修复与错误传播解释。"
+    }
+  },
+  {
+    "id": "knowledge:ref:js-advanced:foreach-await",
+    "kind": "engineering",
+    "title": "forEach(async) 与异步串行循环 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：ES2022+；浏览器 API 另行注明\n示例 / 场景：\nasync function saveAll(rows) {\n  for (const row of rows) {\n    await save(row);\n  }\n  return \"done\";\n}\n\n任务：要求前一条保存成功后再保存下一条。能否改成 await rows.forEach(async row => await save(row))？解释并给出正确结构。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不能；使用示例中的 for...of 加 await 执行串行保存。\n\nforEach 返回 undefined 且不等待回调 Promise，await undefined 不会等待这些保存任务。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不能；使用示例中的 for...of 加 await 执行串行保存。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "forEach 返回 undefined 且不等待回调 Promise，await undefined 不会等待这些保存任务。",
+        "points": 40
+      }
+    ],
+    "source": "https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.foreach",
+    "knowledge_ids": [
+      "ref:js-advanced:foreach-await"
+    ],
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "异步与并发",
+      "foreach-await"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "forEach 忽略回调的返回值，不能用 await forEach 等待异步批处理。",
+      "deliverable": "要求前一条保存成功后再保存下一条。能否改成 await rows.forEach(async row => await save(row))？解释并给出正确结构。"
+    }
+  },
+  {
+    "id": "knowledge:ref:js-advanced:thenable-assimilation",
+    "kind": "engineering",
+    "title": "Promise.resolve 对 thenable 的采用 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：ES2022+；浏览器 API 另行注明\n示例 / 场景：\nconst custom = { then(resolve) { resolve(42); } };\nconst value = await Promise.resolve(custom);\nconsole.log(value);\n\n任务：value 是 custom 还是 42？解释采用规则，并指出不可信 thenable 的一个风险。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "value 为 42，因为 Promise.resolve 采用 custom.then 的完成值。\n\n读取或调用 then 可运行外部代码、抛异常或永不完成；指出任一风险即可。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "value 为 42，因为 Promise.resolve 采用 custom.then 的完成值。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "读取或调用 then 可运行外部代码、抛异常或永不完成；指出任一风险即可。",
+        "points": 40
+      }
+    ],
+    "source": "https://tc39.es/ecma262/multipage/control-abstraction-objects.html#sec-promise-resolve",
+    "knowledge_ids": [
+      "ref:js-advanced:thenable-assimilation"
+    ],
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "异步与并发",
+      "thenable-assimilation"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Promise.resolve 会采用具有可调用 then 的对象，不只是把对象包装为成功值。",
+      "deliverable": "value 是 custom 还是 42？解释采用规则，并指出不可信 thenable 的一个风险。"
+    }
+  },
+  {
+    "id": "knowledge:ref:js-advanced:microtask-starvation",
+    "kind": "engineering",
+    "title": "递归微任务与渲染饥饿 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：ES2022+；浏览器 API 另行注明\n示例 / 场景：\n// 浏览器中分块处理，给任务队列让出机会\nasync function processChunks(chunks) {\n  for (const chunk of chunks) {\n    process(chunk);\n    await new Promise(resolve => setTimeout(resolve, 0));\n  }\n}\n\n任务：大量计算每轮仅 await Promise.resolve()，页面仍卡顿。解释原因，并给出一个让出任务队列的方案。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "可按示例在分块之间等待定时器，或把计算移入 Worker。\n\nPromise 的继续执行仍在微任务队列，持续补充微任务会推迟任务和绘制；让出机会不等于精确定时。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "可按示例在分块之间等待定时器，或把计算移入 Worker。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "Promise 的继续执行仍在微任务队列，持续补充微任务会推迟任务和绘制；让出机会不等于精确定时。",
+        "points": 40
+      }
+    ],
+    "source": "https://html.spec.whatwg.org/multipage/webappapis.html#event-loops",
+    "knowledge_ids": [
+      "ref:js-advanced:microtask-starvation"
+    ],
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "异步与并发",
+      "microtask-starvation"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "持续补充微任务可能使任务队列和页面绘制迟迟得不到执行机会。",
+      "deliverable": "大量计算每轮仅 await Promise.resolve()，页面仍卡顿。解释原因，并给出一个让出任务队列的方案。"
+    }
+  },
+  {
+    "id": "knowledge:ref:js-advanced:generator-cleanup",
+    "kind": "engineering",
+    "title": "生成器提前退出与 finally 清理 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：ES2022+；浏览器 API 另行注明\n示例 / 场景：\nfunction* values() {\n  try { yield 1; yield 2; }\n  finally { console.log(\"closed\"); }\n}\nfor (const n of values()) { console.log(n); break; }\n\n任务：写出输出顺序，并说明把循环改成只执行一次 it.next() 后丢弃 it，是否保证相同清理。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "输出 1、closed；只 next 一次后丢弃不保证立即运行 finally。\n\nbreak 触发迭代器关闭协议；手工消费者需要主动调用 return 或完成迭代。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "输出 1、closed；只 next 一次后丢弃不保证立即运行 finally。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "break 触发迭代器关闭协议；手工消费者需要主动调用 return 或完成迭代。",
+        "points": 40
+      }
+    ],
+    "source": "https://tc39.es/ecma262/multipage/abstract-operations.html#sec-iteratorclose",
+    "knowledge_ids": [
+      "ref:js-advanced:generator-cleanup"
+    ],
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "迭代与资源",
+      "generator-cleanup"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "for...of 提前退出时会尝试调用迭代器 return，生成器可在 finally 中释放资源。",
+      "deliverable": "写出输出顺序，并说明把循环改成只执行一次 it.next() 后丢弃 it，是否保证相同清理。"
+    }
+  },
+  {
+    "id": "knowledge:ref:js-advanced:async-generator",
+    "kind": "engineering",
+    "title": "async generator 与逐项背压 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：ES2022+；浏览器 API 另行注明\n示例 / 场景：\nasync function* pages(fetchPage) {\n  for (let page = 1; page <= 3; page++) yield await fetchPage(page);\n}\nfor await (const data of pages(fetchPage)) {\n  await consume(data);\n}\n\n任务：消费者很慢时，本例是否同时发起三页请求？说明顺序和一个仍需显式处理的资源问题。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不会；每次 next 才推进生成器，consume 等待完成后才取下一页。\n\n网络取消、超时或提前退出时的清理需要显式设计；指出任一项即可。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不会；每次 next 才推进生成器，consume 等待完成后才取下一页。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "网络取消、超时或提前退出时的清理需要显式设计；指出任一项即可。",
+        "points": 40
+      }
+    ],
+    "source": "https://tc39.es/ecma262/multipage/control-abstraction-objects.html#sec-asyncgenerator-objects",
+    "knowledge_ids": [
+      "ref:js-advanced:async-generator"
+    ],
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "迭代与资源",
+      "async-generator"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "异步生成器把逐项产生数据和逐项等待消费结合，避免必须先聚合全部结果。",
+      "deliverable": "消费者很慢时，本例是否同时发起三页请求？说明顺序和一个仍需显式处理的资源问题。"
+    }
+  },
+  {
+    "id": "knowledge:ref:js-advanced:map-identity",
+    "kind": "engineering",
+    "title": "Map 对象键与身份相等 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：ES2022+；浏览器 API 另行注明\n示例 / 场景：\nconst a = { id: 1 };\nconst b = { id: 1 };\nconst cache = new Map([[a, \"A\"]]);\nconsole.log(cache.get(b), cache.get(a));\n\n任务：给出两次 get 的结果，并把缓存改成按 id 查找同一记录。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "结果为 undefined 和 A；可改为 new Map([[a.id, \"A\"]]) 并 cache.get(b.id)。\n\n两个对象字段相同也不是同一身份；id 必须在所选业务范围内稳定且唯一。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "结果为 undefined 和 A；可改为 new Map([[a.id, \"A\"]]) 并 cache.get(b.id)。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "两个对象字段相同也不是同一身份；id 必须在所选业务范围内稳定且唯一。",
+        "points": 40
+      }
+    ],
+    "source": "https://tc39.es/ecma262/multipage/keyed-collections.html#sec-map-objects",
+    "knowledge_ids": [
+      "ref:js-advanced:map-identity"
+    ],
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "集合与容器",
+      "map-identity"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Map 的对象键按对象身份比较，不会因字段相同而视为同一键。",
+      "deliverable": "给出两次 get 的结果，并把缓存改成按 id 查找同一记录。"
+    }
+  },
+  {
+    "id": "knowledge:ref:js-advanced:sparse-array",
+    "kind": "engineering",
+    "title": "稀疏数组的空槽与 undefined · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：ES2022+；浏览器 API 另行注明\n示例 / 场景：\nconst a = new Array(3);\nconst b = Array.from({ length: 3 }, (_, i) => i);\nconsole.log(a.map(() => 1).join(\"|\"));\nconsole.log(b.join(\"|\"));\n\n任务：为什么 a 的 map 没产生三个 1？给出生成 [0,1,2] 的方式。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "a 有三个空槽，map 不调用这些位置的回调；用示例中的 Array.from 生成 [0,1,2]。\n\n空槽是属性不存在，与元素值为 undefined 不同；也可使用填充后 map 的等价实现。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "a 有三个空槽，map 不调用这些位置的回调；用示例中的 Array.from 生成 [0,1,2]。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "空槽是属性不存在，与元素值为 undefined 不同；也可使用填充后 map 的等价实现。",
+        "points": 40
+      }
+    ],
+    "source": "https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.map",
+    "knowledge_ids": [
+      "ref:js-advanced:sparse-array"
+    ],
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "集合与容器",
+      "sparse-array"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "数组空槽表示缺失属性，map 等操作会跳过空槽，显式 undefined 仍是存在的元素。",
+      "deliverable": "为什么 a 的 map 没产生三个 1？给出生成 [0,1,2] 的方式。"
+    }
+  },
+  {
+    "id": "knowledge:ref:js-advanced:unicode-regexp",
+    "kind": "engineering",
+    "title": "正则 u 模式与 Unicode 码点 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：ES2022+；浏览器 API 另行注明\n示例 / 场景：\nconst s = \"😀\";\nconsole.log(s.length, /^.$/.test(s), /^.$/u.test(s));\n\n任务：写出三个结果，并说明 /^.$/u 能否判断所有“一个可见字符”。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "输出 2、false、true。\n\nu 按码点处理代理对，但字素簇可由多个码点组成，因此不能据此判断所有可见字符。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "输出 2、false、true。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "u 按码点处理代理对，但字素簇可由多个码点组成，因此不能据此判断所有可见字符。",
+        "points": 40
+      }
+    ],
+    "source": "https://tc39.es/ecma262/multipage/text-processing.html#sec-regexp-regular-expression-objects",
+    "knowledge_ids": [
+      "ref:js-advanced:unicode-regexp"
+    ],
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "文本与数据",
+      "unicode-regexp"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "字符串 length 计 UTF-16 码元，正则 u 模式可让点号按码点匹配代理对。",
+      "deliverable": "写出三个结果，并说明 /^.$/u 能否判断所有“一个可见字符”。"
+    }
+  },
+  {
+    "id": "knowledge:ref:js-advanced:json-prototype",
+    "kind": "engineering",
+    "title": "JSON 的 __proto__ 与不安全合并 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：ES2022+；浏览器 API 另行注明\n示例 / 场景：\nconst input = JSON.parse('{\"__proto__\":{\"admin\":true}}');\nconst unsafe = Object.assign({}, input);\nconst safe = Object.assign(Object.create(null), input);\nconsole.log(unsafe.admin, Object.hasOwn(safe, \"admin\"));\n\n任务：说明 unsafe 的风险；safe 是否把 admin 变成自有属性？给出一项输入防护措施。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "unsafe 的目标原型可能被改变；safe 的 admin 不是自有属性，Object.hasOwn 返回 false。\n\n可使用无原型字典并做允许字段校验；不能仅因 JSON.parse 成功就信任输入结构。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "unsafe 的目标原型可能被改变；safe 的 admin 不是自有属性，Object.hasOwn 返回 false。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "可使用无原型字典并做允许字段校验；不能仅因 JSON.parse 成功就信任输入结构。",
+        "points": 40
+      }
+    ],
+    "source": "https://tc39.es/ecma262/multipage/fundamental-objects.html#sec-object.assign",
+    "knowledge_ids": [
+      "ref:js-advanced:json-prototype"
+    ],
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "对象与安全",
+      "json-prototype"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "JSON.parse 本身把 __proto__ 作为数据属性；把结果赋给普通对象时可能触发继承的 setter。",
+      "deliverable": "说明 unsafe 的风险；safe 是否把 admin 变成自有属性？给出一项输入防护措施。"
+    }
+  },
+  {
+    "id": "knowledge:ref:js-advanced:descriptor-defaults",
+    "kind": "engineering",
+    "title": "defineProperty 默认属性特性 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：ES2022+；浏览器 API 另行注明\n示例 / 场景：\nconst obj = {};\nObject.defineProperty(obj, \"id\", { value: 7 });\nconsole.log(Object.keys(obj), Object.getOwnPropertyDescriptor(obj, \"id\"));\n\n任务：Object.keys 为什么为空？若希望 id 能被枚举且可改写，应该增加哪些描述符？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "新属性不可枚举；增加 enumerable:true 和 writable:true。\n\n两项默认均为 false；configurable 控制删除和重新定义，不能代替 writable。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "新属性不可枚举；增加 enumerable:true 和 writable:true。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "两项默认均为 false；configurable 控制删除和重新定义，不能代替 writable。",
+        "points": 40
+      }
+    ],
+    "source": "https://tc39.es/ecma262/multipage/fundamental-objects.html#sec-object.defineproperty",
+    "knowledge_ids": [
+      "ref:js-advanced:descriptor-defaults"
+    ],
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "对象与元编程",
+      "descriptor-defaults"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "defineProperty 新建数据属性时，未指定的 writable、enumerable、configurable 默认为 false。",
+      "deliverable": "Object.keys 为什么为空？若希望 id 能被枚举且可改写，应该增加哪些描述符？"
+    }
+  },
+  {
+    "id": "knowledge:ref:js-advanced:private-brand",
+    "kind": "engineering",
+    "title": "私有字段品牌检查与方法接收者 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：ES2022+；浏览器 API 另行注明\n示例 / 场景：\nclass Counter {\n  #n = 1;\n  get() { return this.#n; }\n}\nconst c = new Counter();\nconst get = c.get.bind(c);\nconsole.log(get());\n\n任务：去掉 bind(c) 后直接调用 get() 会发生什么？说明修复和原因。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "会抛 TypeError；保留 bind(c) 或用 () => c.get()。\n\n方法调用丢失接收者；访问 #n 要求 this 是具有 Counter 私有字段品牌的实例。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "会抛 TypeError；保留 bind(c) 或用 () => c.get()。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "方法调用丢失接收者；访问 #n 要求 this 是具有 Counter 私有字段品牌的实例。",
+        "points": 40
+      }
+    ],
+    "source": "https://tc39.es/ecma262/multipage/ecmascript-language-functions-and-classes.html#sec-privatefieldget",
+    "knowledge_ids": [
+      "ref:js-advanced:private-brand"
+    ],
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "对象与元编程",
+      "private-brand"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "私有字段访问要求接收者具有声明该字段的类品牌，外形相同或 Proxy 包装并不保证满足。",
+      "deliverable": "去掉 bind(c) 后直接调用 get() 会发生什么？说明修复和原因。"
+    }
+  },
+  {
+    "id": "knowledge:ref:js-advanced:module-live-binding",
+    "kind": "engineering",
+    "title": "模块导入的活绑定与只读约束 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：ES2022+；浏览器 API 另行注明\n示例 / 场景：\n// counter.mjs\nexport let count = 0;\nexport function inc() { count++; }\n// main.mjs\nimport { count, inc } from \"./counter.mjs\";\ninc(); console.log(count);\n\n任务：main 输出什么？能否直接执行 count=9？解释导入与普通值复制的区别。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "输出 1；导入方不能对 count 直接赋值。\n\n导入连接到导出变量的活绑定，inc 更新后能被观察；只读约束作用于导入绑定。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "输出 1；导入方不能对 count 直接赋值。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "导入连接到导出变量的活绑定，inc 更新后能被观察；只读约束作用于导入绑定。",
+        "points": 40
+      }
+    ],
+    "source": "https://tc39.es/ecma262/multipage/ecmascript-language-scripts-and-modules.html#sec-imports",
+    "knowledge_ids": [
+      "ref:js-advanced:module-live-binding"
+    ],
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "模块与工程",
+      "module-live-binding"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "命名导入是导出变量的活绑定，导出方重新赋值可被观察，导入方不能直接赋值。",
+      "deliverable": "main 输出什么？能否直接执行 count=9？解释导入与普通值复制的区别。"
+    }
+  },
+  {
+    "id": "knowledge:ref:js-advanced:url-params",
+    "kind": "engineering",
+    "title": "URLSearchParams 编码与重复参数 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：ES2022+；浏览器 API 另行注明\n示例 / 场景：\nconst url = new URL(\"https://example.com/search\");\nurl.searchParams.set(\"q\", \"C++ & Rust\");\nurl.searchParams.append(\"tag\", \"a\");\nurl.searchParams.append(\"tag\", \"b\");\nconsole.log(url.searchParams.getAll(\"tag\"));\n\n任务：如何让 q 原样表示 C++ & Rust 并保留两个 tag？解释 set 与 append 的区别。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "按示例对 q 使用 set，对 tag 使用两次 append；getAll 得到 a、b。\n\nURLSearchParams 负责参数编码；set 替换同名项而 append 增加一项。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "按示例对 q 使用 set，对 tag 使用两次 append；getAll 得到 a、b。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "URLSearchParams 负责参数编码；set 替换同名项而 append 增加一项。",
+        "points": 40
+      }
+    ],
+    "source": "https://url.spec.whatwg.org/#interface-urlsearchparams",
+    "knowledge_ids": [
+      "ref:js-advanced:url-params"
+    ],
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "Web API",
+      "url-params"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "用 URLSearchParams 表达查询参数，避免字符串拼接误把 &、+ 等字符当成分隔符。",
+      "deliverable": "如何让 q 原样表示 C++ & Rust 并保留两个 tag？解释 set 与 append 的区别。"
+    }
+  },
+  {
+    "id": "knowledge:ref:js-advanced:transfer-buffer",
+    "kind": "engineering",
+    "title": "structuredClone 转移 ArrayBuffer · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：ES2022+；浏览器 API 另行注明\n示例 / 场景：\nconst buffer = new ArrayBuffer(8);\nconst copy = structuredClone(buffer, { transfer: [buffer] });\nconsole.log(buffer.byteLength, copy.byteLength);\n\n任务：写出两个长度，并解释是否可以继续从原 buffer 读取八字节数据。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "长度为 0 和 8；原 buffer 已脱离，不能再作为原来的八字节缓冲使用。\n\ntransfer 移交底层资源；普通不带 transfer 的 structuredClone 通常复制 ArrayBuffer，不会让原缓冲脱离。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "长度为 0 和 8；原 buffer 已脱离，不能再作为原来的八字节缓冲使用。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "transfer 移交底层资源；普通不带 transfer 的 structuredClone 通常复制 ArrayBuffer，不会让原缓冲脱离。",
+        "points": 40
+      }
+    ],
+    "source": "https://html.spec.whatwg.org/multipage/structured-data.html#structured-cloning",
+    "knowledge_ids": [
+      "ref:js-advanced:transfer-buffer"
+    ],
+    "tags": [
+      "JavaScript",
+      "进阶专题",
+      "Web API",
+      "transfer-buffer"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "transfer 把可转移资源移交到克隆结果，原 ArrayBuffer 会脱离，区别于普通深复制。",
+      "deliverable": "写出两个长度，并解释是否可以继续从原 buffer 读取八字节数据。"
+    }
+  },
+  {
+    "id": "knowledge:ref:c-advanced:flexible-array",
+    "kind": "engineering",
+    "title": "柔性数组成员与整体分配 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C17；示例需相应标准头文件\n示例 / 场景：\n#include <stdint.h>\n#include <stdlib.h>\nstruct Packet { size_t len; unsigned char data[]; };\nstruct Packet *packet_new(size_t n) {\n  if (n > SIZE_MAX - sizeof(struct Packet)) return NULL;\n  struct Packet *p = malloc(sizeof *p + n);\n  if (p) p->len = n;\n  return p;\n}\n\n任务：n=100 时只 malloc(sizeof(struct Packet)) 为什么不够？给出正确大小及溢出条件。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "需分配 sizeof(struct Packet)+100；柔性数组本身不提供这 100 字节。\n\n先检查 n<=SIZE_MAX-sizeof(struct Packet)，否则加法可能回绕导致分配不足。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "需分配 sizeof(struct Packet)+100；柔性数组本身不提供这 100 字节。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "先检查 n<=SIZE_MAX-sizeof(struct Packet)，否则加法可能回绕导致分配不足。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf#page=113",
+    "knowledge_ids": [
+      "ref:c-advanced:flexible-array"
+    ],
+    "tags": [
+      "C",
+      "进阶专题",
+      "内存与布局",
+      "flexible-array"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "结构体末尾的柔性数组不计入 sizeof 的元素空间，分配时必须额外计算载荷并检查溢出。",
+      "deliverable": "n=100 时只 malloc(sizeof(struct Packet)) 为什么不够？给出正确大小及溢出条件。"
+    }
+  },
+  {
+    "id": "knowledge:ref:c-advanced:designated-init",
+    "kind": "engineering",
+    "title": "指定初始化与省略成员归零 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C17；示例需相应标准头文件\n示例 / 场景：\nstruct Options { int retry; int timeout; };\nstruct Options opt = { .timeout = 30 };\nint table[5] = { [3] = 9 };\n\n任务：给出 opt.retry 和 table 的所有值，并说明 int other[5]; 是否有相同保证。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "opt.retry 为 0；table 为 0、0、0、9、0。\n\n块内无初始化的自动数组 other 元素是不确定值，不能按同样规则读取。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "opt.retry 为 0；table 为 0、0、0、9、0。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "块内无初始化的自动数组 other 元素是不确定值，不能按同样规则读取。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c-advanced:designated-init"
+    ],
+    "tags": [
+      "C",
+      "进阶专题",
+      "类型与初始化",
+      "designated-init"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "指定初始化允许按成员名或下标给聚合赋初值，未显式初始化的部分按规则零初始化。",
+      "deliverable": "给出 opt.retry 和 table 的所有值，并说明 int other[5]; 是否有相同保证。"
+    }
+  },
+  {
+    "id": "knowledge:ref:c-advanced:compound-literal",
+    "kind": "engineering",
+    "title": "复合字面量的存储期 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C17；示例需相应标准头文件\n示例 / 场景：\nstruct Point { int x, y; };\nvoid use_point(const struct Point *p);\nvoid draw(void) {\n  use_point(&(struct Point){ .x=1, .y=2 });\n}\n\n任务：use_point 把 p 存到全局变量供 draw 返回后读取，是否安全？给出一种长期保存方式。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不安全，块结束后对象生命周期结束；应复制结构体值，或使用明确管理的动态/静态对象。\n\n传入指针不延长复合字面量生命周期；块内自动存储期与文件作用域静态存储期不同。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不安全，块结束后对象生命周期结束；应复制结构体值，或使用明确管理的动态/静态对象。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "传入指针不延长复合字面量生命周期；块内自动存储期与文件作用域静态存储期不同。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c-advanced:compound-literal"
+    ],
+    "tags": [
+      "C",
+      "进阶专题",
+      "类型与初始化",
+      "compound-literal"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "复合字面量创建匿名对象；块作用域中的对象具有与所在块关联的自动存储期。",
+      "deliverable": "use_point 把 p 存到全局变量供 draw 返回后读取，是否安全？给出一种长期保存方式。"
+    }
+  },
+  {
+    "id": "knowledge:ref:c-advanced:restrict-contract",
+    "kind": "engineering",
+    "title": "restrict 是访问契约 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C17；示例需相应标准头文件\n示例 / 场景：\nvoid add(size_t n, int *restrict out, const int *restrict in) {\n  for (size_t i=0; i<n; ++i) out[i] += in[i];\n}\n// 合法示例：两个不重叠且足够长的数组。\n\n任务：对 n=3 调用 add(3,a,a) 是否满足契约？若必须支持同一数组，接口应如何处理？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不满足；可去掉 restrict 并明确重叠语义，或在调用前复制输入。\n\n同一被修改对象经不符合受限关联的指针访问会违反契约；结果不能按普通逐项翻倍来保证。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不满足；可去掉 restrict 并明确重叠语义，或在调用前复制输入。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "同一被修改对象经不符合受限关联的指针访问会违反契约；结果不能按普通逐项翻倍来保证。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c-advanced:restrict-contract"
+    ],
+    "tags": [
+      "C",
+      "进阶专题",
+      "内存与优化",
+      "restrict-contract"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "restrict 允许编译器基于受限指针的访问契约优化；重叠访问可能违反契约而非只是降低性能。",
+      "deliverable": "对 n=3 调用 add(3,a,a) 是否满足契约？若必须支持同一数组，接口应如何处理？"
+    }
+  },
+  {
+    "id": "knowledge:ref:c-advanced:alias-memcpy",
+    "kind": "engineering",
+    "title": "类型重解释与 memcpy 复制表示 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C17；示例需相应标准头文件\n示例 / 场景：\n#include <stdint.h>\n#include <string.h>\nuint32_t float_bits(float x) {\n  _Static_assert(sizeof(float)==sizeof(uint32_t), \"size mismatch\");\n  uint32_t bits;\n  memcpy(&bits, &x, sizeof bits);\n  return bits;\n}\n\n任务：为何不直接 return *(uint32_t*)&x？memcpy 版本是否保证跨平台得到相同数值？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "直接解引用可能违反有效类型/别名规则；可用示例中的 memcpy。\n\nmemcpy 复制表示不保证浮点编码和字节序一致，因此不保证跨平台相同位值。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "直接解引用可能违反有效类型/别名规则；可用示例中的 memcpy。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "memcpy 复制表示不保证浮点编码和字节序一致，因此不保证跨平台相同位值。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c-advanced:alias-memcpy"
+    ],
+    "tags": [
+      "C",
+      "进阶专题",
+      "内存与优化",
+      "alias-memcpy"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "把不兼容对象指针强转后解引用可能违反有效类型规则；复制对象表示与数值转换应区分。",
+      "deliverable": "为何不直接 return *(uint32_t*)&x？memcpy 版本是否保证跨平台得到相同数值？"
+    }
+  },
+  {
+    "id": "knowledge:ref:c-advanced:sequence-effects",
+    "kind": "engineering",
+    "title": "未排序副作用与未定义行为 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C17；示例需相应标准头文件\n示例 / 场景：\nint i = 1;\n// int bad = i++ + i++; // 未定义行为\nint left = i++;\nint right = i++;\nint good = left + right;\n\n任务：bad 能否按从左到右计算为 3？给出具有确定行为的改写及结果。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不能对未定义行为保证结果；示例拆分后 good=3、i=3。\n\n两个 i++ 的副作用在原表达式中未排序，编译器不需要提供某种确定执行结果。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不能对未定义行为保证结果；示例拆分后 good=3、i=3。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "两个 i++ 的副作用在原表达式中未排序，编译器不需要提供某种确定执行结果。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c-advanced:sequence-effects"
+    ],
+    "tags": [
+      "C",
+      "进阶专题",
+      "表达式与行为",
+      "sequence-effects"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "同一标量上未排序的修改和读取/修改会产生未定义行为，不能靠某次编译结果推导规则。",
+      "deliverable": "bad 能否按从左到右计算为 3？给出具有确定行为的改写及结果。"
+    }
+  },
+  {
+    "id": "knowledge:ref:c-advanced:integer-promotion",
+    "kind": "engineering",
+    "title": "整数提升发生在运算之前 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C17；示例需相应标准头文件\n示例 / 场景：\n#include <limits.h>\n#include <stdio.h>\nint main(void) {\n  unsigned char a = UCHAR_MAX;\n  printf(\"%d\\n\", a < -1);\n}\n\n任务：假设 CHAR_BIT=8、int 为 32 位，输出是什么？说明提升规则，并指出平台前提。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "输出 0；a 的 255 可由 int 表示，先提升为 int 再与 -1 比较。\n\n若 int 无法表示该无符号类型的全部值，则提升可能为 unsigned int，不能省略平台前提。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "输出 0；a 的 255 可由 int 表示，先提升为 int 再与 -1 比较。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "若 int 无法表示该无符号类型的全部值，则提升可能为 unsigned int，不能省略平台前提。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c-advanced:integer-promotion"
+    ],
+    "tags": [
+      "C",
+      "进阶专题",
+      "表达式与行为",
+      "integer-promotion"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "小整数运算通常先提升到 int 或 unsigned int，再转换为接收变量类型。",
+      "deliverable": "假设 CHAR_BIT=8、int 为 32 位，输出是什么？说明提升规则，并指出平台前提。"
+    }
+  },
+  {
+    "id": "knowledge:ref:c-advanced:snprintf-sizing",
+    "kind": "engineering",
+    "title": "snprintf 两遍分配与返回值检查 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C17；示例需相应标准头文件\n示例 / 场景：\n#include <stdio.h>\n#include <stdlib.h>\nchar *label(int id) {\n  int n = snprintf(NULL, 0, \"item-%d\", id);\n  if (n < 0) return NULL;\n  char *p = malloc((size_t)n + 1);\n  if (!p) return NULL;\n  int written = snprintf(p, (size_t)n + 1, \"item-%d\", id);\n  if (written != n) { free(p); return NULL; }\n  return p;\n}\n\n任务：label(12) 第一次返回 n 是多少，需分配多少字节？解释为何不能直接把 n 字节当容量。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "item-12 有 7 个字符，n=7，应分配 8 字节。\n\n返回值不包含末尾空字符；第二次调用也应检查失败或长度变化，调用者最终 free。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "item-12 有 7 个字符，n=7，应分配 8 字节。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "返回值不包含末尾空字符；第二次调用也应检查失败或长度变化，调用者最终 free。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c-advanced:snprintf-sizing"
+    ],
+    "tags": [
+      "C",
+      "进阶专题",
+      "文本与数据",
+      "snprintf-sizing"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "snprintf 返回所需字符数，不含终止符；两遍分配须检查负值并给终止符留空间。",
+      "deliverable": "label(12) 第一次返回 n 是多少，需分配多少字节？解释为何不能直接把 n 字节当容量。"
+    }
+  },
+  {
+    "id": "knowledge:ref:c-advanced:errno-protocol",
+    "kind": "engineering",
+    "title": "errno 只在失败协议下解释 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C17；示例需相应标准头文件\n示例 / 场景：\n#include <errno.h>\n#include <stdlib.h>\nchar *end;\nerrno = 0;\nlong n = strtol(\"999999999999999999999999999999\", &end, 10);\nif (errno == ERANGE) { /* 数值超出 long 范围 */ }\n\n任务：将输入改为 0，仅凭 n==0 能否判失败？说明至少两项必要检查。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不能；0 是合法结果。应检查 end 是否前进、是否到字符串结束，并按范围协议检查 errno。\n\nerrno 可能保留旧错误，成功不负责清零；调用前置零后结合 strtol 的返回及 end 才能判断本次解析。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不能；0 是合法结果。应检查 end 是否前进、是否到字符串结束，并按范围协议检查 errno。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "errno 可能保留旧错误，成功不负责清零；调用前置零后结合 strtol 的返回及 end 才能判断本次解析。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c-advanced:errno-protocol"
+    ],
+    "tags": [
+      "C",
+      "进阶专题",
+      "错误与资源",
+      "errno-protocol"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "成功调用不保证清空 errno；只有在函数文档约定的失败条件下才读取其错误信息。",
+      "deliverable": "将输入改为 0，仅凭 n==0 能否判失败？说明至少两项必要检查。"
+    }
+  },
+  {
+    "id": "knowledge:ref:c-advanced:strtok-state",
+    "kind": "engineering",
+    "title": "strtok 的共享状态与空字段 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C17；示例需相应标准头文件\n示例 / 场景：\n#include <stdio.h>\n#include <string.h>\nchar line[] = \"a,,b\";\nfor (char *p=strtok(line, \",\"); p; p=strtok(NULL, \",\"))\n  puts(p);\n\n任务：输出几个字段？若业务需要保留 a,,b 中的空字段，改用 strtok_r 是否足够？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "输出 a、b 两个字段；strtok_r 不足以保留空字段。\n\n连续分隔符被跳过；需使用逐字符扫描或支持空字段的解析器，带引号 CSV 应采用专用解析规则。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "输出 a、b 两个字段；strtok_r 不足以保留空字段。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "连续分隔符被跳过；需使用逐字符扫描或支持空字段的解析器，带引号 CSV 应采用专用解析规则。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c-advanced:strtok-state"
+    ],
+    "tags": [
+      "C",
+      "进阶专题",
+      "文本与数据",
+      "strtok-state"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "strtok 会修改缓冲区并维护内部状态，嵌套分词和保留空字段时不宜直接使用。",
+      "deliverable": "输出几个字段？若业务需要保留 a,,b 中的空字段，改用 strtok_r 是否足够？"
+    }
+  },
+  {
+    "id": "knowledge:ref:c-advanced:portable-serialization",
+    "kind": "engineering",
+    "title": "结构体内存不能直接当协议 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C17；示例需相应标准头文件\n示例 / 场景：\n#include <stdint.h>\nuint32_t value = 0x12345678u;\nunsigned char bytes[4] = {\n  (unsigned char)(value >> 24), (unsigned char)(value >> 16),\n  (unsigned char)(value >> 8), (unsigned char)value\n};\n\n任务：给出 bytes 的四个十六进制值，并解释为何 fwrite(&record,sizeof record,1,f) 不保证跨平台一致。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "得到 12、34、56、78（十六进制）。\n\n结构体有填充/宽度/字节序差异；显式定义逐字段编码并检查长度才能建立跨平台协议。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "得到 12、34、56、78（十六进制）。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "结构体有填充/宽度/字节序差异；显式定义逐字段编码并检查长度才能建立跨平台协议。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c-advanced:portable-serialization"
+    ],
+    "tags": [
+      "C",
+      "进阶专题",
+      "文件与数据",
+      "portable-serialization"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "结构体可能有填充、平台字节序和不同成员宽度，直接 fwrite 结构体不构成可移植格式。",
+      "deliverable": "给出 bytes 的四个十六进制值，并解释为何 fwrite(&record,sizeof record,1,f) 不保证跨平台一致。"
+    }
+  },
+  {
+    "id": "knowledge:ref:c-advanced:atomic-counter",
+    "kind": "engineering",
+    "title": "C 原子计数与 relaxed 边界 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C17；示例需相应标准头文件\n示例 / 场景：\n#include <stdatomic.h>\n_Atomic unsigned long hits = 0;\nvoid hit(void) {\n  atomic_fetch_add_explicit(&hits, 1, memory_order_relaxed);\n}\n\n任务：两线程各调用 hit 1000 次并正确 join 后，未溢出时计数多少？能否靠它发布另一普通对象？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "计数为 2000；relaxed 计数不能单独作为另一普通对象的发布同步。\n\n原子读改写不会丢更新，但 relaxed 不建立其他数据所需的 release/acquire 同步关系。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "计数为 2000；relaxed 计数不能单独作为另一普通对象的发布同步。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "原子读改写不会丢更新，但 relaxed 不建立其他数据所需的 release/acquire 同步关系。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c-advanced:atomic-counter"
+    ],
+    "tags": [
+      "C",
+      "进阶专题",
+      "异步与并发",
+      "atomic-counter"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "原子读改写可防止计数丢失；relaxed 保证该原子操作本身，不发布其他普通内存数据。",
+      "deliverable": "两线程各调用 hit 1000 次并正确 join 后，未溢出时计数多少？能否靠它发布另一普通对象？"
+    }
+  },
+  {
+    "id": "knowledge:ref:c-advanced:static-assert",
+    "kind": "engineering",
+    "title": "_Static_assert 记录平台假设 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C17；示例需相应标准头文件\n示例 / 场景：\n#include <limits.h>\n#include <stdint.h>\n_Static_assert(CHAR_BIT == 8, \"8-bit bytes required\");\n_Static_assert(sizeof(uint32_t) == 4, \"32-bit field required\");\n\n任务：这两个断言能否证明机器是大端且输入包长度正确？说明能证明什么，另需什么检查。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不能；只约束每字节位数及 uint32_t 尺寸。\n\n端序需要显式编码/解码设计，输入长度仍需运行时检查；断言不执行数据校验。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不能；只约束每字节位数及 uint32_t 尺寸。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "端序需要显式编码/解码设计，输入长度仍需运行时检查；断言不执行数据校验。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c-advanced:static-assert"
+    ],
+    "tags": [
+      "C",
+      "进阶专题",
+      "构建与接口",
+      "static-assert"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "编译期断言用于声明尺寸等必要条件，不会在运行时替代输入检查。",
+      "deliverable": "这两个断言能否证明机器是大端且输入包长度正确？说明能证明什么，另需什么检查。"
+    }
+  },
+  {
+    "id": "knowledge:ref:c-advanced:multidimensional",
+    "kind": "engineering",
+    "title": "二维数组形参与行跨度 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C17；示例需相应标准头文件\n示例 / 场景：\n#include <stddef.h>\nint sum3(size_t rows, const int a[][3]) {\n  int sum=0;\n  for(size_t i=0;i<rows;i++)\n    for(size_t j=0;j<3;j++) sum += a[i][j];\n  return sum;\n}\n\n任务：int matrix[2][3] 能否作为 int** 传入？说明 sum3 的形参实际指针类型及行跨度。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不能按 int** 使用；形参调整为 const int (*)[3]，行跨度为 3*sizeof(int)。\n\n连续二维数组与指针表布局不同，强转不能把连续元素变成有效行指针。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不能按 int** 使用；形参调整为 const int (*)[3]，行跨度为 3*sizeof(int)。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "连续二维数组与指针表布局不同，强转不能把连续元素变成有效行指针。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c-advanced:multidimensional"
+    ],
+    "tags": [
+      "C",
+      "进阶专题",
+      "内存与布局",
+      "multidimensional"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "二维数组传参退化为指向一行数组的指针，类型不是 int**。",
+      "deliverable": "int matrix[2][3] 能否作为 int** 传入？说明 sum3 的形参实际指针类型及行跨度。"
+    }
+  },
+  {
+    "id": "knowledge:ref:c-advanced:enum-validation",
+    "kind": "engineering",
+    "title": "枚举与外部数值验证 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C17；示例需相应标准头文件\n示例 / 场景：\nenum State { READY=1, RUNNING=2, DONE=3 };\nint parse_state(int raw, enum State *out) {\n  switch(raw) {\n    case READY: case RUNNING: case DONE:\n      *out = (enum State)raw; return 1;\n    default: return 0;\n  }\n}\n\n任务：raw=9 时函数返回什么，out 是否改变？为何不能用强制类型转换代替 switch？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "返回 0，out 不被写入；raw=9 不在允许业务值中。\n\n类型转换不验证业务枚举集合；外部输入需要显式成员判断和有效输出指针。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "返回 0，out 不被写入；raw=9 不在允许业务值中。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "类型转换不验证业务枚举集合；外部输入需要显式成员判断和有效输出指针。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c-advanced:enum-validation"
+    ],
+    "tags": [
+      "C",
+      "进阶专题",
+      "类型与接口",
+      "enum-validation"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "把外部整数转换为 enum 不能自动确认它对应某个业务枚举项，应显式校验输入集合。",
+      "deliverable": "raw=9 时函数返回什么，out 是否改变？为何不能用强制类型转换代替 switch？"
+    }
+  },
+  {
+    "id": "knowledge:ref:c-advanced:bsearch-contract",
+    "kind": "engineering",
+    "title": "bsearch 的排序与重复键契约 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C17；示例需相应标准头文件\n示例 / 场景：\n#include <stdlib.h>\nstatic int cmp(const void *a, const void *b) {\n  int x=*(const int*)a, y=*(const int*)b;\n  return (x>y)-(x<y);\n}\nint a[]={1,2,2,4}, key=2;\nint *p=bsearch(&key,a,4,sizeof a[0],cmp);\n\n任务：能否保证 p==&a[1]？说明重复键行为，并指出 cmp 为什么不写 x-y。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不能保证首个匹配，只保证返回一个匹配的 2。\n\n重复键选择未指定；x-y 可能有符号溢出，比较关系组合可避免该风险。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不能保证首个匹配，只保证返回一个匹配的 2。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "重复键选择未指定；x-y 可能有符号溢出，比较关系组合可避免该风险。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1570.pdf",
+    "knowledge_ids": [
+      "ref:c-advanced:bsearch-contract"
+    ],
+    "tags": [
+      "C",
+      "进阶专题",
+      "集合与算法",
+      "bsearch-contract"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "bsearch 要求数据按兼容比较规则组织；存在重复键时不保证返回第一个匹配项。",
+      "deliverable": "能否保证 p==&a[1]？说明重复键行为，并指出 cmp 为什么不写 x-y。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cpp-advanced:try-emplace",
+    "kind": "engineering",
+    "title": "try_emplace 与重复键的移动参数 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C++17；C++20 功能另行注明\n示例 / 场景：\n#include <map>\n#include <memory>\nstd::map<int,std::unique_ptr<int>> m;\nm.try_emplace(1, std::make_unique<int>(7));\nauto p=std::make_unique<int>(9);\nauto [it, inserted]=m.try_emplace(1, std::move(p));\n\n任务：写出 inserted、p 是否为空及 map 中值；再说明直接传 make_unique 是否省掉参数构造。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "inserted=false，p 非空且值为 9，map 中仍为 7。\n\n键冲突时不移动 p；但实参先求值，直接调用 make_unique 仍会构造临时对象。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "inserted=false，p 非空且值为 9，map 中仍为 7。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "键冲突时不移动 p；但实参先求值，直接调用 make_unique 仍会构造临时对象。",
+        "points": 40
+      }
+    ],
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rr-smartptrparam",
+    "knowledge_ids": [
+      "ref:cpp-advanced:try-emplace"
+    ],
+    "tags": [
+      "C++",
+      "进阶专题",
+      "集合与容器",
+      "try-emplace"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "try_emplace 在键已存在时不从映射值参数移动，但函数实参表达式仍会先求值。",
+      "deliverable": "写出 inserted、p 是否为空及 map 中值；再说明直接传 make_unique 是否省掉参数构造。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cpp-advanced:node-handle",
+    "kind": "engineering",
+    "title": "extract 节点句柄与键修改 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C++17；C++20 功能另行注明\n示例 / 场景：\n#include <map>\n#include <string>\nstd::map<int,std::string> m{{1,\"A\"},{2,\"B\"}};\nauto node=m.extract(1);\nnode.key()=2;\nauto result=m.insert(std::move(node));\n\n任务：执行后键 1 是否还在？A 在哪里？给出处理冲突的思路。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "键 1 已移出，键 2 仍是 B，A 由 result.node 持有。\n\n必须检查 inserted；冲突可改回原键再插入、选新键或显式合并，不能假设 insert 必成功。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "键 1 已移出，键 2 仍是 B，A 由 result.node 持有。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "必须检查 inserted；冲突可改回原键再插入、选新键或显式合并，不能假设 insert 必成功。",
+        "points": 40
+      }
+    ],
+    "source": "https://eel.is/c++draft/associative.reqmts",
+    "knowledge_ids": [
+      "ref:cpp-advanced:node-handle"
+    ],
+    "tags": [
+      "C++",
+      "进阶专题",
+      "集合与容器",
+      "node-handle"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "关联容器节点句柄可移出节点后修改键，重新插入失败时仍需处理返回的节点所有权。",
+      "deliverable": "执行后键 1 是否还在？A 在哪里？给出处理冲突的思路。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cpp-advanced:transparent-lookup",
+    "kind": "engineering",
+    "title": "透明比较器与异构查找 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C++17；C++20 功能另行注明\n示例 / 场景：\n#include <map>\n#include <string>\n#include <string_view>\nstd::map<std::string,int,std::less<>> counts{{\"apple\",3}};\nstd::string_view key=\"apple\";\nauto it=counts.find(key);\n\n任务：本例 find 是否必须先创建 std::string？解释 std::less<> 的作用和比较器要求。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不必；透明比较器启用兼容键类型的异构查找。\n\n跨类型比较仍须一致且满足严格弱序，否则容器顺序与查找前提被破坏。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不必；透明比较器启用兼容键类型的异构查找。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "跨类型比较仍须一致且满足严格弱序，否则容器顺序与查找前提被破坏。",
+        "points": 40
+      }
+    ],
+    "source": "https://eel.is/c++draft/associative.reqmts",
+    "knowledge_ids": [
+      "ref:cpp-advanced:transparent-lookup"
+    ],
+    "tags": [
+      "C++",
+      "进阶专题",
+      "集合与容器",
+      "transparent-lookup"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "std::less<> 作为透明比较器，可让有序字符串容器接受适配的查找键而不先构造 std::string。",
+      "deliverable": "本例 find 是否必须先创建 std::string？解释 std::less<> 的作用和比较器要求。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cpp-advanced:fold-expression",
+    "kind": "engineering",
+    "title": "折叠表达式与空参数包 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C++17；C++20 功能另行注明\n示例 / 场景：\ntemplate<class... T>\nauto sum(T... values) { return (0 + ... + values); }\nauto a=sum();\nauto b=sum(1,2,3);\n\n任务：写出 a、b；把表达式改为 (... + values) 后，sum() 是否仍合法？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "a=0，b=6；一元加法折叠遇到空包不合法。\n\n初值 0 为本例提供空包结果，并参与类型和运算选择；不能无条件推广到所有类型。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "a=0，b=6；一元加法折叠遇到空包不合法。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "初值 0 为本例提供空包结果，并参与类型和运算选择；不能无条件推广到所有类型。",
+        "points": 40
+      }
+    ],
+    "source": "https://eel.is/c++draft/expr.prim.fold",
+    "knowledge_ids": [
+      "ref:cpp-advanced:fold-expression"
+    ],
+    "tags": [
+      "C++",
+      "进阶专题",
+      "模板与编译期",
+      "fold-expression"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "带初值的二元折叠可明确空参数包结果，单纯写加法一元折叠不能处理空包。",
+      "deliverable": "写出 a、b；把表达式改为 (... + values) 后，sum() 是否仍合法？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cpp-advanced:if-constexpr",
+    "kind": "engineering",
+    "title": "if constexpr 与被丢弃分支 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C++17；C++20 功能另行注明\n示例 / 场景：\n#include <type_traits>\ntemplate<class T>\nauto value(T x) {\n  if constexpr (std::is_pointer_v<T>) return *x;\n  else return x;\n}\nauto n=value(7);\n\n任务：改成普通 if 时 value(7) 为什么可能编译失败？说明 constexpr 的作用。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "普通 if 不能避免实例化对 int 解引用的表达式；if constexpr 会丢弃该依赖分支。\n\n这是模板实例化规则，不是运行时短路；被丢弃代码仍必须满足语法等适用要求。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "普通 if 不能避免实例化对 int 解引用的表达式；if constexpr 会丢弃该依赖分支。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "这是模板实例化规则，不是运行时短路；被丢弃代码仍必须满足语法等适用要求。",
+        "points": 40
+      }
+    ],
+    "source": "https://eel.is/c++draft/stmt.if",
+    "knowledge_ids": [
+      "ref:cpp-advanced:if-constexpr"
+    ],
+    "tags": [
+      "C++",
+      "进阶专题",
+      "模板与编译期",
+      "if-constexpr"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "模板实例化中 if constexpr 可丢弃不选中的依赖类型分支，普通 if 仍需实例化两侧相关代码。",
+      "deliverable": "改成普通 if 时 value(7) 为什么可能编译失败？说明 constexpr 的作用。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cpp-advanced:structured-binding",
+    "kind": "engineering",
+    "title": "结构化绑定的复制与引用 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C++17；C++20 功能另行注明\n示例 / 场景：\n#include <utility>\nstd::pair<int,int> p{1,2};\nauto [x,y]=p;\nx=9;\nauto& [a,b]=p;\na=7;\n\n任务：写出最终 p.first、x，并解释两次赋值对 p 的影响。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "p.first=7，x=9；修改 x 不影响 p，修改 a 影响 p。\n\n第一处绑定到隐藏副本，第二处 auto& 绑定到原 pair 的成员。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "p.first=7，x=9；修改 x 不影响 p，修改 a 影响 p。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "第一处绑定到隐藏副本，第二处 auto& 绑定到原 pair 的成员。",
+        "points": 40
+      }
+    ],
+    "source": "https://eel.is/c++draft/dcl.struct.bind",
+    "knowledge_ids": [
+      "ref:cpp-advanced:structured-binding"
+    ],
+    "tags": [
+      "C++",
+      "进阶专题",
+      "类型与表达式",
+      "structured-binding"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "auto [a,b] 通常引入隐藏副本，auto& [a,b] 可把绑定关联到原对象成员。",
+      "deliverable": "写出最终 p.first、x，并解释两次赋值对 p 的影响。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cpp-advanced:initializer-list",
+    "kind": "engineering",
+    "title": "花括号与 initializer_list 优先选择 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C++17；C++20 功能另行注明\n示例 / 场景：\n#include <vector>\nstd::vector<int> a(3,7);\nstd::vector<int> b{3,7};\n\n任务：给出两个 vector 的长度和内容，并说明为何不同。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "a 长度 3，内容 7、7、7；b 长度 2，内容 3、7。\n\n圆括号匹配数量和值构造；花括号优先匹配适用的 initializer_list 构造。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "a 长度 3，内容 7、7、7；b 长度 2，内容 3、7。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "圆括号匹配数量和值构造；花括号优先匹配适用的 initializer_list 构造。",
+        "points": 40
+      }
+    ],
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Res-list",
+    "knowledge_ids": [
+      "ref:cpp-advanced:initializer-list"
+    ],
+    "tags": [
+      "C++",
+      "进阶专题",
+      "类型与表达式",
+      "initializer-list"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "花括号初始化可能优先匹配 initializer_list 构造，与圆括号的个数和值语义不同。",
+      "deliverable": "给出两个 vector 的长度和内容，并说明为何不同。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cpp-advanced:decltype-auto",
+    "kind": "engineering",
+    "title": "decltype(auto) 与括号改变返回类型 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C++17；C++20 功能另行注明\n示例 / 场景：\nauto safe() { int x=7; return x; }\n// decltype(auto) bad() { int x=7; return (x); }\n// bad 返回 int&，离开函数即悬空。\n\n任务：bad 推导为什么类型？如何返回局部值而不悬空？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "返回 int&；可用 auto 返回值，或显式返回 int。\n\n括号使 decltype 按左值表达式推导引用，局部对象退出时销毁，引用不延长其生命周期。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "返回 int&；可用 auto 返回值，或显式返回 int。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "括号使 decltype 按左值表达式推导引用，局部对象退出时销毁，引用不延长其生命周期。",
+        "points": 40
+      }
+    ],
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rf-dangle",
+    "knowledge_ids": [
+      "ref:cpp-advanced:decltype-auto"
+    ],
+    "tags": [
+      "C++",
+      "进阶专题",
+      "类型与表达式",
+      "decltype-auto"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "decltype(auto) 按 decltype 规则推导，返回带括号的左值表达式可能形成引用并悬空。",
+      "deliverable": "bad 推导为什么类型？如何返回局部值而不悬空？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cpp-advanced:emplace-cost",
+    "kind": "engineering",
+    "title": "emplace_back 不保证零移动 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C++17；C++20 功能另行注明\n示例 / 场景：\n#include <vector>\n#include <string>\nstd::vector<std::string> names;\nnames.reserve(2);\nnames.emplace_back(3, 'x');\nnames.emplace_back(\"Bob\");\n\n任务：reserve(2) 后 size 是多少？emplace_back 是否保证以后任何插入都不移动已有元素？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "reserve 后 size=0；不保证所有未来插入都无移动。\n\nreserve 只保证至少所需容量；超过实际 capacity 可能重分配，emplace 不能取消扩容成本或引用失效。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "reserve 后 size=0；不保证所有未来插入都无移动。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "reserve 只保证至少所需容量；超过实际 capacity 可能重分配，emplace 不能取消扩容成本或引用失效。",
+        "points": 40
+      }
+    ],
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rsl-vector",
+    "knowledge_ids": [
+      "ref:cpp-advanced:emplace-cost"
+    ],
+    "tags": [
+      "C++",
+      "进阶专题",
+      "集合与容器",
+      "emplace-cost"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "emplace_back 避免构造传入的元素临时值，但 vector 扩容仍可能移动或复制已有元素。",
+      "deliverable": "reserve(2) 后 size 是多少？emplace_back 是否保证以后任何插入都不移动已有元素？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cpp-advanced:move-noexcept",
+    "kind": "engineering",
+    "title": "noexcept 移动与容器重分配 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C++17；C++20 功能另行注明\n示例 / 场景：\n#include <utility>\nstruct Item {\n  Item()=default;\n  Item(const Item&)=default;\n  Item(Item&&) noexcept(false) {}\n};\nItem x;\nauto&& choice=std::move_if_noexcept(x);\n\n任务：choice 是右值引用还是 const 左值引用？说明为何不能为提速随意加 noexcept。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "为 const Item&，因可复制且移动未承诺 noexcept。\n\nmove_if_noexcept 可选择复制以避免破坏异常保证；虚假 noexcept 下若抛异常会触发 terminate。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "为 const Item&，因可复制且移动未承诺 noexcept。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "move_if_noexcept 可选择复制以避免破坏异常保证；虚假 noexcept 下若抛异常会触发 terminate。",
+        "points": 40
+      }
+    ],
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rc-move-noexcept",
+    "knowledge_ids": [
+      "ref:cpp-advanced:move-noexcept"
+    ],
+    "tags": [
+      "C++",
+      "进阶专题",
+      "异常与资源",
+      "move-noexcept"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "vector 为维持异常保证，可能优先复制可复制但移动会抛错的元素。",
+      "deliverable": "choice 是右值引用还是 const 左值引用？说明为何不能为提速随意加 noexcept。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cpp-advanced:constructor-unwind",
+    "kind": "engineering",
+    "title": "构造函数抛错时谁负责清理 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C++17；C++20 功能另行注明\n示例 / 场景：\n#include <memory>\n#include <stdexcept>\nstruct Session {\n  std::unique_ptr<int> resource=std::make_unique<int>(7);\n  Session() { throw std::runtime_error(\"fail\"); }\n};\n\n任务：构造抛错时 Session 的析构会执行吗？resource 是否泄漏？解释原因。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "Session 析构不执行；resource 的 unique_ptr 析构会释放已分配对象。\n\n成员已完成构造便参加栈展开清理；未完成的最外层对象不能靠自身析构补救。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "Session 析构不执行；resource 的 unique_ptr 析构会释放已分配对象。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "成员已完成构造便参加栈展开清理；未完成的最外层对象不能靠自身析构补救。",
+        "points": 40
+      }
+    ],
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Re-raii",
+    "knowledge_ids": [
+      "ref:cpp-advanced:constructor-unwind"
+    ],
+    "tags": [
+      "C++",
+      "进阶专题",
+      "异常与资源",
+      "constructor-unwind"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "构造失败时已完成构造的成员会析构，但该对象自己的析构函数不会执行。",
+      "deliverable": "构造抛错时 Session 的析构会执行吗？resource 是否泄漏？解释原因。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cpp-advanced:condition-predicate",
+    "kind": "engineering",
+    "title": "条件变量谓词与虚假唤醒 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C++17；C++20 功能另行注明\n示例 / 场景：\n#include <condition_variable>\n#include <mutex>\nstd::mutex m;\nstd::condition_variable cv;\nbool ready=false;\n// 消费者\nstd::unique_lock<std::mutex> lock(m);\ncv.wait(lock, [] { return ready; });\n\n任务：为何不能把 wait 简化为无谓词等待一次？给出生产者设置 ready 的同步方式。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "可能虚假唤醒或错过通知；生产者在 m 保护下写 ready=true，再 notify_one/all。\n\n业务条件保存在 ready 中，wait 返回后仍需检查；谓词形式封装循环并与同一锁配合。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "可能虚假唤醒或错过通知；生产者在 m 保护下写 ready=true，再 notify_one/all。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "业务条件保存在 ready 中，wait 返回后仍需检查；谓词形式封装循环并与同一锁配合。",
+        "points": 40
+      }
+    ],
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rconc-wait",
+    "knowledge_ids": [
+      "ref:cpp-advanced:condition-predicate"
+    ],
+    "tags": [
+      "C++",
+      "进阶专题",
+      "异步与并发",
+      "condition-predicate"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "条件变量通知不保存业务状态；等待必须在锁保护下重复检查谓词。",
+      "deliverable": "为何不能把 wait 简化为无谓词等待一次？给出生产者设置 ready 的同步方式。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cpp-advanced:scoped-lock",
+    "kind": "engineering",
+    "title": "scoped_lock 与固定锁序 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C++17；C++20 功能另行注明\n示例 / 场景：\n#include <mutex>\nstruct Account { std::mutex m; int balance=0; };\nvoid transfer(Account& a, Account& b, int n) {\n  if (&a==&b) return;\n  std::scoped_lock lock(a.m,b.m);\n  a.balance-=n; b.balance+=n;\n}\n\n任务：为何要先判断 &a==&b？说明 scoped_lock 解决什么，未解决什么。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "同一账户会传入同一 mutex 两次，应提前处理；scoped_lock 协调多锁获取并自动释放。\n\n它不提供转账业务校验；负数、余额不足或整数溢出仍需单独检查。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "同一账户会传入同一 mutex 两次，应提前处理；scoped_lock 协调多锁获取并自动释放。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "它不提供转账业务校验；负数、余额不足或整数溢出仍需单独检查。",
+        "points": 40
+      }
+    ],
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rconc-deadlock",
+    "knowledge_ids": [
+      "ref:cpp-advanced:scoped-lock"
+    ],
+    "tags": [
+      "C++",
+      "进阶专题",
+      "异步与并发",
+      "scoped-lock"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "std::scoped_lock 可用避免死锁的算法同时获取多把 mutex，减少手工反向加锁风险。",
+      "deliverable": "为何要先判断 &a==&b？说明 scoped_lock 解决什么，未解决什么。"
+    }
+  },
+  {
+    "id": "knowledge:ref:cpp-advanced:jthread-stop",
+    "kind": "engineering",
+    "title": "jthread 的协作停止与自动 join · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C++17；C++20 功能另行注明\n示例 / 场景：\n#include <thread>\n#include <stop_token>\n#include <chrono>\nstd::jthread worker([](std::stop_token stop) {\n  while (!stop.stop_requested())\n    std::this_thread::sleep_for(std::chrono::milliseconds(10));\n});\nworker.request_stop();\n\n任务：调用 request_stop 是否立即杀死线程？若工作函数永久阻塞，析构是否保证立刻返回？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "均不是；停止是协作请求，析构仍需 join。\n\n工作函数要检查 stop_token，并为阻塞操作设计取消/超时；不能把请求当成强制终止。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "均不是；停止是协作请求，析构仍需 join。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "工作函数要检查 stop_token，并为阻塞操作设计取消/超时；不能把请求当成强制终止。",
+        "points": 40
+      }
+    ],
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rconc-joining_thread",
+    "knowledge_ids": [
+      "ref:cpp-advanced:jthread-stop"
+    ],
+    "tags": [
+      "C++",
+      "进阶专题",
+      "异步与并发",
+      "jthread-stop"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "jthread 析构会请求停止并 join，但停止令牌需要工作线程主动检查。",
+      "deliverable": "调用 request_stop 是否立即杀死线程？若工作函数永久阻塞，析构是否保证立刻返回？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cpp-advanced:future-exception",
+    "kind": "engineering",
+    "title": "future.get 的异常与一次性取值 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C++17；C++20 功能另行注明\n示例 / 场景：\n#include <future>\n#include <stdexcept>\nauto f=std::async(std::launch::async, []()->int {\n  throw std::runtime_error(\"task failed\");\n});\ntry { (void)f.get(); } catch(const std::exception&) { /* 记录失败 */ }\n\n任务：异常会在哪一侧可见？catch 后能否再次 f.get() 读取同一个错误？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "在调用 get 的线程可见；catch 后不能再对已消费的 future 调用 get。\n\n异步状态保存异常供 get 重抛；需要多次观察时应选 shared_future 等合适接口。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "在调用 get 的线程可见；catch 后不能再对已消费的 future 调用 get。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "异步状态保存异常供 get 重抛；需要多次观察时应选 shared_future 等合适接口。",
+        "points": 40
+      }
+    ],
+    "source": "https://eel.is/c++draft/futures.unique.future",
+    "knowledge_ids": [
+      "ref:cpp-advanced:future-exception"
+    ],
+    "tags": [
+      "C++",
+      "进阶专题",
+      "异步与并发",
+      "future-exception"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "future.get 等待结果并可能重新抛出异步异常，成功或抛出后通常都消费该共享状态。",
+      "deliverable": "异常会在哪一侧可见？catch 后能否再次 f.get() 读取同一个错误？"
+    }
+  },
+  {
+    "id": "knowledge:ref:cpp-advanced:span-lifetime",
+    "kind": "engineering",
+    "title": "span 不拥有底层数组 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：C++17；C++20 功能另行注明\n示例 / 场景：\n#include <span>\n#include <vector>\nstd::vector<int> values{1,2,3};\nstd::span<int> view(values);\nview[0]=7;\n// values 扩容重分配后，旧 view 不能继续使用。\n\n任务：赋值后 values[0] 是多少？若 values 扩容导致重分配，view 是否仍有效？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "values[0]=7；重分配后 view 悬空，必须重新建立。\n\nspan 不拥有内存，保存的是原地址和长度；它既不延长生命周期也不自动更新长度。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "values[0]=7；重分配后 view 悬空，必须重新建立。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "span 不拥有内存，保存的是原地址和长度；它既不延长生命周期也不自动更新长度。",
+        "points": 40
+      }
+    ],
+    "source": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#SS-views",
+    "knowledge_ids": [
+      "ref:cpp-advanced:span-lifetime"
+    ],
+    "tags": [
+      "C++",
+      "进阶专题",
+      "内存与视图",
+      "span-lifetime"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "span 描述连续内存的地址和长度，不延长底层容器生命周期，也不抵抗 vector 重分配。",
+      "deliverable": "赋值后 values[0] 是多少？若 values 扩容导致重分配，view 是否仍有效？"
+    }
+  },
+  {
+    "id": "knowledge:ref:rust-advanced:cow",
+    "kind": "engineering",
+    "title": "Cow 的借用与写时克隆 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Rust 2024 edition，1.85+；示例需相应 use\n示例 / 场景：\nuse std::borrow::Cow;\nlet source=\"abc\";\nlet mut text: Cow<'_, str> = Cow::Borrowed(source);\ntext.to_mut().push('!');\nassert_eq!(source,\"abc\");\nassert_eq!(text,\"abc!\");\n\n任务：source 是否改变？第一次 to_mut 做了什么，第二次通常还需复制吗？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "source 保持 abc，text 变为 abc!；首次从借用变为拥有时复制。\n\n已是 Owned 后 to_mut 通常直接借用内部值，不再次执行借用转拥有的克隆。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "source 保持 abc，text 变为 abc!；首次从借用变为拥有时复制。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "已是 Owned 后 to_mut 通常直接借用内部值，不再次执行借用转拥有的克隆。",
+        "points": 40
+      }
+    ],
+    "source": "https://doc.rust-lang.org/std/borrow/enum.Cow.html",
+    "knowledge_ids": [
+      "ref:rust-advanced:cow"
+    ],
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "内存与所有权",
+      "cow"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Cow 可在无需修改时借用数据，首次需要可变访问时才复制成拥有值。",
+      "deliverable": "source 是否改变？第一次 to_mut 做了什么，第二次通常还需复制吗？"
+    }
+  },
+  {
+    "id": "knowledge:ref:rust-advanced:tryfrom",
+    "kind": "engineering",
+    "title": "TryFrom 与 as 截断 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Rust 2024 edition，1.85+；示例需相应 use\n示例 / 场景：\nlet raw=300u16;\nlet checked=u8::try_from(raw);\nlet truncated=raw as u8;\nassert!(checked.is_err());\nassert_eq!(truncated,44);\n\n任务：给出两个结果；若处理有范围限制的外部字段应如何转换？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "checked 为 Err，truncated 为 44；需验证范围时用 TryFrom 并处理 Err。\n\nas 对此转换截断高位，不会返回范围错误；不能作为外部输入合法性验证。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "checked 为 Err，truncated 为 44；需验证范围时用 TryFrom 并处理 Err。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "as 对此转换截断高位，不会返回范围错误；不能作为外部输入合法性验证。",
+        "points": 40
+      }
+    ],
+    "source": "https://doc.rust-lang.org/std/convert/trait.TryFrom.html",
+    "knowledge_ids": [
+      "ref:rust-advanced:tryfrom"
+    ],
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "类型与错误",
+      "tryfrom"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "有范围限制的整数转换应用 TryFrom 明确处理失败，as 可能按规则截断而非报错。",
+      "deliverable": "给出两个结果；若处理有范围限制的外部字段应如何转换？"
+    }
+  },
+  {
+    "id": "knowledge:ref:rust-advanced:error-source",
+    "kind": "engineering",
+    "title": "Error::source 与上下文包装 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Rust 2024 edition，1.85+；示例需相应 use\n示例 / 场景：\nuse std::{error::Error, fmt, io};\n#[derive(Debug)]\nstruct LoadError(io::Error);\nimpl fmt::Display for LoadError {\n fn fmt(&self,f:&mut fmt::Formatter<'_>)->fmt::Result { write!(f,\"配置读取失败\") }\n}\nimpl Error for LoadError {\n fn source(&self)->Option<&(dyn Error+'static)> { Some(&self.0) }\n}\n\n任务：怎样取得底层 io::Error 原因？仅本例能否自动对 io::Result 使用 ? 转 LoadError？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "通过 Error::source 获取原因；不能仅凭本例自动转换。\n\n还需实现 From<io::Error> for LoadError 或显式 map_err；Display 不自动建立转换关系。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "通过 Error::source 获取原因；不能仅凭本例自动转换。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "还需实现 From<io::Error> for LoadError 或显式 map_err；Display 不自动建立转换关系。",
+        "points": 40
+      }
+    ],
+    "source": "https://doc.rust-lang.org/std/error/trait.Error.html",
+    "knowledge_ids": [
+      "ref:rust-advanced:error-source"
+    ],
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "类型与错误",
+      "error-source"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "自定义错误可保留底层错误供 source 链追踪，避免只格式化成字符串而丢失结构。",
+      "deliverable": "怎样取得底层 io::Error 原因？仅本例能否自动对 io::Result 使用 ? 转 LoadError？"
+    }
+  },
+  {
+    "id": "knowledge:ref:rust-advanced:transpose",
+    "kind": "engineering",
+    "title": "Option<Result<T,E>> 的 transpose · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Rust 2024 edition，1.85+；示例需相应 use\n示例 / 场景：\nfn port(raw: Option<&str>) -> Result<Option<u16>, std::num::ParseIntError> {\n raw.map(str::parse::<u16>).transpose()\n}\n\n任务：说明 None、Some(\"80\")、Some(\"bad\") 的结果，为何不应静默丢弃解析错误？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "依次为 Ok(None)、Ok(Some(80))、Err。\n\n缺失是允许的可选状态，格式错误需要上报；静默过滤会把坏配置伪装成缺失。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "依次为 Ok(None)、Ok(Some(80))、Err。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "缺失是允许的可选状态，格式错误需要上报；静默过滤会把坏配置伪装成缺失。",
+        "points": 40
+      }
+    ],
+    "source": "https://doc.rust-lang.org/std/option/enum.Option.html#method.transpose",
+    "knowledge_ids": [
+      "ref:rust-advanced:transpose"
+    ],
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "类型与错误",
+      "transpose"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "transpose 把可选操作与失败传播的层次交换，适合可选配置字段的解析。",
+      "deliverable": "说明 None、Some(\"80\")、Some(\"bad\") 的结果，为何不应静默丢弃解析错误？"
+    }
+  },
+  {
+    "id": "knowledge:ref:rust-advanced:collect-result",
+    "kind": "engineering",
+    "title": "collect Result 短路与完整错误收集 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Rust 2024 edition，1.85+；示例需相应 use\n示例 / 场景：\nlet input=[\"1\",\"bad\",\"3\"];\nlet values: Result<Vec<i32>,_> = input.iter().map(|s| s.parse()).collect();\nassert!(values.is_err());\n\n任务：能否通过 values 得到所有失败行？给出保留每项结果的类型。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不能；可收集为 Vec<Result<i32, std::num::ParseIntError>> 并保留输入位置。\n\nResult 的收集遇到 Err 短路；完整校验需主动遍历全部输入。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不能；可收集为 Vec<Result<i32, std::num::ParseIntError>> 并保留输入位置。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "Result 的收集遇到 Err 短路；完整校验需主动遍历全部输入。",
+        "points": 40
+      }
+    ],
+    "source": "https://doc.rust-lang.org/std/result/enum.Result.html",
+    "knowledge_ids": [
+      "ref:rust-advanced:collect-result"
+    ],
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "迭代与错误",
+      "collect-result"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "收集成 Result<Vec<_>,_> 遇到第一个 Err 就停止，不会收集全部错误。",
+      "deliverable": "能否通过 values 得到所有失败行？给出保留每项结果的类型。"
+    }
+  },
+  {
+    "id": "knowledge:ref:rust-advanced:slice-windows",
+    "kind": "engineering",
+    "title": "windows 与 chunks 的重叠区别 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Rust 2024 edition，1.85+；示例需相应 use\n示例 / 场景：\nlet a=[1,2,3,4,5];\nlet pairs: Vec<_> = a.windows(2).collect();\nlet mut chunks=a.chunks_exact(2);\nassert_eq!(chunks.next(),Some(&a[0..2]));\nassert_eq!(chunks.remainder(), &[5]);\n\n任务：列出 windows(2) 窗口和 chunks_exact(2) 的完整分块、尾部。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "窗口 [1,2]、[2,3]、[3,4]、[4,5]；块 [1,2]、[3,4]，尾部 [5]。\n\nwindows 相邻窗口重叠；chunks_exact 不重叠且把不足一块的尾部保留。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "窗口 [1,2]、[2,3]、[3,4]、[4,5]；块 [1,2]、[3,4]，尾部 [5]。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "windows 相邻窗口重叠；chunks_exact 不重叠且把不足一块的尾部保留。",
+        "points": 40
+      }
+    ],
+    "source": "https://doc.rust-lang.org/std/primitive.slice.html#method.chunks_exact",
+    "knowledge_ids": [
+      "ref:rust-advanced:slice-windows"
+    ],
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "集合与算法",
+      "slice-windows"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "windows 提供重叠窗口，chunks 提供不重叠分块，chunks_exact 另暴露余数。",
+      "deliverable": "列出 windows(2) 窗口和 chunks_exact(2) 的完整分块、尾部。"
+    }
+  },
+  {
+    "id": "knowledge:ref:rust-advanced:split-mut",
+    "kind": "engineering",
+    "title": "split_at_mut 证明区域不重叠 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Rust 2024 edition，1.85+；示例需相应 use\n示例 / 场景：\nlet mut a=[1,2,3,4];\nlet (left,right)=a.split_at_mut(2);\nleft[0]=10; right[0]=30;\nassert_eq!(a,[10,2,30,4]);\n\n任务：写出最终数组；为何两个 &mut 能同时存在？split_at_mut(5) 如何？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "数组 [10,2,30,4]；长度 4 时拆分点 5 会 panic。\n\nAPI 保证两段范围不重叠，可同时可变借用；并非放宽任意别名规则。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "数组 [10,2,30,4]；长度 4 时拆分点 5 会 panic。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "API 保证两段范围不重叠，可同时可变借用；并非放宽任意别名规则。",
+        "points": 40
+      }
+    ],
+    "source": "https://doc.rust-lang.org/std/primitive.slice.html#method.split_at_mut",
+    "knowledge_ids": [
+      "ref:rust-advanced:split-mut"
+    ],
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "内存与所有权",
+      "split-mut"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "split_at_mut 安全地拆成两个不重叠可变切片，避免对同一容器重复借用。",
+      "deliverable": "写出最终数组；为何两个 &mut 能同时存在？split_at_mut(5) 如何？"
+    }
+  },
+  {
+    "id": "knowledge:ref:rust-advanced:entry-borrow",
+    "kind": "engineering",
+    "title": "Entry 可变借用与读取顺序 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Rust 2024 edition，1.85+；示例需相应 use\n示例 / 场景：\nuse std::collections::HashMap;\nlet mut counts=HashMap::from([(\"a\",1)]);\nlet previous=counts.get(\"a\").copied().unwrap_or(0);\n*counts.entry(\"b\").or_insert(0)+=previous;\n\n任务：先保留 entry 返回的 &mut 再 get(\"a\") 为何可能报错？给出修复顺序。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "先读 a 并复制所需值，再进入 b 的 Entry 修改。\n\n可变引用仍被后续使用时借用覆盖 map，不能同时通过 map 创建冲突共享借用。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "先读 a 并复制所需值，再进入 b 的 Entry 修改。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "可变引用仍被后续使用时借用覆盖 map，不能同时通过 map 创建冲突共享借用。",
+        "points": 40
+      }
+    ],
+    "source": "https://doc.rust-lang.org/std/collections/hash_map/enum.Entry.html",
+    "knowledge_ids": [
+      "ref:rust-advanced:entry-borrow"
+    ],
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "集合与所有权",
+      "entry-borrow"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Entry 持有可变访问期间，不能再通过同一 map 获取冲突共享引用。",
+      "deliverable": "先保留 entry 返回的 &mut 再 get(\"a\") 为何可能报错？给出修复顺序。"
+    }
+  },
+  {
+    "id": "knowledge:ref:rust-advanced:weak-cycle",
+    "kind": "engineering",
+    "title": "Rc 循环与 Weak 回边 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Rust 2024 edition，1.85+；示例需相应 use\n示例 / 场景：\nuse std::rc::Rc;\nlet strong=Rc::new(String::from(\"node\"));\nlet weak=Rc::downgrade(&strong);\nassert!(weak.upgrade().is_some());\ndrop(strong);\nassert!(weak.upgrade().is_none());\n\n任务：drop 后 upgrade 返回什么？树中父指针为何适合用 Weak？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "返回 None；父指针用 Weak 可避免父子双方强引用形成环。\n\nWeak 不增加强引用计数，使用时须处理对象已释放，不能当作必然有效引用。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "返回 None；父指针用 Weak 可避免父子双方强引用形成环。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "Weak 不增加强引用计数，使用时须处理对象已释放，不能当作必然有效引用。",
+        "points": 40
+      }
+    ],
+    "source": "https://doc.rust-lang.org/book/ch15-06-reference-cycles.html",
+    "knowledge_ids": [
+      "ref:rust-advanced:weak-cycle"
+    ],
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "内存与所有权",
+      "weak-cycle"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Rc 强引用环阻止计数归零；反向关联可用不维持所有权的 Weak。",
+      "deliverable": "drop 后 upgrade 返回什么？树中父指针为何适合用 Weak？"
+    }
+  },
+  {
+    "id": "knowledge:ref:rust-advanced:scoped-thread",
+    "kind": "engineering",
+    "title": "作用域线程借用栈数据 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Rust 2024 edition，1.85+；示例需相应 use\n示例 / 场景：\nlet text=String::from(\"hello\");\nstd::thread::scope(|s| {\n s.spawn(|| assert_eq!(text.len(),5));\n});\nassert_eq!(text,\"hello\");\n\n任务：为何这里能借用 text 而普通 spawn 经常要求 static？是否允许无锁共享可变写？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "scope 保证线程不逃出 text 生命周期；不允许任意无锁共享可变写。\n\n普通 spawn 可能超出调用栈生命周期；作用域解决生存期，仍保留数据竞争防护。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "scope 保证线程不逃出 text 生命周期；不允许任意无锁共享可变写。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "普通 spawn 可能超出调用栈生命周期；作用域解决生存期，仍保留数据竞争防护。",
+        "points": 40
+      }
+    ],
+    "source": "https://doc.rust-lang.org/std/thread/fn.scope.html",
+    "knowledge_ids": [
+      "ref:rust-advanced:scoped-thread"
+    ],
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "异步与并发",
+      "scoped-thread"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "thread::scope 等待作用域内线程结束后才返回，因此线程可借用外部非静态数据。",
+      "deliverable": "为何这里能借用 text 而普通 spawn 经常要求 static？是否允许无锁共享可变写？"
+    }
+  },
+  {
+    "id": "knowledge:ref:rust-advanced:once-lock",
+    "kind": "engineering",
+    "title": "OnceLock 单次初始化与重入风险 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Rust 2024 edition，1.85+；示例需相应 use\n示例 / 场景：\nuse std::sync::OnceLock;\nstatic NAME: OnceLock<String> = OnceLock::new();\nlet a=NAME.get_or_init(|| \"desk\".to_string());\nlet b=NAME.get_or_init(|| \"other\".to_string());\nassert_eq!(a,b);\n\n任务：a、b 是什么？第二个闭包执行吗？指出一个初始化风险。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "两者均引用 desk；第二闭包不执行。\n\n同一 OnceLock 重入可能死锁，或不同配置由首次成功初始化决定；指出任一即可。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "两者均引用 desk；第二闭包不执行。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "同一 OnceLock 重入可能死锁，或不同配置由首次成功初始化决定；指出任一即可。",
+        "points": 40
+      }
+    ],
+    "source": "https://doc.rust-lang.org/std/sync/struct.OnceLock.html",
+    "knowledge_ids": [
+      "ref:rust-advanced:once-lock"
+    ],
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "异步与并发",
+      "once-lock"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "OnceLock 可在线程间共享延迟初始化值；初始化闭包 panic 不会使单元永久中毒。",
+      "deliverable": "a、b 是什么？第二个闭包执行吗？指出一个初始化风险。"
+    }
+  },
+  {
+    "id": "knowledge:ref:rust-advanced:atomic-ordering",
+    "kind": "engineering",
+    "title": "原子计数与其他数据的发布 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Rust 2024 edition，1.85+；示例需相应 use\n示例 / 场景：\nuse std::sync::atomic::{AtomicUsize,Ordering};\nstatic HITS: AtomicUsize=AtomicUsize::new(0);\nHITS.fetch_add(1,Ordering::Relaxed);\nlet snapshot=HITS.load(Ordering::Relaxed);\n\n任务：HITS>0 是否足以作为普通共享对象可读信号？说明安全替代方案。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不足；可用 Mutex 保护对象、通道传递所有权或严格设计的 release/acquire 协议。\n\nRelaxed 不为其他内存建立发布/获取关系，数据访问仍需满足别名和同步规则。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不足；可用 Mutex 保护对象、通道传递所有权或严格设计的 release/acquire 协议。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "Relaxed 不为其他内存建立发布/获取关系，数据访问仍需满足别名和同步规则。",
+        "points": 40
+      }
+    ],
+    "source": "https://doc.rust-lang.org/std/sync/atomic/enum.Ordering.html",
+    "knowledge_ids": [
+      "ref:rust-advanced:atomic-ordering"
+    ],
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "异步与并发",
+      "atomic-ordering"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Relaxed 可用于独立统计，借标志发布其他数据则需要完整同步设计。",
+      "deliverable": "HITS>0 是否足以作为普通共享对象可读信号？说明安全替代方案。"
+    }
+  },
+  {
+    "id": "knowledge:ref:rust-advanced:condvar-loop",
+    "kind": "engineering",
+    "title": "Condvar 条件循环与锁关联 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Rust 2024 edition，1.85+；示例需相应 use\n示例 / 场景：\nuse std::sync::{Mutex,Condvar};\nlet pair=(Mutex::new(false),Condvar::new());\n// 等待端片段，另需生产者设置 true 后通知\nlet (lock,cv)=&pair;\nlet guard=lock.lock().unwrap();\nlet _ready=cv.wait_while(guard, |ready| !*ready).unwrap();\n\n任务：提前通知或虚假唤醒时为何不能只等一次？生产者如何写状态？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "由状态谓词决定是否等待；生产者用同一 mutex 设 true 后通知。\n\n通知不存储业务条件；循环可应对提前通知、虚假唤醒及条件仍未满足。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "由状态谓词决定是否等待；生产者用同一 mutex 设 true 后通知。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "通知不存储业务条件；循环可应对提前通知、虚假唤醒及条件仍未满足。",
+        "points": 40
+      }
+    ],
+    "source": "https://doc.rust-lang.org/std/sync/struct.Condvar.html#method.wait_while",
+    "knowledge_ids": [
+      "ref:rust-advanced:condvar-loop"
+    ],
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "异步与并发",
+      "condvar-loop"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "条件变量允许虚假唤醒，等待应检查由同一 mutex 保护的业务状态。",
+      "deliverable": "提前通知或虚假唤醒时为何不能只等一次？生产者如何写状态？"
+    }
+  },
+  {
+    "id": "knowledge:ref:rust-advanced:pin-boundary",
+    "kind": "engineering",
+    "title": "Pin 固定承诺与 Unpin · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Rust 2024 edition，1.85+；示例需相应 use\n示例 / 场景：\nuse std::pin::Pin;\nlet mut pinned=Box::pin(String::from(\"abc\"));\nlet text: &mut String=Pin::as_mut(&mut pinned).get_mut();\ntext.push('!');\n\n任务：为何可 get_mut？是否说明所有固定类型都能任意替换内容？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "String 是 Unpin，可安全取得可变引用；不能推广到所有类型。\n\n!Unpin 须维持固定契约；Pin 不自动建立自引用安全，也不禁止移动指针包装本身。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "String 是 Unpin，可安全取得可变引用；不能推广到所有类型。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "!Unpin 须维持固定契约；Pin 不自动建立自引用安全，也不禁止移动指针包装本身。",
+        "points": 40
+      }
+    ],
+    "source": "https://doc.rust-lang.org/std/pin/index.html",
+    "knowledge_ids": [
+      "ref:rust-advanced:pin-boundary"
+    ],
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "异步与并发",
+      "pin-boundary"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Pin 约束被固定目标不再被移动，不禁止移动指针变量，也不使任意自引用自动安全。",
+      "deliverable": "为何可 get_mut？是否说明所有固定类型都能任意替换内容？"
+    }
+  },
+  {
+    "id": "knowledge:ref:rust-advanced:cfg-feature",
+    "kind": "engineering",
+    "title": "cfg! 与 cfg 属性的区别 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Rust 2024 edition，1.85+；示例需相应 use\n示例 / 场景：\n#[cfg(target_os=\"windows\")]\nfn platform_name()->&'static str { \"windows\" }\n#[cfg(not(target_os=\"windows\"))]\nfn platform_name()->&'static str { \"other\" }\n\n任务：if cfg!(windows) { windows_only() } 为何仍可能在 Linux 编译失败？如何改？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "cfg! 为常量表达式，函数引用仍需通过检查；用 #[cfg(...)] 移除对应项目或语句。\n\n平台专属依赖的引用本身也需条件编译，不能仅靠运行表达式选择。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "cfg! 为常量表达式，函数引用仍需通过检查；用 #[cfg(...)] 移除对应项目或语句。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "平台专属依赖的引用本身也需条件编译，不能仅靠运行表达式选择。",
+        "points": 40
+      }
+    ],
+    "source": "https://doc.rust-lang.org/reference/conditional-compilation.html",
+    "knowledge_ids": [
+      "ref:rust-advanced:cfg-feature"
+    ],
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "构建与工程",
+      "cfg-feature"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "cfg! 产生布尔值并保留两个分支；cfg 属性才选择性移除编译项目。",
+      "deliverable": "if cfg!(windows) { windows_only() } 为何仍可能在 Linux 编译失败？如何改？"
+    }
+  },
+  {
+    "id": "knowledge:ref:rust-advanced:doctest",
+    "kind": "engineering",
+    "title": "文档测试与 compile_fail · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Rust 2024 edition，1.85+；示例需相应 use\n示例 / 场景：\n/// ```\n/// assert_eq!(2 + 2, 4);\n/// ```\n/// ```compile_fail\n/// let mut n=1;\n/// let r=&n;\n/// n=2;\n/// println!(\"{r}\");\n/// ```\npub fn example() {}\n\n任务：第二块为何失败？compile_fail 是否保证恰好报告所想的错误？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "r 的共享借用后续仍使用时修改 n，违反借用规则。\n\ncompile_fail 只确认失败，不严格证明原因；需保持最小案例并排除拼写/依赖错误。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "r 的共享借用后续仍使用时修改 n，违反借用规则。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "compile_fail 只确认失败，不严格证明原因；需保持最小案例并排除拼写/依赖错误。",
+        "points": 40
+      }
+    ],
+    "source": "https://doc.rust-lang.org/rustdoc/write-documentation/documentation-tests.html",
+    "knowledge_ids": [
+      "ref:rust-advanced:doctest"
+    ],
+    "tags": [
+      "Rust",
+      "进阶专题",
+      "构建与测试",
+      "doctest"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "文档代码块可成为测试，compile_fail 可记录预期无法通过编译的用法。",
+      "deliverable": "第二块为何失败？compile_fail 是否保证恰好报告所想的错误？"
+    }
+  },
+  {
+    "id": "knowledge:ref:go-advanced:channel-publication",
+    "kind": "engineering",
+    "title": "channel 传递与数据发布 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Go 1.22+；特殊版本另行注明\n示例 / 场景：\ntype Data struct { Value int }\nch:=make(chan *Data)\ngo func(){\n d:=&Data{Value:42}\n ch<-d\n // 交出后不再修改 d\n}()\nd:=<-ch\nfmt.Println(d.Value)\n\n任务：打印什么？生产者发送后继续改 d.Value 是否自动安全？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "打印 42；发送后继续无同步修改不安全。\n\n发送前写入通过通信发布，但后续并发写仍需锁/额外通信或明确转移所有权。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "打印 42；发送后继续无同步修改不安全。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "发送前写入通过通信发布，但后续并发写仍需锁/额外通信或明确转移所有权。",
+        "points": 40
+      }
+    ],
+    "source": "https://go.dev/ref/mem#chan",
+    "knowledge_ids": [
+      "ref:go-advanced:channel-publication"
+    ],
+    "tags": [
+      "Go",
+      "进阶专题",
+      "异步与并发",
+      "channel-publication"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "channel 的发送与对应接收形成同步关系，但传递指针不意味着接收后可以继续无锁并发修改。",
+      "deliverable": "打印什么？生产者发送后继续改 d.Value 是否自动安全？"
+    }
+  },
+  {
+    "id": "knowledge:ref:go-advanced:worker-pool",
+    "kind": "engineering",
+    "title": "固定 worker 数与有界并发 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Go 1.22+；特殊版本另行注明\n示例 / 场景：\njobs:=make(chan int)\nvar wg sync.WaitGroup\nfor i:=0;i<3;i++ {\n wg.Add(1)\n go func(){ defer wg.Done(); for n:=range jobs { process(n) } }()\n}\nfor _,n:=range []int{1,2,3,4,5} { jobs<-n }\nclose(jobs)\nwg.Wait()\n\n任务：最多几个 process 同时执行？谁关闭 jobs？为什么 Add 不能放进 goroutine 内部再假定 Wait 正确？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "最多 3 个；统一发送端发送完成后关闭 jobs。\n\nAdd 应在启动前完成，否则 Wait 可能在计数尚为 0 时返回；生产者还须设计取消和错误传播。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "最多 3 个；统一发送端发送完成后关闭 jobs。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "Add 应在启动前完成，否则 Wait 可能在计数尚为 0 时返回；生产者还须设计取消和错误传播。",
+        "points": 40
+      }
+    ],
+    "source": "https://pkg.go.dev/sync#WaitGroup",
+    "knowledge_ids": [
+      "ref:go-advanced:worker-pool"
+    ],
+    "tags": [
+      "Go",
+      "进阶专题",
+      "异步与并发",
+      "worker-pool"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "固定数量工作协程消费任务队列，可避免每个输入都创建一个无限扩张的 goroutine。",
+      "deliverable": "最多几个 process 同时执行？谁关闭 jobs？为什么 Add 不能放进 goroutine 内部再假定 Wait 正确？"
+    }
+  },
+  {
+    "id": "knowledge:ref:go-advanced:cancel-send",
+    "kind": "engineering",
+    "title": "可取消发送避免协程泄漏 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Go 1.22+；特殊版本另行注明\n示例 / 场景：\nfunc emit(ctx context.Context,out chan<- int,n int) error {\n select {\n case out<-n: return nil\n case <-ctx.Done(): return ctx.Err()\n }\n}\n\n任务：消费者停止读取时该函数怎样结束？若发送和取消同时就绪，是否保证选择取消？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "通过 ctx.Done 分支返回取消错误；调用方须真正触发取消。\n\nselect 不保证取消优先；同时就绪可选择发送，关闭输出通道也不是安全取消发送的通用替代。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "通过 ctx.Done 分支返回取消错误；调用方须真正触发取消。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "select 不保证取消优先；同时就绪可选择发送，关闭输出通道也不是安全取消发送的通用替代。",
+        "points": 40
+      }
+    ],
+    "source": "https://pkg.go.dev/context",
+    "knowledge_ids": [
+      "ref:go-advanced:cancel-send"
+    ],
+    "tags": [
+      "Go",
+      "进阶专题",
+      "异步与并发",
+      "cancel-send"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "消费者提前退出时，生产者若永久阻塞发送可能泄漏；select 可同时观察取消信号。",
+      "deliverable": "消费者停止读取时该函数怎样结束？若发送和取消同时就绪，是否保证选择取消？"
+    }
+  },
+  {
+    "id": "knowledge:ref:go-advanced:timer-version",
+    "kind": "engineering",
+    "title": "Timer Reset 与 Go 1.23 行为变化 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Go 1.22+；特殊版本另行注明\n示例 / 场景：\ntimer:=time.NewTimer(time.Second)\ndefer timer.Stop()\nselect {\ncase <-timer.C: handleTimeout()\ncase <-ctx.Done(): return\n}\n\n任务：为何不能只看编译器是 1.23+ 就删除所有旧 Timer 兼容逻辑？说明需核对的条件。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "还需核对主模块 go 版本及 GODEBUG 等运行设置。\n\n新旧语义对 Stop/Reset 后旧值处理不同；旧语义的排空操作也不能无条件阻塞读取。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "还需核对主模块 go 版本及 GODEBUG 等运行设置。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "新旧语义对 Stop/Reset 后旧值处理不同；旧语义的排空操作也不能无条件阻塞读取。",
+        "points": 40
+      }
+    ],
+    "source": "https://go.dev/wiki/Go123Timer",
+    "knowledge_ids": [
+      "ref:go-advanced:timer-version"
+    ],
+    "tags": [
+      "Go",
+      "进阶专题",
+      "异步与并发",
+      "timer-version"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "基于通道的 Timer 在 Go 1.23 新语义下增强 Stop/Reset 保证，旧模块语义不能直接套用。",
+      "deliverable": "为何不能只看编译器是 1.23+ 就删除所有旧 Timer 兼容逻辑？说明需核对的条件。"
+    }
+  },
+  {
+    "id": "knowledge:ref:go-advanced:http-server",
+    "kind": "engineering",
+    "title": "HTTP Server 头部超时与优雅关闭 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Go 1.22+；特殊版本另行注明\n示例 / 场景：\nsrv:=&http.Server{\n Addr:\":8080\",Handler:mux,\n ReadHeaderTimeout:5*time.Second,\n IdleTimeout:60*time.Second,\n}\n// 另一个协程启动 ListenAndServe，收到退出信号后：\nctx,cancel:=context.WithTimeout(context.Background(),10*time.Second)\ndefer cancel()\nerr:=srv.Shutdown(ctx)\n\n任务：ReadHeaderTimeout 能否限制业务处理在 5 秒内结束？说明 Shutdown 超时后应如何评估。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不能，它限制读取请求头；业务需要请求上下文或其他超时控制。\n\nShutdown 到期可能仍有未完成连接/任务，需检查错误并按策略处理，不能声称全部请求成功完成。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不能，它限制读取请求头；业务需要请求上下文或其他超时控制。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "Shutdown 到期可能仍有未完成连接/任务，需检查错误并按策略处理，不能声称全部请求成功完成。",
+        "points": 40
+      }
+    ],
+    "source": "https://pkg.go.dev/net/http#Server.Shutdown",
+    "knowledge_ids": [
+      "ref:go-advanced:http-server"
+    ],
+    "tags": [
+      "Go",
+      "进阶专题",
+      "网络与服务",
+      "http-server"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "显式设置服务器超时并调用 Shutdown，可限制部分资源占用并给进行中请求结束机会。",
+      "deliverable": "ReadHeaderTimeout 能否限制业务处理在 5 秒内结束？说明 Shutdown 超时后应如何评估。"
+    }
+  },
+  {
+    "id": "knowledge:ref:go-advanced:http-client",
+    "kind": "engineering",
+    "title": "HTTP Client 复用与响应体关闭 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Go 1.22+；特殊版本另行注明\n示例 / 场景：\nclient:=&http.Client{Timeout:5*time.Second}\nresp,err:=client.Get(\"https://example.com/\")\nif err!=nil { return err }\ndefer resp.Body.Close()\nif resp.StatusCode!=http.StatusOK { return fmt.Errorf(\"HTTP %d\",resp.StatusCode) }\nbody,err:=io.ReadAll(io.LimitReader(resp.Body,1<<20))\n\n任务：404 是否会自动使 Get 返回 err？说明响应体处理和读取上限的一处边界。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "通常不会；应检查 StatusCode，成功拿到 resp 后关闭 Body。\n\nLimitReader 截断不直接报告超限；可多读一字节判断，避免无限读取或排空。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "通常不会；应检查 StatusCode，成功拿到 resp 后关闭 Body。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "LimitReader 截断不直接报告超限；可多读一字节判断，避免无限读取或排空。",
+        "points": 40
+      }
+    ],
+    "source": "https://pkg.go.dev/net/http#Client",
+    "knowledge_ids": [
+      "ref:go-advanced:http-client"
+    ],
+    "tags": [
+      "Go",
+      "进阶专题",
+      "网络与服务",
+      "http-client"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Client 和 Transport 宜复用；每次成功获取响应后仍必须关闭 Body，并按需求限制读取量。",
+      "deliverable": "404 是否会自动使 Get 返回 err？说明响应体处理和读取上限的一处边界。"
+    }
+  },
+  {
+    "id": "knowledge:ref:go-advanced:sql-transaction",
+    "kind": "engineering",
+    "title": "sql.Tx 的同连接与提交错误 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Go 1.22+；特殊版本另行注明\n示例 / 场景：\ntx,err:=db.BeginTx(ctx,nil)\nif err!=nil { return err }\ndefer tx.Rollback()\nif _,err=tx.ExecContext(ctx,\"UPDATE stock SET qty=qty-1 WHERE id=? AND qty>0\",id); err!=nil { return err }\nreturn tx.Commit()\n\n任务：把 tx.ExecContext 换成 db.ExecContext 会怎样？为什么还需检查 RowsAffected 和 Commit？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "DB 调用可能在另一连接独立执行，不属于该 Tx。\n\n影响行数为 0 可能库存不足；Commit 也可能失败，不能仅凭 Exec 无错报告业务成功。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "DB 调用可能在另一连接独立执行，不属于该 Tx。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "影响行数为 0 可能库存不足；Commit 也可能失败，不能仅凭 Exec 无错报告业务成功。",
+        "points": 40
+      }
+    ],
+    "source": "https://pkg.go.dev/database/sql#Tx",
+    "knowledge_ids": [
+      "ref:go-advanced:sql-transaction"
+    ],
+    "tags": [
+      "Go",
+      "进阶专题",
+      "数据库访问",
+      "sql-transaction"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "事务内操作必须通过 Tx 执行；用 DB 执行同名 SQL 不会自动加入当前事务。",
+      "deliverable": "把 tx.ExecContext 换成 db.ExecContext 会怎样？为什么还需检查 RowsAffected 和 Commit？"
+    }
+  },
+  {
+    "id": "knowledge:ref:go-advanced:sql-pool",
+    "kind": "engineering",
+    "title": "连接池等待与未关闭 Rows · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Go 1.22+；特殊版本另行注明\n示例 / 场景：\ndb.SetMaxOpenConns(4)\ndb.SetMaxIdleConns(2)\nrows,err:=db.QueryContext(ctx,\"SELECT id FROM items\")\nif err!=nil { return err }\ndefer rows.Close()\nfor rows.Next() {\n var id int\n if err:=rows.Scan(&id); err!=nil { return err }\n}\nreturn rows.Err()\n\n任务：连接数耗尽时为何只提高上限未必解决问题？给出一项资源检查和一项观察指标。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "先检查所有 Rows 是否在提前退出时 Close，事务是否及时结束。\n\n观察 WaitCount/WaitDuration 或 InUse 等池指标；增大上限可能转移压力而不修复泄漏。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "先检查所有 Rows 是否在提前退出时 Close，事务是否及时结束。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "观察 WaitCount/WaitDuration 或 InUse 等池指标；增大上限可能转移压力而不修复泄漏。",
+        "points": 40
+      }
+    ],
+    "source": "https://pkg.go.dev/database/sql#DB.Stats",
+    "knowledge_ids": [
+      "ref:go-advanced:sql-pool"
+    ],
+    "tags": [
+      "Go",
+      "进阶专题",
+      "数据库访问",
+      "sql-pool"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "sql.DB 是并发连接池，限制连接数后未关闭 Rows 可能让后续查询长期等待。",
+      "deliverable": "连接数耗尽时为何只提高上限未必解决问题？给出一项资源检查和一项观察指标。"
+    }
+  },
+  {
+    "id": "knowledge:ref:go-advanced:embed-files",
+    "kind": "engineering",
+    "title": "go:embed 的构建期快照 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Go 1.22+；特殊版本另行注明\n示例 / 场景：\npackage config\nimport _ \"embed\"\n//go:embed defaults.json\nvar defaults []byte\n\n任务：程序发布后修改磁盘 defaults.json 会更新 defaults 吗？若需要运行时配置该怎么做？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不会，需重建程序才更新内嵌值；运行时配置要显式读取外部文件。\n\nembed 是构建期快照，匹配受包目录约束；外部配置还需校验和缺失时回退策略。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不会，需重建程序才更新内嵌值；运行时配置要显式读取外部文件。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "embed 是构建期快照，匹配受包目录约束；外部配置还需校验和缺失时回退策略。",
+        "points": 40
+      }
+    ],
+    "source": "https://pkg.go.dev/embed",
+    "knowledge_ids": [
+      "ref:go-advanced:embed-files"
+    ],
+    "tags": [
+      "Go",
+      "进阶专题",
+      "构建与资源",
+      "embed-files"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "go:embed 在构建时把匹配文件纳入程序，运行后修改源文件不会自动更新内嵌内容。",
+      "deliverable": "程序发布后修改磁盘 defaults.json 会更新 defaults 吗？若需要运行时配置该怎么做？"
+    }
+  },
+  {
+    "id": "knowledge:ref:go-advanced:filepath-traversal",
+    "kind": "engineering",
+    "title": "filepath.Join 与目录穿越 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Go 1.22+；特殊版本另行注明\n示例 / 场景：\nif !filepath.IsLocal(userPath) { return fmt.Errorf(\"invalid path\") }\npath:=filepath.Join(base,userPath)\n// 仍需按威胁模型处理符号链接及竞态。\n\n任务：Join(base,\"../secret\") 是否自动保证留在 base？IsLocal 又缺少哪类防护？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "Join 不保证边界，先验证相对路径；IsLocal 能拒绝词法逃逸。\n\nIsLocal 不检查符号链接和文件系统竞态，仍需安全的目录相对访问设计或可信目录约束。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "Join 不保证边界，先验证相对路径；IsLocal 能拒绝词法逃逸。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "IsLocal 不检查符号链接和文件系统竞态，仍需安全的目录相对访问设计或可信目录约束。",
+        "points": 40
+      }
+    ],
+    "source": "https://pkg.go.dev/path/filepath#IsLocal",
+    "knowledge_ids": [
+      "ref:go-advanced:filepath-traversal"
+    ],
+    "tags": [
+      "Go",
+      "进阶专题",
+      "文件与安全",
+      "filepath-traversal"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Join/Clean 规范化路径但不验证业务边界；不可信相对路径还可能包含 .. 或经过符号链接逃逸。",
+      "deliverable": "Join(base,\"../secret\") 是否自动保证留在 base？IsLocal 又缺少哪类防护？"
+    }
+  },
+  {
+    "id": "knowledge:ref:go-advanced:errors-join",
+    "kind": "engineering",
+    "title": "errors.Join 保留多条错误链 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Go 1.22+；特殊版本另行注明\n示例 / 场景：\na:=errors.New(\"write\")\nb:=errors.New(\"close\")\nerr:=errors.Join(a,b)\nfmt.Println(errors.Is(err,a),errors.Is(err,b))\n\n任务：输出什么？为何不建议用 strings.Contains(err.Error(),\"write\") 判断错误身份？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "输出 true、true，两个原始错误都保留在树中。\n\n字符串可能变化或碰巧含同词；用 errors.Is/As 按身份或类型判断。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "输出 true、true，两个原始错误都保留在树中。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "字符串可能变化或碰巧含同词；用 errors.Is/As 按身份或类型判断。",
+        "points": 40
+      }
+    ],
+    "source": "https://pkg.go.dev/errors#Join",
+    "knowledge_ids": [
+      "ref:go-advanced:errors-join"
+    ],
+    "tags": [
+      "Go",
+      "进阶专题",
+      "错误与资源",
+      "errors-join"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Join 可合并多个错误并保留 Is/As 查找能力，不等价于仅拼接消息。",
+      "deliverable": "输出什么？为何不建议用 strings.Contains(err.Error(),\"write\") 判断错误身份？"
+    }
+  },
+  {
+    "id": "knowledge:ref:go-advanced:atomic-value",
+    "kind": "engineering",
+    "title": "atomic.Value 发布不可变快照 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Go 1.22+；特殊版本另行注明\n示例 / 场景：\nvar config atomic.Value\nconfig.Store(map[string]string{\"mode\":\"safe\"})\ncurrent:=config.Load().(map[string]string)\nfmt.Println(current[\"mode\"])\n// 更新时构造新 map 后 Store，发布后不再修改。\n\n任务：为何 Load 后拿到 map 不能直接并发写？怎样安全发布下一版配置？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "map 本身没有因 Value 变成并发安全；构造独立新 map，填充完成后 Store，发布后只读。\n\nValue 原子替换接口值而不深冻结内部对象；Store 的具体类型也必须一致。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "map 本身没有因 Value 变成并发安全；构造独立新 map，填充完成后 Store，发布后只读。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "Value 原子替换接口值而不深冻结内部对象；Store 的具体类型也必须一致。",
+        "points": 40
+      }
+    ],
+    "source": "https://pkg.go.dev/sync/atomic#Value",
+    "knowledge_ids": [
+      "ref:go-advanced:atomic-value"
+    ],
+    "tags": [
+      "Go",
+      "进阶专题",
+      "异步与并发",
+      "atomic-value"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "atomic.Value 可原子替换完整配置值，但 Store 后继续修改 map 仍会造成竞争。",
+      "deliverable": "为何 Load 后拿到 map 不能直接并发写？怎样安全发布下一版配置？"
+    }
+  },
+  {
+    "id": "knowledge:ref:go-advanced:once-failure",
+    "kind": "engineering",
+    "title": "sync.Once 的 panic 与重试边界 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Go 1.22+；特殊版本另行注明\n示例 / 场景：\nvar once sync.Once\nvar value string\ninitValue:=func(){ value=\"ready\" }\nonce.Do(initValue)\nonce.Do(func(){ value=\"again\" })\nfmt.Println(value)\n\n任务：输出什么？若第一次闭包 panic，被外层 recover 后第二次 Do 是否自动重试？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "输出 ready；第一次 panic 后再次 Do 不重试该初始化。\n\nOnce 把 panic 也视为已执行；可重试初始化应设计独立状态与并发互斥。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "输出 ready；第一次 panic 后再次 Do 不重试该初始化。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "Once 把 panic 也视为已执行；可重试初始化应设计独立状态与并发互斥。",
+        "points": 40
+      }
+    ],
+    "source": "https://pkg.go.dev/sync#Once",
+    "knowledge_ids": [
+      "ref:go-advanced:once-failure"
+    ],
+    "tags": [
+      "Go",
+      "进阶专题",
+      "异步与并发",
+      "once-failure"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Once 保证 Do 的函数最多执行一次，即使函数 panic，也会视为已经执行过。",
+      "deliverable": "输出什么？若第一次闭包 panic，被外层 recover 后第二次 Do 是否自动重试？"
+    }
+  },
+  {
+    "id": "knowledge:ref:go-advanced:fuzz-test",
+    "kind": "engineering",
+    "title": "Fuzz 测试的性质与可复现种子 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Go 1.22+；特殊版本另行注明\n示例 / 场景：\nfunc FuzzRoundTrip(f *testing.F) {\n f.Add(\"hello\")\n f.Fuzz(func(t *testing.T,s string){\n  encoded:=hex.EncodeToString([]byte(s))\n  got,err:=hex.DecodeString(encoded)\n  if err!=nil || string(got)!=s { t.Fatal(\"round trip\") }\n })\n}\n\n任务：该测试验证什么性质？若没发现崩溃能否证明任意解析器都正确？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "验证 hex 编解码保持原始字节往返。\n\n有限探索不证明全输入正确；应保留失败种子并加入边界案例及确定性回归。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "验证 hex 编解码保持原始字节往返。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "有限探索不证明全输入正确；应保留失败种子并加入边界案例及确定性回归。",
+        "points": 40
+      }
+    ],
+    "source": "https://go.dev/doc/security/fuzz/",
+    "knowledge_ids": [
+      "ref:go-advanced:fuzz-test"
+    ],
+    "tags": [
+      "Go",
+      "进阶专题",
+      "构建与测试",
+      "fuzz-test"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "模糊测试围绕可验证性质探索输入，发现样例后应保存为回归证据。",
+      "deliverable": "该测试验证什么性质？若没发现崩溃能否证明任意解析器都正确？"
+    }
+  },
+  {
+    "id": "knowledge:ref:go-advanced:bench-allocation",
+    "kind": "engineering",
+    "title": "Benchmark 的分配量与对照条件 · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Go 1.22+；特殊版本另行注明\n示例 / 场景：\nvar sink string\nfunc BenchmarkJoin(b *testing.B) {\n b.ReportAllocs()\n for i:=0;i<b.N;i++ {\n  sink=strings.Join([]string{\"a\",\"b\",\"c\"},\",\")\n }\n}\n\n任务：ReportAllocs 提供什么？为何把结果写到 sink，且不能用单次 ns/op 宣称生产提速？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "报告每操作分配次数和字节等；sink 使结果保持可观察，减少被优化消除的风险。\n\n单次样本和固定小输入代表性有限，需相同条件多次对照并检查正确性。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "报告每操作分配次数和字节等；sink 使结果保持可观察，减少被优化消除的风险。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "单次样本和固定小输入代表性有限，需相同条件多次对照并检查正确性。",
+        "points": 40
+      }
+    ],
+    "source": "https://pkg.go.dev/testing#hdr-Benchmarks",
+    "knowledge_ids": [
+      "ref:go-advanced:bench-allocation"
+    ],
+    "tags": [
+      "Go",
+      "进阶专题",
+      "构建与测试",
+      "bench-allocation"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "基准需避免编译器消除、覆盖真实工作量，并结合分配指标而非单次运行作结论。",
+      "deliverable": "ReportAllocs 提供什么？为何把结果写到 sink，且不能用单次 ns/op 宣称生产提速？"
+    }
+  },
+  {
+    "id": "knowledge:ref:go-advanced:json-numbers",
+    "kind": "engineering",
+    "title": "JSON 数字精度与 UseNumber · 场景练习",
+    "topic": "代码实战",
+    "prompt": "版本：Go 1.22+；特殊版本另行注明\n示例 / 场景：\ndec:=json.NewDecoder(strings.NewReader(`{\"id\":9007199254740993}`))\ndec.UseNumber()\nvar obj map[string]any\nif err:=dec.Decode(&obj); err!=nil { return err }\nid,err:=obj[\"id\"].(json.Number).Int64()\n\n任务：为何默认 map[string]any 解码可能损失 id？UseNumber 后能否忽略 Int64 的错误？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "默认 float64 无法精确表示该整数；UseNumber 保存文本。\n\nInt64 仍可能范围溢出或格式不符，必须检查 err，同时验证字段存在和类型。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "默认 float64 无法精确表示该整数；UseNumber 保存文本。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "Int64 仍可能范围溢出或格式不符，必须检查 err，同时验证字段存在和类型。",
+        "points": 40
+      }
+    ],
+    "source": "https://pkg.go.dev/encoding/json#Decoder.UseNumber",
+    "knowledge_ids": [
+      "ref:go-advanced:json-numbers"
+    ],
+    "tags": [
+      "Go",
+      "进阶专题",
+      "文本与数据",
+      "json-numbers"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "解码到 interface{} 时数字默认变 float64，大整数可能失去精度；UseNumber 保留数字文本供检查转换。",
+      "deliverable": "为何默认 map[string]any 解码可能损失 id？UseNumber 后能否忽略 Int64 的错误？"
+    }
+  },
+  {
+    "id": "knowledge:ref:linux-advanced:heredoc",
+    "kind": "engineering",
+    "title": "带引号 heredoc 与变量展开 · 场景练习",
+    "topic": "Linux 命令",
+    "prompt": "版本：GNU/Linux；Bash 5.x，其他工具另行注明\n示例 / 场景：\nname=desk\ncat <<'EOF'\n$name $(date)\nEOF\ncat <<EOF\n$name\nEOF\n\n任务：两段输出有什么区别？为何生成含字面量 $ 的模板宜引用分隔符？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "第一段保留 $name $(date)；第二段展开为 desk。\n\n引用分隔符禁止正文参数/命令等展开，避免模板内容在生成阶段被提前解释。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "第一段保留 $name $(date)；第二段展开为 desk。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "引用分隔符禁止正文参数/命令等展开，避免模板内容在生成阶段被提前解释。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.gnu.org/software/bash/manual/html_node/Here-Documents.html",
+    "knowledge_ids": [
+      "ref:linux-advanced:heredoc"
+    ],
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "Shell 脚本",
+      "heredoc"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "heredoc 的分隔符是否带引号决定正文是否进行参数和命令替换。",
+      "deliverable": "两段输出有什么区别？为何生成含字面量 $ 的模板宜引用分隔符？"
+    }
+  },
+  {
+    "id": "knowledge:ref:linux-advanced:read-lines",
+    "kind": "engineering",
+    "title": "while IFS= read -r 保留行内容 · 场景练习",
+    "topic": "Linux 命令",
+    "prompt": "版本：GNU/Linux；Bash 5.x，其他工具另行注明\n示例 / 场景：\nwhile IFS= read -r line || [[ -n \"$line\" ]]; do\n  printf '<%s>\\n' \"$line\"\ndone < input.txt\n\n任务：为何需要 -r、IFS= 以及 || [[ -n \"$line\" ]]？解释其中作用。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "-r 保留反斜杠，IFS= 保留首尾空白，附加条件处理无换行的非空末行。\n\n循环用文件重定向可在当前 shell 更新变量；该方式仍不能承诺保留任意二进制 NUL。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "-r 保留反斜杠，IFS= 保留首尾空白，附加条件处理无换行的非空末行。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "循环用文件重定向可在当前 shell 更新变量；该方式仍不能承诺保留任意二进制 NUL。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.gnu.org/software/bash/manual/html_node/Bash-Builtins.html",
+    "knowledge_ids": [
+      "ref:linux-advanced:read-lines"
+    ],
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "Shell 脚本",
+      "read-lines"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "读取文本行时清空 IFS、使用 -r，并处理末行没有换行，避免无意剥离空白和反斜杠。",
+      "deliverable": "为何需要 -r、IFS= 以及 || [[ -n \"$line\" ]]？解释其中作用。"
+    }
+  },
+  {
+    "id": "knowledge:ref:linux-advanced:bash-arrays",
+    "kind": "engineering",
+    "title": "Bash 数组保持参数边界 · 场景练习",
+    "topic": "Linux 命令",
+    "prompt": "版本：GNU/Linux；Bash 5.x，其他工具另行注明\n示例 / 场景：\nfiles=(\"report 1.txt\" \"*.log\")\nprintf '<%s>\\n' \"${files[@]}\"\n\n任务：输出几项？为什么不能用未引用的 ${files[@]} 保证同样结果？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "输出两项；空格文件名和星号都保持为原参数。\n\n未引用展开可能再做分词和路径名展开；带引号的 @ 保持元素边界。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "输出两项；空格文件名和星号都保持为原参数。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "未引用展开可能再做分词和路径名展开；带引号的 @ 保持元素边界。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.gnu.org/software/bash/manual/html_node/Arrays.html",
+    "knowledge_ids": [
+      "ref:linux-advanced:bash-arrays"
+    ],
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "Shell 脚本",
+      "bash-arrays"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "数组配合 \"${args[@]}\" 可保留每个参数，避免空格、通配符被再次拆分或扩展。",
+      "deliverable": "输出几项？为什么不能用未引用的 ${files[@]} 保证同样结果？"
+    }
+  },
+  {
+    "id": "knowledge:ref:linux-advanced:getopts",
+    "kind": "engineering",
+    "title": "getopts 解析选项与移除已消费参数 · 场景练习",
+    "topic": "Linux 命令",
+    "prompt": "版本：GNU/Linux；Bash 5.x，其他工具另行注明\n示例 / 场景：\nwhile getopts \":o:v\" opt; do\n  case \"$opt\" in\n    o) output=$OPTARG ;;\n    v) verbose=1 ;;\n    :) printf '缺少参数: -%s\\n' \"$OPTARG\" >&2; exit 2 ;;\n    \\?) printf '未知选项: -%s\\n' \"$OPTARG\" >&2; exit 2 ;;\n  esac\ndone\nshift \"$((OPTIND-1))\"\n\n任务：脚本以 -v -o result.txt input.txt 启动时，shift 后剩什么？缺少 -o 值如何处理？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "剩 input.txt；缺值进入 : 分支报错并退出 2。\n\no 后冒号表示必须带值，OPTIND 记录位置；getopts 不自动支持 --output 等长选项。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "剩 input.txt；缺值进入 : 分支报错并退出 2。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "o 后冒号表示必须带值，OPTIND 记录位置；getopts 不自动支持 --output 等长选项。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.gnu.org/software/bash/manual/html_node/Bourne-Shell-Builtins.html",
+    "knowledge_ids": [
+      "ref:linux-advanced:getopts"
+    ],
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "Shell 脚本",
+      "getopts"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "getopts 可处理短选项与带值选项，OPTIND 标记已消费位置，重复解析前需重置。",
+      "deliverable": "脚本以 -v -o result.txt input.txt 启动时，shift 后剩什么？缺少 -o 值如何处理？"
+    }
+  },
+  {
+    "id": "knowledge:ref:linux-advanced:trap-temp",
+    "kind": "engineering",
+    "title": "mktemp 与 EXIT trap 清理 · 场景练习",
+    "topic": "Linux 命令",
+    "prompt": "版本：GNU/Linux；Bash 5.x，其他工具另行注明\n示例 / 场景：\ntmp=$(mktemp) || exit 1\ntrap 'rm -f -- \"$tmp\"' EXIT\nprintf 'temporary\\n' > \"$tmp\"\ncat -- \"$tmp\"\n\n任务：为何 trap 正文用单引号？能否保证 kill -KILL 后也清理？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "单引号让变量到执行 trap 时才展开；不能保证 SIGKILL 后清理。\n\nEXIT trap 不能处理不可捕获终止或断电，mktemp 避免预测名称带来的竞争。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "单引号让变量到执行 trap 时才展开；不能保证 SIGKILL 后清理。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "EXIT trap 不能处理不可捕获终止或断电，mktemp 避免预测名称带来的竞争。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.gnu.org/software/coreutils/manual/html_node/mktemp-invocation.html",
+    "knowledge_ids": [
+      "ref:linux-advanced:trap-temp"
+    ],
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "Shell 脚本",
+      "trap-temp"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "mktemp 安全创建临时文件，EXIT trap 在常规退出时清理；不要用可预测文件名冒充安全临时路径。",
+      "deliverable": "为何 trap 正文用单引号？能否保证 kill -KILL 后也清理？"
+    }
+  },
+  {
+    "id": "knowledge:ref:linux-advanced:flock",
+    "kind": "engineering",
+    "title": "flock 锁文件描述符与单实例 · 场景练习",
+    "topic": "Linux 命令",
+    "prompt": "版本：GNU/Linux；Bash 5.x，其他工具另行注明\n示例 / 场景：\n(\n  flock -n 9 || exit 1\n  printf 'running\\n'\n  # 在此执行需互斥的任务\n) 9>./job.lock\n\n任务：第二个同协议进程在锁已占用时会怎样？为什么不应执行中删除 job.lock？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "-n 立即失败并由脚本退出；不会排队等待。\n\n删除重建可能使路径指向不同 inode，后来进程锁住另一文件，破坏互斥。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "-n 立即失败并由脚本退出；不会排队等待。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "删除重建可能使路径指向不同 inode，后来进程锁住另一文件，破坏互斥。",
+        "points": 40
+      }
+    ],
+    "source": "https://github.com/util-linux/util-linux/blob/master/sys-utils/flock.1.adoc",
+    "knowledge_ids": [
+      "ref:linux-advanced:flock"
+    ],
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "Shell 脚本",
+      "flock"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "flock 对打开的文件描述符加建议锁，可防同一任务重入；所有参与者必须遵守同一锁协议。",
+      "deliverable": "第二个同协议进程在锁已占用时会怎样？为什么不应执行中删除 job.lock？"
+    }
+  },
+  {
+    "id": "knowledge:ref:linux-advanced:timeout",
+    "kind": "engineering",
+    "title": "timeout 的退出码与强制结束后备 · 场景练习",
+    "topic": "Linux 命令",
+    "prompt": "版本：GNU/Linux；Bash 5.x，其他工具另行注明\n示例 / 场景：\ntimeout --signal=TERM --kill-after=2s 5s sleep 30\nstatus=$?\nprintf 'status=%s\\n' \"$status\"\n\n任务：本例通常返回什么？若换成写数据库命令，超时是否证明写入未发生？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "通常返回 124；不证明写入未发生。\n\n超时/信号可能在外部副作用发生后到来，需检查实际状态或依赖幂等键、事务证据判断。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "通常返回 124；不证明写入未发生。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "超时/信号可能在外部副作用发生后到来，需检查实际状态或依赖幂等键、事务证据判断。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.gnu.org/software/coreutils/manual/html_node/timeout-invocation.html",
+    "knowledge_ids": [
+      "ref:linux-advanced:timeout"
+    ],
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "进程与排障",
+      "timeout"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "timeout 限制命令运行时间，超时状态与命令自身失败要区分，并可设 TERM 后的 KILL 后备。",
+      "deliverable": "本例通常返回什么？若换成写数据库命令，超时是否证明写入未发生？"
+    }
+  },
+  {
+    "id": "knowledge:ref:linux-advanced:inode-stat",
+    "kind": "engineering",
+    "title": "inode、设备号与硬链接计数 · 场景练习",
+    "topic": "Linux 命令",
+    "prompt": "版本：GNU/Linux；Bash 5.x，其他工具另行注明\n示例 / 场景：\nstat -c 'device=%d inode=%i links=%h size=%s name=%n' -- file.txt\nls -li -- file.txt\n\n任务：两个路径 inode 相同能否直接断言同一文件？说明还需核对什么，及长期追踪风险。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "还需核对设备号；同一设备上相同 inode 通常表示同一文件对象。\n\ninode 在删除后可能复用，不能充当永久身份；还需明确是否跟随符号链接。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "还需核对设备号；同一设备上相同 inode 通常表示同一文件对象。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "inode 在删除后可能复用，不能充当永久身份；还需明确是否跟随符号链接。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.gnu.org/software/coreutils/manual/html_node/stat-invocation.html",
+    "knowledge_ids": [
+      "ref:linux-advanced:inode-stat"
+    ],
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "文件与存储",
+      "inode-stat"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "inode 需结合设备号标识同一时刻的文件对象；路径不同不一定代表不同内容对象。",
+      "deliverable": "两个路径 inode 相同能否直接断言同一文件？说明还需核对什么，及长期追踪风险。"
+    }
+  },
+  {
+    "id": "knowledge:ref:linux-advanced:deleted-open",
+    "kind": "engineering",
+    "title": "已删除但仍打开的文件占用空间 · 场景练习",
+    "topic": "Linux 命令",
+    "prompt": "版本：GNU/Linux；Bash 5.x，其他工具另行注明\n示例 / 场景：\ndf -h\ndu -xsh /var/log\nlsof +L1\n\n任务：日志已删但 df 空间没回收，应查看什么证据？是否应立即 kill -9 所有相关进程？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "检查 lsof +L1 等证据，定位仍打开的已删除文件及持有进程。\n\n不应直接批量强杀；优先按业务支持方式重开日志或有序重启，先确认影响和实际占用。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "检查 lsof +L1 等证据，定位仍打开的已删除文件及持有进程。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "不应直接批量强杀；优先按业务支持方式重开日志或有序重启，先确认影响和实际占用。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.gnu.org/software/libc/manual/html_node/Deleting-Files.html",
+    "knowledge_ids": [
+      "ref:linux-advanced:deleted-open"
+    ],
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "文件与存储",
+      "deleted-open"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "unlink 删除目录项，但仍被进程打开的文件可继续占用空间，直到相关引用释放。",
+      "deliverable": "日志已删但 df 空间没回收，应查看什么证据？是否应立即 kill -9 所有相关进程？"
+    }
+  },
+  {
+    "id": "knowledge:ref:linux-advanced:acl-mask",
+    "kind": "engineering",
+    "title": "ACL mask 限制命名用户权限 · 场景练习",
+    "topic": "Linux 命令",
+    "prompt": "版本：GNU/Linux；Bash 5.x，其他工具另行注明\n示例 / 场景：\ngetfacl -- report.txt\n# 可能看到：\n# user:alice:rw-\n# mask::r--\n# 对 alice 的有效权限仅 r--\n\n任务：alice 条目 rw- 但 mask r--，是否能写？给出核验方式。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不能据此写入，命名用户有效权限被 mask 限为 r--。\n\n用 getfacl 查看 effective 标记与 mask，另核对路径各级目录权限及实际用户身份。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不能据此写入，命名用户有效权限被 mask 限为 r--。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "用 getfacl 查看 effective 标记与 mask，另核对路径各级目录权限及实际用户身份。",
+        "points": 40
+      }
+    ],
+    "source": "https://git.savannah.nongnu.org/cgit/acl.git/tree/man/man5/acl.5",
+    "knowledge_ids": [
+      "ref:linux-advanced:acl-mask"
+    ],
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "文件与权限",
+      "acl-mask"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "POSIX ACL 的 mask 会限制命名用户、命名组与所属组的有效权限，不能只看某一条 rwx。",
+      "deliverable": "alice 条目 rw- 但 mask r--，是否能写？给出核验方式。"
+    }
+  },
+  {
+    "id": "knowledge:ref:linux-advanced:setgid-sticky",
+    "kind": "engineering",
+    "title": "setgid 组继承与 sticky 删除约束 · 场景练习",
+    "topic": "Linux 命令",
+    "prompt": "版本：GNU/Linux；Bash 5.x，其他工具另行注明\n示例 / 场景：\nstat -c 'mode=%A (%a) owner=%U group=%G' -- /tmp /srv/shared\n# 常见示意：共享组目录 2770；公共临时目录 1777\n\n任务：2770 的 2 与 1777 的 1 分别代表什么？sticky 是否让文件内容只读？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "2 表示 setgid，1 表示 sticky；sticky 不让内容自动只读。\n\nsetgid 主要帮助目录中组继承，sticky 主要约束目录项删除/重命名，内容权限仍单独判断。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "2 表示 setgid，1 表示 sticky；sticky 不让内容自动只读。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "setgid 主要帮助目录中组继承，sticky 主要约束目录项删除/重命名，内容权限仍单独判断。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.gnu.org/software/coreutils/manual/html_node/Directory-Setuid-and-Setgid.html",
+    "knowledge_ids": [
+      "ref:linux-advanced:setgid-sticky"
+    ],
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "文件与权限",
+      "setgid-sticky"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "目录 setgid 影响新建对象组归属，sticky 限制共享目录中删除/重命名他人文件，二者不等价。",
+      "deliverable": "2770 的 2 与 1777 的 1 分别代表什么？sticky 是否让文件内容只读？"
+    }
+  },
+  {
+    "id": "knowledge:ref:linux-advanced:link-semantics",
+    "kind": "engineering",
+    "title": "硬链接与符号链接的失效边界 · 场景练习",
+    "topic": "Linux 命令",
+    "prompt": "版本：GNU/Linux；Bash 5.x，其他工具另行注明\n示例 / 场景：\n# 在受控示例目录准备 source.txt\nln -- source.txt hard.txt\nln -s -- source.txt soft.txt\nstat -c '%i %h %n' -- source.txt hard.txt\nreadlink -- soft.txt\n\n任务：source.txt 目录项被移除后，hard 和 soft 哪个仍可读？相对软链接基于哪里解析？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "hard 通常仍可读，soft 若原路径不再存在会悬空。\n\n硬链接共享 inode，软链接保存目标路径；相对软链接基于链接所在目录解析。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "hard 通常仍可读，soft 若原路径不再存在会悬空。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "硬链接共享 inode，软链接保存目标路径；相对软链接基于链接所在目录解析。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.gnu.org/software/coreutils/manual/html_node/ln-invocation.html",
+    "knowledge_ids": [
+      "ref:linux-advanced:link-semantics"
+    ],
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "文件与存储",
+      "link-semantics"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "硬链接指向同一文件对象，符号链接保存路径；目标路径被删后两者行为不同。",
+      "deliverable": "source.txt 目录项被移除后，hard 和 soft 哪个仍可读？相对软链接基于哪里解析？"
+    }
+  },
+  {
+    "id": "knowledge:ref:linux-advanced:systemd-dropin",
+    "kind": "engineering",
+    "title": "systemd drop-in 与 daemon-reload · 场景练习",
+    "topic": "Linux 命令",
+    "prompt": "版本：GNU/Linux；Bash 5.x，其他工具另行注明\n示例 / 场景：\nsystemctl cat example.service\nsystemctl show example.service -p FragmentPath -p DropInPaths -p NeedDaemonReload\n# 编辑 drop-in 后需 daemon-reload；是否 restart 按变更和业务窗口决定。\n\n任务：daemon-reload 是否立即应用新的进程环境变量？如何查看原始 unit 和覆盖来源？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不会自动重建运行进程；可用 systemctl cat 和 show 检查 FragmentPath、DropInPaths。\n\ndaemon-reload 重读管理器 unit 配置；新进程环境通常需重启相关服务，具体操作按业务约束。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不会自动重建运行进程；可用 systemctl cat 和 show 检查 FragmentPath、DropInPaths。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "daemon-reload 重读管理器 unit 配置；新进程环境通常需重启相关服务，具体操作按业务约束。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html",
+    "knowledge_ids": [
+      "ref:linux-advanced:systemd-dropin"
+    ],
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "服务与日志",
+      "systemd-dropin"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "服务覆盖配置可放 drop-in；重新读取 unit 配置与重启服务是不同动作。",
+      "deliverable": "daemon-reload 是否立即应用新的进程环境变量？如何查看原始 unit 和覆盖来源？"
+    }
+  },
+  {
+    "id": "knowledge:ref:linux-advanced:journal-boot",
+    "kind": "engineering",
+    "title": "journalctl 按启动与时间定位 · 场景练习",
+    "topic": "Linux 命令",
+    "prompt": "版本：GNU/Linux；Bash 5.x，其他工具另行注明\n示例 / 场景：\njournalctl --list-boots\njournalctl -b -u example.service --since \"2026-10-23 09:00:00\" --until \"2026-10-23 10:00:00\" --no-pager\n\n任务：为什么排查刚重启后的故障要加 -b？查不到昨天日志能否证明昨天没报错？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "-b 限定当前启动，避免混入其他启动批次。\n\n不能；日志可能未持久化、被轮转、权限不足或时间范围错误，须核对保留和访问条件。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "-b 限定当前启动，避免混入其他启动批次。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "不能；日志可能未持久化、被轮转、权限不足或时间范围错误，须核对保留和访问条件。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.freedesktop.org/software/systemd/man/latest/journalctl.html",
+    "knowledge_ids": [
+      "ref:linux-advanced:journal-boot"
+    ],
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "服务与日志",
+      "journal-boot"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "日志需明确启动批次、服务与时间范围，避免混合旧进程错误误判当前状态。",
+      "deliverable": "为什么排查刚重启后的故障要加 -b？查不到昨天日志能否证明昨天没报错？"
+    }
+  },
+  {
+    "id": "knowledge:ref:linux-advanced:proc-limits",
+    "kind": "engineering",
+    "title": "进程 limits 与当前 shell 的 ulimit · 场景练习",
+    "topic": "Linux 命令",
+    "prompt": "版本：GNU/Linux；Bash 5.x，其他工具另行注明\n示例 / 场景：\npid=1234  # 替换为确认的服务 PID\ncat -- \"/proc/$pid/limits\"\nls -- \"/proc/$pid/fd\"\nsystemctl show example.service -p LimitNOFILE\n\n任务：交互 shell ulimit -n 很高，服务仍报 Too many open files，下一步看什么？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "检查目标 PID 的 /proc/PID/limits、fd 数量及服务配置的 LimitNOFILE。\n\n服务继承的是启动环境/管理器设置而非当前 shell；提高限制不能代替定位描述符泄漏。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "检查目标 PID 的 /proc/PID/limits、fd 数量及服务配置的 LimitNOFILE。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "服务继承的是启动环境/管理器设置而非当前 shell；提高限制不能代替定位描述符泄漏。",
+        "points": 40
+      }
+    ],
+    "source": "https://docs.kernel.org/filesystems/proc.html",
+    "knowledge_ids": [
+      "ref:linux-advanced:proc-limits"
+    ],
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "进程与排障",
+      "proc-limits"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "当前 shell 的 ulimit 不代表已运行服务的资源上限，应查看目标进程实际 limits。",
+      "deliverable": "交互 shell ulimit -n 很高，服务仍报 Too many open files，下一步看什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:linux-advanced:nice-ionice",
+    "kind": "engineering",
+    "title": "nice 与 ionice 的作用边界 · 场景练习",
+    "topic": "Linux 命令",
+    "prompt": "版本：GNU/Linux；Bash 5.x，其他工具另行注明\n示例 / 场景：\nps -eo pid,ni,comm --sort=ni\nionice -p 1234\n# 只读观察；1234 替换为确认的目标 PID。\n\n任务：把 nice 调到 19 能否保证 CPU 不超过 10%？需要硬性限额时应考虑什么？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不能；nice 是相对优先级，空闲时仍可能占满 CPU。\n\n硬性限额可考虑 cgroup CPU 配额或 systemd CPUQuota，并验证实际负载，I/O 策略需核对调度器。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不能；nice 是相对优先级，空闲时仍可能占满 CPU。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "硬性限额可考虑 cgroup CPU 配额或 systemd CPUQuota，并验证实际负载，I/O 策略需核对调度器。",
+        "points": 40
+      }
+    ],
+    "source": "https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html",
+    "knowledge_ids": [
+      "ref:linux-advanced:nice-ionice"
+    ],
+    "tags": [
+      "Linux",
+      "进阶专题",
+      "进程与排障",
+      "nice-ionice"
+    ],
+    "training": {
+      "area": "操作系统与 Linux",
+      "level": 2,
+      "goal": "nice 调整 CPU 调度优先级，ionice 影响支持的 I/O 调度优先级，都不是硬性资源配额。",
+      "deliverable": "把 nice 调到 19 能否保证 CPU 不超过 10%？需要硬性限额时应考虑什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql-advanced:clustered-index",
+    "kind": "engineering",
+    "title": "聚簇索引与二级索引回表 · 场景练习",
+    "topic": "SQL 训练",
+    "prompt": "版本：MySQL 8.0 / InnoDB；特殊版本另行注明\n示例 / 场景：\nCREATE TABLE item (\n id BIGINT PRIMARY KEY,\n sku VARCHAR(64) NOT NULL,\n description TEXT,\n KEY idx_sku(sku)\n) ENGINE=InnoDB;\nEXPLAIN SELECT description FROM item WHERE sku='A';\n\n任务：idx_sku 能否直接提供 description？说明回表路径及主键宽度的一项代价。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "通常不能；二级索引定位主键，再经聚簇索引取得 description。\n\n二级索引携带主键，宽主键会增大二级索引存储/缓存开销；实际路径须核对计划。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "通常不能；二级索引定位主键，再经聚簇索引取得 description。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "二级索引携带主键，宽主键会增大二级索引存储/缓存开销；实际路径须核对计划。",
+        "points": 40
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/innodb-index-types.html",
+    "knowledge_ids": [
+      "ref:mysql-advanced:clustered-index"
+    ],
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "索引与执行",
+      "clustered-index"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "InnoDB 主键聚簇索引叶子保存行，二级索引记录包含主键值，非覆盖查询可能需要回表。",
+      "deliverable": "idx_sku 能否直接提供 description？说明回表路径及主键宽度的一项代价。"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql-advanced:next-key",
+    "kind": "engineering",
+    "title": "next-key lock 与唯一点查边界 · 场景练习",
+    "topic": "SQL 训练",
+    "prompt": "版本：MySQL 8.0 / InnoDB；特殊版本另行注明\n示例 / 场景：\nCREATE TABLE score(id INT PRIMARY KEY, points INT, KEY idx_points(points)) ENGINE=InnoDB;\nSTART TRANSACTION;\nSELECT * FROM score WHERE points BETWEEN 10 AND 20 FOR UPDATE;\n-- 观察锁后在本会话 ROLLBACK；勿遗留事务。\n\n任务：范围锁定是否只锁查询返回的行？解释为何完整主键点查不能直接作为本例锁范围结论。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不只返回行，可能锁住扫描记录和相关间隙，阻止部分插入。\n\n完整唯一键命中已有记录通常是记录锁；本例非唯一范围查询与扫描路径不同，需看实际索引和隔离级别。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不只返回行，可能锁住扫描记录和相关间隙，阻止部分插入。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "完整唯一键命中已有记录通常是记录锁；本例非唯一范围查询与扫描路径不同，需看实际索引和隔离级别。",
+        "points": 40
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html",
+    "knowledge_ids": [
+      "ref:mysql-advanced:next-key"
+    ],
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "事务与锁",
+      "next-key"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "RR 下范围锁定读通常涉及记录和间隙，锁定范围取决于实际扫描索引，而不只返回的行。",
+      "deliverable": "范围锁定是否只锁查询返回的行？解释为何完整主键点查不能直接作为本例锁范围结论。"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql-advanced:snapshot-locking",
+    "kind": "engineering",
+    "title": "快照读与锁定读不是同一视图 · 场景练习",
+    "topic": "SQL 训练",
+    "prompt": "版本：MySQL 8.0 / InnoDB；特殊版本另行注明\n示例 / 场景：\n-- 会话 A，RR；items(id PRIMARY KEY, qty INT) 已有 id=1\nSTART TRANSACTION;\nSELECT qty FROM items WHERE id=1;\n-- 会话 B 更新并提交该行后\nSELECT qty FROM items WHERE id=1 FOR UPDATE;\nROLLBACK;\n\n任务：B 提交后，A 两次读取是否必然相同？说明原因和快照建立时点。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不必相同；锁定读可观察并锁定较新已提交状态，而首次普通 SELECT 建立一致性读快照。\n\n不能把 RR 理解成所有种类读取都来自同一静态快照，且 START TRANSACTION 本身不总是建立普通读视图。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不必相同；锁定读可观察并锁定较新已提交状态，而首次普通 SELECT 建立一致性读快照。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "不能把 RR 理解成所有种类读取都来自同一静态快照，且 START TRANSACTION 本身不总是建立普通读视图。",
+        "points": 40
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/innodb-consistent-read.html",
+    "knowledge_ids": [
+      "ref:mysql-advanced:snapshot-locking"
+    ],
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "事务与锁",
+      "snapshot-locking"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "RR 一致性读可复用快照，而锁定读需要读取并锁定可用的新版本，混用时可能看到不同状态。",
+      "deliverable": "B 提交后，A 两次读取是否必然相同？说明原因和快照建立时点。"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql-advanced:deadlock-retry",
+    "kind": "engineering",
+    "title": "死锁回滚与整事务有界重试 · 场景练习",
+    "topic": "SQL 训练",
+    "prompt": "版本：MySQL 8.0 / InnoDB；特殊版本另行注明\n示例 / 场景：\n-- 两会话若按相反顺序锁 id=1、id=2，可能死锁\nSTART TRANSACTION;\nSELECT id FROM accounts WHERE id IN (1,2) ORDER BY id FOR UPDATE;\n-- 执行业务并检查结果\nCOMMIT;\n\n任务：收到死锁错误后只重试最后一条 UPDATE 是否充分？给出正确重试范围和一项限制。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "通常应从事务开始重试整个业务事务，而不是只补最后一条。\n\n重试须有次数/退避限制并保证外部副作用幂等；死锁与锁等待超时的默认回滚范围不同。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "通常应从事务开始重试整个业务事务，而不是只补最后一条。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "重试须有次数/退避限制并保证外部副作用幂等；死锁与锁等待超时的默认回滚范围不同。",
+        "points": 40
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/innodb-deadlocks-handling.html",
+    "knowledge_ids": [
+      "ref:mysql-advanced:deadlock-retry"
+    ],
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "事务与锁",
+      "deadlock-retry"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "InnoDB 检测死锁后选择牺牲事务回滚，调用端应按错误类型和业务幂等性有界重试整个事务。",
+      "deliverable": "收到死锁错误后只重试最后一条 UPDATE 是否充分？给出正确重试范围和一项限制。"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql-advanced:optimistic-version",
+    "kind": "engineering",
+    "title": "版本号 CAS 更新与冲突检查 · 场景练习",
+    "topic": "SQL 训练",
+    "prompt": "版本：MySQL 8.0 / InnoDB；特殊版本另行注明\n示例 / 场景：\nUPDATE document\nSET body='new', version=version+1\nWHERE id=42 AND version=7;\n-- 应由驱动检查影响行数是否恰为 1。\n\n任务：两个客户端都持 version=7 提交，能否都成功？第二个返回 0 时应怎样处理？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "只有一个能匹配旧版本成功；另一个应报告冲突/不存在并重新读取或按规则合并。\n\n版本递增使旧条件失效；不能在未比较差异时去掉版本条件再次覆盖。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "只有一个能匹配旧版本成功；另一个应报告冲突/不存在并重新读取或按规则合并。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "版本递增使旧条件失效；不能在未比较差异时去掉版本条件再次覆盖。",
+        "points": 40
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/update.html",
+    "knowledge_ids": [
+      "ref:mysql-advanced:optimistic-version"
+    ],
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "事务与锁",
+      "optimistic-version"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "带旧版本条件的 UPDATE 可检测并发覆盖，必须用影响行数区分成功与冲突。",
+      "deliverable": "两个客户端都持 version=7 提交，能否都成功？第二个返回 0 时应怎样处理？"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql-advanced:skip-locked",
+    "kind": "engineering",
+    "title": "SKIP LOCKED 与不完整结果 · 场景练习",
+    "topic": "SQL 训练",
+    "prompt": "版本：MySQL 8.0 / InnoDB；特殊版本另行注明\n示例 / 场景：\nSTART TRANSACTION;\nSELECT id FROM jobs WHERE status='ready'\nORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED;\n-- 通过同连接把选中 id 改为 running，再 COMMIT；没选中也要结束事务。\n\n任务：返回空是否证明没有 ready 任务？说明为何以及领取的事务边界。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不证明，ready 行可能都被其他事务锁定而跳过。\n\n读取和状态更新需同一事务/连接后提交；SKIP LOCKED 是队列竞争策略，不是完整快照。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不证明，ready 行可能都被其他事务锁定而跳过。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "读取和状态更新需同一事务/连接后提交；SKIP LOCKED 是队列竞争策略，不是完整快照。",
+        "points": 40
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/innodb-locking-reads.html",
+    "knowledge_ids": [
+      "ref:mysql-advanced:skip-locked"
+    ],
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "事务与锁",
+      "skip-locked"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "SKIP LOCKED 跳过已锁行，适合竞争领取任务，但不提供完整一致的业务结果集。",
+      "deliverable": "返回空是否证明没有 ready 任务？说明为何以及领取的事务边界。"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql-advanced:ddl-commit",
+    "kind": "engineering",
+    "title": "DDL 隐式提交与 atomic DDL · 场景练习",
+    "topic": "SQL 训练",
+    "prompt": "版本：MySQL 8.0 / InnoDB；特殊版本另行注明\n示例 / 场景：\n-- 仅隔离演练库\nSTART TRANSACTION;\nINSERT INTO audit_log(message) VALUES ('before ddl');\nCREATE TABLE demo(id INT PRIMARY KEY);\nROLLBACK;\n\n任务：ROLLBACK 是否撤回插入和 demo？说明 atomic DDL 与业务事务可回滚的差别。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "该普通 DDL 场景不会被最后的 ROLLBACK 一起撤回；插入已因隐式提交结束原事务。\n\natomic DDL 关注 DDL 自身的一致完成/故障恢复，不等于把 DDL 纳入用户可撤销的业务事务。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "该普通 DDL 场景不会被最后的 ROLLBACK 一起撤回；插入已因隐式提交结束原事务。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "atomic DDL 关注 DDL 自身的一致完成/故障恢复，不等于把 DDL 纳入用户可撤销的业务事务。",
+        "points": 40
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/implicit-commit.html",
+    "knowledge_ids": [
+      "ref:mysql-advanced:ddl-commit"
+    ],
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "事务与锁",
+      "ddl-commit"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "许多 DDL 会隐式提交；atomic DDL 不等于用户可以用 ROLLBACK 撤回已执行的建表。",
+      "deliverable": "ROLLBACK 是否撤回插入和 demo？说明 atomic DDL 与业务事务可回滚的差别。"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql-advanced:foreign-index",
+    "kind": "engineering",
+    "title": "外键索引与删除级联边界 · 场景练习",
+    "topic": "SQL 训练",
+    "prompt": "版本：MySQL 8.0 / InnoDB；特殊版本另行注明\n示例 / 场景：\nCREATE TABLE parent(id BIGINT PRIMARY KEY) ENGINE=InnoDB;\nCREATE TABLE child(\n id BIGINT PRIMARY KEY,parent_id BIGINT,\n CONSTRAINT fk_parent FOREIGN KEY(parent_id) REFERENCES parent(id) ON DELETE RESTRICT\n) ENGINE=InnoDB;\n\n任务：有 child 引用时删除 parent 为何失败？parent_id=NULL 是否等价于不存在父键的非法非空值？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "RESTRICT 阻止删除被引用父行；可空外键的 NULL 与非法非空引用不同。\n\n外键不是自动级联；需依据业务设计删除策略并检查实际索引与约束。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "RESTRICT 阻止删除被引用父行；可空外键的 NULL 与非法非空引用不同。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "外键不是自动级联；需依据业务设计删除策略并检查实际索引与约束。",
+        "points": 40
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html",
+    "knowledge_ids": [
+      "ref:mysql-advanced:foreign-index"
+    ],
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "建模与约束",
+      "foreign-index"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "外键涉及引用侧索引和父表键，ON DELETE 行为必须符合业务保留策略，不能只为删得方便加 CASCADE。",
+      "deliverable": "有 child 引用时删除 parent 为何失败？parent_id=NULL 是否等价于不存在父键的非法非空值？"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql-advanced:composite-sort",
+    "kind": "engineering",
+    "title": "复合索引等值前缀与排序 · 场景练习",
+    "topic": "SQL 训练",
+    "prompt": "版本：MySQL 8.0 / InnoDB；特殊版本另行注明\n示例 / 场景：\nCREATE INDEX idx_orders_feed ON orders(tenant_id,created_at DESC,id DESC);\nEXPLAIN SELECT id,created_at FROM orders\nWHERE tenant_id=7 ORDER BY created_at DESC,id DESC LIMIT 20;\n\n任务：为何 tenant_id 放在 created_at 前面仍可能服务排序？是否可不看计划就保证消除 filesort？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "tenant_id 被固定为等值，后续 created_at、id 可按所需顺序扫描。\n\n不能保证；优化器按统计与成本选计划，需 EXPLAIN 核对实际索引和排序。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "tenant_id 被固定为等值，后续 created_at、id 可按所需顺序扫描。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "不能保证；优化器按统计与成本选计划，需 EXPLAIN 核对实际索引和排序。",
+        "points": 40
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/descending-indexes.html",
+    "knowledge_ids": [
+      "ref:mysql-advanced:composite-sort"
+    ],
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "索引与执行",
+      "composite-sort"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "等值过滤前缀结合后续排序字段可帮助避免额外排序，但仍需检查实际执行计划和成本。",
+      "deliverable": "为何 tenant_id 放在 created_at 前面仍可能服务排序？是否可不看计划就保证消除 filesort？"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql-advanced:histogram",
+    "kind": "engineering",
+    "title": "直方图改善选择率估计 · 场景练习",
+    "topic": "SQL 训练",
+    "prompt": "版本：MySQL 8.0 / InnoDB；特殊版本另行注明\n示例 / 场景：\nANALYZE TABLE orders UPDATE HISTOGRAM ON status WITH 32 BUCKETS;\nEXPLAIN SELECT id FROM orders WHERE status='rare';\n\n任务：为 status 建直方图是否等同于创建索引？应该用什么证据判断是否有帮助？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不等同，直方图提供分布估计，不直接提供索引访问路径。\n\n比较更新前后估计行数、计划及受控执行结果；不能仅凭统计成功宣称提速。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不等同，直方图提供分布估计，不直接提供索引访问路径。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "比较更新前后估计行数、计划及受控执行结果；不能仅凭统计成功宣称提速。",
+        "points": 40
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/optimizer-statistics.html",
+    "knowledge_ids": [
+      "ref:mysql-advanced:histogram"
+    ],
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "索引与执行",
+      "histogram"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "直方图可帮助优化器估计偏斜列过滤率，但不会直接变成能定位数据的索引。",
+      "deliverable": "为 status 建直方图是否等同于创建索引？应该用什么证据判断是否有帮助？"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql-advanced:invisible-index",
+    "kind": "engineering",
+    "title": "不可见索引的验证与写入成本 · 场景练习",
+    "topic": "SQL 训练",
+    "prompt": "版本：MySQL 8.0 / InnoDB；特殊版本另行注明\n示例 / 场景：\n-- 仅隔离演练库，idx_status 已存在且不是主键\nALTER TABLE orders ALTER INDEX idx_status INVISIBLE;\nEXPLAIN SELECT id FROM orders WHERE status='ready';\nALTER TABLE orders ALTER INDEX idx_status VISIBLE;\n\n任务：设为 INVISIBLE 后写入维护开销是否消失？此实验能帮助验证什么？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "没有消失，索引仍被维护。\n\n可观察默认不使用此索引的计划，辅助评估移除风险；还需覆盖查询与负载，不能等同物理删除。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "没有消失，索引仍被维护。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "可观察默认不使用此索引的计划，辅助评估移除风险；还需覆盖查询与负载，不能等同物理删除。",
+        "points": 40
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/invisible-indexes.html",
+    "knowledge_ids": [
+      "ref:mysql-advanced:invisible-index"
+    ],
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "索引与执行",
+      "invisible-index"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "不可见索引通常不参与优化器选择，但仍被维护；可辅助评估去掉某索引后的查询路径。",
+      "deliverable": "设为 INVISIBLE 后写入维护开销是否消失？此实验能帮助验证什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql-advanced:functional-index",
+    "kind": "engineering",
+    "title": "函数索引的表达式与版本前提 · 场景练习",
+    "topic": "SQL 训练",
+    "prompt": "版本：MySQL 8.0 / InnoDB；特殊版本另行注明\n示例 / 场景：\nCREATE INDEX idx_lower_email ON users ((LOWER(email)));\nEXPLAIN SELECT id FROM users WHERE LOWER(email)='a@example.com';\n\n任务：为什么普通 email 索引不必然支持 LOWER(email) 的等值定位？函数索引后是否可保证所有写法命中？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "索引的是原值与索引表达式是不同访问路径，需为目标表达式设计。\n\n不保证任意等价写法命中；核对版本、表达式/类型/排序规则和执行计划。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "索引的是原值与索引表达式是不同访问路径，需为目标表达式设计。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "不保证任意等价写法命中；核对版本、表达式/类型/排序规则和执行计划。",
+        "points": 40
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/create-index.html",
+    "knowledge_ids": [
+      "ref:mysql-advanced:functional-index"
+    ],
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "索引与执行",
+      "functional-index"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "函数索引可为特定表达式建立访问路径，查询表达式、类型和排序规则需与索引匹配。",
+      "deliverable": "为什么普通 email 索引不必然支持 LOWER(email) 的等值定位？函数索引后是否可保证所有写法命中？"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql-advanced:json-table",
+    "kind": "engineering",
+    "title": "JSON_TABLE 展开数组与错误策略 · 场景练习",
+    "topic": "SQL 训练",
+    "prompt": "版本：MySQL 8.0 / InnoDB；特殊版本另行注明\n示例 / 场景：\nSELECT jt.id FROM JSON_TABLE(\n '[{\"id\":1},{\"id\":2}]',\n '$[*]' COLUMNS(id INT PATH '$.id' ERROR ON EMPTY ERROR ON ERROR)\n) AS jt;\n\n任务：结果有哪些 id？为什么真实输入要决定 ON EMPTY/ON ERROR，且不能假定默认行序？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "包含 1、2；若要稳定顺序需序号列和 ORDER BY。\n\n字段缺失/转换失败需明确报错还是保留空值，避免坏数据静默混入；默认关系结果无顺序保证。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "包含 1、2；若要稳定顺序需序号列和 ORDER BY。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "字段缺失/转换失败需明确报错还是保留空值，避免坏数据静默混入；默认关系结果无顺序保证。",
+        "points": 40
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/json-table-functions.html",
+    "knowledge_ids": [
+      "ref:mysql-advanced:json-table"
+    ],
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "文本与数据",
+      "json-table"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "JSON_TABLE 把 JSON 路径内容展开成关系行，缺失字段和类型错误应显式选择处理策略。",
+      "deliverable": "结果有哪些 id？为什么真实输入要决定 ON EMPTY/ON ERROR，且不能假定默认行序？"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql-advanced:recursive-budget",
+    "kind": "engineering",
+    "title": "递归 CTE 的终止与递归上限 · 场景练习",
+    "topic": "SQL 训练",
+    "prompt": "版本：MySQL 8.0 / InnoDB；特殊版本另行注明\n示例 / 场景：\nWITH RECURSIVE nums(n) AS (\n SELECT 1\n UNION ALL\n SELECT n+1 FROM nums WHERE n<5\n) SELECT n FROM nums ORDER BY n;\n\n任务：输出什么？如果真实组织树有环，单纯增大 cte_max_recursion_depth 是否修复问题？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "输出 1、2、3、4、5；增大限制不能修复环。\n\n需要业务终止、防环或访问路径检查；上限只是资源保护，过大可能增加开销。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "输出 1、2、3、4、5；增大限制不能修复环。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "需要业务终止、防环或访问路径检查；上限只是资源保护，过大可能增加开销。",
+        "points": 40
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/with.html",
+    "knowledge_ids": [
+      "ref:mysql-advanced:recursive-budget"
+    ],
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "查询与聚合",
+      "recursive-budget"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "递归 CTE 应有业务终止条件，服务器深度限制是保险而不是防环算法。",
+      "deliverable": "输出什么？如果真实组织树有环，单纯增大 cte_max_recursion_depth 是否修复问题？"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql-advanced:replica-consistency",
+    "kind": "engineering",
+    "title": "复制延迟与写后读一致性 · 场景练习",
+    "topic": "SQL 训练",
+    "prompt": "版本：MySQL 8.0 / InnoDB；特殊版本另行注明\n示例 / 场景：\n-- 在副本上只读观察，MySQL 8.0.22+\nSHOW REPLICA STATUS;\n-- 结合执行/接收状态、错误和位点，不只看 Seconds_Behind_Source。\n\n任务：主库订单刚提交、副本查不到是否直接证明数据丢失？给出一项一致性方案和核验点。\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "不直接证明；可能复制延迟。写后读可路由主库，或按 GTID 等位点有界等待后读取。\n\n检查复制线程状态、错误、接收/执行位点；不能只凭单个延迟字段判断副本健康。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "不直接证明；可能复制延迟。写后读可路由主库，或按 GTID 等位点有界等待后读取。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "检查复制线程状态、错误、接收/执行位点；不能只凭单个延迟字段判断副本健康。",
+        "points": 40
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/replication-problems.html",
+    "knowledge_ids": [
+      "ref:mysql-advanced:replica-consistency"
+    ],
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "可靠性与运维",
+      "replica-consistency"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "异步复制下主库写入成功不保证副本立即可见，写后读需要路由或位点等待策略。",
+      "deliverable": "主库订单刚提交、副本查不到是否直接证明数据丢失？给出一项一致性方案和核验点。"
+    }
+  },
+  {
+    "id": "knowledge:ref:mysql-advanced:collation-unique",
+    "kind": "engineering",
+    "title": "排序规则影响唯一键相等性 · 场景练习",
+    "topic": "SQL 训练",
+    "prompt": "版本：MySQL 8.0 / InnoDB；特殊版本另行注明\n示例 / 场景：\nCREATE TABLE handles(\n name VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci UNIQUE\n) ENGINE=InnoDB;\nINSERT INTO handles VALUES ('Alice');\n-- 再插入 alice 通常会触发重复键冲突。\n\n任务：Alice 已存在后 alice 能否作为不同唯一值插入？若用户名必须区分大小写，设计时需核对什么？\n按任务提交结论、代码或排查步骤；接受语义等价的正确方案。",
+    "answer": "此 ci 规则下不能作为不同唯一值插入。\n\n应选择与业务匹配的大小写敏感比较规则，并验证 Unicode、空格、索引长度和迁移冲突，不能仅改显示大小写。",
+    "rubric": [
+      {
+        "id": "result",
+        "text": "此 ci 规则下不能作为不同唯一值插入。",
+        "points": 60
+      },
+      {
+        "id": "reason",
+        "text": "应选择与业务匹配的大小写敏感比较规则，并验证 Unicode、空格、索引长度和迁移冲突，不能仅改显示大小写。",
+        "points": 40
+      }
+    ],
+    "source": "https://dev.mysql.com/doc/refman/8.0/en/charset-collation-names.html",
+    "knowledge_ids": [
+      "ref:mysql-advanced:collation-unique"
+    ],
+    "tags": [
+      "MySQL",
+      "进阶专题",
+      "文本与数据",
+      "collation-unique"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "唯一索引的字符串相等性受列排序规则影响，大小写或重音不敏感可能合并业务认为不同的值。",
+      "deliverable": "Alice 已存在后 alice 能否作为不同唯一值插入？若用户名必须区分大小写，设计时需核对什么？"
+    }
+  }
+]

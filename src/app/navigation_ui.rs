@@ -7,6 +7,8 @@ impl PersonalDeskApp {
             Section::Reference => "百科全书".into(),
             Section::Folders => "快捷路径".into(),
             Section::Documents => "文档写作".into(),
+            Section::Resume => "简历".into(),
+            Section::JobHunt => "求职".into(),
             Section::Books => "图书".into(),
             Section::Credentials => "账号密码".into(),
             Section::Inventory => "物品清单".into(),
@@ -40,8 +42,10 @@ impl PersonalDeskApp {
         {
             self.undo_index_removal();
         }
-        if matches!(self.section, Section::Documents | Section::Essays)
-            && ctx.input_mut(|i| i.consume_key(egui::Modifiers::ALT, egui::Key::ArrowLeft))
+        if matches!(
+            self.section,
+            Section::Documents | Section::Books | Section::Essays
+        ) && ctx.input_mut(|i| i.consume_key(egui::Modifiers::ALT, egui::Key::ArrowLeft))
             && self.flush_writing()
         {
             self.essay.active = None;
@@ -53,7 +57,8 @@ impl PersonalDeskApp {
     pub(super) fn save_visible_rows(&mut self) -> bool {
         let mut saved = true;
         match self.section {
-            Section::Documents | Section::Essays => saved = self.flush_writing(),
+            Section::Resume => saved = self.flush_resume(),
+            Section::Documents | Section::Books | Section::Essays => saved = self.flush_writing(),
             Section::Contacts => {
                 for id in self.inline_contacts.keys().cloned().collect::<Vec<_>>() {
                     saved &= self.save_inline_contact(&id);
@@ -109,6 +114,8 @@ impl PersonalDeskApp {
                         Some(self.credentials.len()),
                     ),
                     (Section::Documents, "文档写作", TileKind::Document, None),
+                    (Section::Resume, "简历", TileKind::Document, None),
+                    (Section::JobHunt, "求职", TileKind::Website, None),
                     (Section::Essays, "每日随笔", TileKind::Document, None),
                     (
                         Section::Contacts,
@@ -181,6 +188,7 @@ impl PersonalDeskApp {
                     });
                     if response.clicked() {
                         if !self.flush_writing()
+                            || !self.flush_resume()
                             || !self.flush_study_answer()
                             || !self.flush_games()
                         {
@@ -225,9 +233,11 @@ impl PersonalDeskApp {
             Section::Documents => "新建文档",
             Section::Inventory => "添加物品",
             Section::Websites => "添加网站",
+            Section::JobHunt => "添加网站",
             Section::Contacts => "添加联系人",
             Section::Tools => "添加工具",
             Section::Settings => "",
+            Section::Resume => "",
             Section::Games | Section::Practice | Section::Words => "",
         }
     }
@@ -259,7 +269,9 @@ impl PersonalDeskApp {
                 self.website_dialog_open = true;
             }
             Section::Tools => self.add_tool(),
+            Section::JobHunt => self.new_jobhunt_site(),
             Section::Settings => {}
+            Section::Resume => {}
             Section::Games | Section::Practice | Section::Words => {}
             Section::Contacts => {
                 self.contact_draft = Contact::new();

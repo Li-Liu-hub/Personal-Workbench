@@ -140,3 +140,35 @@ pub fn normalize(values: &[String]) -> Result<Vec<String>> {
     }
     Ok(normalized)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn names_trim_and_count_unicode_characters_and_reject_controls() {
+        assert_eq!(name("  学习  ").unwrap(), "学习");
+        assert!(name(&"中".repeat(40)).is_ok());
+        for invalid in [
+            "".into(),
+            " \t ".into(),
+            "中".repeat(41),
+            "a\nb".into(),
+            "a\0b".into(),
+        ] {
+            assert!(name(&invalid).is_err(), "{invalid:?}");
+        }
+    }
+
+    #[test]
+    fn normalized_tags_keep_first_order_and_filters_have_distinct_meanings() {
+        let values = normalize(&[" b ".into(), "a".into(), "b".into()]).unwrap();
+        assert_eq!(values, vec!["b", "a"]);
+        assert!(Filter::All.matches(&values));
+        assert!(!Filter::Untagged.matches(&values));
+        assert!(Filter::Untagged.matches(&[]));
+        assert!(Filter::Named("a".into()).matches(&values));
+        assert!(!Filter::Named("A".into()).matches(&values));
+        assert!(normalize(&["valid".into(), "\n".into()]).is_err());
+    }
+}

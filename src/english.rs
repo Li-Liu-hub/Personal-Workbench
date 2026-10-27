@@ -1,6 +1,6 @@
 use crate::study::{Card, Rubric};
 use serde::Deserialize;
-pub const MODES: [&str; 8] = [
+pub const MODES: [&str; 9] = [
     "释义",
     "造句",
     "中译英",
@@ -9,14 +9,36 @@ pub const MODES: [&str; 8] = [
     "搭配填空",
     "句式改写",
     "短文理解",
+    "听写",
 ];
 mod grammar;
 mod planning;
 pub use grammar::grammar_card;
 pub use planning::{Plan, plan, variant_id};
+pub fn dictation_grade(card: &Card, answer: &str) -> crate::study::Grade {
+    let correct = answer.trim().eq_ignore_ascii_case(card.title.trim());
+    let mut grade = crate::study::Grade::unknown(card);
+    for (check, rubric) in grade.checks.iter_mut().zip(&card.rubric) {
+        check.earned = if correct { rubric.points } else { 0 };
+        check.reason = format!("正确拼写：{}。忽略大小写及首尾空白。", card.title);
+        check.evidence = answer.trim().into();
+    }
+    grade.summary = format!(
+        "{}。正确拼写：{}\n{}",
+        if correct {
+            "拼写正确"
+        } else {
+            "继续听音练习"
+        },
+        card.title,
+        card.answer
+    );
+    grade
+}
 pub fn slug(mode: &str) -> &str {
     match mode {
         "造句" => "sentence",
+        "听写" => "dictation",
         "中译英" => "to-en",
         "英译中" => "to-cn",
         "语法" => "grammar",
@@ -49,6 +71,20 @@ pub fn exercise(base: &Card, mode: &str, draft: Option<Draft>) -> Result<Card, S
     if mode == "释义" {
         return Ok(base.clone());
     }
+    if mode == "听写" {
+        let mut card = base.clone();
+        card.id = id(&base.id, mode);
+        card.origin = Some(base.id.clone());
+        card.topic = mode.into();
+        card.prompt =
+            "点击播放，听英文并写出单词。可反复播放或调慢语速；提交后显示词义与正确拼写。".into();
+        card.rubric = vec![Rubric {
+            id: "spelling".into(),
+            text: "拼写与所听单词一致，忽略大小写和首尾空白".into(),
+            points: 100,
+        }];
+        return Ok(card);
+    }
     let mut card = base.clone();
     card.id = id(&base.id, mode);
     card.origin = Some(base.id.clone());
@@ -64,10 +100,16 @@ pub fn exercise(base: &Card, mode: &str, draft: Option<Draft>) -> Result<Card, S
             base.answer
         );
         [
-            ("目标词使用准确，含义与语境合适", 40),
-            ("语法正确", 30),
-            ("表达完整清楚", 20),
-            ("拼写与搭配基本正确", 10),
+            (
+                "正确使用目标词或合理词形，词义、词性、搭配与语境相符；仅出现该词不得分",
+                40,
+            ),
+            ("主谓、时态、单复数、冠词及动词后接结构正确", 30),
+            (
+                "传达具体且完整的信息，不是孤立单词或片段；词义误用不在此重复扣分",
+                20,
+            ),
+            ("单词拼写基本正确；词义、搭配和语法错误不在此重复扣分", 10),
         ]
     } else {
         let draft = draft.ok_or("这类练习需要先生成题目")?;
@@ -152,6 +194,64 @@ pub fn exercise(base: &Card, mode: &str, draft: Option<Draft>) -> Result<Card, S
 mod tests {
     use super::*;
     #[test]
+    fn dictation_grading_uses_rubric_limits_and_tolerates_a_missing_rubric() {
+        let mut base = crate::coding::cards().remove(0);
+        base.kind = "word".into();
+        base.coding = None;
+        base.title = "Benefit".into();
+        let mut card = exercise(&base, "听写", None).unwrap();
+        assert_eq!(
+            dictation_grade(&card, " BENEFIT ")
+                .completion(&card, " BENEFIT ")
+                .unwrap(),
+            100
+        );
+        assert_eq!(
+            dictation_grade(&card, "benifit")
+                .completion(&card, "benifit")
+                .unwrap(),
+            0
+        );
+        card.rubric.clear();
+        assert!(dictation_grade(&card, "benefit").checks.is_empty());
+    }
+
+    #[test]
+    fn generated_exercises_reject_incomplete_oversized_or_unknown_modes() {
+        let base = crate::coding::cards().remove(0);
+        assert!(exercise(&base, "unknown", None).is_err());
+        for (prompt, reference, explanation) in [
+            ("", "reference", "explanation"),
+            ("prompt", " ", "explanation"),
+            ("prompt", "reference", ""),
+        ] {
+            assert!(
+                exercise(
+                    &base,
+                    "英译中",
+                    Some(Draft {
+                        prompt: prompt.into(),
+                        reference: reference.into(),
+                        explanation: explanation.into()
+                    })
+                )
+                .is_err()
+            );
+        }
+        assert!(
+            exercise(
+                &base,
+                "英译中",
+                Some(Draft {
+                    prompt: "中".repeat(1501),
+                    reference: "r".into(),
+                    explanation: "e".into()
+                })
+            )
+            .is_err()
+        );
+    }
+    #[test]
     fn generated_grammar_is_not_discarded_and_new_modes_have_distinct_valid_rubrics() {
         let dir = tempfile::tempdir().unwrap();
         let db = crate::db::Database::open(dir.path()).unwrap();
@@ -164,7 +264,7 @@ mod tests {
             };
             let card = exercise(&base, mode, Some(draft)).unwrap();
             card.validate().unwrap();
-            if !matches!(mode, "释义" | "造句") {
+            if !matches!(mode, "释义" | "造句" | "听写") {
                 assert!(card.prompt.contains("public transport"));
             }
         }

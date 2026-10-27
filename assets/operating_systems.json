@@ -1,0 +1,410 @@
+[
+  {
+    "id": "ref:cs408:process-thread",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "进程、线程与资源共享",
+    "summary": "进程承载地址空间等资源，线程是调度执行流，同进程线程共享多数资源但各有执行上下文。",
+    "syntax": "同一进程两个线程读写全局计数器，各自调用函数并使用局部变量。",
+    "example": "同一进程两个线程读写全局计数器，各自调用函数并使用局部变量。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：通常共享堆、全局区与打开文件描述符表，各线程拥有自己的寄存器和栈；共享变量读改写需要同步。\n\n自检：指出哪些资源共享，为什么 counter++ 可能丢失更新。\n参考结论：全局计数器和堆共享，栈与寄存器各自独立；counter++ 包含读取、加一、写回，交错时两个线程可能基于同一旧值写回。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "process-thread"
+    ]
+  },
+  {
+    "id": "ref:cs408:process-states",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "就绪、运行、阻塞与状态转换",
+    "summary": "就绪等待 CPU，阻塞等待事件；事件完成后通常先回到就绪再参与调度。",
+    "syntax": "运行进程发起同步读磁盘，等待期间另一个进程占用 CPU。",
+    "example": "运行进程发起同步读磁盘，等待期间另一个进程占用 CPU。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：阻塞转就绪由等待事件满足触发；就绪转运行由调度触发，不能把 I/O 完成等同立即运行。\n\n自检：描述发起读、完成读和时间片耗尽时的状态变化。\n参考结论：发起需等待的读：运行到阻塞；I/O 完成：阻塞到就绪；时间片耗尽：运行到就绪；被调度后才由就绪转运行。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "process-states"
+    ]
+  },
+  {
+    "id": "ref:cs408:context-switch",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "上下文切换、模式切换与系统调用",
+    "summary": "系统调用可能只切换特权级，上下文切换才会把 CPU 执行流换给另一线程或进程。",
+    "syntax": "线程调用一个可立即返回的获取时间系统调用；另一次调用 read 时阻塞。",
+    "example": "线程调用一个可立即返回的获取时间系统调用；另一次调用 read 时阻塞。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：进入内核不必然切换进程；调度切换涉及寄存器、栈等上下文，切换地址空间还可能影响 TLB。\n\n自检：两次调用是否必然产生进程切换？\n参考结论：可立即完成的系统调用只需进入和退出内核，不必切进程；阻塞 read 通常让出 CPU 给其他可运行执行流，才发生上下文切换。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "context-switch"
+    ]
+  },
+  {
+    "id": "ref:cs408:scheduling",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "FCFS、SJF 与周转时间",
+    "summary": "周转时间=完成-到达，等待时间扣除实际运行和阻塞；短作业优先可降低特定条件下平均等待。",
+    "syntax": "A、B、C 同在时刻 0 到达，CPU 运行时间分别 6、2、1，按 A B C 排列。",
+    "example": "A、B、C 同在时刻 0 到达，CPU 运行时间分别 6、2、1，按 A B C 排列。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：本例无 I/O、不可抢占；SJF 假定知道运行时长，长作业可能饥饿；平均周转与响应时间不是同一指标。\n\n自检：比较 FCFS 与 SJF 的平均周转时间。\n参考结论：FCFS 完成为 6、8、9，平均 23/3；SJF 顺序 C B A，完成为 1、3、9，平均 13/3。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "scheduling"
+    ]
+  },
+  {
+    "id": "ref:cs408:round-robin",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "时间片轮转与响应时间",
+    "summary": "轮转让就绪进程轮流运行一个时间片，片长在交互响应和切换开销间折中。",
+    "syntax": "A、B 同时到达，运行时间 5、3，时间片 2，忽略切换成本，A 先运行。",
+    "example": "A、B 同时到达，运行时间 5、3，时间片 2，忽略切换成本，A 先运行。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：时间片过大接近 FCFS；过小增加切换开销；新到达进程的入队规则应按题干说明。\n\n自检：列出调度区间与完成时间。\n参考结论：A[0,2)、B[2,4)、A[4,6)、B[6,7)、A[7,8)；B 在 7 完成，A 在 8 完成。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "round-robin"
+    ]
+  },
+  {
+    "id": "ref:cs408:critical-section",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "临界区、互斥锁与原子性",
+    "summary": "对共享状态的复合操作需确保互斥或使用合适原子操作，volatile 不能普遍替代同步。",
+    "syntax": "两个线程都执行 balance=balance+1，初始 balance=0。",
+    "example": "两个线程都执行 balance=balance+1，初始 balance=0。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：临界区应覆盖整个读改写；锁的正确性还要求所有相关访问遵守同一规则，并关注死锁和饥饿。\n\n自检：给出一种使最终结果稳定为 2 的方案。\n参考结论：把读、加一、写回整体放入同一互斥锁保护的临界区，或使用原子 fetch_add；只锁读取或仅声明 volatile 都不够。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "critical-section"
+    ]
+  },
+  {
+    "id": "ref:cs408:semaphore",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "信号量 P/V 与生产者消费者",
+    "summary": "计数信号量表达可用资源数量，互斥信号量保护缓冲区结构。",
+    "syntax": "容量 N：empty=N、full=0、mutex=1；生产者先 P(empty)，再 P(mutex)。",
+    "example": "容量 N：empty=N、full=0、mutex=1；生产者先 P(empty)，再 P(mutex)。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：消费者先 P(full)，再 P(mutex)；释放 mutex 后通知对方资源；不能持 mutex 等待 empty 或 full 导致无法推进。\n\n自检：写出生产者和消费者的操作顺序。\n参考结论：生产者 P(empty),P(mutex),入队,V(mutex),V(full)；消费者 P(full),P(mutex),出队,V(mutex),V(empty)。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "semaphore"
+    ]
+  },
+  {
+    "id": "ref:cs408:condition-variable",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "条件变量与 Mesa 语义",
+    "summary": "条件变量用于等待共享谓词变化，等待时原子释放锁，唤醒后重新获取锁并检查条件。",
+    "syntax": "消费者：lock(m); while queue.empty(): wait(cv,m); pop(); unlock(m)。",
+    "example": "消费者：lock(m); while queue.empty(): wait(cv,m); pop(); unlock(m)。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：唤醒不保证谓词仍真，可能有竞争或伪唤醒，因此用 while；通知并不自动转移锁所有权。\n\n自检：为什么不能把 while 换为 if？\n参考结论：被唤醒到重新取得锁之间，其他消费者可能已取走元素，或发生伪唤醒；while 会再次验证队列非空，if 可能对空队列出队。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "condition-variable"
+    ]
+  },
+  {
+    "id": "ref:cs408:deadlock",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "死锁四条件与资源有序分配",
+    "summary": "互斥、占有且等待、不可剥夺、循环等待同时存在才可能形成资源死锁。",
+    "syntax": "线程 A 持锁 L1 等 L2，线程 B 持 L2 等 L1。",
+    "example": "线程 A 持锁 L1 等 L2，线程 B 持 L2 等 L1。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：统一按 L1 再 L2 的全局顺序获取可破坏循环等待；超时重试还需释放已持资源和避免活锁。\n\n自检：指出示例等待环并给出结构性预防方法。\n参考结论：等待环 A→L2→B→L1→A；规定所有线程按统一锁序获取，避免反向持有，破坏循环等待条件。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "deadlock"
+    ]
+  },
+  {
+    "id": "ref:cs408:banker",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "银行家安全性检查",
+    "summary": "安全状态存在让所有进程依次完成的序列；不安全不等于已经死锁。",
+    "syntax": "单资源：Available=3；P0 Allocation=1、Need=2；P1 Allocation=2、Need=4。",
+    "example": "单资源：Available=3；P0 Allocation=1、Need=2；P1 Allocation=2、Need=4。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：安全算法用 Work 模拟可分配资源，完成一个进程后加回 Allocation；Need=Max-Allocation。\n\n自检：判断是否安全，给出安全序列。\n参考结论：Work=3 可满足 P0 的 Need=2，假定其完成后 Work=4；再满足 P1 的 Need=4，故序列 P0、P1 安全。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "banker"
+    ]
+  },
+  {
+    "id": "ref:cs408:paging",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "分页地址转换与页表",
+    "summary": "逻辑地址拆为页号和页内偏移，页表把页号映射为物理页框号。",
+    "syntax": "页大小 1KiB，逻辑地址 2500，页号 2 映射到物理页框 7。",
+    "example": "页大小 1KiB，逻辑地址 2500，页号 2 映射到物理页框 7。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：分页避免外部碎片但可能产生页内碎片；页号查表失败与越界、缺页等情况要按状态位区分。\n\n自检：求页号、偏移和物理地址。\n参考结论：页号 floor(2500/1024)=2，偏移 452；物理地址 7×1024+452=7620。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "paging"
+    ]
+  },
+  {
+    "id": "ref:cs408:multilevel-page-table",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "多级页表与稀疏地址空间",
+    "summary": "多级页表按需创建下级表，避免为空虚拟区域维护完整末级页表。",
+    "syntax": "32 位地址、4KiB 页、每个页表项 4B，每张页表占一页，采用两级分页。",
+    "example": "32 位地址、4KiB 页、每个页表项 4B，每张页表占一页，采用两级分页。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：一页装 1024 个表项，因此每级索引 10 位；多级减少稀疏空间成本，却会增加 TLB 未命中后的遍历次数。\n\n自检：给出地址字段划分，说明末级页表无需全部分配的原因。\n参考结论：字段为一级 10 位、二级 10 位、偏移 12 位；未使用的大段地址可以让一级项无效，从而不分配对应二级页表。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "multilevel-page-table"
+    ]
+  },
+  {
+    "id": "ref:cs408:tlb-eat",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "TLB 命中率与有效访问时间",
+    "summary": "TLB 命中可避免额外页表访存，计算平均时延必须声明串行或并行查询模型。",
+    "syntax": "串行查 TLB=10ns，内存=100ns，命中率 90%，单级页表且不发生缺页。",
+    "example": "串行查 TLB=10ns，内存=100ns，命中率 90%，单级页表且不发生缺页。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：命中耗时 10+100，未命中需页表与数据两次内存访问，耗时 10+200；题干模型变化会改变公式。\n\n自检：求平均访问时间。\n参考结论：EAT=0.9×110+0.1×210=120ns；未命中并不意味着访问磁盘，这里明确排除了缺页。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "tlb-eat"
+    ]
+  },
+  {
+    "id": "ref:cs408:page-fault",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "缺页处理与脏页写回",
+    "summary": "访问合法但不驻留的页面时发生缺页，系统分配页框、读入页面并恢复指令。",
+    "syntax": "访问页 P 缺页，内存已满，选中的牺牲页 Q 为脏页。",
+    "example": "访问页 P 缺页，内存已满，选中的牺牲页 Q 为脏页。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：先检查地址和权限；脏页可能需写回后才能复用页框；更新页表并处理 TLB，原指令通常重试。\n\n自检：列出主要处理顺序。\n参考结论：陷入内核并检查合法性，选择 Q，必要时写回 Q，读入 P，更新页表及相关 TLB 状态，将进程置就绪并在恢复后重试原访存指令。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "page-fault"
+    ]
+  },
+  {
+    "id": "ref:cs408:replacement",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "FIFO、LRU、OPT 与 Belady 异常",
+    "summary": "页面置换策略按不同信息选择牺牲页；FIFO 可能增加页框反而更多缺页。",
+    "syntax": "3 个初始空页框，访问串 1、2、3、1、4、2。",
+    "example": "3 个初始空页框，访问串 1、2、3、1、4、2。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：LRU 淘汰最久未使用的页，FIFO 淘汰最早装入的页，OPT 依赖未来访问仅作为理论比较；命中不改变 FIFO 装入顺序。\n\n自检：分别计算 FIFO 和 LRU 的缺页次数。\n参考结论：FIFO 在 1、2、3、4 处缺页，共 4 次；LRU 在 1、2、3、4、最后的 2 处缺页，共 5 次，本串不代表 LRU 对所有输入优于 FIFO。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "replacement"
+    ]
+  },
+  {
+    "id": "ref:cs408:working-set",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "工作集、局部性与抖动",
+    "summary": "工作集是近期窗口内使用的页集合，内存不足以容纳活跃工作集时会频繁缺页。",
+    "syntax": "多个进程同时运行，缺页率高，磁盘忙但 CPU 利用率低。",
+    "example": "多个进程同时运行，缺页率高，磁盘忙但 CPU 利用率低。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：盲目增加多道程序度可能加剧抖动；可调低并发、给进程更多页框，结合缺页频率控制。\n\n自检：解释现象并给出优先处理方向。\n参考结论：进程工作集总需求超过可用内存，时间花在换页；减少活跃进程或增加可用页框并测量缺页率，比单纯增加并发更合适。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "working-set"
+    ]
+  },
+  {
+    "id": "ref:cs408:segmentation",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "分段、分页与碎片",
+    "summary": "分段按逻辑模块形成可变长度区域，分页按固定大小管理映射，两者保护和共享粒度不同。",
+    "syntax": "某段基址 4000、长度 600，访问段内偏移 580 和 620。",
+    "example": "某段基址 4000、长度 600，访问段内偏移 580 和 620。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：分段需检查偏移小于段长，段式分配可能有外部碎片；分页最后一页可能有内部碎片。\n\n自检：判断两次访问并给出合法物理地址。\n参考结论：偏移 580 合法，对应 4580；偏移 620 越界，应产生地址或保护异常，不能直接相加访问 4620。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "segmentation"
+    ]
+  },
+  {
+    "id": "ref:cs408:file-allocation",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "连续、链式与索引文件分配",
+    "summary": "文件块组织影响随机定位、扩展能力、碎片和元数据开销。",
+    "syntax": "文件不断增长，需随机读取中间第 k 个逻辑块。",
+    "example": "文件不断增长，需随机读取中间第 k 个逻辑块。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：链式分配定位通常需沿链行走，索引分配用索引块定位；连续分配随机访问简单但扩容可能受相邻空间限制。\n\n自检：为随机访问和可增长文件选择结构并说明代价。\n参考结论：可用索引或多级索引分配，逻辑块号定位对应数据块，无需遍历前 k 块；代价是索引块空间和可能的额外元数据 I/O。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "file-allocation"
+    ]
+  },
+  {
+    "id": "ref:cs408:inode-link",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "inode、目录项与硬链接",
+    "summary": "目录项把名字映射到 inode，inode 记录文件元数据与数据块映射；硬链接为同一 inode 增加名字。",
+    "syntax": "同一文件有名字 a 和 b，删除 a 时进程仍打开该文件。",
+    "example": "同一文件有名字 a 和 b，删除 a 时进程仍打开该文件。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：删除目录项减少链接计数；常见 Unix 语义下链接计数为零且最后打开引用释放后才回收数据；符号链接是独立文件。\n\n自检：删除 a 是否立即删除数据？为什么？\n参考结论：不立即删除，因为 b 仍引用同一 inode，且还有打开引用；删除文件名与回收存储不是同一时刻。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "inode-link"
+    ]
+  },
+  {
+    "id": "ref:cs408:disk-scheduling",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "磁盘调度 FCFS、SSTF 与 SCAN",
+    "summary": "机械盘调度通过减少寻道改进访问，需同时考虑公平性与饥饿。",
+    "syntax": "磁头在 50，请求为 10、55、58、90，采用 SSTF。",
+    "example": "磁头在 50，请求为 10、55、58、90，采用 SSTF。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：SSTF 每步选择距离当前磁头最近的请求，可能使远端请求饥饿；SCAN 还需指定初始方向和端点范围。\n\n自检：求 SSTF 服务顺序与总移动距离。\n参考结论：顺序 55、58、90、10；移动 5+3+32+80=120 个柱面；若距离并列需按题干决定选择规则。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "disk-scheduling"
+    ]
+  },
+  {
+    "id": "ref:cs408:io-buffering",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "缓冲、缓存与假脱机",
+    "summary": "缓冲调节生产消费速率和传输粒度，缓存复用已有数据，假脱机用磁盘排队模拟设备共享。",
+    "syntax": "多个进程把打印任务写入磁盘队列，打印服务逐个输出。",
+    "example": "多个进程把打印任务写入磁盘队列，打印服务逐个输出。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：假脱机不意味着物理打印机可同时输出多个任务；双缓冲可以把处理与 I/O 重叠，缓存命中则可避免重复读取。\n\n自检：识别打印队列机制并区别它与缓存。\n参考结论：这是假脱机 SPOOLing，利用磁盘队列让进程提交任务后继续执行；缓存旨在复用已取得的数据，不能把排队等待打印等同缓存命中。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "io-buffering"
+    ]
+  },
+  {
+    "id": "ref:cs408:protection",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "用户态、内核态与访问保护",
+    "summary": "特权级和页权限限制普通程序对设备及其他进程内存的访问，内核通过受控入口提供服务。",
+    "syntax": "用户程序试图直接修改页表，或通过 write 系统调用写文件。",
+    "example": "用户程序试图直接修改页表，或通过 write 系统调用写文件。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：系统调用由陷入入口执行参数与权限检查；内核态不等于拥有所有业务授权，仍需检查文件权限等策略。\n\n自检：解释直接修改页表为何被禁止，而 write 可以受控执行。\n参考结论：页表控制内存隔离，修改它属于受保护操作；write 进入内核后检查地址、文件描述符与权限，再由内核代为操作，用户代码不能绕过检查。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "protection"
+    ]
+  },
+  {
+    "id": "ref:cs408:ipc",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "管道、共享内存与消息传递",
+    "summary": "IPC 的数据传递方式与同步机制应分别考虑，共享内存减少复制但仍需协调并发。",
+    "syntax": "两个进程通过共享环形缓冲区传递任务，维护读写索引。",
+    "example": "两个进程通过共享环形缓冲区传递任务，维护读写索引。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：共享内存可让双方映射同一物理页，但不能自动保证索引原子性与可见性；管道提供字节流并可阻塞读写。\n\n自检：共享内存为什么仍要锁、信号量或原子协议？\n参考结论：进程可能同时更新索引并读到尚未完成的数据，需要互斥或原子与内存序保证发布顺序，并用计数或事件协调空满状态。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "ipc"
+    ]
+  },
+  {
+    "id": "ref:cs408:resource-lifecycle",
+    "language": "操作系统",
+    "category": "操作系统",
+    "title": "僵尸进程、孤儿进程与 wait",
+    "summary": "进程退出后保留供父进程获取的退出信息，父进程 wait 后才完成相应回收。",
+    "syntax": "子进程已退出，父进程长期不调用 wait；另一个子进程仍运行而父进程先退出。",
+    "example": "子进程已退出，父进程长期不调用 wait；另一个子进程仍运行而父进程先退出。",
+    "notes": "学习范围：408 本科核心原理；计算题按题干给定模型。\n\n原理与边界：前者可能成为僵尸，后者是孤儿并由适当的收养进程接管；僵尸已不执行，不能靠再次杀死它回收退出记录。\n\n自检：区别两个场景并给出僵尸的处理原则。\n参考结论：已退出未被 wait 的是僵尸，仍运行但父进程退出的是孤儿；应让父进程正确 wait 或由收养进程回收，不能把两者混为仍占 CPU 的进程。",
+    "source": "https://pages.cs.wisc.edu/~remzi/OSTEP/",
+    "entry_type": "原理",
+    "tags": [
+      "操作系统",
+      "考研408",
+      "resource-lifecycle"
+    ]
+  }
+]

@@ -18,6 +18,7 @@ fn full(card: &Card, answer: &str) -> Grade {
         weak_points: vec![],
         sql: None,
         project: None,
+        coding: None,
     }
 }
 #[test]
@@ -125,6 +126,7 @@ fn grammar_leaves_visible_writing_space_in_small_and_standard_windows() {
             word_mode: "语法".into(),
             pending: Some(pending(&card, "")),
             card: Some(card),
+            chat_input: "import java.util.*;\npublic class Main { }\n".repeat(150),
             ..Default::default()
         };
         let ctx = egui::Context::default();
@@ -743,4 +745,76 @@ fn english_variants_keep_old_snapshots_and_share_mastery_by_word_and_mode() {
         snapshot
     );
     assert_eq!(db.study_today("word").unwrap(), 1);
+}
+
+#[test]
+fn tutor_shortcut_routes_to_followup_instead_of_grading_in_all_learning_modes() {
+    use crate::ui_components::tutor;
+    for (kind, card_id) in [("engineering", "eng:3:05"), ("word", "ielts:benefit")] {
+        let dir = tempfile::tempdir().unwrap();
+        let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+        app.study.config.model = dir.path().join("missing.gguf");
+        app.study.config.runtime = dir.path().join("missing-server.exe");
+        let card = app
+            .db
+            .as_ref()
+            .unwrap()
+            .study_card(card_id)
+            .unwrap()
+            .unwrap();
+        let mut s = Session {
+            pending: Some(pending(&card, "原答案")),
+            card: Some(card.clone()),
+            answer: "原答案".into(),
+            chat_input: "请解释这段代码".into(),
+            ..Default::default()
+        };
+        let ctx = egui::Context::default();
+        configure_theme(&ctx);
+        for step in 0..4 {
+            if step == 3 {
+                ctx.memory_mut(|m| {
+                    m.request_focus(tutor::input_id(tutor::panel_id(kind, &card.id)))
+                });
+            }
+            let mut output = ctx.run_ui(
+                egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(1000., 550.),
+                    )),
+                    events: if step == 3 {
+                        vec![egui::Event::Key {
+                            key: egui::Key::Enter,
+                            physical_key: None,
+                            pressed: true,
+                            repeat: false,
+                            modifiers: egui::Modifiers::CTRL,
+                        }]
+                    } else {
+                        vec![]
+                    },
+                    ..Default::default()
+                },
+                |ui| app.render_learning_workspace(ui, kind, &mut s),
+            );
+            output.textures_delta.clear();
+        }
+        assert_eq!(app.study.operation, "讲解与追问", "{kind}");
+        assert!(s.chat_input.is_empty());
+        assert_eq!(s.chat.last().unwrap().content, "请解释这段代码");
+        assert!(s.result.is_none());
+        assert_eq!(s.pending.as_ref().unwrap().answer, "原答案");
+        assert_eq!(
+            app.db
+                .as_ref()
+                .unwrap()
+                .study_dialogue(card_id)
+                .unwrap()
+                .last()
+                .unwrap()
+                .content,
+            "请解释这段代码"
+        );
+    }
 }

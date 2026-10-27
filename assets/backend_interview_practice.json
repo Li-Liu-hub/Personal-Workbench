@@ -1,0 +1,2284 @@
+[
+  {
+    "id": "knowledge:ref:backend_interview:pattern-singleton",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "单例模式 · 推演练习",
+    "prompt": "知识点：单例模式\n版本：Java 17+\n示例或场景：\nclass Config { private static class H { static Config I = new Config(); } static Config get(){ return H.I; } }\n\n任务：写一个线程安全的懒加载单例，说明 DCL 为什么需要 volatile，以及枚举实现的额外优势。\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "静态内部类实现：外部类加载不初始化，get() 首次访问触发 H 类初始化，JVM 类初始化锁保证线程安全且懒加载。DCL 中 new 分配-初始化-赋引用可能重排，volatile 禁止重排避免他线程看到未完成构造的引用。枚举由 JVM 保证唯一实例，反射与序列化都无法创建第二份。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：单例模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：写一个线程安全的懒加载单例，说明 DCL 为什么需要 volatile，以及枚举实现的额外优势。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/singleton",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-singleton"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "创建型",
+      "pattern-singleton"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "保证一个类只有一个实例并提供全局访问点；Java 实现要点是线程安全、反射与序列化防护，推荐静态内部类或枚举。",
+      "deliverable": "写一个线程安全的懒加载单例，说明 DCL 为什么需要 volatile，以及枚举实现的额外优势。"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-factory-method",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "工厂方法模式 · 推演练习",
+    "prompt": "知识点：工厂方法模式\n版本：Java 17+\n示例或场景：\ninterface Exporter { Doc export(Order o); }\nclass PdfExporter implements Exporter {}\n\n任务：工厂方法与直接 new 相比的扩展性收益是什么？它与静态工厂方法的区别？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "调用方依赖 Exporter 接口，新增 ExcelExporter 只需新增子类与装配配置，调用代码与既有导出逻辑零修改。工厂方法是创建型类模式（延迟到子类）；静态工厂方法是类中的静态方法约定，二者解决不同问题。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：工厂方法模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：工厂方法与直接 new 相比的扩展性收益是什么？它与静态工厂方法的区别？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/factory-method",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-factory-method"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "创建型",
+      "pattern-factory-method"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "定义创建对象的接口，让子类决定实例化哪个类；把 new 的具体类型延迟到子类，新增产品不改调用方代码。",
+      "deliverable": "工厂方法与直接 new 相比的扩展性收益是什么？它与静态工厂方法的区别？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-abstract-factory",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "抽象工厂模式 · 推演练习",
+    "prompt": "知识点：抽象工厂模式\n版本：Java 17+\n示例或场景：\ninterface UiFactory { Button btn(); Input input(); }\nWinFactory/MacFactory 各自产出同族组件\n\n任务：抽象工厂擅长加产品族还是加产品种类？为什么？以跨平台 UI 为例说明。\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "擅长加族：新增 LinuxFactory 一次实现全部接口即可，不影响既有代码。加产品种类需要修改工厂接口与所有实现类。WinFactory 产出的 Button 与 Input 风格一致，族内约束由具体工厂保证。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：抽象工厂模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：抽象工厂擅长加产品族还是加产品种类？为什么？以跨平台 UI 为例说明。",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/abstract-factory",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-abstract-factory"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "创建型",
+      "pattern-abstract-factory"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "提供一个创建一系列相关对象的接口，无需指定具体类；产品族一起变化时保证整族一致性。",
+      "deliverable": "抽象工厂擅长加产品族还是加产品种类？为什么？以跨平台 UI 为例说明。"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-builder",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "建造者模式 · 推演练习",
+    "prompt": "知识点：建造者模式\n版本：Java 17+\n示例或场景：\nUser u = User.builder().name(\"a\").age(20).build();\n\n任务：多可选参数场景 Builder 相比重叠构造器与 JavaBean setter 的优势？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "重叠构造器参数组合爆炸且易传错位；JavaBean setter 造成构造中途可变、线程不安全。Builder 按名传参、可校验后一次性 build，产出不可变对象，过程安全可读。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：建造者模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：多可选参数场景 Builder 相比重叠构造器与 JavaBean setter 的优势？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/builder",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-builder"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "创建型",
+      "pattern-builder"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "分步骤构造复杂对象，隔离构造过程与表示；链式 Builder 解决多参数构造与可选参数组合爆炸，不可变对象构建尤为常用。",
+      "deliverable": "多可选参数场景 Builder 相比重叠构造器与 JavaBean setter 的优势？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-prototype",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "原型模式 · 推演练习",
+    "prompt": "知识点：原型模式\n版本：Java 17+\n示例或场景：\nSheep s2 = (Sheep) s1.clone();\n\n任务：clone 的浅拷贝问题是什么？工程上有哪些替代方案？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "浅拷贝共享内部可变对象引用，克隆体修改列表/对象会污染原对象。替代：拷贝构造器逐字段深拷贝、序列化往返重建、MapStruct 映射；使用 clone 时必须连同可变成员一起深拷贝。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：原型模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：clone 的浅拷贝问题是什么？工程上有哪些替代方案？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/prototype",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-prototype"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "创建型",
+      "pattern-prototype"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "通过复制已有实例创建新对象，避免重复的昂贵初始化；Java 用 Object.clone 与 Cloneable 实现，需注意浅拷贝与深拷贝。",
+      "deliverable": "clone 的浅拷贝问题是什么？工程上有哪些替代方案？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-adapter",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "适配器模式 · 推演练习",
+    "prompt": "知识点：适配器模式\n版本：Java 17+\n示例或场景：\nclass SdkAdapter implements PayGateway { 支付宝SDK 调用转译 }\n\n任务：适配器、外观、装饰器三者的区别？三方支付接口接入为什么适合适配器？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "适配器转换不兼容接口，外观简化多接口子系统，装饰器保持同接口增强行为。三方 SDK 的方法签名、异常、参数模型与内部网关接口不一致，适配器把差异隔离在一层，业务只依赖内部接口。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：适配器模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：适配器、外观、装饰器三者的区别？三方支付接口接入为什么适合适配器？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/adapter",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-adapter"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "结构型",
+      "pattern-adapter"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "把一个类的接口转换成调用方期望的另一种接口，使不兼容接口可以协作；常用于封装三方 SDK 与遗留系统。",
+      "deliverable": "适配器、外观、装饰器三者的区别？三方支付接口接入为什么适合适配器？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-bridge",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "桥接模式 · 推演练习",
+    "prompt": "知识点：桥接模式\n版本：Java 17+\n示例或场景：\nShape(抽象) 持有 Renderer(实现)：Circle 用 VectorRenderer 或 RasterRenderer\n\n任务：形状 × 渲染器两个维度组合，继承与桥接的类数量对比？桥接的适用前提？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "继承需 2×2=4 个类，每加一维乘法膨胀；桥接只要 2+2 个类，维度各自扩展。前提：两维度变化相互独立，抽象只依赖实现的稳定接口。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：桥接模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：形状 × 渲染器两个维度组合，继承与桥接的类数量对比？桥接的适用前提？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/bridge",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-bridge"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "结构型",
+      "pattern-bridge"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "把抽象部分与实现部分分离到两个独立维度，避免多维度组合导致类数量爆炸；两个维度可独立扩展。",
+      "deliverable": "形状 × 渲染器两个维度组合，继承与桥接的类数量对比？桥接的适用前提？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-composite",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "组合模式 · 推演练习",
+    "prompt": "知识点：组合模式\n版本：Java 17+\n示例或场景：\nFile/Directory 统一抽象为 Node，Directory 持有 List<Node>\n\n任务：文件树统计大小如何用组合模式建模？组合与装饰器的结构差异？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "抽象 Node 声明 size()，File 返回自身大小，Directory 汇总 children 之和，客户端对整树统一调用 size()。组合是一对多的树形聚合，装饰器是一对一的同接口包装链，二者可叠加使用。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：组合模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：文件树统计大小如何用组合模式建模？组合与装饰器的结构差异？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/composite",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-composite"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "结构型",
+      "pattern-composite"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "将对象组合成树形结构表示“部分-整体”层次，使客户端统一处理单个对象与组合对象。",
+      "deliverable": "文件树统计大小如何用组合模式建模？组合与装饰器的结构差异？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-decorator",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "装饰器模式 · 推演练习",
+    "prompt": "知识点：装饰器模式\n版本：Java 17+\n示例或场景：\nnew BufferedInputStream(new FileInputStream(f))\n\n任务：BufferedInputStream 包装 FileInputStream 的行为顺序？装饰器与代理的区别？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "调用链由外向内：Buffered 先查缓冲块，未命中再委托 File 读取，行为叠加顺序即包装顺序。装饰器向同接口添加行为，代理侧重访问控制与间接层（远程、懒加载、权限、AOP 拦截）。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：装饰器模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：BufferedInputStream 包装 FileInputStream 的行为顺序？装饰器与代理的区别？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/decorator",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-decorator"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "结构型",
+      "pattern-decorator"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "不改变接口的前提下动态叠加职责，比继承更灵活；Java IO 流与 HttpServletRequestWrapper 是典型。",
+      "deliverable": "BufferedInputStream 包装 FileInputStream 的行为顺序？装饰器与代理的区别？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-facade",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "外观模式 · 推演练习",
+    "prompt": "知识点：外观模式\n版本：Java 17+\n示例或场景：\nOrderFacade.place() 串联库存、支付、通知三个服务\n\n任务：下单需要顺序调用库存、支付、通知，门面带来什么收益？门面设计的边界是什么？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "调用方只依赖 place() 一个入口，内部编排顺序、事务与补偿被集中管理；子系统改动只影响门面内部。边界：一个门面对应一类业务场景，多个场景变化方向不同时拆分，避免上帝类。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：外观模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：下单需要顺序调用库存、支付、通知，门面带来什么收益？门面设计的边界是什么？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/facade",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-facade"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "结构型",
+      "pattern-facade"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "为复杂子系统提供统一的高层接口，降低调用方与子系统的耦合；子系统仍可直连，外观不屏蔽能力。",
+      "deliverable": "下单需要顺序调用库存、支付、通知，门面带来什么收益？门面设计的边界是什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-flyweight",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "享元模式 · 推演练习",
+    "prompt": "知识点：享元模式\n版本：Java 17+\n示例或场景：\nInteger.valueOf(127) 返回缓存对象\n\n任务：享元的内部/外部状态怎么划分？为什么内部状态必须不可变？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "内部状态是可共享的不变部分（如字符的字形、连接的配置），外部状态是随场景变化的部分（位置、参数）由使用时传入。内部状态若可变，多客户端共享时互相污染，因此设计为不可变才能无锁共享。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：享元模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：享元的内部/外部状态怎么划分？为什么内部状态必须不可变？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/flyweight",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-flyweight"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "结构型",
+      "pattern-flyweight"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "共享细粒度对象以支撑大量重复对象，分离内部状态（共享）与外部状态（传入）；Integer 缓存、字符串常量池、连接池都是实例。",
+      "deliverable": "享元的内部/外部状态怎么划分？为什么内部状态必须不可变？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-proxy",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "代理模式 · 推演练习",
+    "prompt": "知识点：代理模式\n版本：Java 17+\n示例或场景：\nProxy.newProxyInstance 生成接口实现拦截调用\n\n任务：JDK 动态代理与 CGLIB 的区别与限制？Spring AOP 如何选择？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "JDK 基于接口反射生成实现类，要求目标实现接口；CGLIB 生成目标子类，不能代理 final 类/方法。Spring 有接口默认 JDK 代理（可配置强制 CGLIB），无接口走 CGLIB；代理层实现切面拦截。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：代理模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：JDK 动态代理与 CGLIB 的区别与限制？Spring AOP 如何选择？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/proxy",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-proxy"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "结构型",
+      "pattern-proxy"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "为对象提供代理以控制访问：远程代理、虚拟代理（懒加载）、保护代理、动态代理（AOP 基础）。",
+      "deliverable": "JDK 动态代理与 CGLIB 的区别与限制？Spring AOP 如何选择？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-chain",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "责任链模式 · 推演练习",
+    "prompt": "知识点：责任链模式\n版本：Java 17+\n示例或场景：\nHandler 链：参数校验→登录态→限流→业务\n\n任务：责任链的顺序敏感性如何体现？链末端为什么要兜底？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "鉴权必须先于业务，限流先于重业务节点，顺序错误会造成越权或资源浪费。请求走到链尾仍无人处理时应显式拒绝或记录，避免静默丢失；每节点只关注自己职责，通过 next 协作。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：责任链模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：责任链的顺序敏感性如何体现？链末端为什么要兜底？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/chain-of-responsibility",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-chain"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-chain"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "把请求沿处理者链传递，每个节点决定处理或转发；过滤器、拦截器、网关鉴权链的通用结构，节点可编排、可插拔。",
+      "deliverable": "责任链的顺序敏感性如何体现？链末端为什么要兜底？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-command",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "命令模式 · 推演练习",
+    "prompt": "知识点：命令模式\n版本：Java 17+\n示例或场景：\ninterface Command { void exec(); Undo undo(); }\n\n任务：命令模式如何支持撤销与异步队列？设计撤销时要注意什么？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "命令实现 exec/undo，按执行栈逆序调用 undo 实现撤销；命令可序列化入队，由 worker 异步消费实现削峰。撤销要区分补偿操作（转账退回）与逆操作（状态复位），失败时需要幂等与重试设计。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：命令模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：命令模式如何支持撤销与异步队列？设计撤销时要注意什么？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/command",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-command"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-command"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "把请求封装成对象（含参数与执行逻辑），支持队列化、日志、撤销重做；与生产者消费者结合实现异步任务队列。",
+      "deliverable": "命令模式如何支持撤销与异步队列？设计撤销时要注意什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-interpreter",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "解释器模式 · 推演练习",
+    "prompt": "知识点：解释器模式\n版本：Java 17+\n示例或场景：\nExp e = Exp.parse(\"a AND b OR c\"); e.interpret(ctx)\n\n任务：什么规模的语言适合解释器模式？复杂文法的替代方案？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "规则少、结构稳定的迷你 DSL（布尔表达式、权限过滤）适合；类爆炸、性能敏感、文法频繁演进时应改用 ANTLR/JavaCC 生成解析器，或把表达式编译为可复用的 AST。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：解释器模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：什么规模的语言适合解释器模式？复杂文法的替代方案？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/interpreter",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-interpreter"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-interpreter"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "为特定语言定义文法与解释器，用类表示每条文法规则；适合小型 DSL（规则表达式、路径匹配），复杂语言应改用解析器生成器。",
+      "deliverable": "什么规模的语言适合解释器模式？复杂文法的替代方案？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-iterator",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "迭代器模式 · 推演练习",
+    "prompt": "知识点：迭代器模式\n版本：Java 17+\n示例或场景：\nfor (T x : collection) 底层是 iterator()\n\n任务：增强 for 的底层机制？fail-fast 与弱一致迭代器的区别？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "增强 for 调用聚合的 iterator()，用 hasNext/next 遍历。fail-fast 记录 modCount，发现修改立即抛异常（ArrayList）；弱一致迭代器基于快照或允许遍历期间修改（COW 列表、ConcurrentHashMap），不保证读到最新。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：迭代器模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：增强 for 的底层机制？fail-fast 与弱一致迭代器的区别？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/iterator",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-iterator"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-iterator"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "顺序访问聚合对象元素而不暴露内部表示；Java 的 Iterable/Iterator 与增强 for 的底层机制，支持多种遍历次序。",
+      "deliverable": "增强 for 的底层机制？fail-fast 与弱一致迭代器的区别？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-mediator",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "中介者模式 · 推演练习",
+    "prompt": "知识点：中介者模式\n版本：Java 17+\n示例或场景：\nChatRoom 收到消息后路由给其他成员\n\n任务：网状协作改中介者后依赖关系如何变化？中介膨胀怎么办？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "n 个对象两两引用是 O(n²) 条边，引入中介后成员只持有 1 个中介引用，交互逻辑集中在中介内可统一演进。若中介承载过多场景，应按业务域拆分多个中介，保持单一职责。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：中介者模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：网状协作改中介者后依赖关系如何变化？中介膨胀怎么办？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/mediator",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-mediator"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-mediator"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "用中介对象封装一组对象的交互，使网状依赖变成星型依赖；聊天室、航班调度塔台、多模块事件协调。",
+      "deliverable": "网状协作改中介者后依赖关系如何变化？中介膨胀怎么办？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-memento",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "备忘录模式 · 推演练习",
+    "prompt": "知识点：备忘录模式\n版本：Java 17+\n示例或场景：\nEditor.save() 返回 Snapshot；undo() 恢复\n\n任务：备忘录对封装的要求是什么？大文档撤销的快照成本如何控制？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "快照内容只有原发器可解读，管理者只负责存取，避免状态被外部篡改。成本控制：限制快照栈深度、增量记录差异、或写外部存储（草稿箱），读取时按需重建。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：备忘录模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：备忘录对封装的要求是什么？大文档撤销的快照成本如何控制？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/memento",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-memento"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-memento"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "在不破坏封装的前提下捕获对象状态快照，用于撤销、恢复与草稿；Java 中常配合不可变快照对象实现。",
+      "deliverable": "备忘录对封装的要求是什么？大文档撤销的快照成本如何控制？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-observer",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "观察者模式 · 推演练习",
+    "prompt": "知识点：观察者模式\n版本：Java 17+\n示例或场景：\nsubject.addListener(l); subject.fire(event)\n\n任务：同步事件监听的风险？观察者模式的工程化形态有哪些？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "同步通知在发布线程执行，慢观察者拖垮主流程，异常需逐个隔离。工程化：进程内用 Spring ApplicationEvent/事件总线，跨服务用 MQ 的发布订阅，二者都体现主题-观察者的解耦。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：观察者模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：同步事件监听的风险？观察者模式的工程化形态有哪些？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/observer",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-observer"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-observer"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "定义一对多依赖，主题状态变化自动通知观察者；事件总线、监听器、Spring 事件与 MQ 发布订阅是其工程形态。",
+      "deliverable": "同步事件监听的风险？观察者模式的工程化形态有哪些？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-state",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "状态模式 · 推演练习",
+    "prompt": "知识点：状态模式\n版本：Java 17+\n示例或场景：\nOrderState 接口：Created/Paid/Shipped 各自实现 cancel()\n\n任务：状态模式与策略模式的区别？如何防止非法状态跃迁？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "策略是外部选择算法、彼此无感知；状态是对象内部流转、通常持有上下文引用并决定下一状态。防止非法跃迁：在每个状态实现中仅允许合法事件，未定义事件抛异常或进入拒绝分支，跃迁表集中维护。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：状态模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：状态模式与策略模式的区别？如何防止非法状态跃迁？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/state",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-state"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-state"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "状态相关的行为封装到独立状态类，对象行为随状态对象切换；替代巨型 switch，状态机校验非法跃迁。",
+      "deliverable": "状态模式与策略模式的区别？如何防止非法状态跃迁？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-strategy",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "策略模式 · 推演练习",
+    "prompt": "知识点：策略模式\n版本：Java 17+\n示例或场景：\nMap<String, DiscountStrategy> 按类型取策略计算\n\n任务：用策略模式重构多分支计价逻辑的步骤？策略与状态在“谁选择”上的差异？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "定义计价接口，每个折扣规则一个实现类，启动时按 key 注册进 Map，调用方按渠道取用，新增规则只加实现。策略由调用方按条件选择，状态由对象内部随生命周期流转。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：策略模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：用策略模式重构多分支计价逻辑的步骤？策略与状态在“谁选择”上的差异？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/strategy",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-strategy"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-strategy"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "封装一族可互换算法，运行时按上下文选择；配合 Map 注解注册消除 if-else 分支，是消除分支膨胀的标准解法。",
+      "deliverable": "用策略模式重构多分支计价逻辑的步骤？策略与状态在“谁选择”上的差异？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-template-method",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "模板方法模式 · 推演练习",
+    "prompt": "知识点：模板方法模式\n版本：Java 17+\n示例或场景：\nabstract BaseJob { final run(){ pre(); doJob(); post(); } }\n\n任务：模板方法的流程如何保护？钩子方法的作用？与回调如何配合？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "骨架 run() 定义步骤顺序并声明 final，子类只实现 doJob 等抽象步骤；钩子提供默认实现供子类覆盖微调。异步执行时模板方法内以回调参数接收完成通知，把流程控制与异步结果解耦。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：模板方法模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：模板方法的流程如何保护？钩子方法的作用？与回调如何配合？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/template-method",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-template-method"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-template-method"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "父类定义算法骨架（final 方法），步骤延迟到子类实现；钩子方法控制可选步骤，避免子类改动流程。",
+      "deliverable": "模板方法的流程如何保护？钩子方法的作用？与回调如何配合？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:pattern-visitor",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "访问者模式 · 推演练习",
+    "prompt": "知识点：访问者模式\n版本：Java 17+\n示例或场景：\nelements.accept(new ReportVisitor())\n\n任务：访问者模式“加操作容易、加元素难”的原因？双重分派解决什么问题？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "操作变化收敛在 Visitor 子类，新增只需新访问者；元素类型变化则每个访问者都要加 visit 重载。双重分派：element.accept(visitor) 先按元素动态类型选择 accept，再在 accept 内调用 visitor.visit(this) 精确匹配重载。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：访问者模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：访问者模式“加操作容易、加元素难”的原因？双重分派解决什么问题？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/visitor",
+    "knowledge_ids": [
+      "ref:backend_interview:pattern-visitor"
+    ],
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-visitor"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "在不修改元素类的前提下给元素族新增操作，用双重分派把元素类型分派给对应 visit 方法；元素结构稳定而操作频繁变化时适用。",
+      "deliverable": "访问者模式“加操作容易、加元素难”的原因？双重分派解决什么问题？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-why-cache",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "缓存的收益、代价与使用理由 · 推演练习",
+    "prompt": "知识点：缓存的收益、代价与使用理由\n版本：Redis 7.2\n示例或场景：\n每次请求都查库 → 引入 Redis 缓存热点数据\n\n任务：什么样的数据适合加缓存？引入缓存必须配套设计哪些机制？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "读多写少、热点集中、可容忍短暂不一致的数据。必须配套：未命中回源与防穿透、过期与淘汰策略、缓存与数据库一致性策略、并发回源防击穿、容量与淘汰计划。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：缓存的收益、代价与使用理由",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：什么样的数据适合加缓存？引入缓存必须配套设计哪些机制？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/why-cache.md",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-why-cache"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-why-cache"
+    ],
+    "training": {
+      "area": "性能与交付",
+      "level": 1,
+      "goal": "缓存的本质是用一致性换性能：把热点数据放到更快的介质（内存）减少重复计算与数据库压力；收益是读写性能提升，代价是数据不一致、复杂度与运维成本。",
+      "deliverable": "什么样的数据适合加缓存？引入缓存必须配套设计哪些机制？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-data-types",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Redis 五大基础数据类型与典型场景 · 推演练习",
+    "prompt": "知识点：Redis 五大基础数据类型与典型场景\n版本：Redis 7.2\n示例或场景：\nZINCRBY rank:day 1 user:42 → 排行榜\n\n任务：为“对象字段级更新”“排行榜”“共同关注”分别选择什么类型？各自的复杂度依据？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "Hash：HSET/HGET 只触碰单字段，免整对象序列化；ZSet：ZADD/ZINCRBY + ZREVRANGE 按分数有序 O(log N)；Set：SINTER 求交集得到共同关注，天然去重。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Redis 五大基础数据类型与典型场景",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为“对象字段级更新”“排行榜”“共同关注”分别选择什么类型？各自的复杂度依据？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://redis.io/docs/latest/develop/data-types/",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-data-types"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-data-types"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 1,
+      "goal": "String（缓存对象/计数）、Hash（对象字段级读写）、List（队列/最新列表）、Set（去重/标签/共同关注）、ZSet（排行榜/延迟队列）；每种结构对应不同命令与时间复杂度。",
+      "deliverable": "为“对象字段级更新”“排行榜”“共同关注”分别选择什么类型？各自的复杂度依据？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-structures",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Redis 底层数据结构：SDS、dict、skiplist、listpack 等 · 推演练习",
+    "prompt": "知识点：Redis 底层数据结构：SDS、dict、skiplist、listpack 等\n版本：Redis 7.2\n示例或场景：\nZSet 底层在元素少时用 listpack，多时转为 skiplist+dict\n\n任务：SDS 相比 C 字符串的三个优点？ZSet 为什么用跳表而不是红黑树？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "SDS：长度字段 O(1) 取长度、记录 free 支持惰性释放与预分配、二进制安全可存任意字节。跳表实现与调试更简单，范围查询按链表顺序输出，插入删除只改指针无需旋转，平均 O(log N) 已足够。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Redis 底层数据结构：SDS、dict、skiplist、listpack 等",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：SDS 相比 C 字符串的三个优点？ZSet 为什么用跳表而不是红黑树？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/redis/redis",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-structures"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-structures"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "Redis 不直接用 C 字符串：SDS 记录长度 O(1) 取长度、二进制安全、预分配减少 realloc；哈希表用渐进式 rehash；跳表支持有序集合的范围查询；小数据用 listpack/intset 压缩内存。",
+      "deliverable": "SDS 相比 C 字符串的三个优点？ZSet 为什么用跳表而不是红黑树？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-rehash",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Redis 字典的渐进式 rehash · 推演练习",
+    "prompt": "知识点：Redis 字典的渐进式 rehash\n版本：Redis 7.2\n示例或场景：\nht[0] 迁移到 ht[1]，期间读先查 ht[0] 再查 ht[1]\n\n任务：渐进式 rehash 如何避免长停顿？rehash 期间读写怎么处理？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "迁移分摊到每次键操作与定时任务，单次最多迁移一个桶，停顿可控。期间新增写 ht[1]，读/更新先查 ht[0] 命中即返回/更新，否则查 ht[1]，保证数据不丢。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Redis 字典的渐进式 rehash",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：渐进式 rehash 如何避免长停顿？rehash 期间读写怎么处理？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/redis/redis",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-rehash"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-rehash"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "Redis 扩容/缩容时同时持有两张哈希表，rehash 期间每次增删改查顺带迁移一个桶，后台定时任务也会迁移，避免一次性迁移造成的长停顿。",
+      "deliverable": "渐进式 rehash 如何避免长停顿？rehash 期间读写怎么处理？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-expiration",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Redis 过期删除与内存淘汰策略 · 推演练习",
+    "prompt": "知识点：Redis 过期删除与内存淘汰策略\n版本：Redis 7.2\n示例或场景：\nmaxmemory-policy allkeys-lru\n\n任务：过期键如何被真正删除？内存超限后有哪些淘汰方向？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "组合惰性删除（读写时检查）与定期任务（随机抽样过期桶限时清理）；到期不等于立即删除。超限后按策略淘汰：noeviction 拒绝写，allkeys/volatile 决定范围，lru/lfu/ttl/random 决定依据。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Redis 过期删除与内存淘汰策略",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：过期键如何被真正删除？内存超限后有哪些淘汰方向？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://redis.io/docs/latest/commands/expire/",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-expiration"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-expiration"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "过期删除：惰性删除（访问时检查）+ 定期抽样删除；内存达到 maxmemory 后按淘汰策略腾空间：noeviction、allkeys-lru、volatile-lru、allkeys-lfu、volatile-ttl 等。",
+      "deliverable": "过期键如何被真正删除？内存超限后有哪些淘汰方向？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-persistence",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "RDB 与 AOF 的取舍与混合持久化 · 推演练习",
+    "prompt": "知识点：RDB 与 AOF 的取舍与混合持久化\n版本：Redis 7.2\n示例或场景：\nappendonly yes + aof-use-rdb-preamble yes\n\n任务：RDB 与 AOF 各自的优缺点？混合持久化解决什么问题？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "RDB 恢复快、文件小，但两次快照间的数据会丢；AOF 丢失窗口小（everysec）、可读，但文件大恢复慢。混合持久化：重写期先写全量 RDB 再追加增量 AOF，兼得恢复速度与低丢失窗口。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：RDB 与 AOF 的取舍与混合持久化",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：RDB 与 AOF 各自的优缺点？混合持久化解决什么问题？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-persistence"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-persistence"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "RDB 是某时刻全量快照（fork 子进程写临时文件），恢复快但可能丢最后一段数据；AOF 追加写命令（everysec 折中），文件大、恢复慢，配合重写压缩；4.0+ 混合持久化在重写时把 RDB 头+AOF 增量拼接。",
+      "deliverable": "RDB 与 AOF 各自的优缺点？混合持久化解决什么问题？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-replication",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Redis 主从复制原理 · 推演练习",
+    "prompt": "知识点：Redis 主从复制原理\n版本：Redis 7.2\n示例或场景：\nslaveof 后从库加载 RDB，主从 offset 对齐\n\n任务：主从全量与部分重同步的切换条件？异步复制的一致性风险？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "从库上报 offset 仍在主库 repl_backlog 环形缓冲内则 PSYNC 部分重同步，否则全量 RDB。主库写成功即返回客户端，不等待从库确认，主库宕机可能丢失未传播的写入，需业务权衡。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Redis 主从复制原理",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：主从全量与部分重同步的切换条件？异步复制的一致性风险？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://redis.io/docs/latest/operate/oss_and_stack/management/replication/",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-replication"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-replication"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "从库首次执行全量同步：主库 bgsave 生成 RDB 发给从库，期间新写命令进复制缓冲区随后补发；之后命令传播保持一致；断线重连按复制偏移量判断是否可部分重同步（repl_backlog）。",
+      "deliverable": "主从全量与部分重同步的切换条件？异步复制的一致性风险？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-sentinel",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "哨兵（Sentinel）的高可用机制 · 推演练习",
+    "prompt": "知识点：哨兵（Sentinel）的高可用机制\n版本：Redis 7.2\n示例或场景：\nsentinel monitor mymaster <ip> 6379 2\n\n任务：客观下线如何判定？为什么要 3 个以上奇数哨兵？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "单哨兵误判为主观下线，向其他哨兵询问且达到 quorum 数确认即客观下线；领头哨兵选举需多数派。3 个奇数节点保证判定与选举都能形成多数派，避免网络分区时双方各自切换主库。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：哨兵（Sentinel）的高可用机制",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：客观下线如何判定？为什么要 3 个以上奇数哨兵？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://redis.io/docs/latest/operate/oss_and_stack/management/sentinel/",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-sentinel"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-sentinel"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "哨兵集群监控主库：主观下线→多数哨兵确认客观下线→选领头哨兵执行故障转移：选举新主、其余从库改挂新主、客户端经通知切换；判定与选举需要 quorum 与多数派。",
+      "deliverable": "客观下线如何判定？为什么要 3 个以上奇数哨兵？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-cluster",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Redis Cluster 的分片与 16384 个槽 · 推演练习",
+    "prompt": "知识点：Redis Cluster 的分片与 16384 个槽\n版本：Redis 7.2\n示例或场景：\ncluster 按 hash slot 分片，支持在线迁移槽\n\n任务：为什么是 16384 个槽？多 key 操作如何保证同槽？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "16384 足够支撑千级节点（心跳包内位图压缩后仍小），且槽位分配信息便于 gossip 传播；作者权衡带宽与扩展性。多 key 用 hash tag 把业务相关的 key 映射到同一槽，如 {order:1}:info。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Redis Cluster 的分片与 16384 个槽",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为什么是 16384 个槽？多 key 操作如何保证同槽？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://redis.io/docs/latest/operate/oss_and_stack/management/scaling/",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-cluster"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-cluster"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "集群按 CRC16(key) mod 16384 分槽，每个主节点负责一段槽位；客户端可直连任意节点，MOVED/ASK 重定向引导到正确节点； gossip 协议交换节点状态。",
+      "deliverable": "为什么是 16384 个槽？多 key 操作如何保证同槽？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-avalanche",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "缓存雪崩：大量 key 同时失效或缓存宕机 · 推演练习",
+    "prompt": "知识点：缓存雪崩：大量 key 同时失效或缓存宕机\n版本：Redis 7.2\n示例或场景：\n活动开始时 10 万 key 同时到期，DB QPS 暴涨\n\n任务：雪崩的两个触发路径分别是什么？防御组合拳有哪些？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "路径一：相同 TTL 的海量 key 同时过期（解决方案：过期时间加随机抖动、热点不过期+异步更新）；路径二：缓存服务整体不可用（主从+哨兵高可用、多级缓存）。兜底：限流、熔断降级保护数据库。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：缓存雪崩：大量 key 同时失效或缓存宕机",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：雪崩的两个触发路径分别是什么？防御组合拳有哪些？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-caching-avalanche-and-caching-penetration.md",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-avalanche"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "缓存场景",
+      "redis-avalanche"
+    ],
+    "training": {
+      "area": "性能与交付",
+      "level": 3,
+      "goal": "大量热点 key 设了相同 TTL 同时过期，或缓存实例宕机，请求全部打到数据库造成雪崩。对策：TTL 加随机值打散、热点数据多级缓存、集群高可用与熔断限流兜底。",
+      "deliverable": "雪崩的两个触发路径分别是什么？防御组合拳有哪些？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-penetration",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "缓存穿透：查询不存在的数据打穿到数据库 · 推演练习",
+    "prompt": "知识点：缓存穿透：查询不存在的数据打穿到数据库\n版本：Redis 7.2\n示例或场景：\nGET user:-1 每秒 5 万次，DB 全量回查\n\n任务：穿透与雪崩的区别？布隆过滤器如何拦截穿透请求？有什么限制？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "穿透是“查不存在的数据”持续回源，雪崩是“缓存整体失效”流量洪峰。布隆过滤器把全量 key 预热进位数组，查询判不存在直接返回；限制：有误判率（存在可能误判为存在）、标准布隆不支持删除、需随数据量重建扩容。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：缓存穿透：查询不存在的数据打穿到数据库",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：穿透与雪崩的区别？布隆过滤器如何拦截穿透请求？有什么限制？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-caching-avalanche-and-caching-penetration.md",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-penetration"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "缓存场景",
+      "redis-penetration"
+    ],
+    "training": {
+      "area": "性能与交付",
+      "level": 2,
+      "goal": "请求的数据在缓存和数据库都不存在，每次都回源查询；攻击者可用不存在的 id 高频打穿。对策：缓存空值（短 TTL）、布隆过滤器拦截、接口层参数校验与限流。",
+      "deliverable": "穿透与雪崩的区别？布隆过滤器如何拦截穿透请求？有什么限制？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-breakdown",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "缓存击穿：单个热点 key 失效瞬间的并发回源 · 推演练习",
+    "prompt": "知识点：缓存击穿：单个热点 key 失效瞬间的并发回源\n版本：Redis 7.2\n示例或场景：\n秒杀商品 key 过期瞬间 DB 查询打满\n\n任务：击穿与穿透的区别？两种互斥方案的取舍？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "击穿是“单个热点 key 失效”的瞬时并发，穿透是“数据根本不存在”。互斥锁方案严格一致但请求需等待、实现需防死锁；逻辑过期无阻塞但返回短暂旧值，需后台刷新兜底。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：缓存击穿：单个热点 key 失效瞬间的并发回源",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：击穿与穿透的区别？两种互斥方案的取舍？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-caching-avalanche-and-caching-penetration.md",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-breakdown"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "缓存场景",
+      "redis-breakdown"
+    ],
+    "training": {
+      "area": "性能与交付",
+      "level": 2,
+      "goal": "某个极热点 key 过期瞬间，大量并发同时未命中并同时回源数据库；对策：互斥锁（SETNX 仅一个线程回源）、热点 key 逻辑过期（物理不过期+逻辑 TTL+异步刷新）。",
+      "deliverable": "击穿与穿透的区别？两种互斥方案的取舍？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-consistence",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "缓存与数据库双写一致性：Cache Aside 与更新时机 · 推演练习",
+    "prompt": "知识点：缓存与数据库双写一致性：Cache Aside 与更新时机\n版本：Redis 7.2\n示例或场景：\n先删缓存再更新库 → 并发读回填旧值\n\n任务：为什么推荐“更新数据库后删除缓存”而不是“更新缓存”？删缓存失败怎么兜底？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "写后删除：下次读触发回源，避免并发写缓存互相覆盖与写多场景无效计算；但极端时序（读-库-写-删-读回填旧值）仍可能脏，概率低。兜底：延迟双删、删除重试队列、订阅 binlog（Canal）异步删除。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：缓存与数据库双写一致性：Cache Aside 与更新时机",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为什么推荐“更新数据库后删除缓存”而不是“更新缓存”？删缓存失败怎么兜底？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-consistence.md",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-consistence"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "缓存场景",
+      "redis-consistence"
+    ],
+    "training": {
+      "area": "性能与交付",
+      "level": 3,
+      "goal": "标准 Cache Aside：读—先缓存后库回填；写—先更新数据库再删除缓存（而非更新缓存）。删失败可用延迟双删或订阅 binlog 异步删除兜底。",
+      "deliverable": "为什么推荐“更新数据库后删除缓存”而不是“更新缓存”？删缓存失败怎么兜底？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-cas",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "并发竞争 key 与分布式锁的实现要点 · 推演练习",
+    "prompt": "知识点：并发竞争 key 与分布式锁的实现要点\n版本：Redis 7.2\n示例或场景：\nSET lock:order NX PX 30000 → 业务 → 释放\n\n任务：分布式锁为什么释放要校验 value？锁与业务超时不匹配怎么办？Redis 锁的局限？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "A 的锁过期后 B 获得锁，A 直接 DEL 会误删 B 的锁；value 存唯一 ID，Lua 原子校验后再删。业务耗时不可预估时由看门狗周期续期。Redis 主从异步复制，主挂锁未同步到从时新主可被重复加锁，强一致需求选 ZK/etcd。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：并发竞争 key 与分布式锁的实现要点",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：分布式锁为什么释放要校验 value？锁与业务超时不匹配怎么办？Redis 锁的局限？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-cas.md",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-cas"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "缓存场景",
+      "redis-cas"
+    ],
+    "training": {
+      "area": "性能与交付",
+      "level": 3,
+      "goal": "多个客户端并发写同一 key 或执行互斥任务需要分布式锁：SET key value NX PX ttl 保证原子加锁，value 存唯一标识，释放用 Lua 校验后删除；看门狗续期防业务超时锁先过期。",
+      "deliverable": "分布式锁为什么释放要校验 value？锁与业务超时不匹配怎么办？Redis 锁的局限？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-bigkey",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "大 key 与热 key 的识别与治理 · 推演练习",
+    "prompt": "知识点：大 key 与热 key 的识别与治理\n版本：Redis 7.2\n示例或场景：\n一个 Hash 存百万粉丝列表 → DEL 卡顿\n\n任务：大 key 有哪些危害？删除大集合的正确姿势？热 key 如何缓解？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "读写大 key 阻塞单线程、网络带宽放大、主从同步与迁移缓慢。删除用 UNLINK 异步 + SCAN 分批，禁用一次性 DEL。热 key 加进程内本地缓存、key 加随机后缀分片到多节点、或读写分离多副本。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：大 key 与热 key 的识别与治理",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：大 key 有哪些危害？删除大集合的正确姿势？热 key 如何缓解？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-production-environment.md",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-bigkey"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "缓存场景",
+      "redis-bigkey"
+    ],
+    "training": {
+      "area": "性能与交付",
+      "level": 2,
+      "goal": "大 key：单 key 的 value 过大或集合元素过多，导致慢查询、阻塞、迁移困难；热 key：单 key QPS 极高打满单分片。治理：拆分（分片存储）、压缩、本地缓存扛热 key、监控（redis-cli --bigkeys、慢日志）。",
+      "deliverable": "大 key 有哪些危害？删除大集合的正确姿势？热 key 如何缓解？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-bloom",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "布隆过滤器的原理与使用场景 · 推演练习",
+    "prompt": "知识点：布隆过滤器的原理与使用场景\n版本：Redis 7.2\n示例或场景：\nBF.ADD seen:id1 / BF.EXISTS seen:id2\n\n任务：布隆为什么“不存在”是确定的而“存在”是概率的？删除支持如何解决？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "某位为 0 说明从未有任何元素把它置 1，故一定不存在；全为 1 可能是多个元素叠加置位，故可能误判。删除会清掉共享位影响其他元素，用计数布隆（每位计数器）或按周期全量重建。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：布隆过滤器的原理与使用场景",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：布隆为什么“不存在”是确定的而“存在”是概率的？删除支持如何解决？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://redis.io/docs/latest/develop/data-types/probabilistic/bloom-filter/",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-bloom"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "缓存场景",
+      "redis-bloom"
+    ],
+    "training": {
+      "area": "性能与交付",
+      "level": 2,
+      "goal": "位数组+k 个哈希函数：插入置位，查询任一位为 0 则一定不存在，全为 1 可能存在（误判）；用于缓存穿透拦截、去重、推荐已读过滤。空间小但支持“可能存在”的语义。",
+      "deliverable": "布隆为什么“不存在”是确定的而“存在”是概率的？删除支持如何解决？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-transaction",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Redis 事务与 Lua 脚本的原子性边界 · 推演练习",
+    "prompt": "知识点：Redis 事务与 Lua 脚本的原子性边界\n版本：Redis 7.2\n示例或场景：\nWATCH key + MULTI/EXEC 乐观锁；EVAL 执行原子扣减\n\n任务：Redis 事务为什么不回滚？Lua 相比 MULTI 的优势与限制？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "不回滚避免运行期错误回滚的复杂性与性能损耗（类型错误编程期即可发现）。Lua 脚本一次性发送减少 RTT、可含逻辑判断、整体原子；限制：执行期阻塞、脚本要短、集群需同槽、超时需限制。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Redis 事务与 Lua 脚本的原子性边界",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：Redis 事务为什么不回滚？Lua 相比 MULTI 的优势与限制？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://redis.io/docs/latest/commands/eval/",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-transaction"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-transaction"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "MULTI/EXEC 保证命令入队顺序执行且执行期不被插队，但不支持回滚：某条命令类型错误，其余仍执行；Lua 脚本整体原子执行，可包含条件逻辑，是复杂原子操作的首选。",
+      "deliverable": "Redis 事务为什么不回滚？Lua 相比 MULTI 的优势与限制？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-vs-memcached",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Redis 与 Memcached 的选型对比 · 推演练习",
+    "prompt": "知识点：Redis 与 Memcached 的选型对比\n版本：Redis 7.2\n示例或场景：\n缓存用户会话：String 小 value 高并发两都可；排行榜必须 ZSet → Redis\n\n任务：两者线程模型的差异？什么场景必须选 Redis？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "Memcached 多线程处理请求，吞吐受锁竞争影响小；Redis 命令执行单线程（原子性天然保证），6.0 起网络 IO 多线程但命令仍单线程。需要 List/Hash/ZSet 结构、持久化、发布订阅、Lua、集群时必须 Redis。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Redis 与 Memcached 的选型对比",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：两者线程模型的差异？什么场景必须选 Redis？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-single-thread-model.md",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-vs-memcached"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-vs-memcached"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 1,
+      "goal": "Memcached：多线程、纯 KV、内存管理简单，适合小 value 高并发缓存；Redis：单线程命令执行（6.0+ IO 多线程）、丰富数据结构、持久化、主从/哨兵/集群、Lua。现代选型默认 Redis。",
+      "deliverable": "两者线程模型的差异？什么场景必须选 Redis？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:redis-slowlog",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Redis 慢查询与生产配置要点 · 推演练习",
+    "prompt": "知识点：Redis 慢查询与生产配置要点\n版本：Redis 7.2\n示例或场景：\nCONFIG SET slowlog-log-slower-than 10000\n\n任务：为什么禁用 KEYS？替代方案？生产必须配置哪些项？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "KEYS 遍历全库 O(N)，单线程模型下阻塞所有请求；用 SCAN 按 cursor 增量遍历。生产必配：maxmemory+淘汰策略、慢日志阈值、rename 危险命令、连接池参数、持久化策略与监控告警。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Redis 慢查询与生产配置要点",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为什么禁用 KEYS？替代方案？生产必须配置哪些项？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-production-environment.md",
+    "knowledge_ids": [
+      "ref:backend_interview:redis-slowlog"
+    ],
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-slowlog"
+    ],
+    "training": {
+      "area": "测试与排障",
+      "level": 2,
+      "goal": "慢日志（slowlog-log-slower-than）记录执行超阈值命令；生产要点：禁用 KEYS/FLUSHALL 等危险命令、设置 maxmemory 与淘汰策略、连接池化、监控内存碎片率与命中率。",
+      "deliverable": "为什么禁用 KEYS？替代方案？生产必须配置哪些项？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:mq-why",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "为什么使用消息队列及其代价 · 推演练习",
+    "prompt": "知识点：为什么使用消息队列及其代价\n版本：Kafka 3.x / RocketMQ 5.x / RabbitMQ 3.13\n示例或场景：\n下单主流程只需写订单，积分/短信异步化\n\n任务：消息队列的三大收益？引入后必须处理哪些新问题？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "解耦：上下游只依赖 topic 契约；异步：主链路RTT 不含下游耗时；削峰：队列吸收突发流量。新问题：消息丢失、重复、乱序、积压、事务一致性，以及 broker 高可用与容量运维。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：为什么使用消息队列及其代价",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：消息队列的三大收益？引入后必须处理哪些新问题？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/why-mq.md",
+    "knowledge_ids": [
+      "ref:backend_interview:mq-why"
+    ],
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-why"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "解耦（生产者不依赖消费者存在）、异步（主流程不等耗时步骤）、削峰（突发流量入库排队）；代价：系统复杂度、一致性延迟、重复消费与顺序问题、运维成本，收益不足时不要引入。",
+      "deliverable": "消息队列的三大收益？引入后必须处理哪些新问题？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:mq-selection",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Kafka、RocketMQ、RabbitMQ 选型对比 · 推演练习",
+    "prompt": "知识点：Kafka、RocketMQ、RabbitMQ 选型对比\n版本：Kafka 3.x / RocketMQ 5.x / RabbitMQ 3.13\n示例或场景：\n日志采集选 Kafka，电商交易消息选 RocketMQ，中小系统轻量通知选 RabbitMQ\n\n任务：三个 MQ 各自的杀手锏特性？日志场景为什么选 Kafka？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "Kafka：极高吞吐+分区并行+流生态；RocketMQ：事务消息/延时等级/大量堆积能力；RabbitMQ：灵活路由与低延迟。日志场景写入量大、顺序按分区即可、要接 Flink/回放，Kafka 的顺序写与生态最匹配。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Kafka、RocketMQ、RabbitMQ 选型对比",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：三个 MQ 各自的杀手锏特性？日志场景为什么选 Kafka？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/why-mq.md",
+    "knowledge_ids": [
+      "ref:backend_interview:mq-selection"
+    ],
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-selection"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "Kafka：高吞吐日志流、分区有序、生态大（流处理）；RocketMQ：事务消息、延时消息、业务消息特性全，Java 栈；RabbitMQ：路由灵活、延迟低、管理界面友好，吞吐中等。",
+      "deliverable": "三个 MQ 各自的杀手锏特性？日志场景为什么选 Kafka？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:mq-reliable",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "消息不丢失：生产端、broker、消费端三段保障 · 推演练习",
+    "prompt": "知识点：消息不丢失：生产端、broker、消费端三段保障\n版本：Kafka 3.x / RocketMQ 5.x / RabbitMQ 3.13\n示例或场景：\n生产者 fire-and-forget → 网络抖动消息丢失\n\n任务：三段各自的丢失场景与对策？acks=all 保证了什么？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "生产端网络失败丢失→同步等待确认+重试；broker 内存消息未刷盘宕机→持久化+副本；消费端自动 ack 后宕机→手动 ack。acks=all 表示消息写入所有 ISR 副本才算成功，配合 min.insync.replicas 防止单副本写入。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：消息不丢失：生产端、broker、消费端三段保障",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：三段各自的丢失场景与对策？acks=all 保证了什么？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/how-to-ensure-the-reliable-transmission-of-messages.md",
+    "knowledge_ids": [
+      "ref:backend_interview:mq-reliable"
+    ],
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-reliable"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "生产端：同步/异步发送+确认重试（ acknowledgements）；broker：持久化（刷盘/副本同步）；消费端：手动 ack，处理完成再确认，失败重试进重试队列。任一段丢失都会断链。",
+      "deliverable": "三段各自的丢失场景与对策？acks=all 保证了什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:mq-idempotent",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "消息不重复消费：幂等设计 · 推演练习",
+    "prompt": "知识点：消息不重复消费：幂等设计\n版本：Kafka 3.x / RocketMQ 5.x / RabbitMQ 3.13\n示例或场景：\n同一订单消息被投递两次，库存扣两次\n\n任务：至少一次投递为什么必然重复？设计幂等消费的推荐组合？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "网络重试与 rebalance 都会重投，at-most-once 会丢消息，权衡后业界统一至少一次+消费幂等。组合：业务唯一键+去重表（与业务同事务、唯一索引防并发）、Redis 短窗口去重挡高频重试、状态机校验兜底。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：消息不重复消费：幂等设计",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：至少一次投递为什么必然重复？设计幂等消费的推荐组合？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/how-to-ensure-that-messages-are-not-repeatedly-consumed.md",
+    "knowledge_ids": [
+      "ref:backend_interview:mq-idempotent"
+    ],
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-idempotent"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "MQ 至少一次投递必然可能重复，消费端必须幂等：唯一业务键+去重表（唯一索引）、Redis SETNX 去重窗口、状态机校验、数据库唯一约束兜底；禁止依赖“broker 保证不重复”。",
+      "deliverable": "至少一次投递为什么必然重复？设计幂等消费的推荐组合？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:mq-order",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "消息顺序性保障：分区有序与全局有序 · 推演练习",
+    "prompt": "知识点：消息顺序性保障：分区有序与全局有序\n版本：Kafka 3.x / RocketMQ 5.x / RabbitMQ 3.13\n示例或场景：\n同一订单的创建/支付/发货消息须按序\n\n任务：Kafka 如何做到分区有序？消费端多线程时如何保持顺序？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "生产端同 key 进同分区（分区数固定则键有序）；分区数变更会破坏映射需谨慎。消费端把同 key 消息 hash 到同一内存队列由固定线程串行处理，或该分区单线程消费，其他分区并行。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：消息顺序性保障：分区有序与全局有序",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：Kafka 如何做到分区有序？消费端多线程时如何保持顺序？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/how-to-ensure-the-order-of-messages.md",
+    "knowledge_ids": [
+      "ref:backend_interview:mq-order"
+    ],
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-order"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "Kafka 按分区内有序：同一业务键路由到同一分区即可保序，全局有序代价过大（单分区）；消费端单线程处理分区内消息或多线程按键 hash 到内存队列保序。",
+      "deliverable": "Kafka 如何做到分区有序？消费端多线程时如何保持顺序？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:mq-ha",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "消息队列的高可用设计 · 推演练习",
+    "prompt": "知识点：消息队列的高可用设计\n版本：Kafka 3.x / RocketMQ 5.x / RabbitMQ 3.13\n示例或场景：\nbroker 宕机后消费不中断\n\n任务：Kafka 副本机制如何支撑高可用？min.insync.replicas 的作用？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "每分区 1 leader+N follower，follower 拉取同步保持 ISR，leader 宕机从 ISR 选举新 leader。min.insync.replicas=2 配合 acks=all：存活同步副本不足时拒绝写入，用可用性换不丢数据。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：消息队列的高可用设计",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：Kafka 副本机制如何支撑高可用？min.insync.replicas 的作用？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/how-to-ensure-high-availability-of-message-queues.md",
+    "knowledge_ids": [
+      "ref:backend_interview:mq-ha"
+    ],
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-ha"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "Kafka：分区多副本+ISR+Controller 选主；RocketMQ：NameServer+主从/DLedger 组多副本；RabbitMQ：镜像队列/仲裁队列。核心是副本冗余与自动选主，客户端感知拓扑变化重连。",
+      "deliverable": "Kafka 副本机制如何支撑高可用？min.insync.replicas 的作用？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:mq-backlog",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "消息积压的定位与处理 · 推演练习",
+    "prompt": "知识点：消息积压的定位与处理\n版本：Kafka 3.x / RocketMQ 5.x / RabbitMQ 3.13\n示例或场景：\n消费者连库超时 → 堆积百万消息\n\n任务：积压的两类根因与对应处理？Kafka 消费者扩容的上限？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "能力不足→扩消费者/批量/优化消费逻辑；逻辑卡死→修复异常、跳过毒消息进死信。上限：同一消费组内消费者实例数不能超过分区数，超出则空转，需先扩分区（注意破坏 key 顺序映射）。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：消息积压的定位与处理",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：积压的两类根因与对应处理？Kafka 消费者扩容的上限？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/mq-time-delay-and-expired-failure.md",
+    "knowledge_ids": [
+      "ref:backend_interview:mq-backlog"
+    ],
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-backlog"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "积压原因：消费速度不足、消费逻辑异常阻塞、上游流量突增。处理：横向扩容消费者（分区数上限内）、批量消费、跳过/降级非核心逻辑、紧急扩分区+临时消费者、修复后从积压位置补收。",
+      "deliverable": "积压的两类根因与对应处理？Kafka 消费者扩容的上限？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:mq-delay",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "延时消息与定时任务的实现 · 推演练习",
+    "prompt": "知识点：延时消息与定时任务的实现\n版本：Kafka 3.x / RocketMQ 5.x / RabbitMQ 3.13\n示例或场景：\n下单 30 分钟未支付自动关闭\n\n任务：订单超时关闭的三种实现与各自注意点？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "RocketMQ 延时消息：broker 端暂存定时投递，可靠且省事；Redis ZSet：到期时间作 score，轮询弹出，需防重复消费与持久化；数据库扫表：按状态+时间建索引分片扫描，量大时成本高但最直观可审计。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：延时消息与定时任务的实现",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：订单超时关闭的三种实现与各自注意点？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/mq-time-delay-and-expired-failure.md",
+    "knowledge_ids": [
+      "ref:backend_interview:mq-delay"
+    ],
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-delay"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "RocketMQ 原生延时等级（5.x 支持任意时间）；无原生支持时用“延迟 topic+定时扫描”或时间轮；订单超时关闭等场景要求延时的可靠性而非精确性。",
+      "deliverable": "订单超时关闭的三种实现与各自注意点？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:mq-transaction",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "RocketMQ 事务消息：半消息与回查 · 推演练习",
+    "prompt": "知识点：RocketMQ 事务消息：半消息与回查\n版本：Kafka 3.x / RocketMQ 5.x / RabbitMQ 3.13\n示例或场景：\n下单写库 + 发送扣积分消息须同成败\n\n任务：事务消息的两个阶段与回查的作用？它能替代分布式事务吗？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "阶段一发送半消息（不可消费）并执行本地事务，阶段二按结果 commit/rollback；回查让 broker 主动询问本地事务结果，覆盖应用宕机场景。它只保证“库操作与消息发送”的最终一致，跨服务数据一致仍需幂等消费与对账。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：RocketMQ 事务消息：半消息与回查",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：事务消息的两个阶段与回查的作用？它能替代分布式事务吗？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://rocketmq.apache.org/docs/",
+    "knowledge_ids": [
+      "ref:backend_interview:mq-transaction"
+    ],
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-transaction"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "生产者发送半消息（消费者不可见）→ 执行本地事务 → 提交/回滚半消息；broker 对未知状态的事务消息定时回查生产者，防止本地事务与消息状态不一致。",
+      "deliverable": "事务消息的两个阶段与回查的作用？它能替代分布式事务吗？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:mq-kafka-arch",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Kafka 架构要点：分区、ISR、消费者组 · 推演练习",
+    "prompt": "知识点：Kafka 架构要点：分区、ISR、消费者组\n版本：Kafka 3.x / RocketMQ 5.x / RabbitMQ 3.13\n示例或场景：\n10 分区 topic 在 5 实例消费组内各分 2 个分区\n\n任务：ISR 是什么？消费者组的分配机制与 rebalance 代价？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "ISR 是与 leader 保持同步的副本集合，落后超过 replica.lag 时间/条数的副本被移出，选举只在 ISR 内进行。组内每分区只被一个消费者消费实现并行；成员变化触发 rebalance 重分配，期间停止消费，用静态成员与增量协议降低影响。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Kafka 架构要点：分区、ISR、消费者组",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：ISR 是什么？消费者组的分配机制与 rebalance 代价？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://kafka.apache.org/documentation/#design",
+    "knowledge_ids": [
+      "ref:backend_interview:mq-kafka-arch"
+    ],
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-kafka-arch"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "Topic 分区并行，每个分区多副本分 leader/follower，follower 拉取同步，落后过多的副本踢出 ISR；消费者组内分区独占消费，rebalance 重分配分区。",
+      "deliverable": "ISR 是什么？消费者组的分配机制与 rebalance 代价？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:mq-rocket-arch",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "RocketMQ 架构要点：NameServer、刷盘与复制 · 推演练习",
+    "prompt": "知识点：RocketMQ 架构要点：NameServer、刷盘与复制\n版本：Kafka 3.x / RocketMQ 5.x / RabbitMQ 3.13\n示例或场景：\nSYNC_FLUSH+SYNC_REPLICATION 用于资金类消息\n\n任务：RocketMQ 的存储结构为什么高效？刷盘与复制的组合如何选？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "统一 CommitLog 顺序写摊平多 topic 的随机写，页缓存+顺序读支撑高吞吐。组合：同步刷盘+同步复制最可靠（资金），异步刷盘+异步复制性能优先（日志），按消息价值折中。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：RocketMQ 架构要点：NameServer、刷盘与复制",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：RocketMQ 的存储结构为什么高效？刷盘与复制的组合如何选？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://rocketmq.apache.org/docs/",
+    "knowledge_ids": [
+      "ref:backend_interview:mq-rocket-arch"
+    ],
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-rocket-arch"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "NameServer 无状态路由中心（不互通、客户端轮询）；broker 主从架构，同步/异步刷盘与同步/异步复制组合决定可靠性与性能；ConsumeQueue 索引 CommitLog 顺序写。",
+      "deliverable": "RocketMQ 的存储结构为什么高效？刷盘与复制的组合如何选？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:mq-push-pull",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "推模式与拉模式的取舍 · 推演练习",
+    "prompt": "知识点：推模式与拉模式的取舍\n版本：Kafka 3.x / RocketMQ 5.x / RabbitMQ 3.13\n示例或场景：\n消费者处理能力不均时拉模式避免压垮慢节点\n\n任务：纯推与纯拉各自的问题？长轮询如何折中？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "纯推：broker 无法感知消费者负载，可能压垮慢消费者，需复杂流控；纯拉：轮询间隔大则延迟高，小则空转浪费。长轮询在拉请求上挂起至有消息/超时，实时性接近推、速率控制保持拉。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：推模式与拉模式的取舍",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：纯推与纯拉各自的问题？长轮询如何折中？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://kafka.apache.org/documentation/#theconsumer",
+    "knowledge_ids": [
+      "ref:backend_interview:mq-push-pull"
+    ],
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-push-pull"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "推模式（broker 主动推）延迟低但需流控；拉模式（消费者轮询）消费速率自主可控但实时性差；Kafka/RocketMQ 实际是长轮询折中：拉取的变体，无消息时挂起等待。",
+      "deliverable": "纯推与纯拉各自的问题？长轮询如何折中？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:mq-dlq",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "重试队列与死信队列 · 推演练习",
+    "prompt": "知识点：重试队列与死信队列\n版本：Kafka 3.x / RocketMQ 5.x / RabbitMQ 3.13\n示例或场景：\n某消息解析异常 → 重试 16 次失败 → DLQ\n\n任务：毒消息的危害？死信队列的运营要求？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "必然失败的消息反复重试会阻塞该队列/分区的后续消费、浪费资源并延迟位点。要求：进 DLQ 即告警、保留原始消息与失败原因、提供查询与重放工具、明确人工处理 SLA。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：重试队列与死信队列",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：毒消息的危害？死信队列的运营要求？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.rabbitmq.com/docs/dlx",
+    "knowledge_ids": [
+      "ref:backend_interview:mq-dlq"
+    ],
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-dlq"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "消费失败按次数进重试队列（延迟递增），超过上限进死信队列（DLQ）人工介入；避免毒消息反复重试阻塞正常消费，死信必须有监控与处理流程。",
+      "deliverable": "毒消息的危害？死信队列的运营要求？"
+    }
+  },
+  {
+    "id": "knowledge:ref:backend_interview:mq-design-self",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "如果让你设计一个消息队列，核心模块怎么考虑？ · 推演练习",
+    "prompt": "知识点：如果让你设计一个消息队列，核心模块怎么考虑？\n版本：Kafka 3.x / RocketMQ 5.x / RabbitMQ 3.13\n示例或场景：\n面试题：设计支持百万 TPS 的消息队列\n\n任务：设计 MQ 要回答哪些模块？吞吐与可靠的根本权衡是什么？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "网络层（长连接+NIO）、存储层（顺序写、段文件、索引、刷盘策略）、复制层（ISR/多数派）、消费层（位点、重试、顺序）、客户端协议。吞吐靠批量+顺序 IO+页缓存，可靠靠刷盘+副本，二者互相拉扯，必须按业务定档位。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：如果让你设计一个消息队列，核心模块怎么考虑？",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：设计 MQ 要回答哪些模块？吞吐与可靠的根本权衡是什么？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://kafka.apache.org/documentation/#design",
+    "knowledge_ids": [
+      "ref:backend_interview:mq-design-self"
+    ],
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-design-self"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 2,
+      "goal": "考察对 MQ 的整体理解：网络通信（NIO/长连接）、存储（顺序写+索引+刷盘）、高可用（副本+选主）、消费模型（推拉/位点/重试）、协议兼容与运维性；先明确目标场景再取舍。",
+      "deliverable": "设计 MQ 要回答哪些模块？吞吐与可靠的根本权衡是什么？"
+    }
+  }
+]

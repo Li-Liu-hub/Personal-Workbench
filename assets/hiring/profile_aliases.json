@@ -1,0 +1,492 @@
+{
+  "SECTION_ALIASES": {
+    "基本信息": "basic",
+    "个人信息": "basic",
+    "求职意向": "job_intent",
+    "求职信息": "job_intent",
+    "教育经历": "education",
+    "教育背景": "education",
+    "实习经历": "internships",
+    "工作经历": "internships",
+    "实习/工作经历": "internships",
+    "项目经历": "projects",
+    "项目经验": "projects",
+    "专业技能": "skills",
+    "技能证书": "skills",
+    "技能": "skills",
+    "获奖荣誉": "awards",
+    "获奖情况": "awards",
+    "荣誉奖项": "awards",
+    "自我评价": "self_evaluation",
+    "投递材料": "documents",
+    "附件材料": "documents",
+    "网申常见问题": "common_questions",
+    "常见问题": "common_questions",
+    "官网投递偏好": "preferences",
+    "投递偏好": "preferences",
+    "补充说明": "extra",
+    "求职信": "cover_letter"
+  },
+  "BASIC_ALIASES": {
+    "name": [
+      "姓名",
+      "真实姓名",
+      "名字",
+      "申请人姓名",
+      "本人姓名",
+      "中文姓名"
+    ],
+    "english_name": [
+      "英文名",
+      "英文姓名",
+      "englishname"
+    ],
+    "gender": [
+      "性别",
+      "gender",
+      "sex"
+    ],
+    "birth_date": [
+      "出生日期",
+      "出生年月",
+      "生日",
+      "出生时间",
+      "dateofbirth",
+      "birthday",
+      "dob"
+    ],
+    "phone": [
+      "手机号",
+      "手机号码",
+      "手机",
+      "联系电话",
+      "电话",
+      "联系方式",
+      "本人手机",
+      "mobile",
+      "phone",
+      "tel",
+      "telephone"
+    ],
+    "email": [
+      "邮箱",
+      "电子邮箱",
+      "邮件",
+      "email",
+      "e-mail",
+      "mail"
+    ],
+    "ethnicity": [
+      "民族",
+      "ethnicity",
+      "nation"
+    ],
+    "political_status": [
+      "政治面貌",
+      "politicalstatus"
+    ],
+    "marital_status": [
+      "婚姻状况",
+      "婚姻状态",
+      "maritalstatus"
+    ],
+    "height": [
+      "身高",
+      "height"
+    ],
+    "weight": [
+      "体重",
+      "weight"
+    ],
+    "id_number": [
+      "身份证号",
+      "身份证号码",
+      "证件号码",
+      "身份证",
+      "idcard",
+      "idnumber"
+    ],
+    "hukou": [
+      "户籍所在地",
+      "户籍",
+      "户口所在地",
+      "户口",
+      "hukou"
+    ],
+    "current_city": [
+      "现居城市",
+      "现居住地",
+      "现居地",
+      "当前城市",
+      "所在城市",
+      "居住城市",
+      "现居住城市"
+    ],
+    "address": [
+      "通讯地址",
+      "联系地址",
+      "详细地址",
+      "家庭地址",
+      "现住址",
+      "住址",
+      "address"
+    ],
+    "hometown": [
+      "籍贯",
+      "家乡",
+      "hometown",
+      "nativeplace"
+    ],
+    "emergency_contact_name": [
+      "紧急联系人姓名",
+      "紧急联系人",
+      "emergencycontact"
+    ],
+    "emergency_contact_phone": [
+      "紧急联系人电话",
+      "紧急联系电话",
+      "emergencyphone"
+    ],
+    "emergency_contact_relation": [
+      "与本人关系",
+      "紧急联系人关系",
+      "relationship"
+    ]
+  },
+  "JOB_ALIASES": {
+    "expected_position": [
+      "期望岗位",
+      "期望职位",
+      "意向岗位",
+      "求职意向",
+      "目标岗位",
+      "应聘岗位"
+    ],
+    "expected_city": [
+      "期望城市",
+      "意向城市",
+      "期望工作城市",
+      "期望工作地点",
+      "意向工作地点",
+      "工作城市"
+    ],
+    "expected_salary": [
+      "期望薪资",
+      "期望薪酬",
+      "期望月薪",
+      "薪资要求",
+      "期望年薪"
+    ],
+    "available_date": [
+      "到岗时间",
+      "入职时间",
+      "可到岗时间",
+      "最快到岗",
+      "可入职时间",
+      "预计入职时间"
+    ],
+    "job_type": [
+      "求职类型",
+      "工作性质",
+      "招聘类型",
+      "应聘类型"
+    ],
+    "accept_relocation": [
+      "是否接受调剂",
+      "是否服从调剂",
+      "接受调剂",
+      "服从调剂",
+      "工作地点调剂"
+    ],
+    "accept_travel": [
+      "是否接受出差",
+      "接受出差",
+      "是否出差"
+    ],
+    "accept_overtime": [
+      "是否接受加班",
+      "接受加班"
+    ],
+    "accept_internship": [
+      "是否接受实习",
+      "接受实习"
+    ],
+    "accept_shift": [
+      "是否接受倒班",
+      "接受倒班"
+    ],
+    "accept_remote": [
+      "是否接受远程",
+      "接受远程"
+    ],
+    "other": [
+      "其他要求",
+      "其他说明"
+    ]
+  },
+  "EDUCATION_ALIASES": {
+    "school": [
+      "学校",
+      "毕业院校",
+      "学校名称",
+      "院校",
+      "就读学校",
+      "学校全称"
+    ],
+    "major": [
+      "专业",
+      "所学专业",
+      "专业名称",
+      "主修专业"
+    ],
+    "degree": [
+      "学历",
+      "最高学历",
+      "学历层次",
+      "培养层次"
+    ],
+    "degree_title": [
+      "学位",
+      "学位类型"
+    ],
+    "college": [
+      "学院",
+      "院系",
+      "所在学院"
+    ],
+    "start": [
+      "入学时间",
+      "入学日期",
+      "开始时间",
+      "起始时间"
+    ],
+    "end": [
+      "毕业时间",
+      "毕业日期",
+      "预计毕业时间",
+      "结束时间"
+    ],
+    "gpa": [
+      "GPA",
+      "平均学分绩点",
+      "绩点"
+    ],
+    "average_score": [
+      "平均成绩",
+      "均分",
+      "平均分"
+    ],
+    "weighted_average": [
+      "加权平均成绩",
+      "加权平均分",
+      "加权均分"
+    ],
+    "rank": [
+      "专业排名",
+      "班级排名",
+      "年级排名",
+      "排名"
+    ],
+    "courses": [
+      "主修课程",
+      "主要课程"
+    ],
+    "full_time": [
+      "学习形式",
+      "是否全日制",
+      "全日制"
+    ],
+    "student_id": [
+      "学号"
+    ]
+  },
+  "INTERNSHIP_ALIASES": {
+    "company": [
+      "公司",
+      "公司名称",
+      "实习公司",
+      "工作单位",
+      "单位名称"
+    ],
+    "title": [
+      "职位",
+      "岗位",
+      "实习职位",
+      "担任职位",
+      "职务"
+    ],
+    "department": [
+      "部门",
+      "所在部门"
+    ],
+    "start": [
+      "开始时间",
+      "入职时间",
+      "起始时间"
+    ],
+    "end": [
+      "结束时间",
+      "离职时间"
+    ],
+    "location": [
+      "工作地点",
+      "实习地点",
+      "城市"
+    ],
+    "description": [
+      "工作内容",
+      "实习内容",
+      "工作描述",
+      "职责描述",
+      "主要职责",
+      "工作职责",
+      "个人职责"
+    ],
+    "tech": [
+      "技术栈",
+      "使用技术"
+    ],
+    "achievements": [
+      "工作成果",
+      "业绩",
+      "成果"
+    ],
+    "current": [
+      "是否仍在职",
+      "在职状态"
+    ],
+    "proof": [
+      "证明文件",
+      "实习证明"
+    ]
+  },
+  "PROJECT_ALIASES": {
+    "name": [
+      "项目名称",
+      "项目名"
+    ],
+    "role": [
+      "项目角色",
+      "担任角色",
+      "项目职责",
+      "角色"
+    ],
+    "start": [
+      "开始时间",
+      "起始时间"
+    ],
+    "end": [
+      "结束时间"
+    ],
+    "background": [
+      "项目背景"
+    ],
+    "description": [
+      "项目描述",
+      "项目内容",
+      "项目简介"
+    ],
+    "tech": [
+      "技术栈",
+      "使用技术"
+    ],
+    "duties": [
+      "个人职责",
+      "主要工作",
+      "职责"
+    ],
+    "achievements": [
+      "项目成果",
+      "成果",
+      "业绩"
+    ],
+    "link": [
+      "项目链接",
+      "链接"
+    ]
+  },
+  "SKILL_ALIASES": {
+    "languages": [
+      "编程语言",
+      "开发语言"
+    ],
+    "java": [
+      "Java",
+      "Java/JVM",
+      "Java基础"
+    ],
+    "frameworks": [
+      "框架",
+      "技术框架"
+    ],
+    "databases": [
+      "数据库"
+    ],
+    "middleware": [
+      "中间件"
+    ],
+    "frontend": [
+      "前端"
+    ],
+    "engineering": [
+      "工程与运维",
+      "工程与测试",
+      "运维",
+      "开发工具",
+      "工具"
+    ],
+    "ai": [
+      "AI 工程化",
+      "人工智能",
+      "AI"
+    ],
+    "ai_tools": [
+      "AI 辅助开发",
+      "AI 工具"
+    ],
+    "english": [
+      "英语等级",
+      "英语水平",
+      "外语水平"
+    ],
+    "certificates": [
+      "证书",
+      "其他证书",
+      "资格证书"
+    ]
+  },
+  "DOCUMENT_EXTRA_ALIASES": [
+    [
+      "简历",
+      "resume"
+    ],
+    [
+      "个人简历",
+      "resume"
+    ],
+    [
+      "证件照片",
+      "photo"
+    ],
+    [
+      "一寸照片",
+      "photo"
+    ],
+    [
+      "一寸证件照",
+      "photo"
+    ],
+    [
+      "个人照片",
+      "photo"
+    ],
+    [
+      "照片",
+      "photo"
+    ],
+    [
+      "附件",
+      "other"
+    ]
+  ]
+}

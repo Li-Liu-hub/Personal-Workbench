@@ -1,0 +1,996 @@
+[
+  {
+    "id": "ref:backend_interview:pattern-singleton",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "单例模式",
+    "summary": "保证一个类只有一个实例并提供全局访问点；Java 实现要点是线程安全、反射与序列化防护，推荐静态内部类或枚举。",
+    "syntax": "class Config { private static class H { static Config I = new Config(); } static Config get(){ return H.I; } }",
+    "example": "class Config { private static class H { static Config I = new Config(); } static Config get(){ return H.I; } }",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：双重检查锁必须 volatile 防止指令重排导致其他线程拿到半初始化对象；枚举天然防反射与防序列化破坏。全局单例本质是共享可变状态，滥用会引入隐藏依赖，Spring 单例是容器级而非 JVM 级。\n\n自检：写一个线程安全的懒加载单例，说明 DCL 为什么需要 volatile，以及枚举实现的额外优势。\n参考结论：静态内部类实现：外部类加载不初始化，get() 首次访问触发 H 类初始化，JVM 类初始化锁保证线程安全且懒加载。DCL 中 new 分配-初始化-赋引用可能重排，volatile 禁止重排避免他线程看到未完成构造的引用。枚举由 JVM 保证唯一实例，反射与序列化都无法创建第二份。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/singleton",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "创建型",
+      "pattern-singleton"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-factory-method",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "工厂方法模式",
+    "summary": "定义创建对象的接口，让子类决定实例化哪个类；把 new 的具体类型延迟到子类，新增产品不改调用方代码。",
+    "syntax": "interface Exporter { Doc export(Order o); }\nclass PdfExporter implements Exporter {}",
+    "example": "interface Exporter { Doc export(Order o); }\nclass PdfExporter implements Exporter {}",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：工厂方法针对单一产品维度；新增产品家族时会产生类爆炸，那是抽象工厂的场景。与静态工厂方法（Effective Java）不同：后者是类内的静态创建入口，不是 GoF 模式。\n\n自检：工厂方法与直接 new 相比的扩展性收益是什么？它与静态工厂方法的区别？\n参考结论：调用方依赖 Exporter 接口，新增 ExcelExporter 只需新增子类与装配配置，调用代码与既有导出逻辑零修改。工厂方法是创建型类模式（延迟到子类）；静态工厂方法是类中的静态方法约定，二者解决不同问题。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/factory-method",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "创建型",
+      "pattern-factory-method"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-abstract-factory",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "抽象工厂模式",
+    "summary": "提供一个创建一系列相关对象的接口，无需指定具体类；产品族一起变化时保证整族一致性。",
+    "syntax": "interface UiFactory { Button btn(); Input input(); }\nWinFactory/MacFactory 各自产出同族组件",
+    "example": "interface UiFactory { Button btn(); Input input(); }\nWinFactory/MacFactory 各自产出同族组件",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：跨产品族的一致性由工厂保证：WinFactory 不会返回 Mac 按钮。新增产品类型（增加 Input2 接口）要改所有工厂接口，违背开闭原则对“产品等级结构”的方向；它擅长“加族”不擅长“加品种”。\n\n自检：抽象工厂擅长加产品族还是加产品种类？为什么？以跨平台 UI 为例说明。\n参考结论：擅长加族：新增 LinuxFactory 一次实现全部接口即可，不影响既有代码。加产品种类需要修改工厂接口与所有实现类。WinFactory 产出的 Button 与 Input 风格一致，族内约束由具体工厂保证。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/abstract-factory",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "创建型",
+      "pattern-abstract-factory"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-builder",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "建造者模式",
+    "summary": "分步骤构造复杂对象，隔离构造过程与表示；链式 Builder 解决多参数构造与可选参数组合爆炸，不可变对象构建尤为常用。",
+    "syntax": "User u = User.builder().name(\"a\").age(20).build();",
+    "example": "User u = User.builder().name(\"a\").age(20).build();",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：Builder 让对象不可变（无 setter），参数按名传入可读且可校验；Lombok @Builder 与 StringBuilder 是典型实现。与工厂区别：工厂关注“造什么类型”，Builder 关注“按什么步骤组装复杂参数”。\n\n自检：多可选参数场景 Builder 相比重叠构造器与 JavaBean setter 的优势？\n参考结论：重叠构造器参数组合爆炸且易传错位；JavaBean setter 造成构造中途可变、线程不安全。Builder 按名传参、可校验后一次性 build，产出不可变对象，过程安全可读。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/builder",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "创建型",
+      "pattern-builder"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-prototype",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "原型模式",
+    "summary": "通过复制已有实例创建新对象，避免重复的昂贵初始化；Java 用 Object.clone 与 Cloneable 实现，需注意浅拷贝与深拷贝。",
+    "syntax": "Sheep s2 = (Sheep) s1.clone();",
+    "example": "Sheep s2 = (Sheep) s1.clone();",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：浅拷贝只复制第一层引用，内部可变对象仍共享，修改会互相影响；深拷贝需递归克隆或序列化重建。clone 语义复杂（需同时重写），实践中常用拷贝构造器或序列化/MapStruct 替代。\n\n自检：clone 的浅拷贝问题是什么？工程上有哪些替代方案？\n参考结论：浅拷贝共享内部可变对象引用，克隆体修改列表/对象会污染原对象。替代：拷贝构造器逐字段深拷贝、序列化往返重建、MapStruct 映射；使用 clone 时必须连同可变成员一起深拷贝。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/prototype",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "创建型",
+      "pattern-prototype"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-adapter",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "适配器模式",
+    "summary": "把一个类的接口转换成调用方期望的另一种接口，使不兼容接口可以协作；常用于封装三方 SDK 与遗留系统。",
+    "syntax": "class SdkAdapter implements PayGateway { 支付宝SDK 调用转译 }",
+    "example": "class SdkAdapter implements PayGateway { 支付宝SDK 调用转译 }",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：适配器是事后补救（接口已定而实现不匹配），与外观（简化子系统多接口）和装饰器（同接口加行为）职责不同。适配器不应在内部叠加业务规则，否则退化为业务层。\n\n自检：适配器、外观、装饰器三者的区别？三方支付接口接入为什么适合适配器？\n参考结论：适配器转换不兼容接口，外观简化多接口子系统，装饰器保持同接口增强行为。三方 SDK 的方法签名、异常、参数模型与内部网关接口不一致，适配器把差异隔离在一层，业务只依赖内部接口。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/adapter",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "结构型",
+      "pattern-adapter"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-bridge",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "桥接模式",
+    "summary": "把抽象部分与实现部分分离到两个独立维度，避免多维度组合导致类数量爆炸；两个维度可独立扩展。",
+    "syntax": "Shape(抽象) 持有 Renderer(实现)：Circle 用 VectorRenderer 或 RasterRenderer",
+    "example": "Shape(抽象) 持有 Renderer(实现)：Circle 用 VectorRenderer 或 RasterRenderer",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：2 个形状 × 2 种渲染 = 4 个子类的组合爆炸被桥接成 2+2。适用前提是两个维度确实独立变化；若维度耦合则强行桥接增加复杂度。\n\n自检：形状 × 渲染器两个维度组合，继承与桥接的类数量对比？桥接的适用前提？\n参考结论：继承需 2×2=4 个类，每加一维乘法膨胀；桥接只要 2+2 个类，维度各自扩展。前提：两维度变化相互独立，抽象只依赖实现的稳定接口。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/bridge",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "结构型",
+      "pattern-bridge"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-composite",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "组合模式",
+    "summary": "将对象组合成树形结构表示“部分-整体”层次，使客户端统一处理单个对象与组合对象。",
+    "syntax": "File/Directory 统一抽象为 Node，Directory 持有 List<Node>",
+    "example": "File/Directory 统一抽象为 Node，Directory 持有 List<Node>",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：递归树结构让 size()/render() 等操作天然适用；遍历与校验需要防止环引用。与装饰器区别：组合是“一对多树”，装饰器是“一对一包装链”。\n\n自检：文件树统计大小如何用组合模式建模？组合与装饰器的结构差异？\n参考结论：抽象 Node 声明 size()，File 返回自身大小，Directory 汇总 children 之和，客户端对整树统一调用 size()。组合是一对多的树形聚合，装饰器是一对一的同接口包装链，二者可叠加使用。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/composite",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "结构型",
+      "pattern-composite"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-decorator",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "装饰器模式",
+    "summary": "不改变接口的前提下动态叠加职责，比继承更灵活；Java IO 流与 HttpServletRequestWrapper 是典型。",
+    "syntax": "new BufferedInputStream(new FileInputStream(f))",
+    "example": "new BufferedInputStream(new FileInputStream(f))",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：装饰器保持同接口，多层包装按序叠加行为（先读缓冲再读文件）；与代理区别：代理通常控制访问（远程/懒加载/权限），装饰器专注增加功能。包装层次过多会加重调试与堆栈阅读成本。\n\n自检：BufferedInputStream 包装 FileInputStream 的行为顺序？装饰器与代理的区别？\n参考结论：调用链由外向内：Buffered 先查缓冲块，未命中再委托 File 读取，行为叠加顺序即包装顺序。装饰器向同接口添加行为，代理侧重访问控制与间接层（远程、懒加载、权限、AOP 拦截）。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/decorator",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "结构型",
+      "pattern-decorator"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-facade",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "外观模式",
+    "summary": "为复杂子系统提供统一的高层接口，降低调用方与子系统的耦合；子系统仍可直连，外观不屏蔽能力。",
+    "syntax": "OrderFacade.place() 串联库存、支付、通知三个服务",
+    "example": "OrderFacade.place() 串联库存、支付、通知三个服务",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：外观减少调用方需要了解的子系统数量与调用顺序错误；注意外观不应变成无所不包的上帝类，超过一个变化方向就拆多个门面。\n\n自检：下单需要顺序调用库存、支付、通知，门面带来什么收益？门面设计的边界是什么？\n参考结论：调用方只依赖 place() 一个入口，内部编排顺序、事务与补偿被集中管理；子系统改动只影响门面内部。边界：一个门面对应一类业务场景，多个场景变化方向不同时拆分，避免上帝类。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/facade",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "结构型",
+      "pattern-facade"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-flyweight",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "享元模式",
+    "summary": "共享细粒度对象以支撑大量重复对象，分离内部状态（共享）与外部状态（传入）；Integer 缓存、字符串常量池、连接池都是实例。",
+    "syntax": "Integer.valueOf(127) 返回缓存对象",
+    "example": "Integer.valueOf(127) 返回缓存对象",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：内部状态必须不可变才能安全共享；外部状态由调用方传入不存储在享元中。注意共享带来的缓存失效成本与线程安全要求（不可变即安全）。\n\n自检：享元的内部/外部状态怎么划分？为什么内部状态必须不可变？\n参考结论：内部状态是可共享的不变部分（如字符的字形、连接的配置），外部状态是随场景变化的部分（位置、参数）由使用时传入。内部状态若可变，多客户端共享时互相污染，因此设计为不可变才能无锁共享。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/flyweight",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "结构型",
+      "pattern-flyweight"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-proxy",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "代理模式",
+    "summary": "为对象提供代理以控制访问：远程代理、虚拟代理（懒加载）、保护代理、动态代理（AOP 基础）。",
+    "syntax": "Proxy.newProxyInstance 生成接口实现拦截调用",
+    "example": "Proxy.newProxyInstance 生成接口实现拦截调用",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：JDK 动态代理只能代理接口，CGLIB 通过子类字节码代理类（final 方法除外）。Spring AOP 默认接口用 JDK 代理、无接口用 CGLIB。代理在调用前后可加事务、日志、限流。\n\n自检：JDK 动态代理与 CGLIB 的区别与限制？Spring AOP 如何选择？\n参考结论：JDK 基于接口反射生成实现类，要求目标实现接口；CGLIB 生成目标子类，不能代理 final 类/方法。Spring 有接口默认 JDK 代理（可配置强制 CGLIB），无接口走 CGLIB；代理层实现切面拦截。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/proxy",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "结构型",
+      "pattern-proxy"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-chain",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "责任链模式",
+    "summary": "把请求沿处理者链传递，每个节点决定处理或转发；过滤器、拦截器、网关鉴权链的通用结构，节点可编排、可插拔。",
+    "syntax": "Handler 链：参数校验→登录态→限流→业务",
+    "example": "Handler 链：参数校验→登录态→限流→业务",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：链的顺序即语义，变更顺序可能改变结果；必须设置链末端兜底，防止请求无处理者而丢失。节点通过继承或组合持有 next 引用，Servlet Filter 与 Netty Pipeline 是不同形态。\n\n自检：责任链的顺序敏感性如何体现？链末端为什么要兜底？\n参考结论：鉴权必须先于业务，限流先于重业务节点，顺序错误会造成越权或资源浪费。请求走到链尾仍无人处理时应显式拒绝或记录，避免静默丢失；每节点只关注自己职责，通过 next 协作。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/chain-of-responsibility",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-chain"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-command",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "命令模式",
+    "summary": "把请求封装成对象（含参数与执行逻辑），支持队列化、日志、撤销重做；与生产者消费者结合实现异步任务队列。",
+    "syntax": "interface Command { void exec(); Undo undo(); }",
+    "example": "interface Command { void exec(); Undo undo(); }",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：命令对象让“何时执行”与“做什么”解耦，可入队、可持久化、可重放；宏命令组合多条命令实现批量撤销。注意命令需携带足够上下文，撤销语义要定义清楚（补偿 vs 逆操作）。\n\n自检：命令模式如何支持撤销与异步队列？设计撤销时要注意什么？\n参考结论：命令实现 exec/undo，按执行栈逆序调用 undo 实现撤销；命令可序列化入队，由 worker 异步消费实现削峰。撤销要区分补偿操作（转账退回）与逆操作（状态复位），失败时需要幂等与重试设计。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/command",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-command"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-interpreter",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "解释器模式",
+    "summary": "为特定语言定义文法与解释器，用类表示每条文法规则；适合小型 DSL（规则表达式、路径匹配），复杂语言应改用解析器生成器。",
+    "syntax": "Exp e = Exp.parse(\"a AND b OR c\"); e.interpret(ctx)",
+    "example": "Exp e = Exp.parse(\"a AND b OR c\"); e.interpret(ctx)",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：每条规则一个类，文法层级深时类数量与调用栈暴涨；性能敏感或文法复杂时用 ANTLR 等工具生成解析器，或编译为内部数据结构再求值。\n\n自检：什么规模的语言适合解释器模式？复杂文法的替代方案？\n参考结论：规则少、结构稳定的迷你 DSL（布尔表达式、权限过滤）适合；类爆炸、性能敏感、文法频繁演进时应改用 ANTLR/JavaCC 生成解析器，或把表达式编译为可复用的 AST。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/interpreter",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-interpreter"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-iterator",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "迭代器模式",
+    "summary": "顺序访问聚合对象元素而不暴露内部表示；Java 的 Iterable/Iterator 与增强 for 的底层机制，支持多种遍历次序。",
+    "syntax": "for (T x : collection) 底层是 iterator()",
+    "example": "for (T x : collection) 底层是 iterator()",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：遍历时聚合结构被修改会抛 ConcurrentModificationException（fail-fast）或容忍修改（弱一致，如 CopyOnWriteArrayList）。实现自定义聚合时 iterator 状态必须与聚合一致。\n\n自检：增强 for 的底层机制？fail-fast 与弱一致迭代器的区别？\n参考结论：增强 for 调用聚合的 iterator()，用 hasNext/next 遍历。fail-fast 记录 modCount，发现修改立即抛异常（ArrayList）；弱一致迭代器基于快照或允许遍历期间修改（COW 列表、ConcurrentHashMap），不保证读到最新。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/iterator",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-iterator"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-mediator",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "中介者模式",
+    "summary": "用中介对象封装一组对象的交互，使网状依赖变成星型依赖；聊天室、航班调度塔台、多模块事件协调。",
+    "syntax": "ChatRoom 收到消息后路由给其他成员",
+    "example": "ChatRoom 收到消息后路由给其他成员",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：对象间多对多引用被收拢到中介，成员只认识中介，交互规则集中可改；中介本身可能膨胀为上帝对象，交互过多时应按场景拆分中介。\n\n自检：网状协作改中介者后依赖关系如何变化？中介膨胀怎么办？\n参考结论：n 个对象两两引用是 O(n²) 条边，引入中介后成员只持有 1 个中介引用，交互逻辑集中在中介内可统一演进。若中介承载过多场景，应按业务域拆分多个中介，保持单一职责。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/mediator",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-mediator"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-memento",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "备忘录模式",
+    "summary": "在不破坏封装的前提下捕获对象状态快照，用于撤销、恢复与草稿；Java 中常配合不可变快照对象实现。",
+    "syntax": "Editor.save() 返回 Snapshot；undo() 恢复",
+    "example": "Editor.save() 返回 Snapshot；undo() 恢复",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：快照应是不携带行为的纯数据（或不可变对象），由原发器创建、管理者保管但不解读内容；大对象快照要考虑内存与存储成本，可用增量快照。\n\n自检：备忘录对封装的要求是什么？大文档撤销的快照成本如何控制？\n参考结论：快照内容只有原发器可解读，管理者只负责存取，避免状态被外部篡改。成本控制：限制快照栈深度、增量记录差异、或写外部存储（草稿箱），读取时按需重建。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/memento",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-memento"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-observer",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "观察者模式",
+    "summary": "定义一对多依赖，主题状态变化自动通知观察者；事件总线、监听器、Spring 事件与 MQ 发布订阅是其工程形态。",
+    "syntax": "subject.addListener(l); subject.fire(event)",
+    "example": "subject.addListener(l); subject.fire(event)",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：同步观察者阻塞发布线程且异常会传染，需隔离或改异步（事件队列/MQ）；通知顺序一般不承诺，观察者之间不应有依赖；要防重复注册与忘记注销导致的泄漏。\n\n自检：同步事件监听的风险？观察者模式的工程化形态有哪些？\n参考结论：同步通知在发布线程执行，慢观察者拖垮主流程，异常需逐个隔离。工程化：进程内用 Spring ApplicationEvent/事件总线，跨服务用 MQ 的发布订阅，二者都体现主题-观察者的解耦。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/observer",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-observer"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-state",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "状态模式",
+    "summary": "状态相关的行为封装到独立状态类，对象行为随状态对象切换；替代巨型 switch，状态机校验非法跃迁。",
+    "syntax": "OrderState 接口：Created/Paid/Shipped 各自实现 cancel()",
+    "example": "OrderState 接口：Created/Paid/Shipped 各自实现 cancel()",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：与策略模式结构相似：策略由调用方选择且互相独立，状态由对象内部流转且通常知晓上下文。状态类之间的跃迁规则要集中定义，非法跃迁应显式拒绝，否则状态机退化。\n\n自检：状态模式与策略模式的区别？如何防止非法状态跃迁？\n参考结论：策略是外部选择算法、彼此无感知；状态是对象内部流转、通常持有上下文引用并决定下一状态。防止非法跃迁：在每个状态实现中仅允许合法事件，未定义事件抛异常或进入拒绝分支，跃迁表集中维护。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/state",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-state"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-strategy",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "策略模式",
+    "summary": "封装一族可互换算法，运行时按上下文选择；配合 Map 注解注册消除 if-else 分支，是消除分支膨胀的标准解法。",
+    "syntax": "Map<String, DiscountStrategy> 按类型取策略计算",
+    "example": "Map<String, DiscountStrategy> 按类型取策略计算",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：策略由外部选择、彼此独立且无状态；分支数量动态增长时用注册表而非 switch。策略选择键要定义清晰（类型、渠道），缺省策略要有兜底。\n\n自检：用策略模式重构多分支计价逻辑的步骤？策略与状态在“谁选择”上的差异？\n参考结论：定义计价接口，每个折扣规则一个实现类，启动时按 key 注册进 Map，调用方按渠道取用，新增规则只加实现。策略由调用方按条件选择，状态由对象内部随生命周期流转。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/strategy",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-strategy"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-template-method",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "模板方法模式",
+    "summary": "父类定义算法骨架（final 方法），步骤延迟到子类实现；钩子方法控制可选步骤，避免子类改动流程。",
+    "syntax": "abstract BaseJob { final run(){ pre(); doJob(); post(); } }",
+    "example": "abstract BaseJob { final run(){ pre(); doJob(); post(); } }",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：骨架方法声明为 final 防止子类改流程；钩子（boolean needXxx()）让子类可选介入。与回调对比：模板方法表达“固定流程+可变步骤”，回调表达“我调你”的反转控制，二者常结合。\n\n自检：模板方法的流程如何保护？钩子方法的作用？与回调如何配合？\n参考结论：骨架 run() 定义步骤顺序并声明 final，子类只实现 doJob 等抽象步骤；钩子提供默认实现供子类覆盖微调。异步执行时模板方法内以回调参数接收完成通知，把流程控制与异步结果解耦。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/template-method",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-template-method"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:pattern-visitor",
+    "language": "后端",
+    "category": "设计模式",
+    "title": "访问者模式",
+    "summary": "在不修改元素类的前提下给元素族新增操作，用双重分派把元素类型分派给对应 visit 方法；元素结构稳定而操作频繁变化时适用。",
+    "syntax": "elements.accept(new ReportVisitor())",
+    "example": "elements.accept(new ReportVisitor())",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：新增操作只加访问者；但新增元素类型要改所有访问者，且破坏元素类的封装（暴露内部给访问者）。Visitor 实现里常见 instanceof 陷阱，应通过 accept 双分派保证类型正确路由。\n\n自检：访问者模式“加操作容易、加元素难”的原因？双重分派解决什么问题？\n参考结论：操作变化收敛在 Visitor 子类，新增只需新访问者；元素类型变化则每个访问者都要加 visit 重载。双重分派：element.accept(visitor) 先按元素动态类型选择 accept，再在 accept 内调用 visitor.visit(this) 精确匹配重载。",
+    "source": "https://github.com/iluwatar/java-design-patterns/tree/master/visitor",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "设计模式",
+      "行为型",
+      "pattern-visitor"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-why-cache",
+    "language": "后端",
+    "category": "Redis",
+    "title": "缓存的收益、代价与使用理由",
+    "summary": "缓存的本质是用一致性换性能：把热点数据放到更快的介质（内存）减少重复计算与数据库压力；收益是读写性能提升，代价是数据不一致、复杂度与运维成本。",
+    "syntax": "每次请求都查库 → 引入 Redis 缓存热点数据",
+    "example": "每次请求都查库 → 引入 Redis 缓存热点数据",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：缓存适合读多写少、可容忍短暂不一致的数据；强一致数据（余额扣减）不能只靠缓存。引入缓存要同时设计：miss 兜底、过期策略、一致性方案与击穿防护，否则只是把性能问题换成一致性问题。\n\n自检：什么样的数据适合加缓存？引入缓存必须配套设计哪些机制？\n参考结论：读多写少、热点集中、可容忍短暂不一致的数据。必须配套：未命中回源与防穿透、过期与淘汰策略、缓存与数据库一致性策略、并发回源防击穿、容量与淘汰计划。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/why-cache.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-why-cache"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-data-types",
+    "language": "后端",
+    "category": "Redis",
+    "title": "Redis 五大基础数据类型与典型场景",
+    "summary": "String（缓存对象/计数）、Hash（对象字段级读写）、List（队列/最新列表）、Set（去重/标签/共同关注）、ZSet（排行榜/延迟队列）；每种结构对应不同命令与时间复杂度。",
+    "syntax": "ZINCRBY rank:day 1 user:42 → 排行榜",
+    "example": "ZINCRBY rank:day 1 user:42 → 排行榜",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：选型由读写模式决定：整对象读写用 String，字段级修改用 Hash 免反序列化；ZSet 的范围查询是 O(log N)。Value 过大会形成大 key，需拆分。\n\n自检：为“对象字段级更新”“排行榜”“共同关注”分别选择什么类型？各自的复杂度依据？\n参考结论：Hash：HSET/HGET 只触碰单字段，免整对象序列化；ZSet：ZADD/ZINCRBY + ZREVRANGE 按分数有序 O(log N)；Set：SINTER 求交集得到共同关注，天然去重。",
+    "source": "https://redis.io/docs/latest/develop/data-types/",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-data-types"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-structures",
+    "language": "后端",
+    "category": "Redis",
+    "title": "Redis 底层数据结构：SDS、dict、skiplist、listpack 等",
+    "summary": "Redis 不直接用 C 字符串：SDS 记录长度 O(1) 取长度、二进制安全、预分配减少 realloc；哈希表用渐进式 rehash；跳表支持有序集合的范围查询；小数据用 listpack/intset 压缩内存。",
+    "syntax": "ZSet 底层在元素少时用 listpack，多时转为 skiplist+dict",
+    "example": "ZSet 底层在元素少时用 listpack，多时转为 skiplist+dict",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：结构转换由元素数量与单元素大小阈值触发（list-max/heap 等配置）。跳表与平衡树对比：实现简单、范围查询天然有序、按概率平衡免旋转；dict 渐进 rehash 把迁移摊到每次操作，避免长阻塞。\n\n自检：SDS 相比 C 字符串的三个优点？ZSet 为什么用跳表而不是红黑树？\n参考结论：SDS：长度字段 O(1) 取长度、记录 free 支持惰性释放与预分配、二进制安全可存任意字节。跳表实现与调试更简单，范围查询按链表顺序输出，插入删除只改指针无需旋转，平均 O(log N) 已足够。",
+    "source": "https://github.com/redis/redis",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-structures"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-rehash",
+    "language": "后端",
+    "category": "Redis",
+    "title": "Redis 字典的渐进式 rehash",
+    "summary": "Redis 扩容/缩容时同时持有两张哈希表，rehash 期间每次增删改查顺带迁移一个桶，后台定时任务也会迁移，避免一次性迁移造成的长停顿。",
+    "syntax": "ht[0] 迁移到 ht[1]，期间读先查 ht[0] 再查 ht[1]",
+    "example": "ht[0] 迁移到 ht[1]，期间读先查 ht[0] 再查 ht[1]",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：rehash 期间新增只写 ht[1]，读与更新双表查找；所有键共享一次 rehash 周期，负载因子阈值触发扩容（≥1 且无 BGSAVE 时 / ≥5 强制）。一次性 rehash 百万键会造成秒级卡顿，这是渐进式存在的理由。\n\n自检：渐进式 rehash 如何避免长停顿？rehash 期间读写怎么处理？\n参考结论：迁移分摊到每次键操作与定时任务，单次最多迁移一个桶，停顿可控。期间新增写 ht[1]，读/更新先查 ht[0] 命中即返回/更新，否则查 ht[1]，保证数据不丢。",
+    "source": "https://github.com/redis/redis",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-rehash"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-expiration",
+    "language": "后端",
+    "category": "Redis",
+    "title": "Redis 过期删除与内存淘汰策略",
+    "summary": "过期删除：惰性删除（访问时检查）+ 定期抽样删除；内存达到 maxmemory 后按淘汰策略腾空间：noeviction、allkeys-lru、volatile-lru、allkeys-lfu、volatile-ttl 等。",
+    "syntax": "maxmemory-policy allkeys-lru",
+    "example": "maxmemory-policy allkeys-lru",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：惰性+定期组合在准确性与 CPU 成本间平衡：定期随机抽样过期键并限制时长。LRU 用近似算法（随机抽样淘汰最久未用），LFU 用对数计数器记录访问频率。业务必须显式设置 TTL，避免全靠淘汰兜底。\n\n自检：过期键如何被真正删除？内存超限后有哪些淘汰方向？\n参考结论：组合惰性删除（读写时检查）与定期任务（随机抽样过期桶限时清理）；到期不等于立即删除。超限后按策略淘汰：noeviction 拒绝写，allkeys/volatile 决定范围，lru/lfu/ttl/random 决定依据。",
+    "source": "https://redis.io/docs/latest/commands/expire/",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-expiration"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-persistence",
+    "language": "后端",
+    "category": "Redis",
+    "title": "RDB 与 AOF 的取舍与混合持久化",
+    "summary": "RDB 是某时刻全量快照（fork 子进程写临时文件），恢复快但可能丢最后一段数据；AOF 追加写命令（everysec 折中），文件大、恢复慢，配合重写压缩；4.0+ 混合持久化在重写时把 RDB 头+AOF 增量拼接。",
+    "syntax": "appendonly yes + aof-use-rdb-preamble yes",
+    "example": "appendonly yes + aof-use-rdb-preamble yes",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：fork 在大实例上产生页表复制延迟与 COW 内存放大；everysec 最多丢 1 秒，always 性能差。重写期间新写命令进 aof_buf 与重写缓冲双份。\n\n自检：RDB 与 AOF 各自的优缺点？混合持久化解决什么问题？\n参考结论：RDB 恢复快、文件小，但两次快照间的数据会丢；AOF 丢失窗口小（everysec）、可读，但文件大恢复慢。混合持久化：重写期先写全量 RDB 再追加增量 AOF，兼得恢复速度与低丢失窗口。",
+    "source": "https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-persistence"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-replication",
+    "language": "后端",
+    "category": "Redis",
+    "title": "Redis 主从复制原理",
+    "summary": "从库首次执行全量同步：主库 bgsave 生成 RDB 发给从库，期间新写命令进复制缓冲区随后补发；之后命令传播保持一致；断线重连按复制偏移量判断是否可部分重同步（repl_backlog）。",
+    "syntax": "slaveof 后从库加载 RDB，主从 offset 对齐",
+    "example": "slaveof 后从库加载 RDB，主从 offset 对齐",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：repl_backlog 是环形缓冲区，断线时间过长导致 offset 被覆盖时退化为全量同步。主从异步复制存在丢失窗口，从库只读，读写分离要注意读到旧数据的容忍度。\n\n自检：主从全量与部分重同步的切换条件？异步复制的一致性风险？\n参考结论：从库上报 offset 仍在主库 repl_backlog 环形缓冲内则 PSYNC 部分重同步，否则全量 RDB。主库写成功即返回客户端，不等待从库确认，主库宕机可能丢失未传播的写入，需业务权衡。",
+    "source": "https://redis.io/docs/latest/operate/oss_and_stack/management/replication/",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-replication"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-sentinel",
+    "language": "后端",
+    "category": "Redis",
+    "title": "哨兵（Sentinel）的高可用机制",
+    "summary": "哨兵集群监控主库：主观下线→多数哨兵确认客观下线→选领头哨兵执行故障转移：选举新主、其余从库改挂新主、客户端经通知切换；判定与选举需要 quorum 与多数派。",
+    "syntax": "sentinel monitor mymaster <ip> 6379 2",
+    "example": "sentinel monitor mymaster <ip> 6379 2",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：哨兵至少 3 个且奇数部署防脑裂；故障转移期间短暂不可写；min-replicas-to-write 可限制主库在从库不足时拒绝写，降低脑裂丢数据窗口。\n\n自检：客观下线如何判定？为什么要 3 个以上奇数哨兵？\n参考结论：单哨兵误判为主观下线，向其他哨兵询问且达到 quorum 数确认即客观下线；领头哨兵选举需多数派。3 个奇数节点保证判定与选举都能形成多数派，避免网络分区时双方各自切换主库。",
+    "source": "https://redis.io/docs/latest/operate/oss_and_stack/management/sentinel/",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-sentinel"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-cluster",
+    "language": "后端",
+    "category": "Redis",
+    "title": "Redis Cluster 的分片与 16384 个槽",
+    "summary": "集群按 CRC16(key) mod 16384 分槽，每个主节点负责一段槽位；客户端可直连任意节点，MOVED/ASK 重定向引导到正确节点； gossip 协议交换节点状态。",
+    "syntax": "cluster 按 hash slot 分片，支持在线迁移槽",
+    "example": "cluster 按 hash slot 分片，支持在线迁移槽",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：多 key 命令/事务要求 keys 在同一槽（hash tag {user1} 强制同槽）；集群模式不支持跨槽 mget 原子性。扩缩容即槽迁移，迁移中 ASK 重定向保证可用。\n\n自检：为什么是 16384 个槽？多 key 操作如何保证同槽？\n参考结论：16384 足够支撑千级节点（心跳包内位图压缩后仍小），且槽位分配信息便于 gossip 传播；作者权衡带宽与扩展性。多 key 用 hash tag 把业务相关的 key 映射到同一槽，如 {order:1}:info。",
+    "source": "https://redis.io/docs/latest/operate/oss_and_stack/management/scaling/",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-cluster"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-avalanche",
+    "language": "后端",
+    "category": "Redis",
+    "title": "缓存雪崩：大量 key 同时失效或缓存宕机",
+    "summary": "大量热点 key 设了相同 TTL 同时过期，或缓存实例宕机，请求全部打到数据库造成雪崩。对策：TTL 加随机值打散、热点数据多级缓存、集群高可用与熔断限流兜底。",
+    "syntax": "活动开始时 10 万 key 同时到期，DB QPS 暴涨",
+    "example": "活动开始时 10 万 key 同时到期，DB QPS 暴涨",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：分层设计：TTL 基础值+随机抖动；缓存集群主从+哨兵；数据库侧限流、熔断、队列削峰；核心接口降级返回默认值。恢复期用互斥回源避免二次击穿。\n\n自检：雪崩的两个触发路径分别是什么？防御组合拳有哪些？\n参考结论：路径一：相同 TTL 的海量 key 同时过期（解决方案：过期时间加随机抖动、热点不过期+异步更新）；路径二：缓存服务整体不可用（主从+哨兵高可用、多级缓存）。兜底：限流、熔断降级保护数据库。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-caching-avalanche-and-caching-penetration.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "缓存场景",
+      "redis-avalanche"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-penetration",
+    "language": "后端",
+    "category": "Redis",
+    "title": "缓存穿透：查询不存在的数据打穿到数据库",
+    "summary": "请求的数据在缓存和数据库都不存在，每次都回源查询；攻击者可用不存在的 id 高频打穿。对策：缓存空值（短 TTL）、布隆过滤器拦截、接口层参数校验与限流。",
+    "syntax": "GET user:-1 每秒 5 万次，DB 全量回查",
+    "example": "GET user:-1 每秒 5 万次，DB 全量回查",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：缓存空值要设短 TTL 防止占内存且数据新增后需等待过期；布隆过滤器在缓存前拦截“肯定不存在”的请求，误判率与位数组大小相关，删除需计数布隆或重建。\n\n自检：穿透与雪崩的区别？布隆过滤器如何拦截穿透请求？有什么限制？\n参考结论：穿透是“查不存在的数据”持续回源，雪崩是“缓存整体失效”流量洪峰。布隆过滤器把全量 key 预热进位数组，查询判不存在直接返回；限制：有误判率（存在可能误判为存在）、标准布隆不支持删除、需随数据量重建扩容。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-caching-avalanche-and-caching-penetration.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "缓存场景",
+      "redis-penetration"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-breakdown",
+    "language": "后端",
+    "category": "Redis",
+    "title": "缓存击穿：单个热点 key 失效瞬间的并发回源",
+    "summary": "某个极热点 key 过期瞬间，大量并发同时未命中并同时回源数据库；对策：互斥锁（SETNX 仅一个线程回源）、热点 key 逻辑过期（物理不过期+逻辑 TTL+异步刷新）。",
+    "syntax": "秒杀商品 key 过期瞬间 DB 查询打满",
+    "example": "秒杀商品 key 过期瞬间 DB 查询打满",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：互斥回源简单但存在等待与死锁风险（锁要设 TTL）；逻辑过期方案牺牲短暂数据旧值换取无阻塞，后台异步更新。\n\n自检：击穿与穿透的区别？两种互斥方案的取舍？\n参考结论：击穿是“单个热点 key 失效”的瞬时并发，穿透是“数据根本不存在”。互斥锁方案严格一致但请求需等待、实现需防死锁；逻辑过期无阻塞但返回短暂旧值，需后台刷新兜底。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-caching-avalanche-and-caching-penetration.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "缓存场景",
+      "redis-breakdown"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-consistence",
+    "language": "后端",
+    "category": "Redis",
+    "title": "缓存与数据库双写一致性：Cache Aside 与更新时机",
+    "summary": "标准 Cache Aside：读—先缓存后库回填；写—先更新数据库再删除缓存（而非更新缓存）。删失败可用延迟双删或订阅 binlog 异步删除兜底。",
+    "syntax": "先删缓存再更新库 → 并发读回填旧值",
+    "example": "先删缓存再更新库 → 并发读回填旧值",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：“先更库后删缓存”在极端并发（读未命中回源慢于写）仍可能旧值回填，概率低；删除缓存失败需重试队列/binlog 订阅（Canal）兜底。缓存值若由多表计算而成，更新缓存需处理并发写覆盖，删除更安全。\n\n自检：为什么推荐“更新数据库后删除缓存”而不是“更新缓存”？删缓存失败怎么兜底？\n参考结论：写后删除：下次读触发回源，避免并发写缓存互相覆盖与写多场景无效计算；但极端时序（读-库-写-删-读回填旧值）仍可能脏，概率低。兜底：延迟双删、删除重试队列、订阅 binlog（Canal）异步删除。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-consistence.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "缓存场景",
+      "redis-consistence"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-cas",
+    "language": "后端",
+    "category": "Redis",
+    "title": "并发竞争 key 与分布式锁的实现要点",
+    "summary": "多个客户端并发写同一 key 或执行互斥任务需要分布式锁：SET key value NX PX ttl 保证原子加锁，value 存唯一标识，释放用 Lua 校验后删除；看门狗续期防业务超时锁先过期。",
+    "syntax": "SET lock:order NX PX 30000 → 业务 → 释放",
+    "example": "SET lock:order NX PX 30000 → 业务 → 释放",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：锁超时小于业务耗时会导致并发进入：用唯一 value+Lua 校验防误删他人锁，续期线程（看门狗）延长持有期。Redis 锁是 AP 性质，主从切换可能丢锁，强一致场景用 ZooKeeper/etcd 或权衡业务容忍度。\n\n自检：分布式锁为什么释放要校验 value？锁与业务超时不匹配怎么办？Redis 锁的局限？\n参考结论：A 的锁过期后 B 获得锁，A 直接 DEL 会误删 B 的锁；value 存唯一 ID，Lua 原子校验后再删。业务耗时不可预估时由看门狗周期续期。Redis 主从异步复制，主挂锁未同步到从时新主可被重复加锁，强一致需求选 ZK/etcd。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-cas.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "缓存场景",
+      "redis-cas"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-bigkey",
+    "language": "后端",
+    "category": "Redis",
+    "title": "大 key 与热 key 的识别与治理",
+    "summary": "大 key：单 key 的 value 过大或集合元素过多，导致慢查询、阻塞、迁移困难；热 key：单 key QPS 极高打满单分片。治理：拆分（分片存储）、压缩、本地缓存扛热 key、监控（redis-cli --bigkeys、慢日志）。",
+    "syntax": "一个 Hash 存百万粉丝列表 → DEL 卡顿",
+    "example": "一个 Hash 存百万粉丝列表 → DEL 卡顿",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：大 key 删除要用 UNLINK 异步释放（lazy free），集合用 SCAN 分批删除；热 key 用本地缓存（Caffeine）+随机后缀多副本打散。\n\n自检：大 key 有哪些危害？删除大集合的正确姿势？热 key 如何缓解？\n参考结论：读写大 key 阻塞单线程、网络带宽放大、主从同步与迁移缓慢。删除用 UNLINK 异步 + SCAN 分批，禁用一次性 DEL。热 key 加进程内本地缓存、key 加随机后缀分片到多节点、或读写分离多副本。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-production-environment.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "缓存场景",
+      "redis-bigkey"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-bloom",
+    "language": "后端",
+    "category": "Redis",
+    "title": "布隆过滤器的原理与使用场景",
+    "summary": "位数组+k 个哈希函数：插入置位，查询任一位为 0 则一定不存在，全为 1 可能存在（误判）；用于缓存穿透拦截、去重、推荐已读过滤。空间小但支持“可能存在”的语义。",
+    "syntax": "BF.ADD seen:id1 / BF.EXISTS seen:id2",
+    "example": "BF.ADD seen:id1 / BF.EXISTS seen:id2",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：误判率由位数组大小与哈希个数决定，元素越多误判越高，需预估容量；标准布隆不支持删除（位共享），需删除用计数布隆或定期重建；Redis 4.0+ 用 RedisBloom 模块，也可用 Redisson 自带实现。\n\n自检：布隆为什么“不存在”是确定的而“存在”是概率的？删除支持如何解决？\n参考结论：某位为 0 说明从未有任何元素把它置 1，故一定不存在；全为 1 可能是多个元素叠加置位，故可能误判。删除会清掉共享位影响其他元素，用计数布隆（每位计数器）或按周期全量重建。",
+    "source": "https://redis.io/docs/latest/develop/data-types/probabilistic/bloom-filter/",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "缓存场景",
+      "redis-bloom"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-transaction",
+    "language": "后端",
+    "category": "Redis",
+    "title": "Redis 事务与 Lua 脚本的原子性边界",
+    "summary": "MULTI/EXEC 保证命令入队顺序执行且执行期不被插队，但不支持回滚：某条命令类型错误，其余仍执行；Lua 脚本整体原子执行，可包含条件逻辑，是复杂原子操作的首选。",
+    "syntax": "WATCH key + MULTI/EXEC 乐观锁；EVAL 执行原子扣减",
+    "example": "WATCH key + MULTI/EXEC 乐观锁；EVAL 执行原子扣减",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：事务执行期错误不回滚是性能取舍；WATCH 实现乐观锁（值变化则 EXEC 失败重试）。Lua 执行期间阻塞其他命令，脚本必须短小；集群模式要求脚本访问同槽 key。\n\n自检：Redis 事务为什么不回滚？Lua 相比 MULTI 的优势与限制？\n参考结论：不回滚避免运行期错误回滚的复杂性与性能损耗（类型错误编程期即可发现）。Lua 脚本一次性发送减少 RTT、可含逻辑判断、整体原子；限制：执行期阻塞、脚本要短、集群需同槽、超时需限制。",
+    "source": "https://redis.io/docs/latest/commands/eval/",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-transaction"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-vs-memcached",
+    "language": "后端",
+    "category": "Redis",
+    "title": "Redis 与 Memcached 的选型对比",
+    "summary": "Memcached：多线程、纯 KV、内存管理简单，适合小 value 高并发缓存；Redis：单线程命令执行（6.0+ IO 多线程）、丰富数据结构、持久化、主从/哨兵/集群、Lua。现代选型默认 Redis。",
+    "syntax": "缓存用户会话：String 小 value 高并发两都可；排行榜必须 ZSet → Redis",
+    "example": "缓存用户会话：String 小 value 高并发两都可；排行榜必须 ZSet → Redis",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：Redis 单线程执行命令免锁但大 key/慢命令会阻塞全实例；Memcached 多线程吞吐稳定但功能单一。需要结构化操作、持久化、高可用时选 Redis；纯 KV 且 value 小、吞吐极致可考虑 Memcached。\n\n自检：两者线程模型的差异？什么场景必须选 Redis？\n参考结论：Memcached 多线程处理请求，吞吐受锁竞争影响小；Redis 命令执行单线程（原子性天然保证），6.0 起网络 IO 多线程但命令仍单线程。需要 List/Hash/ZSet 结构、持久化、发布订阅、Lua、集群时必须 Redis。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-single-thread-model.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-vs-memcached"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:redis-slowlog",
+    "language": "后端",
+    "category": "Redis",
+    "title": "Redis 慢查询与生产配置要点",
+    "summary": "慢日志（slowlog-log-slower-than）记录执行超阈值命令；生产要点：禁用 KEYS/FLUSHALL 等危险命令、设置 maxmemory 与淘汰策略、连接池化、监控内存碎片率与命中率。",
+    "syntax": "CONFIG SET slowlog-log-slower-than 10000",
+    "example": "CONFIG SET slowlog-log-slower-than 10000",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：KEYS O(N) 全库扫描会阻塞单线程，用 SCAN 增量游标遍历；Redisson/Jedis/Lettuce 连接池复用连接；碎片率（mem_fragmentation_ratio）过高说明内存管理异常。\n\n自检：为什么禁用 KEYS？替代方案？生产必须配置哪些项？\n参考结论：KEYS 遍历全库 O(N)，单线程模型下阻塞所有请求；用 SCAN 按 cursor 增量遍历。生产必配：maxmemory+淘汰策略、慢日志阈值、rename 危险命令、连接池参数、持久化策略与监控告警。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-production-environment.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "Redis",
+      "原理与运维",
+      "redis-slowlog"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:mq-why",
+    "language": "后端",
+    "category": "消息队列",
+    "title": "为什么使用消息队列及其代价",
+    "summary": "解耦（生产者不依赖消费者存在）、异步（主流程不等耗时步骤）、削峰（突发流量入库排队）；代价：系统复杂度、一致性延迟、重复消费与顺序问题、运维成本，收益不足时不要引入。",
+    "syntax": "下单主流程只需写订单，积分/短信异步化",
+    "example": "下单主流程只需写订单，积分/短信异步化",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：引入 MQ 后“本地事务”变“最终一致”：消息可能重复、延迟、乱序，消费方必须幂等。架构上多了 broker 这一故障点与容量规划对象。\n\n自检：消息队列的三大收益？引入后必须处理哪些新问题？\n参考结论：解耦：上下游只依赖 topic 契约；异步：主链路RTT 不含下游耗时；削峰：队列吸收突发流量。新问题：消息丢失、重复、乱序、积压、事务一致性，以及 broker 高可用与容量运维。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/why-mq.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-why"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:mq-selection",
+    "language": "后端",
+    "category": "消息队列",
+    "title": "Kafka、RocketMQ、RabbitMQ 选型对比",
+    "summary": "Kafka：高吞吐日志流、分区有序、生态大（流处理）；RocketMQ：事务消息、延时消息、业务消息特性全，Java 栈；RabbitMQ：路由灵活、延迟低、管理界面友好，吞吐中等。",
+    "syntax": "日志采集选 Kafka，电商交易消息选 RocketMQ，中小系统轻量通知选 RabbitMQ",
+    "example": "日志采集选 Kafka，电商交易消息选 RocketMQ，中小系统轻量通知选 RabbitMQ",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：Kafka 以顺序写+零拷贝+批量达成高吞吐，消息保留策略适合回放；RocketMQ 支持亿级堆积与定时/事务消息；RabbitMQ 基于 AMQP 交换机路由灵活但吞吐上限低。选型看吞吐、特性（事务/延时）、运维与生态。\n\n自检：三个 MQ 各自的杀手锏特性？日志场景为什么选 Kafka？\n参考结论：Kafka：极高吞吐+分区并行+流生态；RocketMQ：事务消息/延时等级/大量堆积能力；RabbitMQ：灵活路由与低延迟。日志场景写入量大、顺序按分区即可、要接 Flink/回放，Kafka 的顺序写与生态最匹配。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/why-mq.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-selection"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:mq-reliable",
+    "language": "后端",
+    "category": "消息队列",
+    "title": "消息不丢失：生产端、broker、消费端三段保障",
+    "summary": "生产端：同步/异步发送+确认重试（ acknowledgements）；broker：持久化（刷盘/副本同步）；消费端：手动 ack，处理完成再确认，失败重试进重试队列。任一段丢失都会断链。",
+    "syntax": "生产者 fire-and-forget → 网络抖动消息丢失",
+    "example": "生产者 fire-and-forget → 网络抖动消息丢失",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：Kafka 用 acks=all+retries，副本 ISR 全量确认；RocketMQ 同步刷盘+同步复制最严格；RabbitMQ publisher confirm+持久化队列+手动 ack。消费端先处理后 ack，宕机未 ack 会重投，要求幂等。\n\n自检：三段各自的丢失场景与对策？acks=all 保证了什么？\n参考结论：生产端网络失败丢失→同步等待确认+重试；broker 内存消息未刷盘宕机→持久化+副本；消费端自动 ack 后宕机→手动 ack。acks=all 表示消息写入所有 ISR 副本才算成功，配合 min.insync.replicas 防止单副本写入。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/how-to-ensure-the-reliable-transmission-of-messages.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-reliable"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:mq-idempotent",
+    "language": "后端",
+    "category": "消息队列",
+    "title": "消息不重复消费：幂等设计",
+    "summary": "MQ 至少一次投递必然可能重复，消费端必须幂等：唯一业务键+去重表（唯一索引）、Redis SETNX 去重窗口、状态机校验、数据库唯一约束兜底；禁止依赖“broker 保证不重复”。",
+    "syntax": "同一订单消息被投递两次，库存扣两次",
+    "example": "同一订单消息被投递两次，库存扣两次",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：去重表与业务操作同事务写入，冲突即重复；Redis 去重要考虑过期与持久化丢失；状态机让重复消息命中非法跃迁被拒。幂等键来自业务（订单号+动作），不能用消息 ID 的偏移量。\n\n自检：至少一次投递为什么必然重复？设计幂等消费的推荐组合？\n参考结论：网络重试与 rebalance 都会重投，at-most-once 会丢消息，权衡后业界统一至少一次+消费幂等。组合：业务唯一键+去重表（与业务同事务、唯一索引防并发）、Redis 短窗口去重挡高频重试、状态机校验兜底。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/how-to-ensure-that-messages-are-not-repeatedly-consumed.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-idempotent"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:mq-order",
+    "language": "后端",
+    "category": "消息队列",
+    "title": "消息顺序性保障：分区有序与全局有序",
+    "summary": "Kafka 按分区内有序：同一业务键路由到同一分区即可保序，全局有序代价过大（单分区）；消费端单线程处理分区内消息或多线程按键 hash 到内存队列保序。",
+    "syntax": "同一订单的创建/支付/发货消息须按序",
+    "example": "同一订单的创建/支付/发货消息须按序",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：乱序来源：分区路由不稳定、消费端多线程并发、重试队列后插队。方案：发送端按 key 分区（默认 hash），消费端按 key 分组到固定线程；重试与顺序冲突时用暂停该键消费等策略。\n\n自检：Kafka 如何做到分区有序？消费端多线程时如何保持顺序？\n参考结论：生产端同 key 进同分区（分区数固定则键有序）；分区数变更会破坏映射需谨慎。消费端把同 key 消息 hash 到同一内存队列由固定线程串行处理，或该分区单线程消费，其他分区并行。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/how-to-ensure-the-order-of-messages.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-order"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:mq-ha",
+    "language": "后端",
+    "category": "消息队列",
+    "title": "消息队列的高可用设计",
+    "summary": "Kafka：分区多副本+ISR+Controller 选主；RocketMQ：NameServer+主从/DLedger 组多副本；RabbitMQ：镜像队列/仲裁队列。核心是副本冗余与自动选主，客户端感知拓扑变化重连。",
+    "syntax": "broker 宕机后消费不中断",
+    "example": "broker 宕机后消费不中断",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：acks=all+min.insync.replicas 保证写入多数派才成功；Controller/NameServer 自身集群化避免单点；客户端重试与地址发现配合故障转移。\n\n自检：Kafka 副本机制如何支撑高可用？min.insync.replicas 的作用？\n参考结论：每分区 1 leader+N follower，follower 拉取同步保持 ISR，leader 宕机从 ISR 选举新 leader。min.insync.replicas=2 配合 acks=all：存活同步副本不足时拒绝写入，用可用性换不丢数据。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/how-to-ensure-high-availability-of-message-queues.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-ha"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:mq-backlog",
+    "language": "后端",
+    "category": "消息队列",
+    "title": "消息积压的定位与处理",
+    "summary": "积压原因：消费速度不足、消费逻辑异常阻塞、上游流量突增。处理：横向扩容消费者（分区数上限内）、批量消费、跳过/降级非核心逻辑、紧急扩分区+临时消费者、修复后从积压位置补收。",
+    "syntax": "消费者连库超时 → 堆积百万消息",
+    "example": "消费者连库超时 → 堆积百万消息",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：先定位是“能力不足”还是“逻辑卡死”：异常导致反复重试会停止位点前进。扩容受分区数限制（Kafka 消费者数≤分区数），超限时加分区或启用批量/多线程。\n\n自检：积压的两类根因与对应处理？Kafka 消费者扩容的上限？\n参考结论：能力不足→扩消费者/批量/优化消费逻辑；逻辑卡死→修复异常、跳过毒消息进死信。上限：同一消费组内消费者实例数不能超过分区数，超出则空转，需先扩分区（注意破坏 key 顺序映射）。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/mq-time-delay-and-expired-failure.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-backlog"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:mq-delay",
+    "language": "后端",
+    "category": "消息队列",
+    "title": "延时消息与定时任务的实现",
+    "summary": "RocketMQ 原生延时等级（5.x 支持任意时间）；无原生支持时用“延迟 topic+定时扫描”或时间轮；订单超时关闭等场景要求延时的可靠性而非精确性。",
+    "syntax": "下单 30 分钟未支付自动关闭",
+    "example": "下单 30 分钟未支付自动关闭",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：实现：RocketMQ 延时等级简单可靠；Redis ZSet 按到期时间排序轮询（注意持久化与分布式扫描）；定时任务扫表（分片+索引 gmt_modified）。精确到秒的需求少，多数业务容忍分钟级误差。\n\n自检：订单超时关闭的三种实现与各自注意点？\n参考结论：RocketMQ 延时消息：broker 端暂存定时投递，可靠且省事；Redis ZSet：到期时间作 score，轮询弹出，需防重复消费与持久化；数据库扫表：按状态+时间建索引分片扫描，量大时成本高但最直观可审计。",
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/mq-time-delay-and-expired-failure.md",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-delay"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:mq-transaction",
+    "language": "后端",
+    "category": "消息队列",
+    "title": "RocketMQ 事务消息：半消息与回查",
+    "summary": "生产者发送半消息（消费者不可见）→ 执行本地事务 → 提交/回滚半消息；broker 对未知状态的事务消息定时回查生产者，防止本地事务与消息状态不一致。",
+    "syntax": "下单写库 + 发送扣积分消息须同成败",
+    "example": "下单写库 + 发送扣积分消息须同成败",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：两阶段：half message 先落盘，本地事务成功则 commit 消息可见，失败则 rollback 删除；回查兜底应用重启等未知状态。它解决“本地事务与发消息的原子性”，不是分布式事务的通用方案。\n\n自检：事务消息的两个阶段与回查的作用？它能替代分布式事务吗？\n参考结论：阶段一发送半消息（不可消费）并执行本地事务，阶段二按结果 commit/rollback；回查让 broker 主动询问本地事务结果，覆盖应用宕机场景。它只保证“库操作与消息发送”的最终一致，跨服务数据一致仍需幂等消费与对账。",
+    "source": "https://rocketmq.apache.org/docs/",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-transaction"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:mq-kafka-arch",
+    "language": "后端",
+    "category": "消息队列",
+    "title": "Kafka 架构要点：分区、ISR、消费者组",
+    "summary": "Topic 分区并行，每个分区多副本分 leader/follower，follower 拉取同步，落后过多的副本踢出 ISR；消费者组内分区独占消费，rebalance 重分配分区。",
+    "syntax": "10 分区 topic 在 5 实例消费组内各分 2 个分区",
+    "example": "10 分区 topic 在 5 实例消费组内各分 2 个分区",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：顺序写+页缓存+零拷贝支撑高吞吐；rebalance 期间消费暂停，频繁 rebalance 影响可用性（静态成员/协作式协议缓解）；offset 由消费组提交管理（__consumer_offsets）。\n\n自检：ISR 是什么？消费者组的分配机制与 rebalance 代价？\n参考结论：ISR 是与 leader 保持同步的副本集合，落后超过 replica.lag 时间/条数的副本被移出，选举只在 ISR 内进行。组内每分区只被一个消费者消费实现并行；成员变化触发 rebalance 重分配，期间停止消费，用静态成员与增量协议降低影响。",
+    "source": "https://kafka.apache.org/documentation/#design",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-kafka-arch"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:mq-rocket-arch",
+    "language": "后端",
+    "category": "消息队列",
+    "title": "RocketMQ 架构要点：NameServer、刷盘与复制",
+    "summary": "NameServer 无状态路由中心（不互通、客户端轮询）；broker 主从架构，同步/异步刷盘与同步/异步复制组合决定可靠性与性能；ConsumeQueue 索引 CommitLog 顺序写。",
+    "syntax": "SYNC_FLUSH+SYNC_REPLICATION 用于资金类消息",
+    "example": "SYNC_FLUSH+SYNC_REPLICATION 用于资金类消息",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：所有消息统一写 CommitLog 顺序文件保证磁盘顺序性，按队列建 ConsumeQueue 索引；主从复制 SLAVE_NOT_AVAILABLE 时生产端可感知。NameServer 不做主备，客户端容忍短暂路由过期。\n\n自检：RocketMQ 的存储结构为什么高效？刷盘与复制的组合如何选？\n参考结论：统一 CommitLog 顺序写摊平多 topic 的随机写，页缓存+顺序读支撑高吞吐。组合：同步刷盘+同步复制最可靠（资金），异步刷盘+异步复制性能优先（日志），按消息价值折中。",
+    "source": "https://rocketmq.apache.org/docs/",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-rocket-arch"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:mq-push-pull",
+    "language": "后端",
+    "category": "消息队列",
+    "title": "推模式与拉模式的取舍",
+    "summary": "推模式（broker 主动推）延迟低但需流控；拉模式（消费者轮询）消费速率自主可控但实时性差；Kafka/RocketMQ 实际是长轮询折中：拉取的变体，无消息时挂起等待。",
+    "syntax": "消费者处理能力不均时拉模式避免压垮慢节点",
+    "example": "消费者处理能力不均时拉模式避免压垮慢节点",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：推模式流控复杂（需反压）；拉模式天然背压，处理慢就少拉。长轮询：客户端请求后 broker hold 住直到有消息或超时，兼得实时性与自主权。\n\n自检：纯推与纯拉各自的问题？长轮询如何折中？\n参考结论：纯推：broker 无法感知消费者负载，可能压垮慢消费者，需复杂流控；纯拉：轮询间隔大则延迟高，小则空转浪费。长轮询在拉请求上挂起至有消息/超时，实时性接近推、速率控制保持拉。",
+    "source": "https://kafka.apache.org/documentation/#theconsumer",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-push-pull"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:mq-dlq",
+    "language": "后端",
+    "category": "消息队列",
+    "title": "重试队列与死信队列",
+    "summary": "消费失败按次数进重试队列（延迟递增），超过上限进死信队列（DLQ）人工介入；避免毒消息反复重试阻塞正常消费，死信必须有监控与处理流程。",
+    "syntax": "某消息解析异常 → 重试 16 次失败 → DLQ",
+    "example": "某消息解析异常 → 重试 16 次失败 → DLQ",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：重试间隔递增（如 RocketMQ level）给下游恢复时间；死信不是垃圾箱，要告警、可查询、支持重放；毒消息（必然失败）必须尽快隔离，防止占住并发与位点。\n\n自检：毒消息的危害？死信队列的运营要求？\n参考结论：必然失败的消息反复重试会阻塞该队列/分区的后续消费、浪费资源并延迟位点。要求：进 DLQ 即告警、保留原始消息与失败原因、提供查询与重放工具、明确人工处理 SLA。",
+    "source": "https://www.rabbitmq.com/docs/dlx",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-dlq"
+    ]
+  },
+  {
+    "id": "ref:backend_interview:mq-design-self",
+    "language": "后端",
+    "category": "消息队列",
+    "title": "如果让你设计一个消息队列，核心模块怎么考虑？",
+    "summary": "考察对 MQ 的整体理解：网络通信（NIO/长连接）、存储（顺序写+索引+刷盘）、高可用（副本+选主）、消费模型（推拉/位点/重试）、协议兼容与运维性；先明确目标场景再取舍。",
+    "syntax": "面试题：设计支持百万 TPS 的消息队列",
+    "example": "面试题：设计支持百万 TPS 的消息队列",
+    "notes": "学习范围：面向 Java 后端面试与工程实践的原理型条目；生产参数以官方文档为准。\n\n原理与边界：权衡链：吞吐↔延迟（批量+顺序写 vs 立即刷盘）、可靠↔性能（副本数与刷盘模式）、功能↔复杂度（事务/延时是否必需）。存储是核心：CommitLog 顺序写+段文件+稀疏索引。\n\n自检：设计 MQ 要回答哪些模块？吞吐与可靠的根本权衡是什么？\n参考结论：网络层（长连接+NIO）、存储层（顺序写、段文件、索引、刷盘策略）、复制层（ISR/多数派）、消费层（位点、重试、顺序）、客户端协议。吞吐靠批量+顺序 IO+页缓存，可靠靠刷盘+副本，二者互相拉扯，必须按业务定档位。",
+    "source": "https://kafka.apache.org/documentation/#design",
+    "entry_type": "原理",
+    "tags": [
+      "后端",
+      "消息队列",
+      "mq-design-self"
+    ]
+  }
+]

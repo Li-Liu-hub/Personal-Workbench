@@ -315,6 +315,28 @@ pub fn image_rects(rect: egui::Rect, size: egui::Vec2, fit: ImageFit) -> (egui::
 mod palette_tests {
     use super::*;
     #[test]
+    fn theme_values_reject_nonfinite_or_out_of_range_numbers_and_load_defaults() {
+        for value in [f32::NAN, f32::INFINITY, -0.1, 1.1] {
+            let theme = ThemeSettings {
+                surface_opacity: value,
+                ..Default::default()
+            };
+            assert!(theme.validate().is_err());
+        }
+        for zoom in [0.79, 1.51, f32::NAN, f32::INFINITY] {
+            assert!(
+                ThemeSettings {
+                    zoom,
+                    ..Default::default()
+                }
+                .validate()
+                .is_err()
+            );
+        }
+        let settings = BTreeMap::from([("appearance.theme".into(), r#"{"zoom":0.0}"#.into())]);
+        assert_eq!(ThemeSettings::load(&settings), ThemeSettings::default());
+    }
+    #[test]
     fn stock_palette_refresh_keeps_custom_colors_images_and_zoom() {
         let old = ThemeSettings {
             accent: [0, 122, 255],

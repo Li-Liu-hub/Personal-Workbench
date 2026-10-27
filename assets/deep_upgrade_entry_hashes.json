@@ -1,0 +1,92 @@
+{
+  "ref:cs408:process-thread": [
+    "7c99cac54f6377de900c66a23db6401f495914a02ea84c55e0babf39828e5909"
+  ],
+  "ref:cs408:context-switch": [
+    "5a28ef402aeba690a7d87eeb50aad48120fd0330a3f29bb8ef3426fe1265abac"
+  ],
+  "ref:cs408:scheduling": [
+    "f1e9afc60b299c0c52f3852b5462a665f9d731f6c415e3fee7f8b83f35bf268c"
+  ],
+  "ref:cs408:paging": [
+    "bfd85a1d842860af2ca021f079e24f18dec1b617d52df9cd1fa76beb8a5bf504"
+  ],
+  "ref:cs408:tlb-eat": [
+    "3bb5ee3ae60c60f132509e0ba863229d99e7b6d8b920ba94553bf881e91aebbe"
+  ],
+  "ref:cs408:deadlock": [
+    "25e521f4a1de850b86c85de4af14fa413d567549acc752788d008e250e86fcbe"
+  ],
+  "ref:cs408:delay": [
+    "79da1524b6b0ce865fbab0e112a21381954faa0f2e50a35de09225c10deae1b4"
+  ],
+  "ref:cs408:tcp-handshake": [
+    "72dfc8012814301cdf512838c9fc237817198f597606a71d97b890fddd99f509"
+  ],
+  "ref:cs408:flow-control": [
+    "9160755ee2759e6933e6b234506575e3813b0a732552d5d27be3aeb4f58c8e6a"
+  ],
+  "ref:cs408:congestion-control": [
+    "ccda92dfa5bfa445eb13421c12e12be5eb6ff8a1aa62e21607bf1949b600ef47"
+  ],
+  "ref:cs408:dns": [
+    "f3ff4d6dbac1316225012af8feb20e6e9a32a90f5c0d4df7adcfbf3bd6af8a5e"
+  ],
+  "ref:cs408:http-tls": [
+    "c707e7eab93c02b1d87f94041d9400a8a75f16226b6ed612a0b7c3a6e3ec976b"
+  ],
+  "ref:cs408:complexity": [
+    "beadec40e540ce7ac15b550204f0c839672e2a9443d532b142a866e2aee4f00d"
+  ],
+  "ref:cs408:hashing": [
+    "059e7e511586a82bc9b57e5a9486900e615a14cbb412816290e53e32e18de8d2"
+  ],
+  "ref:cs408:bplus": [
+    "d88a2aa2dc6efc7079c1c6460e6b4089bd7654876a28990f4b5ecc2a72b53019"
+  ],
+  "ref:cs408:heap": [
+    "0904d67580a51b3d6f6f8dccb742ebfe4e361de05e23daff56ac9fd0cfdcb91c"
+  ],
+  "ref:cs408:shortest-path": [
+    "98e9ae15901e08ba99585763d7c213a84b2ac34b9ac6091225212793dcb254e5"
+  ],
+  "ref:cs408:sorting": [
+    "a33923606813b60c829b828abf063dbb4917d84b4c4ce42b9a57a55f2d06d432"
+  ],
+  "ref:cs408:number-representation": [
+    "3c810d6ac684857075ec853af120eaea6b941d224c877406603748b18e338da4"
+  ],
+  "ref:cs408:floating-point": [
+    "b3487c80282f7a41ffb257776264cb43ac69e85364084915737313a96f3004b3"
+  ],
+  "ref:cs408:cache-mapping": [
+    "4c2804a1099ff5b56fbeacc5f171b3494d8e181a01529bcc87894f2fb47c96bf"
+  ],
+  "ref:cs408:cache-amat": [
+    "c04bd3e25650662aab53cd05301eabca3784fc06c451fdae521fc3bbf99e9ffb"
+  ],
+  "ref:cs408:pipeline-hazards": [
+    "808c0d17ffe931bda5c1910f307892a10c3730f6ca9840454b320da370265f95"
+  ],
+  "ref:cs408:virtual-address": [
+    "830069f86074c2bef4742141b245c48902fcd0ab340845a9353470246027e4f1"
+  ],
+  "ref:mysql_internals:clustered-secondary": [
+    "f06e952ef01c79a231e6a53b00990c0621a3654a8674707ec0dc897389f434e8"
+  ],
+  "ref:mysql_internals:composite-index": [
+    "d75dd9f3ae858c916262be3d02193e814ea1a774175e211d839942791af55697"
+  ],
+  "ref:mysql_internals:mvcc": [
+    "b568c3832c006109d33113a7c84e2caf087aa173da5717ee8601e743a0ac8d10"
+  ],
+  "ref:mysql_internals:record-gap-next-key": [
+    "63c325ceda310bcc321737541841ea2e4d551d9ec4471c55393a66f4ce94db85"
+  ],
+  "ref:mysql_internals:undo-redo-binlog": [
+    "e78396f2732557315fb4712e129f65f0c6a8ebe20800d93ba8089025126d7fb9"
+  ],
+  "ref:mysql_internals:explain": [
+    "88363900a30d1a711ad5e28f34c44c0207b1b30d2e00757e94e2f285a74b4bfd"
+  ]
+}

@@ -1,0 +1,2402 @@
+[
+  {
+    "id": "knowledge:ref:more_languages:ts-type-inference",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "TypeScript 类型推导与显式标注的分工 · 推演练习",
+    "prompt": "知识点：TypeScript 类型推导与显式标注的分工\n版本：TypeScript 5.x\n示例或场景：\nlet a = 1; // number\nconst b = 1; // 字面量 1\nconst arr = [1, 2] as const; // readonly [1, 2]\n\n任务：let x = 1 与 const x = 1 的推导差异？as const 改变什么？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "let 推导为 number（可变、拓宽），const 推导为字面量 1；as const 把数组/对象变为 readonly 且成员保留字面量类型，适合配置常量，不能用于变量声明本身。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：TypeScript 类型推导与显式标注的分工",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：let x = 1 与 const x = 1 的推导差异？as const 改变什么？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.typescriptlang.org/docs/handbook/intro.html",
+    "knowledge_ids": [
+      "ref:more_languages:ts-type-inference"
+    ],
+    "tags": [
+      "TypeScript",
+      "进阶专题",
+      "ts-type-inference"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "编译器对初始化和返回值自动推导类型，函数边界与公共 API 应显式标注；字面量类型会被拓宽（widening），as const 保留最窄类型。",
+      "deliverable": "let x = 1 与 const x = 1 的推导差异？as const 改变什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:ts-interface-alias",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "接口与类型别名的选择 · 推演练习",
+    "prompt": "知识点：接口与类型别名的选择\n版本：TypeScript 5.x\n示例或场景：\ninterface A { x: number }\ntype B = { x: number } & { y: string }\n\n任务：什么时候必须用 type？interface 的声明合并有什么风险？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "联合/交叉/条件/映射类型只能用 type；接口合并会让同名的两处定义悄悄叠加，跨模块同名接口可能引入意外字段，公共类型应避免依赖合并。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：接口与类型别名的选择",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：什么时候必须用 type？interface 的声明合并有什么风险？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.typescriptlang.org/docs/handbook/intro.html",
+    "knowledge_ids": [
+      "ref:more_languages:ts-interface-alias"
+    ],
+    "tags": [
+      "TypeScript",
+      "进阶专题",
+      "ts-interface-alias"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "interface 可声明合并、适合对象契约与扩展；type 可表达联合、交叉、条件与映射类型，两者在对象字面量场景几乎等价。",
+      "deliverable": "什么时候必须用 type？interface 的声明合并有什么风险？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:ts-union-narrowing",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "联合类型与控制流收窄 · 推演练习",
+    "prompt": "知识点：联合类型与控制流收窄\n版本：TypeScript 5.x\n示例或场景：\ntype R = { ok: true; data: T } | { ok: false; error: string }\nif (r.ok) r.data\n\n任务：写一个请求结果的判别联合，并说明 if (r.ok) 内为什么能安全访问 data？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "用 ok: true/false 字面量作判别字段，分支内编译器把类型收窄到对应成员，data 只在 ok 为 true 的成员上存在；把 ok 写成 boolean 则收窄失效。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：联合类型与控制流收窄",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：写一个请求结果的判别联合，并说明 if (r.ok) 内为什么能安全访问 data？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.typescriptlang.org/docs/handbook/intro.html",
+    "knowledge_ids": [
+      "ref:more_languages:ts-union-narrowing"
+    ],
+    "tags": [
+      "TypeScript",
+      "进阶专题",
+      "ts-union-narrowing"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "联合类型表示“或”，通过 typeof、in、instanceof、字面量判断与自定义类型守卫逐步收窄；判别联合（discriminated union）用公共字面量字段驱动分支。",
+      "deliverable": "写一个请求结果的判别联合，并说明 if (r.ok) 内为什么能安全访问 data？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:ts-generics-constraint",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "泛型与 extends 约束 · 推演练习",
+    "prompt": "知识点：泛型与 extends 约束\n版本：TypeScript 5.x\n示例或场景：\nfunction get<T, K extends keyof T>(o: T, k: K): T[K]\nget(user, \"name\")\n\n任务：get(obj, \"id\") 为什么能推导出返回类型是 number？K extends keyof T 的作用？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "K 被约束为 T 的键集合，调用时按传入的键字面量推断 K；返回值 T[K] 即该键对应的属性类型，索引与返回值自动对齐，键拼错直接编译错误。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：泛型与 extends 约束",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：get(obj, \"id\") 为什么能推导出返回类型是 number？K extends keyof T 的作用？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.typescriptlang.org/docs/handbook/intro.html",
+    "knowledge_ids": [
+      "ref:more_languages:ts-generics-constraint"
+    ],
+    "tags": [
+      "TypeScript",
+      "进阶专题",
+      "ts-generics-constraint"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 3,
+      "goal": "泛型让类型在调用处确定；extends 约束限定可用属性，keyof 搭配 K extends keyof T 实现按键取值的安全签名。",
+      "deliverable": "get(obj, \"id\") 为什么能推导出返回类型是 number？K extends keyof T 的作用？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:ts-utility-types",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "内置工具类型 Partial/Pick/Omit/Record/ReturnType · 推演练习",
+    "prompt": "知识点：内置工具类型 Partial/Pick/Omit/Record/ReturnType\n版本：TypeScript 5.x\n示例或场景：\ntype Update = Partial<Pick<User, \"name\" | \"email\">>\ntype R = ReturnType<typeof fetchUser>\n\n任务：如何从已有类型安全派生“更新请求体”？Omit 的隐患是什么？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "Partial<Pick<User, \"name\"|\"email\">> 只保留可更新字段并全部可选；Omit<User,\"password\"> 的键写错不会报错，字段会凭空多出一个 never 类型属性，建议配 ESLint 或 satisfies 校验。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：内置工具类型 Partial/Pick/Omit/Record/ReturnType",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：如何从已有类型安全派生“更新请求体”？Omit 的隐患是什么？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.typescriptlang.org/docs/handbook/intro.html",
+    "knowledge_ids": [
+      "ref:more_languages:ts-utility-types"
+    ],
+    "tags": [
+      "TypeScript",
+      "进阶专题",
+      "ts-utility-types"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "官方便捷类型覆盖常见变换：Partial 全部可选、Required 全部必填、Pick/Omit 选取或剔除键、Record 构造映射、ReturnType 取返回值类型、Readonly 只读。",
+      "deliverable": "如何从已有类型安全派生“更新请求体”？Omit 的隐患是什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:ts-unknown-any",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "unknown 与 any 的边界 · 推演练习",
+    "prompt": "知识点：unknown 与 any 的边界\n版本：TypeScript 5.x\n示例或场景：\nconst v: unknown = JSON.parse(s)\nif (typeof v === \"string\") v.toUpperCase();\n\n任务：JSON.parse 的结果为什么不能直接当对象用？unknown 与 any 在赋值规则上的区别？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "JSON.parse 返回 any/unknown，解析结果结构未知，直接访问属性没有类型保证。unknown 不能赋给具体类型且不能访问属性，必须先 typeof/in 收窄或运行时校验；any 可任意操作，编译期不报错但运行时可能崩。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：unknown 与 any 的边界",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：JSON.parse 的结果为什么不能直接当对象用？unknown 与 any 在赋值规则上的区别？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.typescriptlang.org/docs/handbook/intro.html",
+    "knowledge_ids": [
+      "ref:more_languages:ts-unknown-any"
+    ],
+    "tags": [
+      "TypeScript",
+      "进阶专题",
+      "ts-unknown-any"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "unknown 是类型安全的顶层类型：赋值给具体类型前必须收窄；any 关闭全部检查并传染。外部输入（JSON、事件、catch）应先用 unknown 再校验。",
+      "deliverable": "JSON.parse 的结果为什么不能直接当对象用？unknown 与 any 在赋值规则上的区别？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:ts-never-exhaustive",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "never 与穷尽性检查 · 推演练习",
+    "prompt": "知识点：never 与穷尽性检查\n版本：TypeScript 5.x\n示例或场景：\nswitch (action.type) { ... default: const _x: never = action; }\n\n任务：如何让“新增枚举成员但忘写分支”在编译期报错？never 的赋值特性是什么？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "把 default 分支的 action 赋给 never 变量：所有成员都处理完后类型收窄为 never 才可赋值；漏掉成员时剩余类型不是 never，编译失败。never 可赋给任何类型，但只有 never 能接收 never。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：never 与穷尽性检查",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：如何让“新增枚举成员但忘写分支”在编译期报错？never 的赋值特性是什么？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.typescriptlang.org/docs/handbook/intro.html",
+    "knowledge_ids": [
+      "ref:more_languages:ts-never-exhaustive"
+    ],
+    "tags": [
+      "TypeScript",
+      "进阶专题",
+      "ts-never-exhaustive"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "never 表示不可能出现的值；在 switch 的 default 里把值赋给 never，可在新增联合成员时让编译报错，强制处理所有分支。",
+      "deliverable": "如何让“新增枚举成员但忘写分支”在编译期报错？never 的赋值特性是什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:ts-optional-chain",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "可选链、空值合并与非空断言的边界 · 推演练习",
+    "prompt": "知识点：可选链、空值合并与非空断言的边界\n版本：TypeScript 5.x\n示例或场景：\nuser?.profile?.name ?? \"匿名\"\nuser!.profile.name // 危险\n\n任务：0 作为合法值时应选 ?? 还是 ||？?. 之后还需要判空吗？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "用 ??；|| 会把 0/\"\"/false 误判为空值替换默认值。?. 短路后整个表达式为 undefined，后续链式调用不会再执行，但要处理最终 undefined 的业务默认值。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：可选链、空值合并与非空断言的边界",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：0 作为合法值时应选 ?? 还是 ||？?. 之后还需要判空吗？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.typescriptlang.org/docs/handbook/intro.html",
+    "knowledge_ids": [
+      "ref:more_languages:ts-optional-chain"
+    ],
+    "tags": [
+      "TypeScript",
+      "进阶专题",
+      "ts-optional-chain"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "?. 遇到 null/undefined 短路返回 undefined，?? 只在 null/undefined 时取右值，! 只是移除 null 检查不改变运行时。",
+      "deliverable": "0 作为合法值时应选 ?? 还是 ||？?. 之后还需要判空吗？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:ts-enum-vs-const",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "enum 与常量对象（as const）的取舍 · 推演练习",
+    "prompt": "知识点：enum 与常量对象（as const）的取舍\n版本：TypeScript 5.x\n示例或场景：\nconst Status = { Ok: 0, Fail: 1 } as const\ntype Status = typeof Status[keyof typeof Status]\n\n任务：enum 的运行时成本是什么？常量对象方案如何取得成员联合类型？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "enum 编译为运行时对象（数字枚举还有反向映射），打包体积与 tree-shaking 不友好；常量对象 as const 后 typeof Status[keyof typeof Status] 得到 0|1 联合，零运行时开销且与 JSON 兼容。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：enum 与常量对象（as const）的取舍",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：enum 的运行时成本是什么？常量对象方案如何取得成员联合类型？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.typescriptlang.org/docs/handbook/intro.html",
+    "knowledge_ids": [
+      "ref:more_languages:ts-enum-vs-const"
+    ],
+    "tags": [
+      "TypeScript",
+      "进阶专题",
+      "ts-enum-vs-const"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "enum 生成运行时代码与双向映射（数字枚举），常量对象 as const 零运行时开销且与联合类型天然配合；首选 const 对象 + typeof 取联合。",
+      "deliverable": "enum 的运行时成本是什么？常量对象方案如何取得成员联合类型？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:ts-guard-functions",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "类型守卫与断言函数 · 推演练习",
+    "prompt": "知识点：类型守卫与断言函数\n版本：TypeScript 5.x\n示例或场景：\nfunction isUser(v: unknown): v is User { return typeof v === \"object\" && v !== null && \"id\" in v; }\n\n任务：为什么自定义守卫比内联判断更适合多处复用？断言函数的隐含要求是什么？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "守卫把校验与收窄合一，调用处一行 if (isUser(v)) 即可获得 User 类型；断言函数声明调用后类型已收窄，因此必须在失败路径抛错，否则下游拿到未校验数据。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：类型守卫与断言函数",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为什么自定义守卫比内联判断更适合多处复用？断言函数的隐含要求是什么？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.typescriptlang.org/docs/handbook/intro.html",
+    "knowledge_ids": [
+      "ref:more_languages:ts-guard-functions"
+    ],
+    "tags": [
+      "TypeScript",
+      "进阶专题",
+      "ts-guard-functions"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "`x is T` 自定义守卫把判断逻辑封装复用，asserts x is T 断言函数在失败时抛错完成收窄；守卫实现内部必须真的校验。",
+      "deliverable": "为什么自定义守卫比内联判断更适合多处复用？断言函数的隐含要求是什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:ts-declaration-module",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "声明文件与模块解析 · 推演练习",
+    "prompt": "知识点：声明文件与模块解析\n版本：TypeScript 5.x\n示例或场景：\ndeclare module \"legacy-lib\" { export function run(cmd: string): void; }\n\n任务：给无类型的 JS 库补声明要注意什么？路径别名为什么两边都要配？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "声明的导出签名必须与库实际导出逐一对应，命名/结构不符会骗过编译器；paths 只影响类型解析，打包器（Vite/webpack）不认识 tsconfig 别名，需在构建配置中同步映射。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：声明文件与模块解析",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：给无类型的 JS 库补声明要注意什么？路径别名为什么两边都要配？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.typescriptlang.org/docs/handbook/intro.html",
+    "knowledge_ids": [
+      "ref:more_languages:ts-declaration-module"
+    ],
+    "tags": [
+      "TypeScript",
+      "进阶专题",
+      "ts-declaration-module"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 3,
+      "goal": ".d.ts 只描述类型不产生运行时代码；declare module 为无类型包补充声明，模块增强（declare module \"x\" {}）扩展第三方类型，三斜线引用已属遗留写法。",
+      "deliverable": "给无类型的 JS 库补声明要注意什么？路径别名为什么两边都要配？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:ts-async-types",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Promise 与 async 的类型建模 · 推演练习",
+    "prompt": "知识点：Promise 与 async 的类型建模\n版本：TypeScript 5.x\n示例或场景：\nconst [a, b] = await Promise.all([fetchUser(), fetchOrder()]);\n\n任务：Promise.all 与 allSettled 在类型与失败语义上的区别？为什么 all 要传元组？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "all 任一失败即整体 reject，类型保留各任务返回值元组；allSettled 全部等待完成，每项是 {status:\"fulfilled\",value}|{status:\"rejected\",reason}，不会短路。传数组字面量会被推断为联合数组，元组形式才能逐位对应。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Promise 与 async 的类型建模",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：Promise.all 与 allSettled 在类型与失败语义上的区别？为什么 all 要传元组？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.typescriptlang.org/docs/handbook/intro.html",
+    "knowledge_ids": [
+      "ref:more_languages:ts-async-types"
+    ],
+    "tags": [
+      "TypeScript",
+      "进阶专题",
+      "ts-async-types"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "async 函数返回 Promise<T>，await 剥离一层 Promise；Promise.all 保持元组类型，Promise.allSettled 返回带 status 的结果联合，race 的类型是联合首成员。",
+      "deliverable": "Promise.all 与 allSettled 在类型与失败语义上的区别？为什么 all 要传元组？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:php-types-strict",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "类型声明与 declare(strict_types=1) · 推演练习",
+    "prompt": "知识点：类型声明与 declare(strict_types=1)\n版本：PHP 8.2+\n示例或场景：\ndeclare(strict_types=1);\nfunction add(int $a, int $b): int { return $a + $b; }\n\n任务：strict_types 写在哪个文件生效？它对第三方函数调用有影响吗？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "声明在调用方文件顶部生效，决定该文件的实参是否允许隐式转换；被调函数自身的文件声明不影响调用方的严格性，跨文件行为需两端都声明。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：类型声明与 declare(strict_types=1)",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：strict_types 写在哪个文件生效？它对第三方函数调用有影响吗？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.php.net/manual/en/langref.php",
+    "knowledge_ids": [
+      "ref:more_languages:php-types-strict"
+    ],
+    "tags": [
+      "PHP",
+      "进阶专题",
+      "php-types-strict"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "PHP 7+ 支持标量参数/返回值类型与可空 ?T；declare(strict_types=1) 关闭弱类型隐式转换，未声明时 \"1\" 可自动转 int。",
+      "deliverable": "strict_types 写在哪个文件生效？它对第三方函数调用有影响吗？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:php-arrays",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "PHP 数组的有序映射本质 · 推演练习",
+    "prompt": "知识点：PHP 数组的有序映射本质\n版本：PHP 8.2+\n示例或场景：\n$a = [\"x\" => 1, 0 => 2, \"y\" => 3]; // 保持插入顺序\n\n任务：为什么 $arr[\"8\"] 与 $arr[8] 是同一个元素？+ 与 array_merge 的区别？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "数字字符串键会被规范化为整数键，二者指向同一槽位；+ 保留左侧已有键，array_merge 用右侧覆盖字符串键并对数字键重排追加。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：PHP 数组的有序映射本质",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为什么 $arr[\"8\"] 与 $arr[8] 是同一个元素？+ 与 array_merge 的区别？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.php.net/manual/en/langref.php",
+    "knowledge_ids": [
+      "ref:more_languages:php-arrays"
+    ],
+    "tags": [
+      "PHP",
+      "进阶专题",
+      "php-arrays"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "PHP 数组是有序哈希表：整数键与字符串键同处一表，foreach 保持插入顺序；array_* 系列多数返回新数组而非原地修改（sort 类除外）。",
+      "deliverable": "为什么 $arr[\"8\"] 与 $arr[8] 是同一个元素？+ 与 array_merge 的区别？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:php-closure",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "闭包与 use 变量绑定 · 推演练习",
+    "prompt": "知识点：闭包与 use 变量绑定\n版本：PHP 8.2+\n示例或场景：\n$f = function () use ($x) { return $x; };\n$g = function () use (&$x) { $x++; };\n\n任务：use ($x) 与 use (&$x) 的语义差异？箭头函数与 function 捕获规则的不同？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "按值捕获是闭包创建时的快照；按引用捕获共享同一变量，内部修改外部可见。箭头函数自动按值捕获外层变量且只能写单表达式，普通匿名函数必须显式 use。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：闭包与 use 变量绑定",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：use ($x) 与 use (&$x) 的语义差异？箭头函数与 function 捕获规则的不同？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.php.net/manual/en/langref.php",
+    "knowledge_ids": [
+      "ref:more_languages:php-closure"
+    ],
+    "tags": [
+      "PHP",
+      "进阶专题",
+      "php-closure"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "匿名函数默认不捕获外部变量，use 显式引入；按值捕获是定义时的快照，&$x 按引用共享后续修改；箭头函数 fn() 自动按值捕获单表达式。",
+      "deliverable": "use ($x) 与 use (&$x) 的语义差异？箭头函数与 function 捕获规则的不同？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:php-generator",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "生成器与迭代器协议 · 推演练习",
+    "prompt": "知识点：生成器与迭代器协议\n版本：PHP 8.2+\n示例或场景：\nfunction lines($h) { while (!feof($h)) yield fgets($h); }\n\n任务：生成器相比一次性读取数组的内存优势？send 的作用？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "每次 yield 暂停并只保留当前状态，内存与数据总量无关；send($v) 恢复执行并把值作为 yield 表达式的结果，可用于协程式双向通信。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：生成器与迭代器协议",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：生成器相比一次性读取数组的内存优势？send 的作用？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.php.net/manual/en/langref.php",
+    "knowledge_ids": [
+      "ref:more_languages:php-generator"
+    ],
+    "tags": [
+      "PHP",
+      "进阶专题",
+      "php-generator"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "yield 返回 Generator（实现 Iterator），按需产出值而不构建完整数组；send 可向暂停点注入值，yield from 委托子生成器并保留键。",
+      "deliverable": "生成器相比一次性读取数组的内存优势？send 的作用？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:php-namespace-autoload",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "命名空间与 PSR-4 自动加载 · 推演练习",
+    "prompt": "知识点：命名空间与 PSR-4 自动加载\n版本：PHP 8.2+\n示例或场景：\n\"autoload\": { \"psr-4\": { \"App\\\\\": \"src/\" } } → App\\Order\\Service 对应 src/Order/Service.php\n\n任务：PSR-4 下 App\\Http\\Controller\\Home 应该放在哪个文件？为什么类名不会回退全局？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "src/Http/Controller/Home.php。类的解析不回退全局命名空间（必须 use 或写全限定名），函数与常量才有一层全局回退，这也是未 use 的类报错而内置函数不报错的原因。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：命名空间与 PSR-4 自动加载",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：PSR-4 下 App\\Http\\Controller\\Home 应该放在哪个文件？为什么类名不会回退全局？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.php.net/manual/en/langref.php",
+    "knowledge_ids": [
+      "ref:more_languages:php-namespace-autoload"
+    ],
+    "tags": [
+      "PHP",
+      "进阶专题",
+      "php-namespace-autoload"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "namespace 分隔符号作用域，use 引入别名；Composer 的 PSR-4 把命名空间前缀映射到目录，类名与文件名必须一致才能自动加载。",
+      "deliverable": "PSR-4 下 App\\Http\\Controller\\Home 应该放在哪个文件？为什么类名不会回退全局？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:php-pdo",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "PDO 预处理与事务 · 推演练习",
+    "prompt": "知识点：PDO 预处理与事务\n版本：PHP 8.2+\n示例或场景：\n$s = $pdo->prepare(\"SELECT * FROM users WHERE id = ?\");\n$s->execute([$id]);\n\n任务：预处理为什么能防注入？模拟预处理的隐患是什么？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "参数值与 SQL 文本分离传输，值永不参与语法解析；模拟模式在本地转义拼接，依赖字符集设置，遇到 GBK 等宽字符集可能绕过转义，应关闭模拟用服务端真预处理。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：PDO 预处理与事务",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：预处理为什么能防注入？模拟预处理的隐患是什么？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.php.net/manual/en/langref.php",
+    "knowledge_ids": [
+      "ref:more_languages:php-pdo"
+    ],
+    "tags": [
+      "PHP",
+      "进阶专题",
+      "php-pdo"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "预处理语句把 SQL 结构与参数分离，绑定参数防止注入；beginTransaction/commit/rollBack 控制事务，异常模式 ERRMODE_EXCEPTION 保证失败抛错而非静默。",
+      "deliverable": "预处理为什么能防注入？模拟预处理的隐患是什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:php-magic-methods",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "魔术方法的契约与陷阱 · 推演练习",
+    "prompt": "知识点：魔术方法的契约与陷阱\n版本：PHP 8.2+\n示例或场景：\nclass Box { private array $d = []; public function __get($k) { return $this->d[$k] ?? null; } }\n\n任务：__get 什么时候触发？为什么在 __get 里访问 $this->同名属性会死循环？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "访问不可见或不存在的属性时触发；__get 内部再访问同名不可见属性会再次进入 __get 无限递归，应直接访问底层存储（如私有数组）。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：魔术方法的契约与陷阱",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：__get 什么时候触发？为什么在 __get 里访问 $this->同名属性会死循环？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.php.net/manual/en/langref.php",
+    "knowledge_ids": [
+      "ref:more_languages:php-magic-methods"
+    ],
+    "tags": [
+      "PHP",
+      "进阶专题",
+      "php-magic-methods"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "__construct/__destruct/__get/__set/__call/__toString/__invoke 等在特定时机被引擎调用；__get 只在属性不可见时触发，__call 处理未定义方法。",
+      "deliverable": "__get 什么时候触发？为什么在 __get 里访问 $this->同名属性会死循环？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:php-errors",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "错误与异常体系及 @ 抑制符的取舍 · 推演练习",
+    "prompt": "知识点：错误与异常体系及 @ 抑制符的取舍\n版本：PHP 8.2+\n示例或场景：\ntry { $x = intdiv(1, 0); } catch (DivisionByZeroError $e) { ... }\n\n任务：catch (Exception) 为什么抓不到除以零错误？@ 抑制符有什么副作用？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "DivisionByZeroError 继承 Error 而非 Exception，需 catch (Throwable) 或分别捕获；@ 只是把错误报告级别临时降为 0，错误仍发生，且历史上带来明显性能损耗与排障困难。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：错误与异常体系及 @ 抑制符的取舍",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：catch (Exception) 为什么抓不到除以零错误？@ 抑制符有什么副作用？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.php.net/manual/en/langref.php",
+    "knowledge_ids": [
+      "ref:more_languages:php-errors"
+    ],
+    "tags": [
+      "PHP",
+      "进阶专题",
+      "php-errors"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "PHP 7+ 大多数错误以 Error/Exception（Throwable）抛出，set_error_handler 接管警告类错误；@ 抑制符隐藏错误但性能差且掩盖问题。",
+      "deliverable": "catch (Exception) 为什么抓不到除以零错误？@ 抑制符有什么副作用？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:php-security",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "会话安全：会话固定与 CSRF · 推演练习",
+    "prompt": "知识点：会话安全：会话固定与 CSRF\n版本：PHP 8.2+\n示例或场景：\nsession_regenerate_id(true);\nif (!hash_equals($_SESSION[\"csrf\"], $_POST[\"csrf\"])) abort(403);\n\n任务：登录后为什么要 regenerate session id？CSRF token 如何生成与校验？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "防止攻击者预置的会话 ID 在登录后继续有效（会话固定）；token 用随机字节生成存会话，表单携带同值提交，服务端用 hash_equals 常数时间比较，失败即拒绝。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：会话安全：会话固定与 CSRF",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：登录后为什么要 regenerate session id？CSRF token 如何生成与校验？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.php.net/manual/en/langref.php",
+    "knowledge_ids": [
+      "ref:more_languages:php-security"
+    ],
+    "tags": [
+      "PHP",
+      "进阶专题",
+      "php-security"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "session_regenerate_id(true) 在登录成功后更换会话 ID 防会话固定；CSRF token 随表单提交并校验，SameSite Cookie 缓解跨站请求。",
+      "deliverable": "登录后为什么要 regenerate session id？CSRF token 如何生成与校验？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:php-references",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "引用传递与写时复制 · 推演练习",
+    "prompt": "知识点：引用传递与写时复制\n版本：PHP 8.2+\n示例或场景：\nforeach ($a as &$v) { $v *= 2; } unset($v);\n\n任务：foreach 引用循环为什么必须 unset？对象传参需要 & 吗？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "循环结束后 $v 仍是最后一个元素的别名，后续对 $v 赋值会写穿数组；对象变量保存的是对象句柄，传参/赋值天然共享对象，无需引用。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：引用传递与写时复制",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：foreach 引用循环为什么必须 unset？对象传参需要 & 吗？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.php.net/manual/en/langref.php",
+    "knowledge_ids": [
+      "ref:more_languages:php-references"
+    ],
+    "tags": [
+      "PHP",
+      "进阶专题",
+      "php-references"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "PHP 变量赋值是写时复制（copy-on-write），& 建立别名共享同一 zval；函数参数 &$x 可修改实参，foreach ($arr as &$v) 后必须 unset($v)。",
+      "deliverable": "foreach 引用循环为什么必须 unset？对象传参需要 & 吗？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:php-modern",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "PHP 8.x 现代特性：构造器提升、只读属性、枚举、match · 推演练习",
+    "prompt": "知识点：PHP 8.x 现代特性：构造器提升、只读属性、枚举、match\n版本：PHP 8.2+\n示例或场景：\nclass P { public function __construct(public readonly int $id) {} }\nenum Status: string { case Ok = \"ok\"; }\n\n任务：构造器提升减少了什么样板代码？match 与 switch 的关键差异？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "省去属性声明与赋值两段重复代码。match 用 === 严格比较、是表达式可返回值、无 fallthrough、未匹配即抛错；switch 松散比较且需 break 防穿透。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：PHP 8.x 现代特性：构造器提升、只读属性、枚举、match",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：构造器提升减少了什么样板代码？match 与 switch 的关键差异？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.php.net/manual/en/langref.php",
+    "knowledge_ids": [
+      "ref:more_languages:php-modern"
+    ],
+    "tags": [
+      "PHP",
+      "进阶专题",
+      "php-modern"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "构造器提升在参数位声明属性并自动赋值；readonly 属性初始化后不可改；enum 提供类型安全的常量集合；match 是严格比较的表达式，未匹配分支抛 UnhandledMatchError。",
+      "deliverable": "构造器提升减少了什么样板代码？match 与 switch 的关键差异？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:kotlin-null-safety",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Kotlin 空安全：可空类型与安全调用 · 推演练习",
+    "prompt": "知识点：Kotlin 空安全：可空类型与安全调用\n版本：Kotlin 2.0+\n示例或场景：\nval len = name?.length ?: 0\nval forced = name!!.length\n\n任务：?.、?:、!! 各自的语义与风险？平台类型为什么危险？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "?. 短路返回 null，?: 在 null 时取默认值，!! 断言非空并在运行时抛 NPE。Java 方法返回的类型被当作平台类型 T!，编译器既不保证非空也不强制判空，空指针会穿透到 Kotlin 侧。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Kotlin 空安全：可空类型与安全调用",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：?.、?:、!! 各自的语义与风险？平台类型为什么危险？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://kotlinlang.org/docs/home.html",
+    "knowledge_ids": [
+      "ref:more_languages:kotlin-null-safety"
+    ],
+    "tags": [
+      "Kotlin",
+      "进阶专题",
+      "kotlin-null-safety"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "类型系统区分 T 与 T?，可空类型必须显式处理：?. 安全调用、?: Elvis 提供默认值、!! 断言非空（失败抛 NPE）。",
+      "deliverable": "?.、?:、!! 各自的语义与风险？平台类型为什么危险？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:kotlin-data-class",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "data class 的生成成员与限制 · 推演练习",
+    "prompt": "知识点：data class 的生成成员与限制\n版本：Kotlin 2.0+\n示例或场景：\ndata class User(val id: Int, val name: String)\nval u2 = u.copy(name = \"b\")\n\n任务：data class 的 equals 比较哪些字段？copy 有什么陷阱？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "只比较主构造器内声明的属性，body 中的属性不参与；copy 为浅拷贝，若包含 MutableList 等引用类型，副本与原对象共享内部集合。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：data class 的生成成员与限制",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：data class 的 equals 比较哪些字段？copy 有什么陷阱？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://kotlinlang.org/docs/home.html",
+    "knowledge_ids": [
+      "ref:more_languages:kotlin-data-class"
+    ],
+    "tags": [
+      "Kotlin",
+      "进阶专题",
+      "kotlin-data-class"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "data class 自动生成 equals/hashCode/toString/copy/componentN；主构造器至少一个参数，且不能是 abstract/open/sealed/inner。",
+      "deliverable": "data class 的 equals 比较哪些字段？copy 有什么陷阱？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:kotlin-extension",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "扩展函数与接收者绑定 · 推演练习",
+    "prompt": "知识点：扩展函数与接收者绑定\n版本：Kotlin 2.0+\n示例或场景：\nfun String.initials() = split(\" \").map { it.first() }.joinToString(\"\")\n\"Ann Lee\".initials()\n\n任务：扩展函数是虚函数吗？为什么成员函数会“覆盖”同名扩展？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "不是，扩展是静态解析的普通函数，调用点按声明类型决定；成员函数优先级更高，同名扩展在成员存在时不会被调用，这也是扩展不能真正“覆盖”类行为的原因。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：扩展函数与接收者绑定",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：扩展函数是虚函数吗？为什么成员函数会“覆盖”同名扩展？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://kotlinlang.org/docs/home.html",
+    "knowledge_ids": [
+      "ref:more_languages:kotlin-extension"
+    ],
+    "tags": [
+      "Kotlin",
+      "进阶专题",
+      "kotlin-extension"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "扩展函数在不修改类的前提下添加方法，本质是静态工具函数，接收者作为第一个参数；扩展不参与多态（按声明类型静态解析）。",
+      "deliverable": "扩展函数是虚函数吗？为什么成员函数会“覆盖”同名扩展？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:kotlin-scope-functions",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "作用域函数 let/run/apply/also/with 的选择 · 推演练习",
+    "prompt": "知识点：作用域函数 let/run/apply/also/with 的选择\n版本：Kotlin 2.0+\n示例或场景：\nval intent = Intent().apply { putExtra(\"k\", 1) }\nuser?.let { send(it) }\n\n任务：给对象连续设置属性并继续使用时选哪个？可空对象执行一段逻辑选哪个？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "apply：this 引用、返回原对象，适合构建器式配置；可空对象用 ?.let { }，it 为非空值，返回最后一行结果。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：作用域函数 let/run/apply/also/with 的选择",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：给对象连续设置属性并继续使用时选哪个？可空对象执行一段逻辑选哪个？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://kotlinlang.org/docs/home.html",
+    "knowledge_ids": [
+      "ref:more_languages:kotlin-scope-functions"
+    ],
+    "tags": [
+      "Kotlin",
+      "进阶专题",
+      "kotlin-scope-functions"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "let 用 it 引用对象并返回值；run 用 this 且返回值；apply 用 this 返回对象本身（配置场景）；also 用 it 返回对象（副作用）；with 非扩展。",
+      "deliverable": "给对象连续设置属性并继续使用时选哪个？可空对象执行一段逻辑选哪个？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:kotlin-sealed",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "密封类与穷尽 when · 推演练习",
+    "prompt": "知识点：密封类与穷尽 when\n版本：Kotlin 2.0+\n示例或场景：\nsealed interface Result\ndata class Ok(val v: Int) : Result\ndata class Err(val e: String) : Result\n\n任务：密封类比枚举多出什么能力？为什么 when 能穷尽检查？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "每个子类可携带不同数据（枚举实例不能），when 在子类集合封闭时可静态穷尽；编译器知道全部直接子类，遗漏分支即编译错误。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：密封类与穷尽 when",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：密封类比枚举多出什么能力？为什么 when 能穷尽检查？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://kotlinlang.org/docs/home.html",
+    "knowledge_ids": [
+      "ref:more_languages:kotlin-sealed"
+    ],
+    "tags": [
+      "Kotlin",
+      "进阶专题",
+      "kotlin-sealed"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "sealed class/interface 限定子类只能在同一模块（1.5 前同文件）内声明，when 分支可穷尽检查，新增子类时编译报错。",
+      "deliverable": "密封类比枚举多出什么能力？为什么 when 能穷尽检查？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:kotlin-coroutines",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "协程基础：suspend 与结构化并发 · 推演练习",
+    "prompt": "知识点：协程基础：suspend 与结构化并发\n版本：Kotlin 2.0+\n示例或场景：\ncoroutineScope { launch { a() }; launch { b() } }\n\n任务：为什么不应使用 GlobalScope？协程取消是如何生效的？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "GlobalScope 的任务无父作用域、无法随界面/请求取消，异常也无处传播；取消通过挂起点检查 Job.isActive 实现，纯计算或阻塞调用需手动检查 ensureActive 或包在可挂起调用中。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：协程基础：suspend 与结构化并发",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为什么不应使用 GlobalScope？协程取消是如何生效的？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://kotlinlang.org/docs/home.html",
+    "knowledge_ids": [
+      "ref:more_languages:kotlin-coroutines"
+    ],
+    "tags": [
+      "Kotlin",
+      "进阶专题",
+      "kotlin-coroutines"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 3,
+      "goal": "suspend 函数可挂起不阻塞线程，suspendCancellableCoroutine 桥接回调；launch 启动并发任务，structured concurrency 保证父作用域等待子任务；coroutineScope 内任一子任务失败取消整体。",
+      "deliverable": "为什么不应使用 GlobalScope？协程取消是如何生效的？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:kotlin-delegation",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "委托：by lazy 与接口委托 · 推演练习",
+    "prompt": "知识点：委托：by lazy 与接口委托\n版本：Kotlin 2.0+\n示例或场景：\nval cfg by lazy { load() }\nclass Cache(private val store: Store) : Store by store\n\n任务：lazy 的线程安全模式有哪些？类委托的方法如何覆写？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "SYNCHRONIZED（默认，双检锁）、PUBLICATION（可多次初始化取首个）、NONE（非线程安全）；在类体中显式 override 方法即可覆盖委托实现。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：委托：by lazy 与接口委托",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：lazy 的线程安全模式有哪些？类委托的方法如何覆写？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://kotlinlang.org/docs/home.html",
+    "knowledge_ids": [
+      "ref:more_languages:kotlin-delegation"
+    ],
+    "tags": [
+      "Kotlin",
+      "进阶专题",
+      "kotlin-delegation"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "属性委托把 get/set 交给委托对象（lazy、observable、map）；类委托 by 把接口实现转给被委托对象，避免样板包装。",
+      "deliverable": "lazy 的线程安全模式有哪些？类委托的方法如何覆写？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:kotlin-java-interop",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Java 互操作：平台类型与注解 · 推演练习",
+    "prompt": "知识点：Java 互操作：平台类型与注解\n版本：Kotlin 2.0+\n示例或场景：\nval s = javaList.get(0) // 平台类型 String!\n\n任务：平台类型为什么会让空安全失效？@JvmOverloads 解决什么问题？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "Java 无注解时编译器不能确定可空性，既不报错也不保护；@JvmOverloads 为带默认参数的函数生成多个重载，Java 调用方无需逐个传参。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Java 互操作：平台类型与注解",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：平台类型为什么会让空安全失效？@JvmOverloads 解决什么问题？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://kotlinlang.org/docs/home.html",
+    "knowledge_ids": [
+      "ref:more_languages:kotlin-java-interop"
+    ],
+    "tags": [
+      "Kotlin",
+      "进阶专题",
+      "kotlin-java-interop"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Kotlin 调用 Java 得到平台类型 T!，可空性由注解（@Nullable/@NotNull，JSR-305 或 JetBrains）提供；@JvmStatic/@JvmOverloads 改善 Java 侧调用体验。",
+      "deliverable": "平台类型为什么会让空安全失效？@JvmOverloads 解决什么问题？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:kotlin-collections",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "集合操作与序列（Sequence）的惰性 · 推演练习",
+    "prompt": "知识点：集合操作与序列（Sequence）的惰性\n版本：Kotlin 2.0+\n示例或场景：\nlist.asSequence().filter { it > 0 }.map { it * 2 }.first()\n\n任务：Sequence 相比 List 链式调用的收益与代价？什么规模值得切换？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "收益：惰性、无中间集合、可短路（first/find 提前结束）；代价：逐元素 lambda 调用与状态机开销。数据量小或链短时 List 更快，链长/数据大/可短路时用 Sequence。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：集合操作与序列（Sequence）的惰性",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：Sequence 相比 List 链式调用的收益与代价？什么规模值得切换？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://kotlinlang.org/docs/home.html",
+    "knowledge_ids": [
+      "ref:more_languages:kotlin-collections"
+    ],
+    "tags": [
+      "Kotlin",
+      "进阶专题",
+      "kotlin-collections"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "List 上的 map/filter 立即求值并创建中间集合；asSequence 转惰性流水线，末端操作（toList/first）才执行。",
+      "deliverable": "Sequence 相比 List 链式调用的收益与代价？什么规模值得切换？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:kotlin-dsl",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "类型安全 DSL：带接收者的 lambda · 推演练习",
+    "prompt": "知识点：类型安全 DSL：带接收者的 lambda\n版本：Kotlin 2.0+\n示例或场景：\nfun config(block: Config.() -> Unit): Config = Config().apply(block)\n\n任务：DSL 构建器如何让调用方“像写配置”一样写代码？@DslMarker 解决什么问题？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "以 Config 为接收者的 lambda 让调用处直接调用 Config 的方法/属性，apply 负责生命周期；@DslMarker 标记接收者类型，禁止内层作用域隐式访问外层接收者，防止误调父级方法。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：类型安全 DSL：带接收者的 lambda",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：DSL 构建器如何让调用方“像写配置”一样写代码？@DslMarker 解决什么问题？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://kotlinlang.org/docs/home.html",
+    "knowledge_ids": [
+      "ref:more_languages:kotlin-dsl"
+    ],
+    "tags": [
+      "Kotlin",
+      "进阶专题",
+      "kotlin-dsl"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 3,
+      "goal": "DSL 用“接收者 lambda”（T.() -> Unit）+ 作用域函数构建配置语法，builder 内部调用接收者方法，外部无需 var 属性。",
+      "deliverable": "DSL 构建器如何让调用方“像写配置”一样写代码？@DslMarker 解决什么问题？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:cs-async-await",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "C# async/await 与 Task 的本质 · 推演练习",
+    "prompt": "知识点：C# async/await 与 Task 的本质\n版本：C# 12 / .NET 8\n示例或场景：\nawait Task.WhenAll(t1, t2);\n\n任务：async void 为什么危险？库代码为什么用 ConfigureAwait(false)？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "async void 无法 await、异常直接抛到同步上下文导致进程崩溃；库代码不需要恢复原始上下文，ConfigureAwait(false) 避免不必要的调度与死锁风险。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：C# async/await 与 Task 的本质",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：async void 为什么危险？库代码为什么用 ConfigureAwait(false)？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://learn.microsoft.com/en-us/dotnet/csharp/",
+    "knowledge_ids": [
+      "ref:more_languages:cs-async-await"
+    ],
+    "tags": [
+      "C#",
+      "进阶专题",
+      "cs-async-await"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 3,
+      "goal": "async 方法编译为状态机，await 挂起而不阻塞线程；Task 表示异步操作，Task<T> 携带结果，ValueTask 减少小结果分配。",
+      "deliverable": "async void 为什么危险？库代码为什么用 ConfigureAwait(false)？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:cs-linq-deferred",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "LINQ 延迟执行与立即执行 · 推演练习",
+    "prompt": "知识点：LINQ 延迟执行与立即执行\n版本：C# 12 / .NET 8\n示例或场景：\nvar q = list.Where(x => x > threshold);\nthreshold = 10; // 影响 q 的结果\n\n任务：延迟执行如何影响数据库查询次数？捕获变量陷阱如何产生？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "每次 foreach/ToList 都重新执行查询（可能多次往返数据库），应尽早物化；闭包捕获的是变量而非值，枚举时读取最新值，需在循环内复制到局部变量。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：LINQ 延迟执行与立即执行",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：延迟执行如何影响数据库查询次数？捕获变量陷阱如何产生？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://learn.microsoft.com/en-us/dotnet/csharp/",
+    "knowledge_ids": [
+      "ref:more_languages:cs-linq-deferred"
+    ],
+    "tags": [
+      "C#",
+      "进阶专题",
+      "cs-linq-deferred"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Where/Select/OrderBy 返回 IEnumerable，查询在枚举时才执行；ToList/Count/First 立即执行。闭包捕获变量在枚举时读取当前值。",
+      "deliverable": "延迟执行如何影响数据库查询次数？捕获变量陷阱如何产生？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:cs-delegates-events",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "委托、事件与多播 · 推演练习",
+    "prompt": "知识点：委托、事件与多播\n版本：C# 12 / .NET 8\n示例或场景：\npublic event EventHandler<OrderArgs>? Paid;\nPaid += (s, e) => Log(e);\n\n任务：event 与 public 委托字段的区别？多播委托的返回值规则？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "event 只暴露订阅/退订，调用权留在类内部，避免外部触发；多播调用所有目标，有返回值时仅最后一个结果被返回，前面的被丢弃。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：委托、事件与多播",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：event 与 public 委托字段的区别？多播委托的返回值规则？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://learn.microsoft.com/en-us/dotnet/csharp/",
+    "knowledge_ids": [
+      "ref:more_languages:cs-delegates-events"
+    ],
+    "tags": [
+      "C#",
+      "进阶专题",
+      "cs-delegates-events"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "delegate 是类型安全的方法指针；event 封装委托字段，外部只能 +=/-= 不能直接调用或赋值；多播委托按注册顺序调用，返回值取最后一个。",
+      "deliverable": "event 与 public 委托字段的区别？多播委托的返回值规则？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:cs-generic-constraints",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "泛型约束：where 子句 · 推演练习",
+    "prompt": "知识点：泛型约束：where 子句\n版本：C# 12 / .NET 8\n示例或场景：\nwhere T : class, IEntity, new()\n\n任务：where T : class 与 where T : struct 分别约束什么？new() 约束的价值？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "class 限定引用类型（可用 null 判断），struct 限定非空值类型；new() 让方法内可 new T()，常用于工厂/通用创建场景，与构造器约束组合。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：泛型约束：where 子句",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：where T : class 与 where T : struct 分别约束什么？new() 约束的价值？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://learn.microsoft.com/en-us/dotnet/csharp/",
+    "knowledge_ids": [
+      "ref:more_languages:cs-generic-constraints"
+    ],
+    "tags": [
+      "C#",
+      "进阶专题",
+      "cs-generic-constraints"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "泛型约束限定类型参数能力：class/struct 区分引用与值类型，new() 要求无参构造，基类/接口约束获得成员访问，notnull 排除可空。",
+      "deliverable": "where T : class 与 where T : struct 分别约束什么？new() 约束的价值？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:cs-record",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "record 与不可变数据模型 · 推演练习",
+    "prompt": "知识点：record 与不可变数据模型\n版本：C# 12 / .NET 8\n示例或场景：\npublic record Point(int X, int Y);\nvar p2 = p1 with { X = 5 };\n\n任务：record 的相等语义与 class 有何不同？with 表达式做了什么？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "record 按字段值比较（== 与 Equals 一致），class 默认引用比较；with 克隆实例并应用对象初始化器修改指定属性，是浅拷贝。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：record 与不可变数据模型",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：record 的相等语义与 class 有何不同？with 表达式做了什么？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://learn.microsoft.com/en-us/dotnet/csharp/",
+    "knowledge_ids": [
+      "ref:more_languages:cs-record"
+    ],
+    "tags": [
+      "C#",
+      "进阶专题",
+      "cs-record"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "record 生成值相等、ToString、with 表达式与非破坏性修改；record class 是引用类型，record struct 是值类型（C# 10）。",
+      "deliverable": "record 的相等语义与 class 有何不同？with 表达式做了什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:cs-nullable-ref",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "可空引用类型与空值注解 · 推演练习",
+    "prompt": "知识点：可空引用类型与空值注解\n版本：C# 12 / .NET 8\n示例或场景：\nstring? name = null;\nvar len = name?.Length ?? 0;\n\n任务：可空引用类型能防止运行时 NullReferenceException 吗？! 的风险是什么？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "不能，只提供编译期警告；运行时来源（反序列化、反射、外部库）仍可能为 null。! 只是消除警告，若判断错误运行时依旧抛异常且失去了编译提示。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：可空引用类型与空值注解",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：可空引用类型能防止运行时 NullReferenceException 吗？! 的风险是什么？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://learn.microsoft.com/en-us/dotnet/csharp/",
+    "knowledge_ids": [
+      "ref:more_languages:cs-nullable-ref"
+    ],
+    "tags": [
+      "C#",
+      "进阶专题",
+      "cs-nullable-ref"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "#nullable enable 后 T? 表示可能为 null，编译器给警告而非运行时保证；! 抑制警告，?? / ?. 处理空值。",
+      "deliverable": "可空引用类型能防止运行时 NullReferenceException 吗？! 的风险是什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:cs-using-disposable",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "using、IDisposable 与异步释放 · 推演练习",
+    "prompt": "知识点：using、IDisposable 与异步释放\n版本：C# 12 / .NET 8\n示例或场景：\nusing var conn = new SqlConnection(cs);\nawait using var stream = new FileStream(...);\n\n任务：using 声明与 using 语句的区别？为什么 Dispose 不应该抛异常？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "using 声明在所在作用域结束时释放（更简洁）；using 语句显式块。Dispose 常在 finally/异常路径执行，抛异常会掩盖原始异常并破坏清理链，复杂清理应记录而非抛出。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：using、IDisposable 与异步释放",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：using 声明与 using 语句的区别？为什么 Dispose 不应该抛异常？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://learn.microsoft.com/en-us/dotnet/csharp/",
+    "knowledge_ids": [
+      "ref:more_languages:cs-using-disposable"
+    ],
+    "tags": [
+      "C#",
+      "进阶专题",
+      "cs-using-disposable"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "using 语句/声明保证 Dispose 在作用域结束时调用（异常也执行）；IAsyncDisposable + await using 支持异步清理。",
+      "deliverable": "using 声明与 using 语句的区别？为什么 Dispose 不应该抛异常？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:cs-pattern-matching",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "模式匹配：类型、属性、位置与关系模式 · 推演练习",
+    "prompt": "知识点：模式匹配：类型、属性、位置与关系模式\n版本：C# 12 / .NET 8\n示例或场景：\nvar desc = obj switch { Point(0, 0) => \"原点\", Point(var x, var y) when x == y => \"对角\", _ => \"其他\" };\n\n任务：switch 表达式中分支顺序为什么重要？属性模式如何表达嵌套判断？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "自上而下首个匹配生效，把具体模式放前面；属性模式 { Address.City: \"SH\", Age: >= 18 } 可嵌套属性路径与关系条件，替代多层 if。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：模式匹配：类型、属性、位置与关系模式",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：switch 表达式中分支顺序为什么重要？属性模式如何表达嵌套判断？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://learn.microsoft.com/en-us/dotnet/csharp/",
+    "knowledge_ids": [
+      "ref:more_languages:cs-pattern-matching"
+    ],
+    "tags": [
+      "C#",
+      "进阶专题",
+      "cs-pattern-matching"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "is/case 支持类型模式、属性模式 { X: > 0 }、位置模式（解构）、关系模式与逻辑组合 and/or/not，switch 表达式可穷尽。",
+      "deliverable": "switch 表达式中分支顺序为什么重要？属性模式如何表达嵌套判断？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:cs-span",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Span<T> 与零分配切片 · 推演练习",
+    "prompt": "知识点：Span<T> 与零分配切片\n版本：C# 12 / .NET 8\n示例或场景：\nReadOnlySpan<char> part = text.AsSpan(0, 5);\nint.TryParse(part, out var n);\n\n任务：Span 为什么不能跨 await 使用？什么场景收益最大？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "ref struct 只能存在于栈上，跨 await 的状态机会把它提升到堆，违反约束；高频切片解析（协议解析、CSV、字符串扫描）避免 substring 分配时收益最大。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Span<T> 与零分配切片",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：Span 为什么不能跨 await 使用？什么场景收益最大？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://learn.microsoft.com/en-us/dotnet/csharp/",
+    "knowledge_ids": [
+      "ref:more_languages:cs-span"
+    ],
+    "tags": [
+      "C#",
+      "进阶专题",
+      "cs-span"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Span<T>/ReadOnlySpan<T> 是栈上的连续内存视图，支持切片不复制；不能跨 await 或存字段（ref struct 限制）。",
+      "deliverable": "Span 为什么不能跨 await 使用？什么场景收益最大？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:cs-exception-filter",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "异常过滤器 when 与异常包装 · 推演练习",
+    "prompt": "知识点：异常过滤器 when 与异常包装\n版本：C# 12 / .NET 8\n示例或场景：\ncatch (SqlException ex) when (ex.Number == 1205) { retry(); }\n\n任务：when 过滤器与 catch 后重新抛出在堆栈上有什么区别？包装异常时如何保留原因？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "过滤器在展开前判断，未命中不进入 catch，堆栈保持原样；catch 内 throw; 也保留堆栈，但 throw ex; 会重置。包装时把原异常放入 InnerException，日志与排查链完整。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：异常过滤器 when 与异常包装",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：when 过滤器与 catch 后重新抛出在堆栈上有什么区别？包装异常时如何保留原因？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://learn.microsoft.com/en-us/dotnet/csharp/",
+    "knowledge_ids": [
+      "ref:more_languages:cs-exception-filter"
+    ],
+    "tags": [
+      "C#",
+      "进阶专题",
+      "cs-exception-filter"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "catch (Ex e) when (condition) 在栈展开前判断条件，不满足则继续向上传播且保留原始堆栈；包装异常时用 InnerException 保留因果链。",
+      "deliverable": "when 过滤器与 catch 后重新抛出在堆栈上有什么区别？包装异常时如何保留原因？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:cs-di-lifetime",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "依赖注入的三种生命周期 · 推演练习",
+    "prompt": "知识点：依赖注入的三种生命周期\n版本：C# 12 / .NET 8\n示例或场景：\nservices.AddScoped<IOrderService, OrderService>();\n\n任务：Singleton 注入 Scoped 服务会发生什么？后台任务如何使用 Scoped 服务？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "单例只会解析一次 Scoped 实例并长期持有，等价于把请求级对象变成全局对象，可能跨请求共享状态与连接；后台任务用 IServiceScopeFactory.CreateScope() 创建作用域再解析。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：依赖注入的三种生命周期",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：Singleton 注入 Scoped 服务会发生什么？后台任务如何使用 Scoped 服务？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://learn.microsoft.com/en-us/dotnet/csharp/",
+    "knowledge_ids": [
+      "ref:more_languages:cs-di-lifetime"
+    ],
+    "tags": [
+      "C#",
+      "进阶专题",
+      "cs-di-lifetime"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 3,
+      "goal": "Transient 每次解析新实例；Scoped 每请求（作用域）一个；Singleton 全局一个。捕获依赖（Singleton 持有 Scoped）会造成生命周期错配与并发问题。",
+      "deliverable": "Singleton 注入 Scoped 服务会发生什么？后台任务如何使用 Scoped 服务？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:lua-metatable",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "table 与元表：__index 与 __newindex · 推演练习",
+    "prompt": "知识点：table 与元表：__index 与 __newindex\n版本：Lua 5.4\n示例或场景：\nlocal proto = { greet = function() return \"hi\" end }\nlocal obj = setmetatable({}, { __index = proto })\n\n任务：__index 与 __newindex 分别何时触发？如何让对象只读？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "读取不存在的键时触发 __index；写入不存在的键时触发 __newindex（已存在的键直接赋值不触发）。只读：__newindex 抛错 + 空代理表，或 __index 返回数据、__newindex 一律 error。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：table 与元表：__index 与 __newindex",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：__index 与 __newindex 分别何时触发？如何让对象只读？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.lua.org/manual/5.4/",
+    "knowledge_ids": [
+      "ref:more_languages:lua-metatable"
+    ],
+    "tags": [
+      "Lua",
+      "进阶专题",
+      "lua-metatable"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "table 是唯一复合类型；元表通过 __index 实现继承/默认值、__newindex 拦截写入、__add 等运算符重载、__call 可调用、__tostring 定制输出。",
+      "deliverable": "__index 与 __newindex 分别何时触发？如何让对象只读？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:lua-closure",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "闭包与 upvalue 的生命周期 · 推演练习",
+    "prompt": "知识点：闭包与 upvalue 的生命周期\n版本：Lua 5.4\n示例或场景：\nlocal fs = {}\nfor i = 1, 3 do fs[i] = function() return i end end -- 1,2,3\n\n任务：循环内闭包捕获的 i 为什么各自独立？为什么推荐 local 化常用函数？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "每次迭代的循环变量在 Lua 5.x 中是新的局部变量，闭包各自捕获独立 upvalue；全局表访问需哈希查找，局部变量是寄存器/栈访问，热路径差异显著。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：闭包与 upvalue 的生命周期",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：循环内闭包捕获的 i 为什么各自独立？为什么推荐 local 化常用函数？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.lua.org/manual/5.4/",
+    "knowledge_ids": [
+      "ref:more_languages:lua-closure"
+    ],
+    "tags": [
+      "Lua",
+      "进阶专题",
+      "lua-closure"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "函数是一等值，闭包捕获外部局部变量（upvalue）；循环内创建闭包时每次迭代的局部变量是独立 upvalue（Lua 5.x 语义）。",
+      "deliverable": "循环内闭包捕获的 i 为什么各自独立？为什么推荐 local 化常用函数？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:lua-coroutine",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "协程：create/resume/yield 的协作式并发 · 推演练习",
+    "prompt": "知识点：协程：create/resume/yield 的协作式并发\n版本：Lua 5.4\n示例或场景：\nlocal co = coroutine.wrap(function(a) local b = coroutine.yield(a + 1); return b * 2 end)\nprint(co(1)) -- 2\n\n任务：协程与线程的本质区别？wrap 与 create 的差异？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "协作式调度无抢占、无锁竞争，切换点完全由代码控制；wrap 返回函数、错误直接抛出；create 返回协程对象，用 resume 获取 ok, value/err 两个返回值。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：协程：create/resume/yield 的协作式并发",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：协程与线程的本质区别？wrap 与 create 的差异？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.lua.org/manual/5.4/",
+    "knowledge_ids": [
+      "ref:more_languages:lua-coroutine"
+    ],
+    "tags": [
+      "Lua",
+      "进阶专题",
+      "lua-coroutine"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "coroutine.create 创建，resume 启动/恢复，yield 挂起并返回值；wrap 返回可直接调用的函数；协程间通过 resume 参数与 yield 返回值双向传值。",
+      "deliverable": "协程与线程的本质区别？wrap 与 create 的差异？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:lua-module",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "模块与 require 的加载语义 · 推演练习",
+    "prompt": "知识点：模块与 require 的加载语义\n版本：Lua 5.4\n示例或场景：\nlocal M = {}\nfunction M.add(a, b) return a + b end\nreturn M\n\n任务：require 同一模块两次会执行几次？循环依赖会怎样？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "只执行一次，后续命中 package.loaded 缓存；循环 require 时后加载方拿到未完成的模块表，应延迟 require 或重构依赖方向。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：模块与 require 的加载语义",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：require 同一模块两次会执行几次？循环依赖会怎样？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.lua.org/manual/5.4/",
+    "knowledge_ids": [
+      "ref:more_languages:lua-module"
+    ],
+    "tags": [
+      "Lua",
+      "进阶专题",
+      "lua-module"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "require(\"mod\") 依次查 package.loaded 缓存、package.path 的 .lua 文件、package.cpath 的 C 库；模块应返回 table 并避免副作用。",
+      "deliverable": "require 同一模块两次会执行几次？循环依赖会怎样？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:lua-weak-table",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "弱表与垃圾回收协作 · 推演练习",
+    "prompt": "知识点：弱表与垃圾回收协作\n版本：Lua 5.4\n示例或场景：\nlocal cache = setmetatable({}, { __mode = \"v\" })\n\n任务：弱表适合什么场景？为什么弱表缓存不能保证命中？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "对象缓存（键为对象、值为附加数据）与注册表；条目可被 GC 随时清理，缓存未命中的代码路径必须能重建数据。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：弱表与垃圾回收协作",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：弱表适合什么场景？为什么弱表缓存不能保证命中？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.lua.org/manual/5.4/",
+    "knowledge_ids": [
+      "ref:more_languages:lua-weak-table"
+    ],
+    "tags": [
+      "Lua",
+      "进阶专题",
+      "lua-weak-table"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "弱表（__mode = \"k\"/\"v\"/\"kv\"）中的键或值不被强引用，可被 GC 回收；适合做缓存、对象关联表，防止内存泄漏。",
+      "deliverable": "弱表适合什么场景？为什么弱表缓存不能保证命中？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:lua-string-pattern",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "字符串模式匹配（非正则） · 推演练习",
+    "prompt": "知识点：字符串模式匹配（非正则）\n版本：Lua 5.4\n示例或场景：\nlocal d, m, y = (\"2026-10-26\"):match(\"^(%d%d%d%d)%-(%d%d)%-(%d%d)$\")\n\n任务：Lua 模式的 - 与正则的 *? 有何区别？为什么没有 | 交替？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "- 是最短匹配量词（等价于非贪婪地匹配零或多次），正则用 *? 表达；Lua 模式为轻量实现省略了交替与反向引用，复杂需求用外部库或多次匹配组合。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：字符串模式匹配（非正则）",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：Lua 模式的 - 与正则的 *? 有何区别？为什么没有 | 交替？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.lua.org/manual/5.4/",
+    "knowledge_ids": [
+      "ref:more_languages:lua-string-pattern"
+    ],
+    "tags": [
+      "Lua",
+      "进阶专题",
+      "lua-string-pattern"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Lua 用轻量模式：%d %a %s 字符类、+ * - ? 量词、() 捕获、^ $ 锚点；- 是非贪婪匹配，与正则的 *? 不同。",
+      "deliverable": "Lua 模式的 - 与正则的 *? 有何区别？为什么没有 | 交替？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:lua-numbers",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "整数与浮点双类型（5.3+） · 推演练习",
+    "prompt": "知识点：整数与浮点双类型（5.3+）\n版本：Lua 5.4\n示例或场景：\nprint(3 // 2, 3 / 2, math.type(3)) -- 1  1.5  integer\n\n任务：3 / 2 与 3 // 2 的类型与结果？位运算对浮点会怎样？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "3/2 是浮点 1.5，3//2 是整数 1；位运算要求整数操作数，浮点会先尝试精确转换，无法精确转整则报错。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：整数与浮点双类型（5.3+）",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：3 / 2 与 3 // 2 的类型与结果？位运算对浮点会怎样？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.lua.org/manual/5.4/",
+    "knowledge_ids": [
+      "ref:more_languages:lua-numbers"
+    ],
+    "tags": [
+      "Lua",
+      "进阶专题",
+      "lua-numbers"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "Lua 5.3 起整数（64 位）与浮点分离：// 整除、% 取模、math.type 判别；/ 总是浮点除，整数溢出回绕。",
+      "deliverable": "3 / 2 与 3 // 2 的类型与结果？位运算对浮点会怎样？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:lua-error-handling",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "错误处理：error/pcall/xpcall 与错误对象 · 推演练习",
+    "prompt": "知识点：错误处理：error/pcall/xpcall 与错误对象\n版本：Lua 5.4\n示例或场景：\nlocal ok, err = xpcall(work, debug.traceback)\nif not ok then log(err) end\n\n任务：pcall 与 xpcall 的区别？为什么生产代码不直接用 pcall？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "xpcall 可指定消息处理器，在栈展开前生成 traceback；pcall 只拿到错误值，堆栈信息已丢失，排障困难。assert(cond, msg) 是 error 的便捷包装。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：错误处理：error/pcall/xpcall 与错误对象",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：pcall 与 xpcall 的区别？为什么生产代码不直接用 pcall？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.lua.org/manual/5.4/",
+    "knowledge_ids": [
+      "ref:more_languages:lua-error-handling"
+    ],
+    "tags": [
+      "Lua",
+      "进阶专题",
+      "lua-error-handling"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "error 抛出任意值（字符串或 table），pcall 捕获返回 false+错误，xpcall 附带消息处理器（含 traceback）；assert 在条件为假时抛错。",
+      "deliverable": "pcall 与 xpcall 的区别？为什么生产代码不直接用 pcall？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:lua-redis-script",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Redis Lua 脚本的约束与原子性 · 推演练习",
+    "prompt": "知识点：Redis Lua 脚本的约束与原子性\n版本：Lua 5.4\n示例或场景：\nEVAL \"return redis.call('GET', KEYS[1])\" 1 mykey\n\n任务：Redis 脚本为什么要求键通过 KEYS 传入？脚本过长有什么后果？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "集群模式按 KEYS 计算槽位并路由/校验同槽，脚本内拼接的键无法被预先路由；脚本执行期间阻塞单线程，长脚本会拖慢全部请求，应拆分为小脚本或改用命令组合。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Redis Lua 脚本的约束与原子性",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：Redis 脚本为什么要求键通过 KEYS 传入？脚本过长有什么后果？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.lua.org/manual/5.4/",
+    "knowledge_ids": [
+      "ref:more_languages:lua-redis-script"
+    ],
+    "tags": [
+      "Lua",
+      "进阶专题",
+      "lua-redis-script"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 3,
+      "goal": "EVAL 在 Redis 单线程中原子执行，脚本内禁止不确定性操作（TIME/RANDOMKEY 受限），所有键必须通过 KEYS 声明以兼容集群。",
+      "deliverable": "Redis 脚本为什么要求键通过 KEYS 传入？脚本过长有什么后果？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:lua-performance",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "性能习惯：局部化、避免全局与频繁分配 · 推演练习",
+    "prompt": "知识点：性能习惯：局部化、避免全局与频繁分配\n版本：Lua 5.4\n示例或场景：\nlocal concat, insert = table.concat, table.insert\n\n任务：为什么把 math 函数 local 化能提速？循环拼接字符串为什么慢？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "局部变量是寄存器访问，全局要经 _ENV 表哈希查找；字符串不可变，每次 .. 都生成新串并复制，总成本 O(n²)，应用 table.concat 一次性合并。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：性能习惯：局部化、避免全局与频繁分配",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：为什么把 math 函数 local 化能提速？循环拼接字符串为什么慢？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.lua.org/manual/5.4/",
+    "knowledge_ids": [
+      "ref:more_languages:lua-performance"
+    ],
+    "tags": [
+      "Lua",
+      "进阶专题",
+      "lua-performance"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 3,
+      "goal": "热路径把常用全局（math.sin、string.format）缓存为局部变量；避免在循环中创建临时 table/字符串拼接；用 table.concat 代替 .. 连接。",
+      "deliverable": "为什么把 math 函数 local 化能提速？循环拼接字符串为什么慢？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:php-multibyte",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "多字节字符串与编码边界 · 推演练习",
+    "prompt": "知识点：多字节字符串与编码边界\n版本：PHP 8.2+\n示例或场景：\nmb_substr(\"你好世界\", 0, 2, \"UTF-8\") // 你好\njson_encode($x, JSON_UNESCAPED_UNICODE)\n\n任务：substr(\"你好\", 0, 1) 会返回什么？规范做法是什么？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "返回 0xE4 这样的半个字节序列（非法 UTF-8），前端渲染为乱码；应使用 mb_substr 并显式指定编码，或统一在边界处校验 UTF-8。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：多字节字符串与编码边界",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：substr(\"你好\", 0, 1) 会返回什么？规范做法是什么？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.php.net/manual/en/langref.php",
+    "knowledge_ids": [
+      "ref:more_languages:php-multibyte"
+    ],
+    "tags": [
+      "PHP",
+      "进阶专题",
+      "php-multibyte"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "strlen/substr 按字节处理，中文等 UTF-8 字符会被截断；mb_* 系列按字符处理，需与 mb_internal_encoding 配合；json_encode 默认转义非 ASCII。",
+      "deliverable": "substr(\"你好\", 0, 1) 会返回什么？规范做法是什么？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:kotlin-inline-value",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "内联类（value class）与零开销包装 · 推演练习",
+    "prompt": "知识点：内联类（value class）与零开销包装\n版本：Kotlin 2.0+\n示例或场景：\n@JvmInline value class UserId(val raw: Long)\nfun load(id: UserId)\n\n任务：内联类解决什么类型安全问题？什么时候会装箱？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "用类型包装区分同底层类型的语义（防止参数串用），编译后零开销；当作为可空类型、泛型参数或实现接口使用时会被装箱，收益消失。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：内联类（value class）与零开销包装",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：内联类解决什么类型安全问题？什么时候会装箱？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://kotlinlang.org/docs/home.html",
+    "knowledge_ids": [
+      "ref:more_languages:kotlin-inline-value"
+    ],
+    "tags": [
+      "Kotlin",
+      "进阶专题",
+      "kotlin-inline-value"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "@JvmInline value class 包装单一属性，编译后擦除为底层类型，避免包装对象的堆分配；可携带方法但受限制（不能有 init 块逻辑、不能有 backing field 的属性）。",
+      "deliverable": "内联类解决什么类型安全问题？什么时候会装箱？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:kotlin-flow",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "Flow：冷流与结构化并发 · 推演练习",
+    "prompt": "知识点：Flow：冷流与结构化并发\n版本：Kotlin 2.0+\n示例或场景：\nflow { emit(1) }.map { it + 1 }.collect { println(it) }\n\n任务：Flow 与 Sequence 的区别？StateFlow 与 SharedFlow 的使用场景？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "Flow 支持挂起与异步背压、可与协程取消联动；Sequence 是同步惰性序列。StateFlow 持有最新状态（适合 UI 状态），SharedFlow 面向事件广播（可配置重放与缓冲）。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：Flow：冷流与结构化并发",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：Flow 与 Sequence 的区别？StateFlow 与 SharedFlow 的使用场景？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://kotlinlang.org/docs/home.html",
+    "knowledge_ids": [
+      "ref:more_languages:kotlin-flow"
+    ],
+    "tags": [
+      "Kotlin",
+      "进阶专题",
+      "kotlin-flow"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "flow { } 构建冷流，collect 时才开始执行；每个收集者独立执行；flowOn 切换上游调度器，catch 处理上游异常。",
+      "deliverable": "Flow 与 Sequence 的区别？StateFlow 与 SharedFlow 的使用场景？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:cs-stringbuilder",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "字符串拼接与 StringBuilder 的取舍 · 推演练习",
+    "prompt": "知识点：字符串拼接与 StringBuilder 的取舍\n版本：C# 12 / .NET 8\n示例或场景：\nvar sb = new StringBuilder();\nforeach (var s in parts) sb.Append(s);\n\n任务：循环内 string += 为什么慢？StringBuilder 预设容量的意义？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "每次 += 生成新字符串并复制全部旧内容，n 次拼接复制总量约 n²/2；预设容量避免缓冲区多次翻倍扩容与复制。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：字符串拼接与 StringBuilder 的取舍",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：循环内 string += 为什么慢？StringBuilder 预设容量的意义？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://learn.microsoft.com/en-us/dotnet/csharp/",
+    "knowledge_ids": [
+      "ref:more_languages:cs-stringbuilder"
+    ],
+    "tags": [
+      "C#",
+      "进阶专题",
+      "cs-stringbuilder"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "string 不可变，循环内 += 每次创建新串，总成本 O(n²)；StringBuilder 内部可变缓冲，批量拼接 O(n)；string.Join/Concat 适合已知集合。",
+      "deliverable": "循环内 string += 为什么慢？StringBuilder 预设容量的意义？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:lua-ipairs-pairs",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "pairs 与 ipairs 及序列长度语义 · 推演练习",
+    "prompt": "知识点：pairs 与 ipairs 及序列长度语义\n版本：Lua 5.4\n示例或场景：\nfor i, v in ipairs(t) do end\nfor k, v in pairs(t) do end\n\n任务：有空洞的表用 # 取长度会发生什么？遍历全部键用哪个函数？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "结果未定义（可能返回洞前或洞后边界），依赖它会漏元素或越界；遍历全部键用 pairs，按数组语义用 ipairs 或显式数字 for。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：pairs 与 ipairs 及序列长度语义",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：有空洞的表用 # 取长度会发生什么？遍历全部键用哪个函数？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.lua.org/manual/5.4/",
+    "knowledge_ids": [
+      "ref:more_languages:lua-ipairs-pairs"
+    ],
+    "tags": [
+      "Lua",
+      "进阶专题",
+      "lua-ipairs-pairs"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "pairs 遍历全部键（顺序不保证），ipairs 从 1 开始按整数序列遍历遇到 nil 停止；#t 返回序列边界，有 nil 空洞时结果未定义。",
+      "deliverable": "有空洞的表用 # 取长度会发生什么？遍历全部键用哪个函数？"
+    }
+  },
+  {
+    "id": "knowledge:ref:more_languages:lua-variadic",
+    "kind": "engineering",
+    "topic": "八股题",
+    "title": "可变参数、select 与 table.pack · 推演练习",
+    "prompt": "知识点：可变参数、select 与 table.pack\n版本：Lua 5.4\n示例或场景：\nfunction sum(...) local s = 0; for _, v in ipairs({...}) do s = s + v end; return s end\n\n任务：{...} 与 table.pack(...) 在含 nil 参数时的差异？select(\"#\", ...) 的作用？\n写出结论、关键原因，并指出一个与本场景有关的边界或失败条件。接受语义等价的正确回答，不要求复述原文。",
+    "answer": "{...} 构造普通表，nil 造成空洞使 # 不可靠；table.pack 记录 n 字段保存真实数量。select(\"#\", ...) 返回参数个数（含 nil），select(n, ...) 返回第 n 个起的参数序列。",
+    "rubric": [
+      {
+        "id": "e1",
+        "text": "正确解释本题涉及的核心机制或规范：可变参数、select 与 table.pack",
+        "points": 35
+      },
+      {
+        "id": "e2",
+        "text": "完成本题具体任务：{...} 与 table.pack(...) 在含 nil 参数时的差异？select(\"#\", ...) 的作用？",
+        "points": 45
+      },
+      {
+        "id": "e3",
+        "text": "指出一个相关边界或失败条件，接受合理的其他案例",
+        "points": 20
+      }
+    ],
+    "source": "https://www.lua.org/manual/5.4/",
+    "knowledge_ids": [
+      "ref:more_languages:lua-variadic"
+    ],
+    "tags": [
+      "Lua",
+      "进阶专题",
+      "lua-variadic"
+    ],
+    "training": {
+      "area": "编程与算法",
+      "level": 2,
+      "goal": "函数用 ... 接收可变参数，select(\"#\", ...) 取数量、select(n, ...) 取第 n 个起的所有值；table.pack 打包并记录 n 字段。",
+      "deliverable": "{...} 与 table.pack(...) 在含 nil 参数时的差异？select(\"#\", ...) 的作用？"
+    }
+  }
+]

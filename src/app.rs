@@ -9,7 +9,12 @@ use std::{
 use eframe::egui::{self, Color32, RichText};
 
 mod appearance;
+mod campus_ui;
 mod essay_ui;
+mod excel_merge_ui;
+mod hiring_ui;
+mod jobhunt_ui;
+mod pdf_images_ui;
 use appearance::configure_theme;
 mod contact_ui;
 mod credential_ui;
@@ -22,6 +27,7 @@ mod navigation_ui;
 mod performance_tests;
 mod record_dialogs;
 mod reference_ui;
+mod resume_ui;
 mod settings_ui;
 mod study_ui;
 mod website_ui;
@@ -31,6 +37,8 @@ mod writing_ui;
 
 mod inventory_ui;
 mod layout_ui;
+#[cfg(test)]
+mod library_deletion_tests;
 mod library_ui;
 mod module_tags;
 #[cfg(debug_assertions)]
@@ -65,6 +73,8 @@ enum BackgroundMessage {
     StudyGraded(Box<study_ui::GradedMessage>),
     SqlExecuted(study_ui::SqlMessage),
     Learning(study_ui::LearningMessage),
+    CodeExecuted(study_ui::coding_ui::CodeMessage),
+    Audio(study_ui::audio::AudioMessage),
     ContactChats(String, std::result::Result<Vec<ChatRecord>, String>),
     Exported(std::result::Result<export::Report, String>),
 }
@@ -82,6 +92,7 @@ struct TagAssignment {
 }
 
 pub struct PersonalDeskApp {
+    resume: resume_ui::ResumeState,
     essay: essay_ui::EssayState,
     reference: reference_ui::ReferenceState,
     study: study_ui::StudyState,
@@ -107,6 +118,11 @@ pub struct PersonalDeskApp {
     tool_draft: Option<crate::launcher::AppTool>,
     tool_error: String,
     tool_launch_request: Option<PathBuf>,
+    excel_merge: excel_merge_ui::ExcelMergeState,
+    pdf_images: pdf_images_ui::PdfImagesState,
+    campus: campus_ui::CampusState,
+    hiring: hiring_ui::HiringState,
+    jobhunt: jobhunt_ui::JobHuntState,
     website_open_request: Option<Website>,
     snake: crate::games::Snake,
     snake_open: bool,
@@ -191,10 +207,51 @@ impl PersonalDeskApp {
     }
 
     #[cfg(debug_assertions)]
+    pub fn writing_preview(cc: &eframe::CreationContext<'_>, base: PathBuf) -> Self {
+        configure_theme(&cc.egui_ctx);
+        let mut app = Self::open_data_directory(base);
+        app.new_writing(false);
+        let page = app.writing.page.as_mut().unwrap();
+        page.title = "简历项目问答总结".into();
+        page.body = "## 项目中的关键问题\n\n为什么选择这个方案？遇到了什么问题？\n\n## 核实后的总结\n\n结合具体场景，记录自己的理解、证据和待补充内容。".into();
+        app.mark_writing_changed(0.);
+        app.flush_writing();
+        app.open_floating_writer();
+        app
+    }
+
+    #[cfg(debug_assertions)]
     pub fn layout_preview(cc: &eframe::CreationContext<'_>, base: PathBuf) -> Self {
         configure_theme(&cc.egui_ctx);
         let mut app = Self::open_data_directory(base);
         app.prepare_preview_capture();
+        if std::env::var_os("PERSONAL_DESK_PREVIEW_TOOLS").is_some() {
+            app.section = Section::Tools;
+            if let Some(capture) = app.preview_capture.as_mut() {
+                capture.step = 47;
+            }
+        }
+        if std::env::var_os("PERSONAL_DESK_PREVIEW_RESUME").is_some() {
+            app.section = Section::Resume;
+            if let Some(capture) = app.preview_capture.as_mut() {
+                capture.step = 51;
+            }
+        }
+        if std::env::var_os("PERSONAL_DESK_PREVIEW_JOBHUNT").is_some() {
+            app.prepare_jobhunt_preview();
+        }
+        if std::env::var_os("PERSONAL_DESK_PREVIEW_CAMPUS").is_some() {
+            app.prepare_campus_preview();
+        }
+        if std::env::var_os("PERSONAL_DESK_PREVIEW_HISTORY").is_some() {
+            app.section = Section::Settings;
+            app.view_modes.set(Section::Settings, ViewMode::Grid);
+            cc.egui_ctx
+                .send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(1000., 680.)));
+            if let Some(capture) = app.preview_capture.as_mut() {
+                capture.step = 53;
+            }
+        }
         app
     }
     fn open_data_directory(base: PathBuf) -> Self {
@@ -225,6 +282,7 @@ impl PersonalDeskApp {
             .into_iter()
             .collect();
         let mut app = Self {
+            resume: Default::default(),
             essay: Default::default(),
             reference: Default::default(),
             study: Default::default(),
@@ -251,6 +309,11 @@ impl PersonalDeskApp {
             tool_draft: None,
             tool_error: String::new(),
             tool_launch_request: None,
+            excel_merge: Default::default(),
+            pdf_images: Default::default(),
+            campus: Default::default(),
+            hiring: Default::default(),
+            jobhunt: Default::default(),
             website_open_request: None,
             games: Default::default(),
             snake: crate::games::random_game(),
@@ -395,6 +458,16 @@ impl PersonalDeskApp {
     }
 
     fn start_export(&mut self, scope: export::Scope) -> bool {
+        if self.resume.busy() {
+            self.notice = "简历排版完成后即可备份".into();
+            return false;
+        }
+        if scope == export::Scope::All {
+            self.ensure_resume_loaded();
+        }
+        if !self.flush_resume() {
+            return false;
+        }
         if self.export_busy {
             return false;
         }
@@ -436,6 +509,8 @@ impl PersonalDeskApp {
                 BackgroundMessage::StudyGraded(message) => self.accept_study_grade(*message),
                 BackgroundMessage::SqlExecuted(message) => self.accept_sql_execution(message),
                 BackgroundMessage::Learning(message) => self.accept_learning(message),
+                BackgroundMessage::CodeExecuted(message) => self.accept_code(message),
+                BackgroundMessage::Audio(message) => self.accept_audio(message),
                 BackgroundMessage::ContactChats(id, result) => {
                     self.contact_import_busy = false;
                     if self.contact_dialog_open && self.contact_draft.id == id {
@@ -540,6 +615,10 @@ impl PersonalDeskApp {
                     .inner_margin(egui::Margin::symmetric(24, 14)),
             )
             .show(ui, |ui| {
+                if self.section == Section::Resume {
+                    self.render_resume(ui);
+                    return;
+                }
                 if self.section == Section::Games {
                     self.search_field = None;
                     self.render_header(ui, &ctx);
@@ -548,7 +627,9 @@ impl PersonalDeskApp {
                     self.render_games(ui);
                     return;
                 }
-                if self.section == Section::Documents && self.writing.page.is_some() {
+                if matches!(self.section, Section::Documents | Section::Books)
+                    && self.writing.page.is_some()
+                {
                     self.render_writing_editor(ui);
                     self.handle_workspace_shortcuts(&ctx);
                     return;
@@ -589,21 +670,26 @@ impl PersonalDeskApp {
                         Section::Practice | Section::Words => self.render_study(ui),
                         Section::Settings => self.render_settings(ui),
                         Section::Tools => self.render_tools(ui),
+                        Section::JobHunt => self.render_jobhunt(ui),
                         Section::Essays => unreachable!("essays own their scroll workspace"),
                         Section::Reference => unreachable!("reference owns its scroll workspace"),
+                        Section::Resume => unreachable!("resume owns its scroll workspace"),
                     });
             });
         self.render_detail_windows(&ctx);
+        self.render_floating_writer(&ctx);
     }
 
     fn detail_open(&self) -> bool {
-        self.study.route_open
+        self.jobhunt.dialog_open()
+            || self.study.route_open
             || self.study.settings
             || self.theme_editor_open
             || self.tool_draft.is_some()
             || self.credential_dialog_open
             || self.inventory_dialog_open
             || self.library.dialog.is_some()
+            || self.library.deletion.is_some()
             || self.shortcut_dialog_open
             || self.settings_detail.is_some()
             || self.updates.open
@@ -697,13 +783,37 @@ impl eframe::App for PersonalDeskApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
         self.poll_background();
+        if let Some(message) = self.hiring.poll(&self.data_dir.join("hiring")) {
+            self.notice = message;
+        }
+        self.poll_resume(&ctx);
+        self.poll_campus();
+        if let Some(message) = self.pdf_images.poll() {
+            self.notice = message;
+        }
+        if let Some(message) = self.excel_merge.poll() {
+            self.notice = message;
+        }
         self.study
             .ai
             .unload_if_idle(matches!(self.section, Section::Practice | Section::Words));
         if ctx.input(|input| input.viewport().close_requested()) {
-            let mut records_saved =
-                self.flush_writing() && self.flush_study_answer() && self.flush_games();
-            if self.export_busy || self.contact_import_busy {
+            let hiring_saved = self.hiring.flush(&self.data_dir.join("hiring"));
+            let mut records_saved = hiring_saved
+                && self.flush_writing()
+                && self.flush_study_answer()
+                && self.flush_games()
+                && self.flush_resume();
+            if self.campus.busy() {
+                self.campus.cancel_on_exit();
+            }
+            if self.export_busy
+                || self.contact_import_busy
+                || self.excel_merge.busy()
+                || self.pdf_images.busy()
+                || self.hiring.busy()
+                || self.resume.busy()
+            {
                 records_saved = false;
                 self.notice = "当前文件操作完成后即可退出".into();
             }
@@ -742,7 +852,15 @@ impl eframe::App for PersonalDeskApp {
             }
         }
         ctx.request_repaint_after(
-            if self.contact_import_busy || self.export_busy || self.study.busy {
+            if self.campus.busy()
+                || self.contact_import_busy
+                || self.excel_merge.busy()
+                || self.pdf_images.busy()
+                || self.hiring.busy()
+                || self.export_busy
+                || self.study.busy
+                || self.audio_active()
+            {
                 Duration::from_millis(100)
             } else {
                 Duration::from_secs(5)

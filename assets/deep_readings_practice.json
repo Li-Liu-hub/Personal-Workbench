@@ -1,0 +1,1451 @@
+[
+  {
+    "id": "knowledge:ref:deep:java-jmm-happens-before",
+    "kind": "engineering",
+    "title": "JMM：happens-before 的传递闭包与安全发布 · 精读推演",
+    "topic": "八股题",
+    "prompt": "阅读下面的发布代码：\n\n```java\nclass Worker {\n    int config;              // 非 volatile\n    volatile boolean ready;  // volatile\n\n    void init() {\n        config = 42;\n        ready = true;\n    }\n\n    void run() {\n        if (ready) {\n            System.out.println(config);\n        }\n    }\n}\n```\n\n线程 A 调用 init()，线程 B 调用 run()，没有其他同步。\n\n1. 若 B 观察到 ready == true，config 是否一定可见为 42？说明依据。\n2. 如果把 init() 中两行对调，结论如何变化？\n3. 再给出一种不依赖 volatile 的安全发布方式，并说明它依赖的 hb 规则。",
+    "answer": "1. 一定可见。A 中 `config = 42` 按程序顺序先于 `ready = true`；volatile 写与 B 的 volatile 读构成同步关系，再由传递性得到 `config = 42` happens-before B 的读取，因此 B 看到 ready 为 true 时 config 应为 42。\n\n2. 对调后不再保证。B 可能先看到 ready == true，而 config 的写尚未对 B 可见，于是打印 0 或旧值。原因是 volatile 只保证其自身读写的可见性与重排序约束，不会把写在它之后的普通写“顺带”发布出去。\n\n3. 可用 `final` 字段发布不可变对象，或把对象引用声明为 volatile 后整体替换，或用 `synchronized` 在同一把锁上完成写和读。final 字段依赖 JLS 的 final 字段语义；volatile 引用依赖 release/acquire；锁依赖解锁 happens-before 后续加锁。",
+    "rubric": [
+      {
+        "id": "hb1",
+        "text": "结论正确：看到 ready=true 时 config 一定可见，并给出 volatile 写读 + 程序顺序 + 传递性的依据",
+        "points": 35
+      },
+      {
+        "id": "hb2",
+        "text": "正确说明对调后不再保证，并能指出可能读到 0/旧值",
+        "points": 25
+      },
+      {
+        "id": "hb3",
+        "text": "给出至少一种有效的安全发布方式（final、volatile 整体引用或锁），并说明对应 hb 规则",
+        "points": 25
+      },
+      {
+        "id": "hb4",
+        "text": "明确区分可见性与原子性，不把 volatile 说成“原子”或“刷缓存”",
+        "points": 15
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jls/se17/html/jls-17.html#jls-17.4.5",
+    "knowledge_ids": [
+      "ref:deep:java-jmm-happens-before"
+    ],
+    "tags": [
+      "Java",
+      "精读·并发基础",
+      "JMM",
+      "happens-before",
+      "可见性",
+      "安全发布"
+    ],
+    "training": {
+      "area": "Java 与并发",
+      "level": 2,
+      "goal": "用 happens-before 链解释跨线程发布的可见性，并能识别发布顺序错误。",
+      "deliverable": "写出两条线程的 hb 链、对调后的失败交错，以及一种替代的安全发布方案。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:java-volatile-dcl",
+    "kind": "engineering",
+    "title": "volatile：可见性、重排序与双重检查锁 · 精读推演",
+    "topic": "八股题",
+    "prompt": "下面的单例在低并发下偶尔返回 `null` 字段：\n\n```java\nclass Config {\n    private static Config instance;\n    private final Map<String, String> values;\n\n    private Config() {\n        values = new HashMap<>();\n        values.put(\"mode\", \"prod\");\n    }\n\n    static Config get() {\n        if (instance == null) {\n            synchronized (Config.class) {\n                if (instance == null) instance = new Config();\n            }\n        }\n        return instance;\n    }\n}\n```\n\n1. 指出可能出问题的原因，并给出最小修复。\n2. 用重排序或交错执行解释失败路径。\n3. 修复后是否还需要把 `values` 改成并发容器？说明理由。",
+    "answer": "1. `instance` 不是 volatile。最小修复是 `private static volatile Config instance;`。\n\n2. `new Config()` 可拆为分配内存、构造对象、把引用写入 instance。没有 volatile 时，线程 B 可能在引用已写入、构造尚未完成时通过第一次 null 检查，读到 values 仍为 null 或只初始化了一半的对象，因此返回的半成品会抛 NPE 或缺少键。加 volatile 后，构造器中的写在 volatile 写之前，B 的 volatile 读与 A 的写同步，构造结果对 B 可见。\n\n3. 不需要仅凭这次修复就把 values 换成并发容器。DCL 修复的是安全发布；发布后如果多个线程只读，HashMap 是安全的。若运行期还会并发写，才需要 `ConcurrentHashMap` 或外部同步，这是另一个问题。",
+    "rubric": [
+      {
+        "id": "v1",
+        "text": "识别缺少 volatile，并给出正确的最小修复",
+        "points": 30
+      },
+      {
+        "id": "v2",
+        "text": "能描述分配内存、构造、引用赋值之间的重排序/交错，说明半初始化对象如何被看到",
+        "points": 35
+      },
+      {
+        "id": "v3",
+        "text": "正确区分安全发布与并发读写，指出只读场景不需要并发容器，运行期并发写才需要",
+        "points": 20
+      },
+      {
+        "id": "v4",
+        "text": "不把 volatile 误称为保证原子性或等同于 synchronized",
+        "points": 15
+      }
+    ],
+    "source": "https://docs.oracle.com/javase/specs/jls/se17/html/jls-8.html#jls-8.3.1.4",
+    "knowledge_ids": [
+      "ref:deep:java-volatile-dcl"
+    ],
+    "tags": [
+      "Java",
+      "精读·并发基础",
+      "volatile",
+      "双重检查锁",
+      "可见性",
+      "重排序"
+    ],
+    "training": {
+      "area": "Java 与并发",
+      "level": 2,
+      "goal": "能定位 DCL 的安全发布缺陷，并用 volatile 的 release/acquire 语义解释修复。",
+      "deliverable": "给出修复代码、失败交错和并发读写边界判断。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:java-synchronized-lock-upgrade",
+    "kind": "engineering",
+    "title": "synchronized：对象头、锁升级与偏向锁的现代边界 · 精读推演",
+    "topic": "八股题",
+    "prompt": "一个服务把库存扣减写成：\n\n```java\nclass Stock {\n    private int left = 100;\n\n    synchronized void deduct(int n) {\n        if (left >= n) {\n            sleep(50);   // 模拟远程校验\n            left -= n;\n        }\n    }\n}\n```\n\n线上出现两个现象：低并发时很快，高并发时 RT 明显上升；某次排查发现线程都堵在同一把锁上。\n\n1. 解释为什么低并发和高并发表现不同。\n2. 说明“偏向锁/轻量级锁/重量级锁”与这个现象的关系，并指出 JDK 15 后的边界。\n3. 给出一个不改变互斥语义的优化方向。",
+    "answer": "1. 低并发时没有真实竞争，JVM 可以用轻量级锁的 CAS 甚至锁消除/粗化降低开销；高并发时多个线程同时进入，轻量级锁自旋失败后膨胀为重量级 monitor，未拿到锁的线程被挂起/唤醒，加上临界区内有 50ms 的 sleep，排队时间被放大，RT 上升。\n\n2. 锁升级是 HotSpot 在对象头 Mark Word 上的优化：无竞争偏向/轻量，竞争激烈后重量级。偏向锁在 JDK 15 起默认禁用，现代版本不应假设它一定发生；即使没有偏向锁，轻量级 CAS 与重量级 monitor 的差异仍存在。\n\n3. 方向是把远程校验移出临界区，先做无锁预检查/分段库存/乐观更新（如数据库条件更新或 CAS），只在必要时缩小同步块；也可以按商品或分段拆锁。不能简单改成无锁而不处理竞态，也不能在持锁时做阻塞 I/O。",
+    "rubric": [
+      {
+        "id": "s1",
+        "text": "正确解释低并发无竞争与高并发锁膨胀/排队导致的 RT 差异",
+        "points": 35
+      },
+      {
+        "id": "s2",
+        "text": "说清锁升级是 HotSpot 优化，并指出偏向锁在 JDK 15 后默认禁用的边界",
+        "points": 25
+      },
+      {
+        "id": "s3",
+        "text": "指出临界区内 sleep/远程调用会放大持锁时间，这是关键问题",
+        "points": 25
+      },
+      {
+        "id": "s4",
+        "text": "给出保持互斥语义的优化方向（缩小临界区、分段、条件更新等），不空泛地说“换 CAS”",
+        "points": 15
+      }
+    ],
+    "source": "https://github.com/openjdk/jdk/blob/master/src/hotspot/share/oops/markWord.hpp",
+    "knowledge_ids": [
+      "ref:deep:java-synchronized-lock-upgrade"
+    ],
+    "tags": [
+      "Java",
+      "精读·并发基础",
+      "synchronized",
+      "对象头",
+      "锁升级",
+      "monitor"
+    ],
+    "training": {
+      "area": "Java 与并发",
+      "level": 2,
+      "goal": "把 synchronized 的锁状态与现代 HotSpot 行为联系到真实 RT 问题。",
+      "deliverable": "解释锁竞争路径，指出持锁阻塞 I/O 的问题，并给出可执行的缩小临界区方案。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:java-aqs-exclusive",
+    "kind": "engineering",
+    "title": "AQS：独占获取、CLH 队列与中断响应 · 精读推演",
+    "topic": "八股题",
+    "prompt": "某任务使用 `ReentrantLock` 保护共享队列。线程 A 持有锁后执行一段可能阻塞 30 秒的上传；线程 B 调用 `lock.lockInterruptibly()` 等待。运维停止任务时中断了 B，但 B 仍没有退出。\n\n1. 解释 B 为什么没有响应中断。\n2. 说明 AQS 中 `lock()` 与 `lockInterruptibly()` 的差异。\n3. 给出让 B 可被取消、且不破坏锁语义的改法。",
+    "answer": "1. 若 B 调用的是 `lock()`，它在 AQS 队列中等待时不会因中断抛出异常，只会记录中断标志；只有拿到锁后才会把中断状态还给调用方。若调用的是 `lockInterruptibly()`，等待时被中断应抛出 InterruptedException 并退出等待，因此“仍没退出”更可能是代码实际用了 `lock()`、或在 catch 中吞掉异常后继续重试。\n\n2. `lock()` 是不可中断的获取：等待期间忽略中断，成功后由调用方自行检查 `Thread.currentThread().isInterrupted()`；`lockInterruptibly()` 在等待阶段响应中断，抛出 InterruptedException。两者都不会在持有锁期间强行打断临界区。\n\n3. 让 B 使用 `lockInterruptibly()` 或带超时的 `tryLock`，在 catch/finally 中恢复中断并退出；同时把 A 的上传移出锁外或改成异步，避免持锁阻塞 30 秒。若确实需要强制停止 A，只能通过业务层的取消信号和可中断 I/O 协作，不能靠中断强行释放别人的锁。",
+    "rubric": [
+      {
+        "id": "a1",
+        "text": "区分 lock() 不响应等待中断与 lockInterruptibly() 响应中断",
+        "points": 35
+      },
+      {
+        "id": "a2",
+        "text": "指出实际代码可能用了 lock() 或吞掉中断，给出可核对的判断",
+        "points": 25
+      },
+      {
+        "id": "a3",
+        "text": "给出 tryLock 超时/中断退出 + 恢复中断标志的改法",
+        "points": 25
+      },
+      {
+        "id": "a4",
+        "text": "指出不能强行释放 A 持有的锁，优化方向是缩短持锁时间或异步化",
+        "points": 15
+      }
+    ],
+    "source": "https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/java/util/concurrent/locks/AbstractQueuedSynchronizer.java",
+    "knowledge_ids": [
+      "ref:deep:java-aqs-exclusive"
+    ],
+    "tags": [
+      "Java",
+      "精读·并发基础",
+      "AQS",
+      "ReentrantLock",
+      "CLH",
+      "中断"
+    ],
+    "training": {
+      "area": "Java 与并发",
+      "level": 3,
+      "goal": "用 AQS 的获取/等待语义解释任务取消失效，并给出不破坏锁的修复。",
+      "deliverable": "说明中断响应边界、选择可中断获取方式，并指出持锁阻塞 I/O 的根因。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:java-cas-aba",
+    "kind": "engineering",
+    "title": "CAS 与原子类：ABA、自旋与伪共享 · 精读推演",
+    "topic": "八股题",
+    "prompt": "一个无锁栈用 CAS 维护 `top`：\n\n```java\nvoid push(Node n) {\n    do { n.next = top; } while (!top.compareAndSet(n.next, n));\n}\n```\n\n有两条线程：T1 读取 `top = A` 后暂停；T2 依次 pop A、pop B、再 push A；T1 恢复后执行 CAS。\n\n1. 说明 T1 的 CAS 是否可能成功，以及成功后栈会怎样。\n2. 解释这是不是普通意义上的“数据丢失”。\n3. 给出两种修复思路，并比较代价。",
+    "answer": "1. 可能成功。T1 记录的期望值仍是 A，T2 把 A 弹出后又压回，值相等；T1 的 CAS(A, n) 成功，但此时 A.next 已被 T2 改成新值，T1 用旧的 n.next 链接，可能把 B 或新节点丢掉，栈结构被破坏。\n\n2. 这不是简单的“值丢失”，而是 ABA：值回到原状，历史已经变化。CAS 只比较值，无法发现中间发生的弹出和重新压入。\n\n3. 方案一：给引用加版本号（AtomicStampedReference），每次修改递增 stamp，CAS 同时比较值和版本；代价是多维护一个字，且仍需处理重试。方案二：使用带标记的指针/引用计数或直接改用锁保护的栈；锁的代价是阻塞和上下文切换，但实现简单。若并发度不高，锁往往更划算。",
+    "rubric": [
+      {
+        "id": "c1",
+        "text": "判断 CAS 可能成功，并说明 A.next 已变化导致链接错误/节点丢失",
+        "points": 35
+      },
+      {
+        "id": "c2",
+        "text": "准确命名为 ABA，指出“值相同但历史不同”",
+        "points": 25
+      },
+      {
+        "id": "c3",
+        "text": "给出带版本号或锁两种可行方案，并说明至少一个代价",
+        "points": 25
+      },
+      {
+        "id": "c4",
+        "text": "不把 CAS 说成万能无锁方案，能提到自旋/竞争成本",
+        "points": 15
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/concurrent/atomic/package-summary.html",
+    "knowledge_ids": [
+      "ref:deep:java-cas-aba"
+    ],
+    "tags": [
+      "Java",
+      "精读·并发基础",
+      "CAS",
+      "ABA",
+      "Atomic",
+      "LongAdder",
+      "伪共享"
+    ],
+    "training": {
+      "area": "Java 与并发",
+      "level": 3,
+      "goal": "识别无锁结构中的 ABA，并能在版本号与锁之间做工程取舍。",
+      "deliverable": "写出 ABA 交错、失败后果和两种修复方案及代价。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:java-threadlocal-leak",
+    "kind": "engineering",
+    "title": "ThreadLocal：ThreadLocalMap、哈希冲突与池化污染 · 精读推演",
+    "topic": "八股题",
+    "prompt": "一个 Spring Boot 服务用 `ThreadLocal` 保存当前登录用户，拦截器在请求开始时 set，结束时忘记 remove。服务使用固定大小线程池。\n\n1. 说明为什么会出现“A 用户看到 B 用户数据”的现象。\n2. 解释为什么即使 ThreadLocal 对象被回收，内存仍可能泄漏。\n3. 给出修复代码，并说明异步线程中如何正确传播上下文。",
+    "answer": "1. 线程池复用线程，ThreadLocalMap 属于线程本身。请求 A 结束时没有 remove，value 仍挂在线程上；下一个请求复用同一线程，若在 set 之前读取，就会拿到 A 的用户上下文，造成串数据。\n\n2. Entry 的 key 是 ThreadLocal 的弱引用，value 是强引用。ThreadLocal 对象被回收后 key 变 null，但 value 仍被 Entry 强引用，线程不死就不释放；同时 map 中的 null key 槽位需要清理，否则越积越多。\n\n3. 在 finally 中调用 `CTX.remove()`，不要只 set(null)。异步任务不要假设上下文自动传递：在提交任务时捕获需要的不可变上下文，显式作为参数传入，或在任务包装器中 set/remove；使用线程池时 `InheritableThreadLocal` 不可靠，因为它只在创建线程时复制。",
+    "rubric": [
+      {
+        "id": "t1",
+        "text": "解释线程复用 + 未清理导致上下文串用",
+        "points": 30
+      },
+      {
+        "id": "t2",
+        "text": "画出弱引用 key/强引用 value 的引用链，说明泄漏条件",
+        "points": 30
+      },
+      {
+        "id": "t3",
+        "text": "给出 finally remove 的修复，并指出 set(null) 不是首选",
+        "points": 20
+      },
+      {
+        "id": "t4",
+        "text": "说明异步/线程池下需显式传播上下文，InheritableThreadLocal 不可靠",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/java/lang/ThreadLocal.java",
+    "knowledge_ids": [
+      "ref:deep:java-threadlocal-leak"
+    ],
+    "tags": [
+      "Java",
+      "精读·并发基础",
+      "ThreadLocal",
+      "线程池",
+      "内存泄漏",
+      "上下文传播"
+    ],
+    "training": {
+      "area": "Java 与并发",
+      "level": 2,
+      "goal": "定位线程池中的 ThreadLocal 污染与泄漏，并给出清理和传播方案。",
+      "deliverable": "写出引用链、复现路径、finally 清理代码和异步传播边界。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:java-thread-pool-executor",
+    "kind": "engineering",
+    "title": "ThreadPoolExecutor：ctl、扩容顺序与拒绝策略 · 精读推演",
+    "topic": "八股题",
+    "prompt": "某接口使用：core=8，max=32，`LinkedBlockingQueue` 无界，拒绝策略 AbortPolicy。压测时 QPS 上升，接口 RT 持续变大，但线程数长期停在 8，偶尔出现 OOM。\n\n1. 解释为什么 max=32 没有生效。\n2. 说明 RT 变大和 OOM 的机制。\n3. 给出至少两项配置或架构调整，并说明取舍。",
+    "answer": "1. execute 的顺序是先核心线程、再入队、队列满后才扩到 max。LinkedBlockingQueue 无界，任务几乎总能入队，队列永远不会满，因此不会创建非核心线程，线程数停在 8。\n\n2. 任务在无界队列中排队，等待时间计入接口 RT；生产速度长期高于消费速度时，队列对象不断堆积，最终 Java heap OOM。线程数不增长并不代表系统健康，反而掩盖了容量不足。\n\n3. 方案：改用有界队列（如 ArrayBlockingQueue）并设置合理容量，让队列满时触发扩容或拒绝，形成背压；按任务类型拆分线程池，避免慢任务拖垮快任务；增加队列长度、活跃线程数、拒绝数、任务等待时间的监控；必要时限流或异步化下游。取舍是拒绝会损失部分请求，但能保护系统不雪崩；队列过大只是把失败延后。",
+    "rubric": [
+      {
+        "id": "p1",
+        "text": "按“核心线程 -> 队列 -> 非核心线程 -> 拒绝”解释 max 为何不生效",
+        "points": 30
+      },
+      {
+        "id": "p2",
+        "text": "说明排队导致 RT 上升、队列堆积导致 OOM 的链路",
+        "points": 30
+      },
+      {
+        "id": "p3",
+        "text": "给出有界队列/拆分线程池/监控/限流中的至少两项可执行调整",
+        "points": 25
+      },
+      {
+        "id": "p4",
+        "text": "说明背压与拒绝的取舍，不把“加大线程数”当唯一答案",
+        "points": 15
+      }
+    ],
+    "source": "https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/java/util/concurrent/ThreadPoolExecutor.java",
+    "knowledge_ids": [
+      "ref:deep:java-thread-pool-executor"
+    ],
+    "tags": [
+      "Java",
+      "精读·并发基础",
+      "ThreadPoolExecutor",
+      "线程池",
+      "队列",
+      "拒绝策略"
+    ],
+    "training": {
+      "area": "Java 与并发",
+      "level": 2,
+      "goal": "依据 ThreadPoolExecutor 的执行顺序诊断线程数不增长、RT 上升和 OOM。",
+      "deliverable": "写出扩容顺序、队列堆积链路，以及带取舍的配置调整。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:java-hashmap-resize",
+    "kind": "engineering",
+    "title": "HashMap：扰动函数、扩容拆分与树化边界 · 精读推演",
+    "topic": "八股题",
+    "prompt": "一个订单缓存使用 `new HashMap<>(16)`，预估会放 1000 个条目，且只读多、写入集中在启动阶段。代码在启动时逐个 put 1000 次，运行期偶发 `ConcurrentModificationException`。\n\n1. 说明启动阶段会发生多少次扩容，为什么容量要取 2 的幂。\n2. 解释树化条件，指出“链表长度到 8 就树化”为什么不准确。\n3. 运行期异常的可能原因是什么？给出修复。",
+    "answer": "1. 16 的负载上限是 12；第 13 个元素插入后扩容到 32，此后在元素数超过 24、48、96、192、384、768 时继续翻倍，依次到 64、128、256、512、1024、2048，共 7 次扩容。容量取 2 的幂是为了用 `(n-1)&hash` 快速定位桶，并让扩容拆分只需看新增高位，不需要重新计算哈希。\n\n2. 树化要求桶内节点数达到 8，且表容量至少 64；容量不足时先扩容，而不是直接树化。退化阈值是 6，留有滞后避免频繁转换。所以“链表到 8 就树化”忽略了表容量条件。\n\n3. `ConcurrentModificationException` 通常来自迭代过程中结构被修改（put/remove），也可能是多线程并发写 HashMap。若运行期确实有并发写，改用 `ConcurrentHashMap`；若只是单线程迭代时修改，使用 Iterator.remove 或先收集再修改。启动阶段可预设容量（如 `new HashMap<>(2048)`）减少扩容。",
+    "rubric": [
+      {
+        "id": "h1",
+        "text": "正确说明从 16 到 1024 的扩容次数/过程，以及 2 的幂与索引/拆分的关系",
+        "points": 30
+      },
+      {
+        "id": "h2",
+        "text": "指出树化需要桶内 8 且容量 >= 64，容量不足先扩容",
+        "points": 30
+      },
+      {
+        "id": "h3",
+        "text": "把 CME 归因于迭代期间结构修改或并发写，并给出对应修复",
+        "points": 25
+      },
+      {
+        "id": "h4",
+        "text": "给出预设容量或 ConcurrentHashMap 的合理建议，不泛泛而谈",
+        "points": 15
+      }
+    ],
+    "source": "https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/java/util/HashMap.java",
+    "knowledge_ids": [
+      "ref:deep:java-hashmap-resize"
+    ],
+    "tags": [
+      "Java",
+      "精读·集合与容器",
+      "HashMap",
+      "扩容",
+      "树化",
+      "hashCode"
+    ],
+    "training": {
+      "area": "Java 与并发",
+      "level": 2,
+      "goal": "把 HashMap 的容量、扩容、树化条件应用到真实缓存初始化与并发异常。",
+      "deliverable": "算出扩容过程，说明树化条件，并给出 CME 的修复方案。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:java-class-loading-spi",
+    "kind": "engineering",
+    "title": "类加载与双亲委派：SPI 为什么要用线程上下文类加载器 · 精读推演",
+    "topic": "八股题",
+    "prompt": "一个传统应用服务器把 MySQL 驱动放在 `WEB-INF/lib`，但应用启动时 `DriverManager.getConnection` 报“No suitable driver”。同一个驱动如果在共享 lib 目录就能正常工作。\n\n1. 用双亲委派解释为什么放在 `WEB-INF/lib` 会失败。\n2. 说明 `ServiceLoader` 和线程上下文类加载器在这条链路里的作用。\n3. 除了移动 jar，还能怎样修复？并指出一种类加载器隔离带来的新问题。",
+    "answer": "1. `java.sql.DriverManager` 通常由应用服务器的公共/父加载器加载，它的可见范围不包含 webapp 的 `WEB-INF/lib`。双亲委派只允许子加载器向父加载器查找，父加载器看不到子加载器里的驱动类，因此 DriverManager 找不到实现。\n\n2. `ServiceLoader.load(Driver.class)` 默认使用当前线程的上下文类加载器（TCCL）。应用服务器在处理 webapp 请求时把 TCCL 设为 webapp 加载器，ServiceLoader 通过它读取 `META-INF/services/java.sql.Driver` 并实例化驱动，绕过了父加载器不能向下查找的限制。\n\n3. 可以把驱动放到服务器共享 lib，或显式 `Class.forName(\"com.mysql.cj.jdbc.Driver\")` 触发 webapp 加载器注册驱动，或用 `ServiceLoader.load(Driver.class, webappLoader)` 指定加载器。隔离带来的新问题是类身份冲突：同一个全限定名被两个加载器加载会得到两个不同类型的 Class，跨加载器强转会抛 ClassCastException，静态状态也不共享。",
+    "rubric": [
+      {
+        "id": "cl1",
+        "text": "用父加载器不可见子加载器解释 DriverManager 找不到驱动",
+        "points": 35
+      },
+      {
+        "id": "cl2",
+        "text": "说明 ServiceLoader 默认使用 TCCL，并解释它如何反向加载实现",
+        "points": 30
+      },
+      {
+        "id": "cl3",
+        "text": "给出共享 lib、Class.forName、显式 ClassLoader 中的至少一种修复",
+        "points": 20
+      },
+      {
+        "id": "cl4",
+        "text": "指出加载器隔离导致类身份不同/强转失败等边界",
+        "points": 15
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/ClassLoader.html",
+    "knowledge_ids": [
+      "ref:deep:java-class-loading-spi"
+    ],
+    "tags": [
+      "Java",
+      "精读·JVM 与工程",
+      "类加载",
+      "双亲委派",
+      "SPI",
+      "TCCL"
+    ],
+    "training": {
+      "area": "Java 与并发",
+      "level": 3,
+      "goal": "把双亲委派、TCCL 与 SPI 的加载方向联系到真实驱动加载故障。",
+      "deliverable": "解释可见性失败、TCCL 的绕行路径，并给出修复与隔离边界。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:java-g1-collector",
+    "kind": "engineering",
+    "title": "G1：Region、SATB 与混合回收的停顿预算 · 精读推演",
+    "topic": "八股题",
+    "prompt": "某服务堆 8GiB，G1 Region 1MiB，`MaxGCPauseMillis=200`。监控显示 Young GC 约 30ms，但每隔几分钟出现一次数百毫秒的 Full GC；堆转储里有一批 3–6MiB 的短命字节数组。\n\n1. 解释这些大对象在 G1 中如何分配，以及为什么容易造成碎片或 Full GC。\n2. 说明 Mixed GC 与 Full GC 的触发差异，为什么“调小 MaxGCPauseMillis”不是好办法。\n3. 给出两条可执行的排查或调优方向，并说明各自代价。",
+    "answer": "1. 3–6MiB 的对象达到 Region 的一半以上，按 Humongous 处理，需要连续的 Region 空间，分配和回收都比普通对象重。大量短命 Humongous 对象会占满连续 Region、产生碎片，并推动并发标记提前发生；若回收跟不上，可能触发 Full GC。\n\n2. Mixed GC 在并发标记完成后，按停顿预测回收年轻代和部分老年代 Region；Full GC 是 G1 的兜底，通常在疏散失败、晋升失败或并发标记来不及完成时发生，是 STW 的全堆整理。把 MaxGCPauseMillis 调得更小只会让每次 Mixed GC 回收更少 Region、标记更频繁，不能解决 Humongous 分配和回收速度问题。\n\n3. 方向一：增大 `G1HeapRegionSize`（如 4MiB/8MiB）或减少单个对象大小，降低 Humongous 数量；代价是 Region 变大后回收粒度变粗。方向二：提前启动并发标记（降低 `InitiatingHeapOccupancyPercent`）或增加 `G1ReservePercent`，给疏散留空间；代价是更多并发标记 CPU 和更早的老年代回收。还应结合 GC 日志确认 Full GC 的具体原因，而不是只看堆大小。",
+    "rubric": [
+      {
+        "id": "g1",
+        "text": "正确解释 Humongous 判定（>= Region/2）及连续 Region 分配的影响",
+        "points": 30
+      },
+      {
+        "id": "g2",
+        "text": "区分 Mixed GC 的标记后挑选与 Full GC 的兜底触发",
+        "points": 30
+      },
+      {
+        "id": "g3",
+        "text": "指出调小停顿目标会减少单次回收量、增加标记频率",
+        "points": 20
+      },
+      {
+        "id": "g4",
+        "text": "给出 Region 大小/IHOP/Reserve 等可执行方向并说明代价",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/gc-tuning/tuning-garbage-first-garbage-collector.html",
+    "knowledge_ids": [
+      "ref:deep:java-g1-collector"
+    ],
+    "tags": [
+      "Java",
+      "精读·JVM 与工程",
+      "G1",
+      "Region",
+      "SATB",
+      "Mixed GC",
+      "停顿预测"
+    ],
+    "training": {
+      "area": "性能与交付",
+      "level": 3,
+      "goal": "用 G1 的 Region、Humongous、Mixed GC 机制解释真实停顿与 Full GC。",
+      "deliverable": "写出大对象分配路径、Mixed/Full GC 差异和带代价的调优方向。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:java-virtual-threads",
+    "kind": "engineering",
+    "title": "虚拟线程：continuation、载体线程与 pinning 边界 · 精读推演",
+    "topic": "八股题",
+    "prompt": "一个服务用固定 200 线程的池调用下游，单次调用平均 200ms，高峰期吞吐上不去。团队改成“每个请求一个虚拟线程”，并发立刻升到 5000，但下游开始超时，部分请求仍然卡住；线程转储里能看到不少虚拟线程停在 `synchronized` 块。\n\n1. 说明虚拟线程为什么能提高并发，以及为什么吞吐没有随并发线性增长。\n2. 解释 `synchronized` 导致的 pinning，并给出替代方案。\n3. 给出一个既能利用虚拟线程、又不会压垮下游的方案。",
+    "answer": "1. 平台线程阻塞时会占住 OS 线程，固定 200 线程限制了同时在途的请求数。虚拟线程在阻塞 I/O 时卸载载体线程，少量载体线程可以支撑大量在途请求，所以并发能升高。但下游连接池、服务处理能力、带宽和超时是硬约束，并发超过容量只会把排队转移到下游，吞吐不会线性增长。\n\n2. 虚拟线程在 `synchronized` 块中阻塞时可能无法卸载，载体线程被 pin 住，其他虚拟线程得不到调度。可把临界区改为 `ReentrantLock`，或缩短同步块、把阻塞调用移到锁外；native 方法和类初始化也可能造成类似问题。\n\n3. 用虚拟线程执行 I/O 任务，同时用 `Semaphore` 或连接池限制对下游的并发（如 500），配合超时、重试预算和熔断；不要把虚拟线程放进固定大小池，也不要无限并发。这样既保留虚拟线程的低线程成本，又给下游明确背压。",
+    "rubric": [
+      {
+        "id": "vt1",
+        "text": "说明虚拟线程卸载载体线程的机制与阻塞 I/O 场景的收益",
+        "points": 30
+      },
+      {
+        "id": "vt2",
+        "text": "指出吞吐受下游容量约束，不能靠无限并发解决",
+        "points": 25
+      },
+      {
+        "id": "vt3",
+        "text": "解释 synchronized/native 导致 pinning，并给出 ReentrantLock 等替代",
+        "points": 25
+      },
+      {
+        "id": "vt4",
+        "text": "给出 Semaphore/连接池/超时等有界并发方案，明确不池化虚拟线程",
+        "points": 20
+      }
+    ],
+    "source": "https://openjdk.org/jeps/444",
+    "knowledge_ids": [
+      "ref:deep:java-virtual-threads"
+    ],
+    "tags": [
+      "Java",
+      "精读·JVM 与工程",
+      "虚拟线程",
+      "continuation",
+      "pinning",
+      "载体线程"
+    ],
+    "training": {
+      "area": "Java 与并发",
+      "level": 3,
+      "goal": "判断虚拟线程的适用边界，并处理 pinning 与下游背压。",
+      "deliverable": "解释并发提升与吞吐瓶颈，给出 pinning 修复和有界并发方案。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:java-spring-bean-lifecycle",
+    "kind": "engineering",
+    "title": "Spring Bean 生命周期与三级缓存解决循环依赖 · 精读推演",
+    "topic": "八股题",
+    "prompt": "一个项目把两个服务改成构造器注入后启动失败，报循环依赖；改回字段注入后能启动，但某个 `@PostConstruct` 方法偶尔读到另一个 Bean 的字段为 null。\n\n1. 解释构造器注入为什么无法解决这个循环依赖。\n2. 说明字段注入为什么能启动，以及为什么仍可能读到半初始化对象。\n3. 给出两种比“改回字段注入”更好的修复方式，并说明取舍。",
+    "answer": "1. 构造器注入要求在创建 A 时先拿到完整的 B，而创建 B 又要求完整的 A，形成“先有鸡还是先有蛋”。对象尚未实例化，Spring 没有可提前暴露的引用，因此直接失败。\n\n2. 字段注入先调用无参构造器得到 A 的空对象，把它放入三级缓存，再填充 B；B 创建时从三级缓存拿到 A 的早期引用。此时 A 只完成了实例化，字段和初始化回调可能尚未完成，所以 B 的 `@PostConstruct` 若调用 A 的方法，可能看到 null 或未就绪状态。\n\n3. 方案一：重构依赖，抽出 A 和 B 共同依赖的第三个组件，消除环；这是最彻底的方式。方案二：用 `@Lazy` 让一方注入代理，首次调用时才解析真实 Bean；代价是延迟了失败时机，且代理调用有额外间接层。也可改用 Setter 注入并显式处理初始化顺序，但仍不如重构清晰。",
+    "rubric": [
+      {
+        "id": "sb1",
+        "text": "解释构造器注入因对象未实例化而无法提前暴露引用",
+        "points": 30
+      },
+      {
+        "id": "sb2",
+        "text": "说明字段注入通过三级缓存提前暴露，但对象可能半初始化",
+        "points": 30
+      },
+      {
+        "id": "sb3",
+        "text": "给出重构抽取协调者或 @Lazy 的修复，并说明代价",
+        "points": 25
+      },
+      {
+        "id": "sb4",
+        "text": "指出 Spring Boot 2.6+ 默认禁止循环依赖，不以“能启动”为正确性标准",
+        "points": 15
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/core/beans/factory-nature.html",
+    "knowledge_ids": [
+      "ref:deep:java-spring-bean-lifecycle"
+    ],
+    "tags": [
+      "Java",
+      "精读·Spring 与框架",
+      "Spring",
+      "Bean 生命周期",
+      "循环依赖",
+      "三级缓存"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 3,
+      "goal": "用 Bean 生命周期与三级缓存解释循环依赖，并给出结构性修复。",
+      "deliverable": "写出构造器/字段注入的差异、半初始化风险，以及两种修复取舍。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:java-spring-transaction",
+    "kind": "engineering",
+    "title": "Spring 事务：代理边界、传播行为与回滚规则 · 精读推演",
+    "topic": "八股题",
+    "prompt": "下面的代码中，`create` 和 `writeLog` 在同一个 Bean 内，`writeLog` 标注了 `REQUIRES_NEW`：\n\n```java\n@Transactional\npublic void create() {\n    orderMapper.insert(order);\n    try { this.writeLog(); } catch (Exception e) { log.warn(\"audit failed\", e); }\n}\n\n@Transactional(propagation = Propagation.REQUIRES_NEW)\npublic void writeLog() { auditMapper.insert(log); throw new RuntimeException(\"audit\"); }\n```\n\n1. `writeLog` 的 `REQUIRES_NEW` 是否生效？为什么？\n2. 如果 `writeLog` 改为通过另一个 Bean 调用且新事务生效，`create` 捕获异常后能否正常提交？\n3. 如果 `writeLog` 改为默认 REQUIRED，`create` 捕获异常后会发生什么？\n4. 给出一种修复方式。",
+    "answer": "1. 不生效。`this.writeLog()` 是目标对象内部调用，不经过 Spring 事务代理，注解不会被拦截；它实际上在 `create` 的当前事务中执行。\n\n2. 可以正常提交。REQUIRES_NEW 会挂起外层事务并为 writeLog 新建事务，内层异常只回滚内层；外层捕获异常后，外层事务没有被标记 rollback-only，可以继续提交。\n\n3. 若 writeLog 是 REQUIRED，它会加入外层事务；内层抛 RuntimeException 时，事务拦截器会把共享事务标记为 rollback-only。即使 create 捕获了异常，提交阶段仍会抛 UnexpectedRollbackException，整个事务回滚。\n\n4. 把 writeLog 拆到另一个 Bean，通过注入的代理调用；或注入自身代理/使用 AopContext.currentProxy()（需开启 exposeProxy）；也可以把审计改成异步事件并在新事务中处理。修复后要确认内层异常不会污染外层事务。",
+    "rubric": [
+      {
+        "id": "tx1",
+        "text": "判断自调用不经过代理，REQUIRES_NEW 不生效",
+        "points": 30
+      },
+      {
+        "id": "tx2",
+        "text": "说明 REQUIRES_NEW 挂起外层、内层独立提交/回滚",
+        "points": 25
+      },
+      {
+        "id": "tx3",
+        "text": "说明 REQUIRED 下内层异常标记 rollback-only，外层 catch 仍会回滚",
+        "points": 30
+      },
+      {
+        "id": "tx4",
+        "text": "给出拆 Bean/自身代理/异步事件等修复并指出注意点",
+        "points": 15
+      }
+    ],
+    "source": "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html",
+    "knowledge_ids": [
+      "ref:deep:java-spring-transaction"
+    ],
+    "tags": [
+      "Java",
+      "精读·Spring 与框架",
+      "Spring",
+      "事务",
+      "传播行为",
+      "自调用",
+      "回滚"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 3,
+      "goal": "依据 Spring 事务代理与传播行为推演自调用、异常吞掉和 rollback-only。",
+      "deliverable": "判断注解是否生效，写出三种传播场景的结果并给出修复。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:java-mybatis-executor-cache",
+    "kind": "engineering",
+    "title": "MyBatis：Executor、一级/二级缓存与失效边界 · 精读推演",
+    "topic": "八股题",
+    "prompt": "一个服务部署 3 个实例，MyBatis 开启了二级缓存。用户在实例 A 更新了商品价格并提交，随后请求落到实例 B，B 仍然返回旧价格；重启 B 后恢复正常。\n\n1. 说明一级缓存和二级缓存的作用域，为什么这个旧值能存活。\n2. 为什么实例 A 的 update 没有清掉实例 B 的缓存？\n3. 给出两种修复方案，并说明各自代价。",
+    "answer": "1. 一级缓存属于单个 SqlSession，随会话关闭而消失；二级缓存属于 namespace，存在于 JVM 内，可被多个 SqlSession 共享。实例 B 的二级缓存保存了旧查询结果，所以没有回源数据库。\n\n2. 二级缓存是进程内缓存，实例 A 的 update 只会清空 A 自己 JVM 中对应 namespace 的缓存，无法通知 B；若写操作在另一个 namespace，连 A 的相关缓存也未必清空。分布式部署下没有跨实例失效机制，旧值就会一直存在到 TTL 或重启。\n\n3. 方案一：关闭二级缓存，让每个请求回源数据库，配合数据库索引和连接池保证性能；代价是读压力回到数据库。方案二：改用 Redis 等集中式缓存，写后删除/更新缓存并设置合理 TTL，处理并发读写的一致性；代价是引入缓存一致性和额外依赖。也可以只对极少数不变字典数据开启二级缓存，并接受重启/长 TTL 的边界。",
+    "rubric": [
+      {
+        "id": "mb1",
+        "text": "区分一级缓存（SqlSession）与二级缓存（namespace/JVM）的作用域",
+        "points": 30
+      },
+      {
+        "id": "mb2",
+        "text": "说明跨实例写操作无法清除其他 JVM 的二级缓存",
+        "points": 30
+      },
+      {
+        "id": "mb3",
+        "text": "给出关闭二级缓存或改用 Redis 等集中缓存的方案",
+        "points": 25
+      },
+      {
+        "id": "mb4",
+        "text": "指出二级缓存仅适合极稳定数据，并说明 TTL/序列化/可变对象边界",
+        "points": 15
+      }
+    ],
+    "source": "https://mybatis.org/mybatis-3/sqlmap-xml.html",
+    "knowledge_ids": [
+      "ref:deep:java-mybatis-executor-cache"
+    ],
+    "tags": [
+      "Java",
+      "精读·Spring 与框架",
+      "MyBatis",
+      "Executor",
+      "一级缓存",
+      "二级缓存"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 2,
+      "goal": "定位 MyBatis 缓存作用域导致的跨实例旧读，并选择可接受的缓存方案。",
+      "deliverable": "说明两级缓存生命周期、跨实例失效缺口和两种修复代价。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:java-netty-reactor",
+    "kind": "engineering",
+    "title": "Netty：EventLoop、ByteBuf 引用计数与写水位背压 · 精读推演",
+    "topic": "八股题",
+    "prompt": "一个网关用 Netty 接收请求，handler 里直接调用下游 SDK 的同步方法，平均耗时 50ms。压测时连接数从 100 增到 2000，所有请求的 P99 从 60ms 升到 2s，CPU 却不高。\n\n1. 用 EventLoop 线程模型解释为什么延迟会整体恶化。\n2. 说明 ByteBuf 在这个场景中的释放责任，漏掉 release 会发生什么。\n3. 给出线程模型和背压两方面的改造方案。",
+    "answer": "1. 每个 Channel 绑定一个 EventLoop，一个 EventLoop 线程服务多个 Channel。同步 SDK 调用阻塞了 EventLoop 线程，同一线程上的其他 Channel 无法读写和回调，连接越多排队越长；CPU 不高是因为线程都在等待 I/O，而不是在计算。\n\n2. 入站 ByteBuf 的引用计数由接收它的 handler 负责。若使用 `ChannelInboundHandlerAdapter` 且手动转换 msg，必须在 finally 中 release；漏掉会泄漏堆外内存，最终可能 OOM 或触发泄漏检测。若继承 `SimpleChannelInboundHandler`，基类会自动释放，不能再手动 release 已释放的对象。\n\n3. 线程模型：把阻塞 SDK 调用提交到独立业务线程池（或改异步客户端），EventLoop 只做编解码和轻量调度，结果通过 `ctx.executor().execute` 或 `writeAndFlush` 回到 Channel。背压：设置写水位，使用 `isWritable()` 拒绝或暂缓写入，限制每个连接的在途请求数；必要时对下游加连接池、超时和熔断。",
+    "rubric": [
+      {
+        "id": "nt1",
+        "text": "说明 Channel-EventLoop 绑定与单线程串行回调，解释阻塞的放大效应",
+        "points": 30
+      },
+      {
+        "id": "nt2",
+        "text": "正确说明 ByteBuf 的 release 责任与泄漏/重复释放后果",
+        "points": 25
+      },
+      {
+        "id": "nt3",
+        "text": "给出业务线程池或异步客户端卸载阻塞调用的方案",
+        "points": 25
+      },
+      {
+        "id": "nt4",
+        "text": "给出写水位/isWritable/在途请求限制等背压措施",
+        "points": 20
+      }
+    ],
+    "source": "https://netty.io/wiki/reference-counted-objects.html",
+    "knowledge_ids": [
+      "ref:deep:java-netty-reactor"
+    ],
+    "tags": [
+      "Java",
+      "精读·Spring 与框架",
+      "Netty",
+      "EventLoop",
+      "ByteBuf",
+      "背压"
+    ],
+    "training": {
+      "area": "网络与 Web",
+      "level": 3,
+      "goal": "用 Netty 线程模型与引用计数解释网关延迟和内存问题，并给出改造。",
+      "deliverable": "写出 EventLoop 阻塞链路、ByteBuf 释放责任和线程/背压改造。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:java-jvm-oom-troubleshoot",
+    "kind": "engineering",
+    "title": "JVM OOM 分型与排查：从堆转储到直接内存 · 精读推演",
+    "topic": "八股题",
+    "prompt": "一个服务运行数小时后报 `java.lang.OutOfMemoryError: Java heap space`，但堆转储里 `byte[]` 只占 15%，大量内存被 `java.lang.ref.Finalizer` 和线程栈占用；容器随后因内存超限被杀。\n\n1. 说明为什么不能只根据“heap space”就断定是 Java 堆泄漏。\n2. 给出至少三条下一步排查动作，并说明各自能验证什么。\n3. 如果确认是 Netty 堆外内存泄漏，修复方向是什么？",
+    "answer": "1. `Java heap space` 只表示堆内分配失败，但堆转储的占用比例、Finalizer 队列、线程栈和堆外内存都可能参与整体内存压力；容器还可能先因 RSS 超限被 OOM Killer 杀掉。堆转储小并不等于没有内存问题，可能问题在直接内存、Metaspace、线程栈或 native 库。\n\n2. 动作一：用 `jcmd <pid> VM.native_memory summary`（需开启 NMT）对比 Java 堆、Class、Thread、Code、Internal 等区域，确认堆外增长；动作二：用 `jcmd <pid> GC.heap_info`、`jstat -gc` 看堆使用和 GC 回收效果，区分泄漏与容量不足；动作三：检查线程数和栈大小（`jcmd Thread.print`、`ulimit -u`、cgroup 限制），排除 native thread OOM；动作四：开启 `-XX:NativeMemoryTracking=detail` 或 JFR 观察直接内存/分配热点。\n\n3. 若是 Netty 堆外泄漏，检查 ByteBuf 的 retain/release 配对，优先使用 `SimpleChannelInboundHandler` 自动释放，开启 `-Dio.netty.leakDetection.level=paranoid` 复现泄漏点；同时限制直接内存上限和连接在途数据，修复未释放的异常分支。",
+    "rubric": [
+      {
+        "id": "oom1",
+        "text": "指出 heap space 不等于唯一内存区域，需区分堆/堆外/线程/容器限制",
+        "points": 30
+      },
+      {
+        "id": "oom2",
+        "text": "给出 NMT、GC 日志、线程数/限制、JFR 等至少三条排查动作及验证目标",
+        "points": 35
+      },
+      {
+        "id": "oom3",
+        "text": "说明堆转储的局限（只覆盖 Java 堆、Leak Suspects 是启发式）",
+        "points": 15
+      },
+      {
+        "id": "oom4",
+        "text": "给出 ByteBuf release/泄漏检测/直接内存上限等 Netty 修复方向",
+        "points": 20
+      }
+    ],
+    "source": "https://docs.oracle.com/en/java/javase/17/troubleshoot/troubleshooting-memory-leaks.html",
+    "knowledge_ids": [
+      "ref:deep:java-jvm-oom-troubleshoot"
+    ],
+    "tags": [
+      "Java",
+      "精读·JVM 与工程",
+      "OOM",
+      "堆转储",
+      "Metaspace",
+      "直接内存",
+      "NMT"
+    ],
+    "training": {
+      "area": "测试与排障",
+      "level": 3,
+      "goal": "按 OOM 分型选择证据，区分 Java 堆、堆外和线程资源问题。",
+      "deliverable": "写出分型判断、三条排查动作及 Netty 堆外泄漏修复。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:backend-redis-event-loop",
+    "kind": "engineering",
+    "title": "Redis 单线程事件循环：为什么快，又为什么会被一条命令拖死 · 精读推演",
+    "topic": "八股题",
+    "prompt": "某接口每隔几分钟出现一次 2 秒延迟，监控显示 Redis CPU 不高、连接数正常，但 `SLOWLOG` 里有一条 `KEYS user:*`，执行耗时 1.8 秒。调用方还使用了大量 `HGETALL` 读取大 hash。\n\n1. 解释为什么一条慢命令会让所有客户端一起变慢，而不是只影响一个请求。\n2. 说明 Redis 6 的 I/O 线程为什么不能解决这个问题。\n3. 给出 `KEYS` 和大 key 的替代方案，并指出一个仍可能阻塞主线程的场景。",
+    "answer": "1. Redis 主线程串行执行命令，`KEYS user:*` 执行期间事件循环无法处理其他连接的命令，所有请求都在队列里等待，所以表现为全局延迟上升，而不是单 key 慢。Redis CPU 不高是因为慢在遍历和内存访问，不一定打满单核。\n\n2. Redis 6 的 I/O 线程只负责 socket 读写和协议解析，命令执行仍在主线程串行。`KEYS` 是命令执行阶段的工作，I/O 多线程无法拆分它。\n\n3. 用 `SCAN` 游标分批遍历，避免一次性扫描全库；大 hash 用 `HSCAN` 分批读取，或按业务拆成多个小 key；删除大 key 用 `UNLINK` 异步释放。仍可能阻塞的场景包括长 Lua 脚本、对超大集合做 `ZRANGE`/`SUNION`、RDB fork 或 AOF fsync 引起的延迟毛刺；需要结合 slowlog、latency monitor 和大 key 扫描持续治理。",
+    "rubric": [
+      {
+        "id": "re1",
+        "text": "说明主线程串行执行导致全局排队，而非单请求变慢",
+        "points": 35
+      },
+      {
+        "id": "re2",
+        "text": "正确区分 I/O 线程与命令执行线程，指出 I/O 多线程不能拆分慢命令",
+        "points": 25
+      },
+      {
+        "id": "re3",
+        "text": "给出 SCAN/HSCAN/UNLINK 等替代方案",
+        "points": 25
+      },
+      {
+        "id": "re4",
+        "text": "指出 Lua、大集合操作、fork/fsync 等仍可能阻塞的边界",
+        "points": 15
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-single-thread-model.md",
+    "knowledge_ids": [
+      "ref:deep:backend-redis-event-loop"
+    ],
+    "tags": [
+      "后端",
+      "精读·Redis",
+      "Redis",
+      "事件循环",
+      "单线程",
+      "慢查询"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 3,
+      "goal": "用 Redis 事件循环解释全局延迟毛刺，并治理慢命令与大 key。",
+      "deliverable": "写出阻塞链路、I/O 线程边界和可执行的替代命令。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:backend-redis-persistence",
+    "kind": "engineering",
+    "title": "Redis 持久化：RDB、AOF 与 fsync 的持久性取舍 · 精读推演",
+    "topic": "八股题",
+    "prompt": "一个 Redis 实例开启 `appendonly yes`、`appendfsync everysec`，承载订单状态缓存。机房断电后恢复，发现最后约 1 秒的订单状态更新丢失；业务方要求“绝不丢单”。\n\n1. 解释 `everysec` 为什么会有约 1 秒的丢失窗口。\n2. 改成 `always` 能带来什么、代价是什么？是否就能绝对不丢？\n3. 给出一个比“把 Redis 当唯一存储”更合理的架构方案。",
+    "answer": "1. `everysec` 由后台线程每秒 fsync 一次，写入先进入 AOF 缓冲区和 OS 页缓存；断电时尚未 fsync 的部分会丢失，因此最多约 1 秒。具体丢失量取决于写入速率和 fsync 时机。\n\n2. `always` 让每次写命令都等待 fsync，丢失窗口最小，但每次写都有磁盘同步开销，吞吐和尾延迟明显变差；磁盘故障、文件系统缓存、主从异步复制和故障切换仍可能造成丢失，所以它也不是绝对保证，只是缩小窗口。\n\n3. 订单的权威数据应落在支持事务和持久化的数据库（如 MySQL），Redis 只作为缓存/加速层；用 outbox 或事务消息保证数据库提交后缓存/消息最终一致；对账和补偿处理极端情况。若确实需要 Redis 持久化，可评估 AOF `always` + 多副本 + 定期备份，但仍要接受故障切换的窗口。",
+    "rubric": [
+      {
+        "id": "rp1",
+        "text": "解释 everysec 的 1 秒 fsync 窗口与丢失来源",
+        "points": 30
+      },
+      {
+        "id": "rp2",
+        "text": "说明 always 降低丢失窗口但带来每次写同步开销，且仍非绝对",
+        "points": 25
+      },
+      {
+        "id": "rp3",
+        "text": "指出主从异步复制/故障切换也会丢数据",
+        "points": 20
+      },
+      {
+        "id": "rp4",
+        "text": "给出数据库为权威、Redis 为缓存/加速的架构方案",
+        "points": 25
+      }
+    ],
+    "source": "https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/",
+    "knowledge_ids": [
+      "ref:deep:backend-redis-persistence"
+    ],
+    "tags": [
+      "后端",
+      "精读·Redis",
+      "Redis",
+      "RDB",
+      "AOF",
+      "持久化",
+      "fsync"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 3,
+      "goal": "在 RDB/AOF/fsync 之间做持久性取舍，并识别 Redis 作为唯一存储的边界。",
+      "deliverable": "说明丢失窗口、always 的代价，并给出权威存储与缓存分层方案。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:backend-redis-cluster",
+    "kind": "engineering",
+    "title": "Redis 集群：主从复制、哨兵与 16384 个槽 · 精读推演",
+    "topic": "八股题",
+    "prompt": "一个 3 主 3 从的 Redis Cluster 中，主节点 A 宕机。客户端先收到大量 `CLUSTERDOWN`，随后部分请求返回 `MOVED`；恢复后发现 A 上最后几百毫秒的写入丢失。\n\n1. 说明从节点接管槽的过程，以及为什么会出现短暂不可用和 MOVED。\n2. 解释异步复制为什么会导致最后写入丢失，`min-replicas-to-write` 能做什么。\n3. 如果业务有多 key 原子操作，应该如何设计 key？",
+    "answer": "1. 主节点 A 失效后，集群通过节点间故障检测和从节点竞选，让 A 的一个从节点接管其槽；在选举完成前，客户端访问这些槽会得到 CLUSTERDOWN 或连接失败。新主上线后，客户端缓存的旧槽映射会指向 A，于是收到 MOVED，更新映射后重试即可。\n\n2. 主从复制是异步的：主节点写成功并不等待从节点确认，主节点宕机时尚未复制到从节点的写会丢失。`min-replicas-to-write` 要求至少有 N 个从节点确认，否则主节点拒绝写，可以缩小丢失窗口，但会降低可用性，且不能完全消除故障切换瞬间的丢失。\n\n3. 需要原子操作的多 key 应使用 hash tag，把相关 key 强制映射到同一槽，例如 `order:{123}:amount` 和 `order:{123}:status`；这样 MGET、事务或 Lua 才能在同一节点执行。不要让无关大 key 共享同一个 tag，避免热点。",
+    "rubric": [
+      {
+        "id": "rc1",
+        "text": "说明从节点竞选接管槽，选举期间不可用、旧映射产生 MOVED",
+        "points": 30
+      },
+      {
+        "id": "rc2",
+        "text": "解释异步复制导致未同步写入丢失，min-replicas 的取舍",
+        "points": 30
+      },
+      {
+        "id": "rc3",
+        "text": "用 hash tag 让多 key 落同一槽，并指出热 key 风险",
+        "points": 25
+      },
+      {
+        "id": "rc4",
+        "text": "明确集群不是强一致，故障切换有窗口",
+        "points": 15
+      }
+    ],
+    "source": "https://redis.io/docs/latest/operate/oss_and_stack/management/scaling/",
+    "knowledge_ids": [
+      "ref:deep:backend-redis-cluster"
+    ],
+    "tags": [
+      "后端",
+      "精读·Redis",
+      "Redis Cluster",
+      "哨兵",
+      "槽",
+      "MOVED",
+      "复制"
+    ],
+    "training": {
+      "area": "数据库",
+      "level": 3,
+      "goal": "解释 Redis Cluster 的故障切换、重定向与多 key 约束。",
+      "deliverable": "写出接管过程、异步复制丢失窗口和 hash tag 设计。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:backend-cache-failures",
+    "kind": "engineering",
+    "title": "缓存穿透、击穿与雪崩：三种失效模式的不同药方 · 精读推演",
+    "topic": "八股题",
+    "prompt": "电商详情页使用 Redis 缓存商品，TTL 统一 1 小时。大促开始瞬间，大量商品缓存同时过期，数据库连接池被打满；同时有爬虫用随机不存在的商品 ID 持续请求。\n\n1. 分别指出“同时过期”和“随机不存在 ID”属于哪类缓存问题。\n2. 给出针对这两类问题的具体方案，并说明各自副作用。\n3. 如果 Redis 整个集群不可用，应该怎样保护数据库？",
+    "answer": "1. 大量商品缓存同时过期属于雪崩；随机不存在的商品 ID 每次都绕过缓存打到数据库，属于穿透。热点商品单个 key 过期瞬间的并发回源才是击穿。\n\n2. 雪崩：给 TTL 加随机抖动，避免同一时刻集中过期；使用多级缓存（本地 + Redis）；对 DB 访问限流/熔断；Redis 集群做高可用。副作用是本地缓存有一致性延迟，限流会拒绝部分请求。穿透：缓存空值并设置较短 TTL，或使用布隆过滤器提前拦截不存在的 ID；副作用是空值占内存、布隆过滤器有假阳性且删除麻烦。\n\n3. Redis 不可用时不要把所有请求直接放给 DB：在入口限流，启用本地缓存兜底，对非核心功能降级，熔断 DB 访问并快速失败；同时监控 DB 连接池和 RT，优先保证核心链路。缓存层的高可用（哨兵/集群）和容量演练要在故障前完成。",
+    "rubric": [
+      {
+        "id": "cf1",
+        "text": "正确区分雪崩（面）与穿透（不存在 key），不混淆击穿",
+        "points": 25
+      },
+      {
+        "id": "cf2",
+        "text": "给出 TTL 抖动/多级缓存/限流等雪崩方案及副作用",
+        "points": 30
+      },
+      {
+        "id": "cf3",
+        "text": "给出空值缓存或布隆过滤器等穿透方案及副作用",
+        "points": 25
+      },
+      {
+        "id": "cf4",
+        "text": "说明 Redis 整体故障时应限流/降级/熔断保护 DB",
+        "points": 20
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-caching-avalanche-and-caching-penetration.md",
+    "knowledge_ids": [
+      "ref:deep:backend-cache-failures"
+    ],
+    "tags": [
+      "后端",
+      "精读·缓存",
+      "缓存穿透",
+      "缓存击穿",
+      "缓存雪崩",
+      "布隆过滤器"
+    ],
+    "training": {
+      "area": "性能与交付",
+      "level": 3,
+      "goal": "按 miss 模式区分穿透/击穿/雪崩，并设计带副作用的防护。",
+      "deliverable": "判断两类现象、写出对应方案与副作用，并给出缓存全失效时的 DB 保护。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:backend-cache-consistency",
+    "kind": "engineering",
+    "title": "缓存一致性：先删缓存还是先写库，能保证什么 · 精读推演",
+    "topic": "八股题",
+    "prompt": "商品服务采用 cache-aside：写请求更新 MySQL 后删除 Redis，读请求 miss 时回源并回填。某次大促后，个别商品价格在缓存中一直是旧值，直到 TTL 到期。\n\n1. 画出一种导致旧值长期存在的并发交错。\n2. 说明“先删缓存再写库”是否更好，为什么。\n3. 给出两种缩小不一致窗口的方案，并指出它们仍不能保证什么。",
+    "answer": "1. 读请求 T1 先 miss，查到旧值 v1 后暂停；写请求 T2 更新数据库为 v2 并删除缓存；T1 恢复后把 v1 回填。此后缓存一直是 v1，直到 TTL 过期或被再次删除。这是读回填与写删除交错导致的旧值回填。\n\n2. 不一定更好。先删缓存再写库时，如果写库前有读请求 miss 并回填旧值，写库后缓存仍是旧值；如果写库失败，还可能出现缓存已删、数据库未更新的空窗。两种顺序都不能单独消除并发交错，关键在于删除时机、重试和版本控制。\n\n3. 方案一：延迟双删，写库后删除，延迟一段时间再删一次，覆盖可能的旧值回填；延迟难精确，极端交错仍可能漏网。方案二：订阅 binlog 异步删除缓存，保证删除动作可重试、可观测；仍有传播延迟。两者都只能做到最终一致，不能保证任意时刻缓存与数据库强一致；强一致需要锁/事务或牺牲缓存。",
+    "rubric": [
+      {
+        "id": "cc1",
+        "text": "画出读回填与写删除交错导致旧值长期存在",
+        "points": 35
+      },
+      {
+        "id": "cc2",
+        "text": "说明先删缓存再写库也有空窗/旧值回填，不是银弹",
+        "points": 25
+      },
+      {
+        "id": "cc3",
+        "text": "给出延迟双删或 binlog 订阅方案，并说明重试/延迟边界",
+        "points": 25
+      },
+      {
+        "id": "cc4",
+        "text": "明确只能最终一致，强一致需锁/事务或放弃缓存",
+        "points": 15
+      }
+    ],
+    "source": "https://github.com/doocs/advanced-java/blob/main/docs/high-concurrency/redis-consistence.md",
+    "knowledge_ids": [
+      "ref:deep:backend-cache-consistency"
+    ],
+    "tags": [
+      "后端",
+      "精读·缓存",
+      "缓存一致性",
+      "cache-aside",
+      "延迟双删",
+      "binlog"
+    ],
+    "training": {
+      "area": "性能与交付",
+      "level": 3,
+      "goal": "用并发交错解释缓存旧值，并在最终一致与强一致之间做取舍。",
+      "deliverable": "写出旧值回填时序、两种方案及残余不一致窗口。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:backend-redis-lock",
+    "kind": "engineering",
+    "title": "Redis 分布式锁：SET NX PX、Lua 释放与 fencing token · 精读推演",
+    "topic": "八股题",
+    "prompt": "订单服务用 Redis 锁防止重复处理：`SET lock:order:1 token NX PX 30000`，业务处理偶尔因 GC 停顿超过 30 秒。某次出现两个线程同时处理同一订单，库存被扣了两次。\n\n1. 说明锁为什么会失效，以及为什么“释放时先 GET 再 DEL”仍不安全。\n2. 给出正确的释放方式，并解释它解决了什么、没解决什么。\n3. 给出两种防止重复扣减的兜底方案。",
+    "answer": "1. 业务执行超过 30 秒时锁自动过期，另一个线程可以加锁并进入临界区；原线程恢复后已经不再持有锁。若释放时先 GET 比较再 DEL，比较和删除之间锁可能过期并被新持有者获取，原线程仍会删掉新锁，所以需要原子比较删除。\n\n2. 用 Lua 在 Redis 内原子地比较 token 后删除，避免误删别人的锁。它解决误删，不解决锁过期后两个线程并发进入临界区的问题；锁过期期间业务仍可能并发执行。\n\n3. 兜底一：下游使用唯一约束/状态机，例如订单状态从“待处理”条件更新为“处理中”，只有一个更新成功；兜底二：使用单调递增的 fencing token，下游拒绝比已见 token 更旧的写。还可以加长 TTL + 看门狗续期，但续期线程也可能被 GC/网络阻塞，不能单独作为正确性保证。",
+    "rubric": [
+      {
+        "id": "dl1",
+        "text": "解释 TTL 短于业务时间导致锁失效，GET+DEL 非原子会误删",
+        "points": 30
+      },
+      {
+        "id": "dl2",
+        "text": "给出 Lua 比较 token 的原子释放，并说明它不解决并发临界区",
+        "points": 25
+      },
+      {
+        "id": "dl3",
+        "text": "给出版本号/唯一约束/状态机等幂等兜底",
+        "points": 30
+      },
+      {
+        "id": "dl4",
+        "text": "指出主从异步复制下锁可能丢失，不能声称绝对安全",
+        "points": 15
+      }
+    ],
+    "source": "https://redis.io/docs/latest/commands/set/",
+    "knowledge_ids": [
+      "ref:deep:backend-redis-lock"
+    ],
+    "tags": [
+      "后端",
+      "精读·缓存",
+      "分布式锁",
+      "SET NX",
+      "Lua",
+      "fencing token"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 3,
+      "goal": "识别 Redis 锁的过期与误删边界，并用幂等/版本号兜底。",
+      "deliverable": "写出正确加锁释放、锁失效时序和两种防重方案。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:backend-kafka-isr",
+    "kind": "engineering",
+    "title": "Kafka 架构：分区、副本、ISR 与 acks=all 的真实含义 · 精读推演",
+    "topic": "八股题",
+    "prompt": "订单 Topic 配置 3 副本、`min.insync.replicas=2`、生产者 `acks=all`。某时段一个 Broker 磁盘变慢，落后副本被踢出 ISR；随后另一个 Broker 宕机，生产者开始大量报 `NotEnoughReplicas`。\n\n1. 解释 ISR 为什么会缩小，以及 `NotEnoughReplicas` 的触发条件。\n2. 此时系统为什么选择拒绝写入而不是继续写 Leader？\n3. 如果为了“先把订单收下来”改成 `acks=1`，会有什么风险？给出更合理的处置。",
+    "answer": "1. Follower 的拉取进度落后超过 `replica.lag.time.max.ms` 时会被移出 ISR。一个副本变慢后 ISR 从 3 缩到 2；另一个 Broker 宕机后，ISR 只剩 Leader，少于 `min.insync.replicas=2`，生产者写入被拒绝并报 `NotEnoughReplicas`。\n\n2. 如果继续只写 Leader，Leader 随后故障时，这条消息可能没有复制到任何其他副本，已确认的数据会丢失。拒绝写入是用可用性换一致性，避免把“确认成功”建立在没有冗余的基础上。\n\n3. 改成 `acks=1` 会让生产者只等 Leader，Broker 故障时可能丢订单；这违背了订单不能丢的约束。更合理的处置是：先恢复慢/宕机 Broker，检查磁盘和网络；临时降低生产速率或暂停非核心流量；确认 ISR 恢复后再放量；必要时扩容 Broker/分区，并保留监控告警。",
+    "rubric": [
+      {
+        "id": "ki1",
+        "text": "解释 ISR 缩小条件与 NotEnoughReplicas 触发",
+        "points": 30
+      },
+      {
+        "id": "ki2",
+        "text": "说明拒绝写入是为了避免 Leader 故障丢已确认消息",
+        "points": 30
+      },
+      {
+        "id": "ki3",
+        "text": "指出 acks=1 会扩大丢失窗口，不能解决根因",
+        "points": 20
+      },
+      {
+        "id": "ki4",
+        "text": "给出恢复 Broker/限流/扩容等处置，而不是只调参数",
+        "points": 20
+      }
+    ],
+    "source": "https://kafka.apache.org/documentation/#design",
+    "knowledge_ids": [
+      "ref:deep:backend-kafka-isr"
+    ],
+    "tags": [
+      "后端",
+      "精读·消息队列",
+      "Kafka",
+      "ISR",
+      "acks",
+      "副本",
+      "min.insync.replicas"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 3,
+      "goal": "把 ISR、acks 与 min.insync.replicas 联系到真实的写入拒绝和丢数据风险。",
+      "deliverable": "解释 ISR 收缩、拒绝写入的原因，并给出不以丢数据换可用的处置。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:backend-kafka-reliability",
+    "kind": "engineering",
+    "title": "Kafka 可靠性与幂等：重试、去重与 exactly-once 的边界 · 精读推演",
+    "topic": "八股题",
+    "prompt": "订单消费者处理消息后写数据库，再提交 offset。上线后偶发同一订单被处理两次；另有消费者在 rebalance 后重复消费。团队想通过“开启 Kafka 事务”一次性解决。\n\n1. 解释重复消费的来源，以及为什么“处理成功但 offset 未提交”会重复。\n2. Kafka 事务能保证什么、不能保证什么？\n3. 给出一个从生产者到消费者的完整防重方案。",
+    "answer": "1. 消费者先处理业务、后提交 offset 时，如果处理成功但提交前崩溃或 rebalance，新的消费者会从上次已提交 offset 重新消费，导致重复。生产者重试也可能写入重复消息；默认至少一次语义不保证只处理一次。\n\n2. Kafka 事务可以保证事务内多条消息和 offset 提交的原子性，配合 `read_committed` 让消费者只看到已提交消息，实现 Kafka 内部的 exactly-once。它不能覆盖数据库写入、外部调用等副作用，也不能阻止生产者重复发送非事务消息；跨系统仍需幂等。\n\n3. 生产者开启 `enable.idempotence=true`、`acks=all`，必要时使用事务；消费者以业务唯一键（订单号 + 事件类型）写去重表或 Redis SETNX，在同一个数据库事务中完成业务写入和去重记录；处理成功后再提交 offset。对关键业务用 outbox/对账补偿，接受至少一次并保证幂等结果。",
+    "rubric": [
+      {
+        "id": "kr1",
+        "text": "解释处理成功但 offset 未提交/rebalance 导致重复",
+        "points": 30
+      },
+      {
+        "id": "kr2",
+        "text": "说明 Kafka 事务只覆盖 Kafka 内部消息+offset，不覆盖外部副作用",
+        "points": 30
+      },
+      {
+        "id": "kr3",
+        "text": "给出幂等生产者 + 业务唯一键/去重表 + 处理后再提交 offset",
+        "points": 25
+      },
+      {
+        "id": "kr4",
+        "text": "指出 exactly-once 的成本与至少一次+幂等的现实取舍",
+        "points": 15
+      }
+    ],
+    "source": "https://kafka.apache.org/documentation/#semantics",
+    "knowledge_ids": [
+      "ref:deep:backend-kafka-reliability"
+    ],
+    "tags": [
+      "后端",
+      "精读·消息队列",
+      "Kafka",
+      "幂等",
+      "事务",
+      "exactly-once",
+      "offset"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 3,
+      "goal": "区分 Kafka 事务与业务幂等，设计端到端的防重链路。",
+      "deliverable": "写出重复来源、事务边界和生产者/消费者防重方案。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:backend-rocketmq-transaction",
+    "kind": "engineering",
+    "title": "RocketMQ 事务消息：半消息、本地事务与回查 · 精读推演",
+    "topic": "八股题",
+    "prompt": "订单服务需要在“订单库插入成功”后发送“创建库存预占”消息。当前代码先插库再发消息，曾出现数据库提交成功但消息发送失败，库存没有预占；也出现过消息发成功但订单事务回滚，库存被错误预占。\n\n1. 说明这两种不一致分别发生在哪个窗口。\n2. 用 RocketMQ 事务消息描述修复后的时序，并指出回查的作用。\n3. 消费者是否还需要幂等？为什么？",
+    "answer": "1. 先插库再发消息：数据库提交后、消息发送前崩溃或网络失败，消息没发出去，库存不预占。先发消息再插库：消息已发出，但本地事务回滚，消费者仍会预占库存，造成错误预占。\n\n2. 修复后：生产者先发半消息（消费者不可见）→ 执行本地订单事务 → 成功则提交消息，失败则回滚；若生产者在本地事务后崩溃，Broker 回查生产者，生产者查询订单是否已提交并回答 COMMIT/ROLLBACK。这样只有本地事务成功，消息才对消费者可见。\n\n3. 仍需要。消息可能重复投递（重试、回查后重复提交、消费者 rebalance），消费者应以订单号/预占单号做唯一约束或去重表，保证重复消费不会重复预占库存；下游失败还要有重试、死信和补偿。",
+    "rubric": [
+      {
+        "id": "rm1",
+        "text": "分别指出先插库后发消息、先发消息后插库的两个不一致窗口",
+        "points": 30
+      },
+      {
+        "id": "rm2",
+        "text": "写出半消息-本地事务-提交/回滚-回查的完整时序",
+        "points": 35
+      },
+      {
+        "id": "rm3",
+        "text": "说明回查依赖可查询的本地事务状态且需幂等",
+        "points": 15
+      },
+      {
+        "id": "rm4",
+        "text": "指出消费者仍需幂等，事务消息不覆盖下游副作用",
+        "points": 20
+      }
+    ],
+    "source": "https://rocketmq.apache.org/docs/",
+    "knowledge_ids": [
+      "ref:deep:backend-rocketmq-transaction"
+    ],
+    "tags": [
+      "后端",
+      "精读·消息队列",
+      "RocketMQ",
+      "事务消息",
+      "半消息",
+      "回查"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 3,
+      "goal": "用 RocketMQ 事务消息消除本地事务与发消息的窗口，并保留消费幂等。",
+      "deliverable": "写出两种不一致窗口、事务消息时序和消费端防重。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:backend-mq-order-backlog",
+    "kind": "engineering",
+    "title": "消息顺序与积压：同 key 同分区、单线程消费与容量估算 · 精读推演",
+    "topic": "八股题",
+    "prompt": "订单事件按 orderId 发送，消费者用线程池并发处理同一分区的消息。上线后发现同一订单的“创建”和“支付”事件偶尔乱序；同时大促后积压 100 万条，消费者从 4 个加到 16 个也没有明显改善。\n\n1. 解释乱序的原因，并给出保证单订单顺序的方案。\n2. 为什么消费者加到 16 个仍无法提升吞吐？给出排查顺序。\n3. 若确认瓶颈是单条处理 50ms 且下游可承受更高并发，如何设计扩容？",
+    "answer": "1. 同一分区的消息被线程池并发处理，完成顺序不再等于消费顺序；即使发送时按 orderId 路由，消费端并发也会乱序。应让同一分区由单线程按序处理，或按 orderId 再做内存队列串行化；发送端按 orderId 选择同一分区/队列。\n\n2. 可能是分区数只有 4，Kafka 中消费者数超过分区数后多出的消费者空闲；也可能是单条处理慢、下游限流、rebalance 频繁或消费线程被阻塞。排查顺序：看 consumer lag 与分区数、每个分区的消费速率、单条 RT 与下游 RT、rebalance/异常日志，再决定加分区、优化处理或扩容下游。\n\n3. 先确认下游能承受并发，再增加分区并同步扩容消费者（消费者数不超过分区数），按 orderId 保持同分区；把单条 50ms 中的阻塞调用批量化/异步化，或拆分快慢链路。扩容后要验证顺序性没有被破坏，并监控 lag 是否持续下降。",
+    "rubric": [
+      {
+        "id": "mo1",
+        "text": "指出同分区多线程消费导致乱序，给出单线程/按 key 串行方案",
+        "points": 30
+      },
+      {
+        "id": "mo2",
+        "text": "说明消费者数受分区数限制，不能盲目扩容",
+        "points": 25
+      },
+      {
+        "id": "mo3",
+        "text": "给出 lag/分区/RT/下游/rebalance 的排查顺序",
+        "points": 25
+      },
+      {
+        "id": "mo4",
+        "text": "给出增加分区+消费者+下游容量的扩容设计，并保持顺序",
+        "points": 20
+      }
+    ],
+    "source": "https://kafka.apache.org/documentation/#theconsumer",
+    "knowledge_ids": [
+      "ref:deep:backend-mq-order-backlog"
+    ],
+    "tags": [
+      "后端",
+      "精读·消息队列",
+      "消息顺序",
+      "积压",
+      "分区",
+      "consumer lag"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 3,
+      "goal": "在顺序性与吞吐之间取舍，并定位积压的真实瓶颈。",
+      "deliverable": "写出乱序原因、顺序方案、扩容限制与排查顺序。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:backend-idempotency",
+    "kind": "engineering",
+    "title": "幂等设计：唯一键、状态机与“至少一次”的现实 · 精读推演",
+    "topic": "八股题",
+    "prompt": "支付网关回调订单服务，超时后会重试同一笔支付。订单服务当前逻辑是：查询订单状态，若未支付则扣库存、加余额、更新为已支付。大促时出现同一笔支付加了两次余额。\n\n1. 解释并发回调下“先查再改”为什么会重复入账。\n2. 给出基于数据库的幂等方案，并说明并发时如何原子化。\n3. 如果引入 Redis 做前置去重，它应承担什么角色、不能替代什么？",
+    "answer": "1. 两个回调同时查询到“未支付”，都通过判断，然后各自执行加余额和更新，导致重复入账；查询和更新不是原子的，中间没有唯一约束或锁保护。\n\n2. 用支付流水号作为业务唯一键，在数据库中建唯一索引；把“加余额、写流水、更新订单状态、写幂等记录”放在同一事务中，重复插入会触发唯一冲突，捕获后查询并返回已处理结果。也可以用订单状态条件更新：`UPDATE orders SET status='已支付' WHERE id=? AND status='待支付'`，只有影响行数为 1 的请求继续入账。\n\n3. Redis SETNX 可以作为快速前置拦截，减少数据库压力，但它可能因过期、主从切换、网络分区而失效，不能替代数据库唯一约束/状态机。正确做法是 Redis 挡一层，数据库唯一键和事务做最终保证；同时记录幂等键和结果，支持重试返回同一结果。",
+    "rubric": [
+      {
+        "id": "id1",
+        "text": "解释先查再改在并发下同时通过判断导致重复入账",
+        "points": 30
+      },
+      {
+        "id": "id2",
+        "text": "给出唯一索引或条件更新的原子方案，并说明事务边界",
+        "points": 35
+      },
+      {
+        "id": "id3",
+        "text": "明确 Redis 只是前置拦截，不能替代数据库最终约束",
+        "points": 20
+      },
+      {
+        "id": "id4",
+        "text": "说明幂等键 TTL/结果记录/迟到重试的边界",
+        "points": 15
+      }
+    ],
+    "source": "https://microservices.io/patterns/data/saga.html",
+    "knowledge_ids": [
+      "ref:deep:backend-idempotency"
+    ],
+    "tags": [
+      "后端",
+      "精读·工程可靠性",
+      "幂等",
+      "唯一键",
+      "状态机",
+      "重试"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 3,
+      "goal": "把“至少一次”调用转化为可证明的幂等实现。",
+      "deliverable": "写出并发重复的时序、数据库原子方案和 Redis 的角色边界。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:backend-distributed-transaction",
+    "kind": "engineering",
+    "title": "分布式事务：2PC、TCC、Saga 与本地消息表怎么选 · 精读推演",
+    "topic": "八股题",
+    "prompt": "下单流程涉及订单库、库存服务和支付服务。团队最初用 XA 两阶段提交，压测时吞吐很低、数据库连接长期被占用；后来改成“订单库提交后发 MQ，库存和支付各自消费”，又出现订单已创建但消息没发、库存未预占。\n\n1. 说明 XA 为什么吞吐低，以及它仍然不能覆盖哪些问题。\n2. 用本地消息表/事务消息描述修复“订单已提交但消息未发”的方案。\n3. 库存服务消费消息时还需要处理哪些幂等/补偿边界？",
+    "answer": "1. XA 在准备阶段持有资源锁直到全局提交/回滚，跨库协调和日志同步拉长事务，吞吐低、连接占用久；协调者故障还可能让参与者长期处于不确定状态。XA 也不能解决消息投递、下游业务失败和跨系统补偿，只覆盖参与资源的事务原子性。\n\n2. 在订单库的同一本地事务中写订单和 outbox 消息（状态 pending），事务提交后由后台任务发送 MQ，成功则标记 sent，失败可重试；或者使用 RocketMQ 事务消息，先半消息、本地事务、再提交/回查。这样不会出现订单已提交但消息完全没发出的窗口，最坏是延迟发送，需要重试和对账。\n\n3. 库存消费要幂等：以订单号 + 商品号做唯一约束或去重表，避免重复预占；处理成功后再提交 offset；失败进入重试/死信并告警；对“订单已取消但库存预占成功”等反向场景做补偿；定期对账订单与库存，发现悬挂/漏处理。",
+    "rubric": [
+      {
+        "id": "dt1",
+        "text": "说明 XA 的资源锁/协调者开销与覆盖边界",
+        "points": 30
+      },
+      {
+        "id": "dt2",
+        "text": "用 outbox 同库事务+后台重试或事务消息描述修复",
+        "points": 30
+      },
+      {
+        "id": "dt3",
+        "text": "指出消息可能延迟而非完全消除，需要重试/对账",
+        "points": 20
+      },
+      {
+        "id": "dt4",
+        "text": "给出消费端唯一键/去重、失败重试与反向补偿",
+        "points": 20
+      }
+    ],
+    "source": "https://microservices.io/patterns/data/saga.html",
+    "knowledge_ids": [
+      "ref:deep:backend-distributed-transaction"
+    ],
+    "tags": [
+      "后端",
+      "精读·工程可靠性",
+      "分布式事务",
+      "TCC",
+      "Saga",
+      "本地消息表",
+      "最终一致"
+    ],
+    "training": {
+      "area": "工程可靠性",
+      "level": 3,
+      "goal": "在强一致与最终一致之间选择分布式事务方案，并补齐落地边界。",
+      "deliverable": "比较 XA/本地消息表，写出 outbox 时序和消费端幂等补偿。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:backend-rate-limit",
+    "kind": "engineering",
+    "title": "限流：令牌桶、滑动窗口与分布式计数 · 精读推演",
+    "topic": "八股题",
+    "prompt": "某开放接口按“每个用户每秒 100 次”限流，使用固定窗口计数。压测发现下游在整秒交界处仍会出现双倍流量；线上多实例部署后，总请求量也超过预期。\n\n1. 解释固定窗口在整秒交界处为什么会让下游看到约 2 倍突发。\n2. 多实例各自本地计数会有什么问题？给出全局限流方案。\n3. 如果 Redis 限流服务超时，应该放行还是拒绝？说明取舍。",
+    "answer": "1. 固定窗口在 59.9 秒放行 100 个、60.0 秒又放行 100 个，两个窗口的请求在很短时间内叠加，下游实际承受接近 200 个/秒的瞬时流量；窗口越大、边界越明显。\n\n2. 每个实例独立计数时，N 个实例的总放行量是 N×阈值，无法约束全局流量。全局限流把计数放到 Redis，用 Lua 原子地读取、补充令牌/滑动计数并扣减；key 按用户/接口维度设计，设置合理 TTL，避免热 key。也可以网关层集中限流，应用层做本地兜底。\n\n3. 取决于业务：保护下游优先时应快速拒绝/降级，避免 Redis 故障时把全部流量放给下游；可用性优先时可短暂放行并依赖本地限流和熔断，但要有上限。常见做法是本地令牌桶兜底 + 全局限流，Redis 超时后按本地配额放行并告警，而不是无限放行。",
+    "rubric": [
+      {
+        "id": "rl1",
+        "text": "解释固定窗口临界处双倍突发的机制",
+        "points": 25
+      },
+      {
+        "id": "rl2",
+        "text": "指出多实例本地计数导致总阈值放大，给出 Redis Lua 全局方案",
+        "points": 30
+      },
+      {
+        "id": "rl3",
+        "text": "说明滑动窗口/令牌桶的平滑与突发取舍",
+        "points": 20
+      },
+      {
+        "id": "rl4",
+        "text": "对 Redis 超时给出放行/拒绝的取舍和本地兜底",
+        "points": 25
+      }
+    ],
+    "source": "https://nginx.org/en/docs/http/ngx_http_limit_req_module.html",
+    "knowledge_ids": [
+      "ref:deep:backend-rate-limit"
+    ],
+    "tags": [
+      "后端",
+      "精读·稳定性",
+      "限流",
+      "令牌桶",
+      "滑动窗口",
+      "Redis Lua"
+    ],
+    "training": {
+      "area": "性能与交付",
+      "level": 2,
+      "goal": "按流量特征选择限流算法，并处理分布式计数与故障降级。",
+      "deliverable": "写出固定窗口突刺、全局限流方案和 Redis 超时策略。"
+    }
+  },
+  {
+    "id": "knowledge:ref:deep:backend-circuit-breaker",
+    "kind": "engineering",
+    "title": "熔断与降级：closed/open/half-open 与重试预算 · 精读推演",
+    "topic": "八股题",
+    "prompt": "订单查询依赖推荐服务。推荐服务变慢后，订单接口的线程池被占满，连不依赖推荐的接口也开始超时。团队加了 3 次重试，故障反而更严重。\n\n1. 解释故障如何从推荐服务扩散到订单服务，以及重试为什么放大问题。\n2. 设计一个熔断方案，说明 closed/open/half-open 的阈值和动作。\n3. 推荐服务不可用时，订单接口应如何降级？",
+    "answer": "1. 推荐服务变慢导致订单服务的调用线程长时间等待，线程池被占满，后续请求排队，故障扩散到其他接口。重试会在下游已经过载时再增加请求量，形成重试风暴，进一步拉长排队和超时。\n\n2. 用熔断器统计失败率和慢调用率：closed 状态正常放行；当失败率超过 50% 或慢调用超过阈值且请求数足够时进入 open，直接快速失败/降级；等待 30 秒后进入 half-open，只放 5 个探测请求，成功则恢复 closed，失败则回到 open。阈值要结合流量基线，低流量时增加最小请求数。\n\n3. 推荐不是订单核心链路时，降级为不展示推荐或返回缓存/默认列表，保证订单主流程可用；同时记录降级指标和日志，恢复后自动切回。降级要有超时和容量上限，不能把推荐请求转到另一个同样脆弱的服务。",
+    "rubric": [
+      {
+        "id": "cb1",
+        "text": "解释线程池被慢调用占满导致故障扩散，重试放大流量",
+        "points": 30
+      },
+      {
+        "id": "cb2",
+        "text": "写出 closed/open/half-open 的阈值、动作和探测数量",
+        "points": 30
+      },
+      {
+        "id": "cb3",
+        "text": "说明重试预算/退避与幂等约束",
+        "points": 20
+      },
+      {
+        "id": "cb4",
+        "text": "给出非核心链路的缓存/默认值降级与可观测恢复",
+        "points": 20
+      }
+    ],
+    "source": "https://martinfowler.com/bliki/CircuitBreaker.html",
+    "knowledge_ids": [
+      "ref:deep:backend-circuit-breaker"
+    ],
+    "tags": [
+      "后端",
+      "精读·稳定性",
+      "熔断",
+      "降级",
+      "half-open",
+      "重试预算"
+    ],
+    "training": {
+      "area": "性能与交付",
+      "level": 3,
+      "goal": "用熔断三态阻断故障扩散，并协调超时、重试与降级。",
+      "deliverable": "写出故障扩散链路、熔断配置和降级方案。"
+    }
+  }
+]

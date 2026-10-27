@@ -17,3 +17,19 @@
 /browser-profile/
 /personal-desk-data-path.txt
 /personal-desk-update.log
+/docs/简历/
+__pycache__/
+*.py[cod]
+
+# 个人办公台内的本地工具运行数据（含个人资料与登录态，不提交）
+/BOSS直聘/data/
+/BOSS直聘/config.yaml
+/官网投递/data/
+/官网投递/config.yaml
+/官网投递/官网投递资料.md
+/接码/data/
+
+# 工作区个人记忆与一次性运行脚本，不提交
+/.workbuddy/
+/BOSS直聘/run_queue_*.ps1
+/BOSS直聘/run_queue_*.bat

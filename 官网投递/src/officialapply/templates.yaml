@@ -1,0 +1,555 @@
+# 官网网申模板目录
+# 说明：
+# - url_patterns / markers / ignore_sections 都是不区分大小写的正则。
+# - URL 命中权重最高；没有命中 URL 时，至少命中 2 个 markers 才会识别为该模板。
+# - hints 是给自动填写引擎的提示，不影响手动 fill/plan。
+# - 新站点可以在这里追加；也可以只在 config.yaml 的 sites 下写局部覆盖。
+version: 1
+
+defaults:
+  # 这些分区默认不自动填写，避免把求职者姓名/电话填进家属、证明人或登录框。
+  ignore_sections:
+    - '家庭(成员|状况|信息)?'
+    - '亲属|亲友|社会关系'
+    - '推荐人|内推人|证明人'
+    - '登录|注册|验证码|密码'
+  next_buttons:
+    - '下一步'
+    - '继续'
+    - '下一步骤'
+    - '保存并下一步'
+    - '保存并继续'
+    - '确认并继续'
+    - 'Next'
+    - 'Continue'
+    - 'Save and Continue'
+  final_buttons:
+    - '预览并提交'
+    - '提交申请'
+    - '提交简历'
+    - '确认提交'
+    - '确认投递'
+    - '完成投递'
+    - '提交报名'
+    - 'Submit Application'
+    - 'Submit application'
+    - 'Submit'
+
+templates:
+  - id: moka
+    name: Moka 招聘
+    vendor: Moka
+    priority: 100
+    url_patterns:
+      - 'app\.mokahr\.com'
+      - 'mokahr\.com'
+    markers:
+      - 'mokahr'
+      - 'sd-Input-input'
+      - 'required-asterisk'
+      - 'campus-recruitment'
+      - 'campus_apply'
+    hints:
+      upload_first: true
+      resume_parse_wait_seconds: 4
+      searchable_select: true
+      split_dates: true
+      login_modal: true
+      multi_step: false
+      stop_before_preview: true
+    ignore_sections:
+      - '家庭状况'
+      - '本人与本公司的亲友关系'
+      - '手机号登录'
+      - '邮箱登录'
+    entry_buttons: ['申请职位', '立即投递', '投递简历']
+    next_buttons: ['下一步']
+    final_buttons: ['预览并提交']
+    notes: '已用雅迪校招真实表单验证：45+ 字段、自定义下拉、年/月拆分、登录弹窗、声明勾选。'
+
+  - id: beisen
+    name: 北森 iTalent / 招聘门户
+    vendor: 北森
+    priority: 90
+    url_patterns:
+      - '\.zhiye\.com'
+      - 'beisen\.com'
+    markers:
+      - 'feo\.bstatics\.com'
+      - 'ux-recruitment-portal'
+      - 'Powered by Beisen'
+      - 'zhiye\.com'
+    hints:
+      login_modal: true
+      multi_step: true
+      upload_first: false
+    entry_buttons: ['立即投递', '申请职位', '投递简历']
+    final_buttons: ['提交申请', '确认提交', '完成投递']
+    notes: 'React SPA + styled-components 哈希类名，按钮多重复；入口通常需要登录。'
+
+  - id: dayee
+    name: 大易云招聘
+    vendor: 大易
+    priority: 90
+    url_patterns:
+      - '\.hotjob\.cn'
+      - 'dayee\.com'
+    markers:
+      - 'posDetail'
+      - 'school\.js'
+      - 'SU[0-9a-f]{16,}'
+      - 'ant-form'
+    hints:
+      multi_step: true
+      new_tab: true
+      login_modal: true
+    entry_buttons: ['立即投递', '申请职位']
+    final_buttons: ['提交申请', '确认投递', '完成投递']
+    notes: 'Ant Design；职位列表点击常 window.open 新标签页进入 posDetail.html。'
+
+  - id: gllue
+    name: 谷露招聘门户
+    vendor: 谷露
+    priority: 90
+    url_patterns:
+      - '\.gllue\.com'
+    markers:
+      - 'slds-'
+      - 'rlt-'
+      - 'portalposition'
+      - 'portalapply'
+    hints:
+      anonymous_apply: true
+      section_headings: true
+      multi_step: true
+    entry_buttons: ['投递职位', '申请职位']
+    final_buttons: ['提交申请', '确认投递', '提交']
+    notes: 'Salesforce Lightning Design System 服务端渲染；部分门户允许匿名投递。'
+
+  - id: guopin
+    name: 国聘
+    vendor: 国聘
+    priority: 85
+    url_patterns:
+      - 'iguopin\.com'
+    markers:
+      - 'iguopin'
+      - 'ant-form'
+      - 'ant-select'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['投递简历', '立即申请', '申请职位']
+    final_buttons: ['提交简历', '确认投递', '提交申请']
+    notes: 'Ant Design；首页搜索进入岗位详情后投递。'
+
+  - id: workday
+    name: Workday
+    vendor: Workday
+    priority: 80
+    url_patterns:
+      - 'myworkdayjobs\.com'
+      - 'workday\.com'
+    markers:
+      - 'data-automation-id'
+      - 'workday'
+    hints:
+      searchable_select: true
+      split_dates: true
+      multi_step: true
+    ignore_sections: ['Family', 'Emergency', 'Login', 'Register']
+    entry_buttons: ['Apply', 'Apply Now']
+    final_buttons: ['Submit', 'Submit Application']
+    notes: '海外常见；多步表单、大量自定义控件。'
+
+  - id: greenhouse
+    name: Greenhouse
+    vendor: Greenhouse
+    priority: 75
+    url_patterns:
+      - 'greenhouse\.io'
+      - 'boards\.greenhouse\.io'
+    markers:
+      - 'greenhouse'
+      - 'application_form'
+    hints:
+      multi_step: true
+    ignore_sections: ['Family', 'Emergency', 'Login', 'Register']
+    entry_buttons: ['Apply', 'Apply for this job']
+    final_buttons: ['Submit Application', 'Submit']
+    notes: '海外常见；单页或两步表单。'
+
+  - id: lever
+    name: Lever
+    vendor: Lever
+    priority: 75
+    url_patterns:
+      - 'jobs\.lever\.co'
+      - 'lever\.co'
+    markers:
+      - 'lever'
+      - 'postings'
+    hints:
+      multi_step: false
+    ignore_sections: ['Family', 'Emergency', 'Login', 'Register']
+    entry_buttons: ['Apply', 'Apply for this job']
+    final_buttons: ['Submit application', 'Submit']
+    notes: '海外常见；单页申请表。'
+
+  - id: icims
+    name: iCIMS
+    vendor: iCIMS
+    priority: 70
+    url_patterns:
+      - 'icims\.com'
+    markers:
+      - 'icims'
+      - 'iCIMS'
+    hints:
+      multi_step: true
+    ignore_sections: ['Family', 'Emergency', 'Login', 'Register']
+    entry_buttons: ['Apply', 'Apply Now']
+    final_buttons: ['Submit', 'Submit Application']
+    notes: '海外常见。'
+
+  - id: taleo
+    name: Oracle Taleo
+    vendor: Oracle
+    priority: 70
+    url_patterns:
+      - 'taleo\.net'
+      - 'oraclecloud\.com'
+    markers:
+      - 'taleo'
+      - 'oracle'
+    hints:
+      multi_step: true
+    ignore_sections: ['Family', 'Emergency', 'Login', 'Register']
+    entry_buttons: ['Apply', 'Apply Now']
+    final_buttons: ['Submit', 'Submit Application']
+    notes: '海外常见；多步、会话容易过期。'
+
+  - id: successfactors
+    name: SAP SuccessFactors
+    vendor: SAP
+    priority: 70
+    url_patterns:
+      - 'successfactors\.com'
+      - 'sapsf\.com'
+    markers:
+      - 'successfactors'
+      - 'sap'
+    hints:
+      multi_step: true
+    ignore_sections: ['Family', 'Emergency', 'Login', 'Register']
+    entry_buttons: ['Apply', 'Apply Now']
+    final_buttons: ['Submit', 'Submit Application']
+    notes: '海外常见。'
+
+  - id: smartrecruiters
+    name: SmartRecruiters
+    vendor: SmartRecruiters
+    priority: 70
+    url_patterns:
+      - 'smartrecruiters\.com'
+    markers:
+      - 'smartrecruiters'
+    hints:
+      multi_step: true
+    ignore_sections: ['Family', 'Emergency', 'Login', 'Register']
+    entry_buttons: ['Apply', 'I am interested']
+    final_buttons: ['Submit Application', 'Submit']
+    notes: '海外常见。'
+
+  - id: avature
+    name: Avature
+    vendor: Avature
+    priority: 65
+    url_patterns:
+      - 'avature\.net'
+    markers:
+      - 'avature'
+    hints:
+      multi_step: true
+    ignore_sections: ['Family', 'Emergency', 'Login', 'Register']
+    entry_buttons: ['Apply', 'Apply Now']
+    final_buttons: ['Submit', 'Submit Application']
+    notes: '海外常见。'
+
+  - id: bytedance
+    name: 字节跳动招聘
+    vendor: 字节跳动
+    priority: 60
+    url_patterns:
+      - 'jobs\.bytedance\.com'
+    markers:
+      - 'bytedance'
+      - 'feishu'
+      - '飞书'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['投递简历', '立即投递']
+    final_buttons: ['确认投递', '提交申请']
+    notes: '自建站，优先使用通用引擎；入口可能跳转飞书招聘。'
+
+  - id: tencent
+    name: 腾讯招聘
+    vendor: 腾讯
+    priority: 60
+    url_patterns:
+      - 'join\.qq\.com'
+      - 'careers\.tencent\.com'
+    markers:
+      - 'tencent'
+      - '腾讯'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['投递简历', '立即申请']
+    final_buttons: ['确认投递', '提交申请']
+    notes: '自建站，优先使用通用引擎。'
+
+  - id: alibaba
+    name: 阿里巴巴招聘
+    vendor: 阿里巴巴
+    priority: 60
+    url_patterns:
+      - 'talent\.alibaba\.com'
+      - 'careers\.alibaba\.com'
+    markers:
+      - 'alibaba'
+      - '阿里巴巴'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['立即投递', '投递简历']
+    final_buttons: ['确认投递', '提交申请']
+    notes: '自建站，优先使用通用引擎。'
+
+  - id: baidu
+    name: 百度招聘
+    vendor: 百度
+    priority: 60
+    url_patterns:
+      - 'talent\.baidu\.com'
+    markers:
+      - 'baidu'
+      - '百度'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['投递简历', '立即申请']
+    final_buttons: ['确认投递', '提交申请']
+    notes: '自建站，优先使用通用引擎。'
+
+  - id: huawei
+    name: 华为招聘
+    vendor: 华为
+    priority: 60
+    url_patterns:
+      - 'career\.huawei\.com'
+    markers:
+      - 'huawei'
+      - '华为'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['投递简历', '立即申请']
+    final_buttons: ['确认投递', '提交']
+    notes: '自建站，优先使用通用引擎。'
+
+  - id: meituan
+    name: 美团招聘
+    vendor: 美团
+    priority: 60
+    url_patterns:
+      - 'zhaopin\.meituan\.com'
+      - 'campus\.meituan\.com'
+    markers:
+      - 'meituan'
+      - '美团'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['投递简历', '立即申请']
+    final_buttons: ['确认投递', '提交申请']
+    notes: '自建站，优先使用通用引擎。'
+
+  - id: jd
+    name: 京东招聘
+    vendor: 京东
+    priority: 60
+    url_patterns:
+      - 'zhaopin\.jd\.com'
+      - 'campus\.jd\.com'
+    markers:
+      - 'jd\.com'
+      - '京东'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['投递简历', '立即申请']
+    final_buttons: ['确认投递', '提交申请']
+    notes: '自建站，优先使用通用引擎。'
+
+  - id: netease
+    name: 网易招聘
+    vendor: 网易
+    priority: 60
+    url_patterns:
+      - 'hr\.163\.com'
+      - 'job\.163\.com'
+    markers:
+      - 'netease'
+      - '网易'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['投递简历', '立即申请']
+    final_buttons: ['确认投递', '提交申请']
+    notes: '自建站，优先使用通用引擎。'
+
+  - id: xiaohongshu
+    name: 小红书招聘
+    vendor: 小红书
+    priority: 60
+    url_patterns:
+      - 'job\.xiaohongshu\.com'
+    markers:
+      - 'xiaohongshu'
+      - '小红书'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['投递简历', '立即申请']
+    final_buttons: ['确认投递', '提交申请']
+    notes: '自建站，优先使用通用引擎。'
+
+  - id: kuaishou
+    name: 快手招聘
+    vendor: 快手
+    priority: 60
+    url_patterns:
+      - 'zhaopin\.kuaishou\.cn'
+      - 'job\.kuaishou\.com'
+    markers:
+      - 'kuaishou'
+      - '快手'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['投递简历', '立即申请']
+    final_buttons: ['确认投递', '提交申请']
+    notes: '自建站，优先使用通用引擎。'
+
+  - id: pdd
+    name: 拼多多招聘
+    vendor: 拼多多
+    priority: 60
+    url_patterns:
+      - 'careers\.pinduoduo\.com'
+      - 'zhaopin\.pinduoduo\.com'
+    markers:
+      - 'pinduoduo'
+      - '拼多多'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['投递简历', '立即申请']
+    final_buttons: ['确认投递', '提交申请']
+    notes: '自建站，优先使用通用引擎。'
+
+  - id: didi
+    name: 滴滴招聘
+    vendor: 滴滴
+    priority: 60
+    url_patterns:
+      - 'jobs\.didiglobal\.com'
+      - 'talent\.didiglobal\.com'
+    markers:
+      - 'didi'
+      - '滴滴'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['投递简历', '立即申请']
+    final_buttons: ['确认投递', '提交申请']
+    notes: '自建站，优先使用通用引擎。'
+
+  - id: bilibili
+    name: 哔哩哔哩招聘
+    vendor: 哔哩哔哩
+    priority: 60
+    url_patterns:
+      - 'jobs\.bilibili\.com'
+    markers:
+      - 'bilibili'
+      - '哔哩哔哩'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['投递简历', '立即申请']
+    final_buttons: ['确认投递', '提交申请']
+    notes: '自建站，优先使用通用引擎。'
+
+  - id: xiaomi
+    name: 小米招聘
+    vendor: 小米
+    priority: 60
+    url_patterns:
+      - 'hr\.xiaomi\.com'
+      - 'careers\.xiaomi\.com'
+    markers:
+      - 'xiaomi'
+      - '小米'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['投递简历', '立即申请']
+    final_buttons: ['确认投递', '提交申请']
+    notes: '自建站，优先使用通用引擎。'
+
+  - id: vivo
+    name: vivo 招聘
+    vendor: vivo
+    priority: 60
+    url_patterns:
+      - 'hr\.vivo\.com'
+      - 'careers\.vivo\.com'
+    markers:
+      - 'vivo'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['投递简历', '立即申请']
+    final_buttons: ['确认投递', '提交申请']
+    notes: '自建站，优先使用通用引擎。'
+
+  - id: oppo
+    name: OPPO 招聘
+    vendor: OPPO
+    priority: 60
+    url_patterns:
+      - 'careers\.oppo\.com'
+      - 'hr\.oppo\.com'
+    markers:
+      - 'oppo'
+    hints:
+      login_modal: true
+      multi_step: true
+    entry_buttons: ['投递简历', '立即申请']
+    final_buttons: ['确认投递', '提交申请']
+    notes: '自建站，优先使用通用引擎。'
+
+  - id: generic
+    name: 通用网申
+    vendor: 通用
+    priority: 0
+    url_patterns:
+      - '.*'
+    markers: []
+    hints:
+      generic: true
+      multi_step: true
+    notes: '未识别站点时使用通用引擎；仍然提供登录/验证码/条款/重复投递保护。'
