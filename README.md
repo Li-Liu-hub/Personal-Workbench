@@ -2,6 +2,8 @@
 
 Rust 原生 Windows 桌面工具。直接打开使用，集中管理个人记录、文档、知识和练习。当前版本：**0.15.31**。
 
+下载最新版：[Releases](https://github.com/Li-Liu-hub/Personal-Workbench/releases/latest)（`PersonalDesk-Windows-x64.zip` 免安装，解压即用）。程序内“更新 → 检查更新”会读取该发布页，发现新版本后自动下载安装。
+
 ## 项目理念
 
 **极致轻量，极致简约。**

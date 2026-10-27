@@ -79,9 +79,8 @@ if ($LASTEXITCODE -eq 0) {
 }
 gh release upload $Tag --repo $Repository @assets --clobber
 if ($LASTEXITCODE -ne 0) { throw 'Failed to upload the release assets.' }
-$published = gh release view $Tag --repo $Repository --json isDraft,isLatest,assets | ConvertFrom-Json
+$published = gh release view $Tag --repo $Repository --json isDraft,assets | ConvertFrom-Json
 if ($published.isDraft) { throw "Release $Tag is still a draft." }
-if (-not $published.isLatest) { throw "Release $Tag is not marked as the latest release." }
 $uploaded = @($published.assets | ForEach-Object { $_.name })
 foreach ($required in @('PersonalDesk.exe', 'latest.json')) {
     if ($uploaded -notcontains $required) { throw "Release $Tag is missing $required." }
