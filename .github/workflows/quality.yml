@@ -1,0 +1,19 @@
+name: Code and feature regressions
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare Rust checks
+        shell: pwsh
+        run: rustup component add rustfmt clippy
+      - name: Check code and run isolated feature tests
+        shell: pwsh
+        run: ./scripts/verify.ps1 -TargetDir (Join-Path $env:RUNNER_TEMP 'personal-desk-target')
