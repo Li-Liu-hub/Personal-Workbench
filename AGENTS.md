@@ -2,6 +2,7 @@
 
 - 日常启动入口只有 `dist/个人办公台.exe`，沿用旁边的 `personal-desk-data-path.txt`。
 - 功能新增和修复均按版本更新交付：同步 Cargo 版本和版本历史，通过 `scripts/publish-update.ps1` 发布到 `dist/updates/latest.json`，再使用 `scripts/package-release.ps1` 生成当前发布包。
+- 对外发放使用 `scripts/publish-github-release.ps1`：创建或更新 `v<版本>` 正式 Release，上传 `PersonalDesk.exe`、发布包、`SHA256SUMS.txt` 与该版本专用 `latest.json`（executable 指向 release 资产），并校验 `releases/latest/download/latest.json` 已返回当前版本。客户端默认读取该地址检查更新。
 - 不得另外交付或要求用户启动“功能版”“修复版”“预览修复版”等独立客户端。隔离构建只用于验证，最终应接回原有更新链。
 - 正式更新应保留已发布能力；共享目录有其他未完成改动时，以最近已发布源码为基线加入本次改动，并记录实际验证范围。
 - 并发开发时，发布脚本可用 `-MetadataDirectory` 指向已验证的源码快照；版本、历史说明和程序版本必须一致，不得用较旧版本覆盖较新更新清单，或用同一版本号覆盖不同程序。

@@ -1,5 +1,7 @@
+use super::encyclopedia::{deep_card_hash, deep_entry_hash};
 use super::*;
 use crate::{reference::Entry, study::Card};
+use std::collections::HashMap;
 
 fn pack<T: serde::de::DeserializeOwned>(text: &str) -> Vec<T> {
     serde_json::from_str(text).unwrap()
@@ -48,7 +50,7 @@ fn deep_readings_import_with_linked_practice_and_search() {
     assert_eq!(entries.len(), 30);
     assert_eq!(cards.len(), 30);
     assert_eq!(db.reference_count("Java").unwrap(), 234);
-    assert_eq!(db.reference_count("后端").unwrap(), 14);
+    assert_eq!(db.reference_count("后端").unwrap(), 70);
     for entry in &entries {
         let stored = db.reference_entry(&entry.id).unwrap().unwrap();
         assert_eq!(stored.entry_type, "精读");

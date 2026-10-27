@@ -1,4 +1,4 @@
-//! Local release feed and a separate, waiting installer. User data is never replaced.
+//! Local and GitHub release feeds, plus a separate, waiting installer. User data is never replaced.
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -6,17 +6,25 @@ use std::{
     io::{Read, Write},
     path::{Path, PathBuf},
     process::Command,
+    time::Duration,
 };
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// Public feed used by every distributed copy: the newest published GitHub release.
+pub const REMOTE_FEED: &str =
+    "https://github.com/Li-Liu-hub/Personal-Workbench/releases/latest/download/latest.json";
+/// Downloads are only accepted from this repository's own release assets.
+const RELEASE_PATH: &str = "/Li-Liu-hub/Personal-Workbench/releases/download/";
 const MAX_BINARY: u64 = 512 * 1024 * 1024;
+const MAX_MANIFEST: u64 = 128 * 1024;
 type UpdateResult<T> = std::result::Result<T, String>;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Manifest {
     pub app: String,
     pub version: String,
-    pub executable: PathBuf,
+    /// Relative path inside a local feed, or an absolute https release asset.
+    pub executable: String,
     pub sha256: String,
     pub size: u64,
     #[serde(default)]
@@ -38,12 +46,27 @@ pub struct InstallRequest {
     restart: bool,
 }
 
-pub fn default_source() -> PathBuf {
-    std::env::current_exe()
+pub fn default_source() -> String {
+    let local = std::env::current_exe()
         .unwrap_or_default()
         .parent()
         .unwrap_or(Path::new("."))
-        .join("updates/latest.json")
+        .join("updates/latest.json");
+    if local.is_file() {
+        local.to_string_lossy().into_owned()
+    } else {
+        REMOTE_FEED.to_owned()
+    }
+}
+fn is_remote(source: &str) -> bool {
+    source.starts_with("https://") || source.starts_with("http://")
+}
+fn feed_agent(timeout: Duration) -> ureq::Agent {
+    ureq::Agent::config_builder()
+        .max_redirects(5)
+        .timeout_global(Some(timeout))
+        .build()
+        .into()
 }
 pub fn digest(path: &Path) -> UpdateResult<String> {
     let mut file = fs::File::open(path).map_err(|e| e.to_string())?;
@@ -71,50 +94,138 @@ fn check_binary(path: &Path, hash: &str, size: u64) -> UpdateResult<()> {
     }
     Ok(())
 }
-pub fn check(source: &Path, current: &str) -> UpdateResult<Option<Release>> {
-    let size = fs::metadata(source)
-        .map_err(|_| "更新源尚未发布新版本，可选择更新清单".to_owned())?
-        .len();
-    if size > 128 * 1024 {
-        return Err("更新清单过大".into());
-    }
-    let manifest: Manifest = serde_json::from_slice(&fs::read(source).map_err(|e| e.to_string())?)
-        .map_err(|e| e.to_string())?;
+fn newer(manifest: &Manifest, current: &str) -> UpdateResult<bool> {
     if manifest.app != "personal-desk" {
         return Err("这不是个人办公台更新包".into());
     }
     let version =
         semver::Version::parse(&manifest.version).map_err(|_| "更新版本号无效".to_owned())?;
     let current = semver::Version::parse(current).map_err(|e| e.to_string())?;
-    if version <= current {
-        return Ok(None);
-    }
-    if manifest.executable.is_absolute()
-        || manifest
-            .executable
+    Ok(version > current)
+}
+fn local_executable(root: &Path, value: &str) -> UpdateResult<PathBuf> {
+    let relative = Path::new(value);
+    if relative.is_absolute()
+        || relative
             .components()
             .any(|p| !matches!(p, std::path::Component::Normal(_)))
-        || manifest.executable.extension().is_none_or(|v| v != "exe")
+        || relative.extension().is_none_or(|v| v != "exe")
     {
         return Err("更新清单中的程序路径无效".into());
+    }
+    let executable = root
+        .join(relative)
+        .canonicalize()
+        .map_err(|e| e.to_string())?;
+    if !executable.starts_with(root) {
+        return Err("更新程序不在发布目录中".into());
+    }
+    Ok(executable)
+}
+fn remote_executable(value: &str) -> UpdateResult<()> {
+    let url = url::Url::parse(value).map_err(|_| "更新清单中的程序地址无效".to_owned())?;
+    if url.scheme() != "https"
+        || url.host_str() != Some("github.com")
+        || !url.path().starts_with(RELEASE_PATH)
+        || url.query().is_some()
+        || url.fragment().is_some()
+    {
+        return Err("更新清单中的程序地址不在官方发布页".into());
+    }
+    Ok(())
+}
+fn check_local(source: &Path, current: &str) -> UpdateResult<Option<Release>> {
+    let size = fs::metadata(source)
+        .map_err(|_| "更新源尚未发布新版本，可选择更新清单".to_owned())?
+        .len();
+    if size > MAX_MANIFEST {
+        return Err("更新清单过大".into());
+    }
+    let manifest: Manifest = serde_json::from_slice(&fs::read(source).map_err(|e| e.to_string())?)
+        .map_err(|e| e.to_string())?;
+    if !newer(&manifest, current)? {
+        return Ok(None);
     }
     let root = source
         .parent()
         .unwrap_or(Path::new("."))
         .canonicalize()
         .map_err(|e| e.to_string())?;
-    let executable = root
-        .join(&manifest.executable)
-        .canonicalize()
-        .map_err(|e| e.to_string())?;
-    if !executable.starts_with(&root) {
-        return Err("更新程序不在发布目录中".into());
-    }
+    let executable = local_executable(&root, &manifest.executable)?;
     check_binary(&executable, &manifest.sha256, manifest.size)?;
     Ok(Some(Release {
         manifest,
         executable,
     }))
+}
+/// Downloads the newest release binary next to the manifest so that pressing
+/// "install" only has to swap local files.
+fn cached_binary(manifest: &Manifest) -> UpdateResult<PathBuf> {
+    let version =
+        semver::Version::parse(&manifest.version).map_err(|_| "更新版本号无效".to_owned())?;
+    let token: String = manifest.sha256.chars().take(12).collect();
+    let directory = std::env::temp_dir().join("personal-desk-update-cache");
+    fs::create_dir_all(&directory).map_err(|e| e.to_string())?;
+    Ok(directory.join(format!("{version}-{token}.exe")))
+}
+fn download(url: &str, destination: &Path) -> UpdateResult<()> {
+    let agent = feed_agent(Duration::from_secs(180));
+    let mut response = agent
+        .get(url)
+        .call()
+        .map_err(|e| format!("下载更新失败：{e}"))?;
+    let staging = destination.with_extension("part");
+    let result = (|| {
+        let mut reader = response.body_mut().with_config().limit(MAX_BINARY).reader();
+        let mut file = fs::File::create(&staging).map_err(|e| e.to_string())?;
+        let written =
+            std::io::copy(&mut reader, &mut file).map_err(|e| format!("下载更新中断：{e}"))?;
+        if written == 0 {
+            return Err("更新文件为空".to_owned());
+        }
+        file.sync_all().map_err(|e| e.to_string())?;
+        fs::rename(&staging, destination).map_err(|e| e.to_string())
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(&staging);
+    }
+    result
+}
+fn check_remote(feed: &str, current: &str) -> UpdateResult<Option<Release>> {
+    let feed_url = url::Url::parse(feed).map_err(|_| "更新源地址无效".to_owned())?;
+    if feed_url.scheme() != "https" {
+        return Err("更新源必须使用 https".into());
+    }
+    let text = feed_agent(Duration::from_secs(30))
+        .get(feed)
+        .call()
+        .map_err(|e| format!("无法连接更新源：{e}"))?
+        .body_mut()
+        .with_config()
+        .limit(MAX_MANIFEST)
+        .read_to_string()
+        .map_err(|e| format!("读取更新清单失败：{e}"))?;
+    let manifest: Manifest = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+    if !newer(&manifest, current)? {
+        return Ok(None);
+    }
+    remote_executable(&manifest.executable)?;
+    let executable = cached_binary(&manifest)?;
+    if check_binary(&executable, &manifest.sha256, manifest.size).is_err() {
+        download(&manifest.executable, &executable)?;
+        check_binary(&executable, &manifest.sha256, manifest.size)?;
+    }
+    Ok(Some(Release {
+        manifest,
+        executable,
+    }))
+}
+pub fn check(source: &str, current: &str) -> UpdateResult<Option<Release>> {
+    if is_remote(source) {
+        check_remote(source, current)
+    } else {
+        check_local(Path::new(source), current)
+    }
 }
 fn snapshot(data: &Path) -> UpdateResult<()> {
     if !data.join("desk.db").exists() {
@@ -298,8 +409,12 @@ mod tests {
         };
         let source = feed.join("latest.json");
         fs::write(&source, serde_json::to_vec(&manifest).unwrap()).unwrap();
-        assert!(check(&source, "99.0.0").unwrap().is_none());
-        let release = check(&source, VERSION).unwrap().unwrap();
+        assert!(
+            check(&source.to_string_lossy(), "99.0.0")
+                .unwrap()
+                .is_none()
+        );
+        let release = check(&source.to_string_lossy(), VERSION).unwrap().unwrap();
         let target = root.path().join("desk.exe");
         fs::write(&target, b"MZ original version").unwrap();
         let data = root.path().join("data");
@@ -325,12 +440,30 @@ mod tests {
             "keep"
         );
         fs::write(&binary, b"MZ corrupted update").unwrap();
-        assert!(check(&source, VERSION).is_err());
+        assert!(check(&source.to_string_lossy(), VERSION).is_err());
         assert!(replace(&request).is_err());
         let mut escaped = manifest;
         escaped.executable = "../desk.exe".into();
         fs::write(&source, serde_json::to_vec(&escaped).unwrap()).unwrap();
-        assert!(check(&source, VERSION).is_err());
+        assert!(check(&source.to_string_lossy(), VERSION).is_err());
+    }
+    #[test]
+    fn release_assets_are_limited_to_the_official_repository() {
+        let official = "https://github.com/Li-Liu-hub/Personal-Workbench/releases/download/v0.15.31/PersonalDesk.exe";
+        assert!(remote_executable(official).is_ok());
+        for rejected in [
+            "http://github.com/Li-Liu-hub/Personal-Workbench/releases/download/v0.15.31/PersonalDesk.exe",
+            "https://example.com/Li-Liu-hub/Personal-Workbench/releases/download/v0.15.31/PersonalDesk.exe",
+            "https://github.com/other/Personal-Workbench/releases/download/v0.15.31/PersonalDesk.exe",
+            "https://github.com/Li-Liu-hub/Personal-Workbench/raw/main/PersonalDesk.exe",
+            "https://github.com/Li-Liu-hub/Personal-Workbench/releases/download/v0.15.31/PersonalDesk.exe?raw=1",
+        ] {
+            assert!(remote_executable(rejected).is_err(), "{rejected}");
+        }
+        assert!(is_remote(REMOTE_FEED));
+        assert!(!is_remote("updates/latest.json"));
+        let root = std::env::temp_dir();
+        assert!(local_executable(&root, official).is_err());
     }
 }
 

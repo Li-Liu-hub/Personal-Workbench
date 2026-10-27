@@ -40,7 +40,8 @@ fn candidates() -> Vec<Candidate> {
 #[test]
 fn complete_route_covers_seven_categories_eight_abilities_and_solvable_sql() {
     let items = candidates();
-    assert_eq!(items.len(), BUILTIN_COUNT as usize);
+    // 内置工程卡 1055 张，其中精读升级卡不进入日常候选，路由覆盖 1025 道。
+    assert_eq!(items.len(), 1025);
     for item in &items {
         item.card.validate().unwrap();
         item.training.validate().unwrap();

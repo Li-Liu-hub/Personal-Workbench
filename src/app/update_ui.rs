@@ -1,8 +1,9 @@
 use super::*;
+use std::path::Path;
 
 pub(super) struct UpdateState {
     pub open: bool,
-    source: PathBuf,
+    source: String,
     release: Option<crate::updater::Release>,
     status: String,
     receiver: Option<Receiver<std::result::Result<Option<crate::updater::Release>, String>>>,
@@ -17,7 +18,11 @@ impl UpdateState {
         Self {
             open: status.starts_with("更新失败："),
             source: source
-                .map(PathBuf::from)
+                .filter(|value| {
+                    value.starts_with("http://")
+                        || value.starts_with("https://")
+                        || Path::new(value).is_file()
+                })
                 .unwrap_or_else(crate::updater::default_source),
             release: None,
             status,
@@ -33,7 +38,11 @@ impl UpdateState {
         let (sender, receiver) = mpsc::channel();
         self.receiver = Some(receiver);
         self.release = None;
-        self.status = "正在检查更新…".into();
+        self.status = if source.starts_with("http") {
+            "正在检查并下载更新…".into()
+        } else {
+            "正在检查更新…".into()
+        };
         let ctx = ctx.clone();
         thread::spawn(move || {
             let result = crate::updater::check(&source, crate::updater::VERSION);
@@ -81,17 +90,16 @@ impl PersonalDeskApp {
                         .add_filter("更新清单", &["json"])
                         .pick_file()
                 {
-                    self.updates.source = path;
+                    self.updates.source = path.to_string_lossy().into_owned();
                     if let Some(db) = self.db.as_mut() {
-                        let _ = db
-                            .set_setting("updates.source", &self.updates.source.to_string_lossy());
+                        let _ = db.set_setting("updates.source", &self.updates.source);
                     }
                     self.updates.check(ctx);
                 }
             });
             ui.add(
                 egui::Label::new(
-                    RichText::new(self.updates.source.display().to_string())
+                    RichText::new(self.updates.source.as_str())
                         .small()
                         .color(muted()),
                 )

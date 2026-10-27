@@ -33,7 +33,7 @@ fn deep_hash(value: &serde_json::Value) -> Result<String> {
 }
 
 /// The subset and key order must match scripts/encyclopedia-deep/build.py.
-fn deep_entry_hash(entry: &Entry) -> Result<String> {
+pub(crate) fn deep_entry_hash(entry: &Entry) -> Result<String> {
     let value = serde_json::to_value(entry)?;
     let source = value
         .as_object()
@@ -45,7 +45,7 @@ fn deep_entry_hash(entry: &Entry) -> Result<String> {
     deep_hash(&serde_json::Value::Object(subset))
 }
 
-fn deep_card_hash(card: &Card) -> Result<String> {
+pub(crate) fn deep_card_hash(card: &Card) -> Result<String> {
     let value = serde_json::to_value(card)?;
     let source = value
         .as_object()
