@@ -39,17 +39,19 @@ pub enum Eligibility {
     Eligible,
     CoolingDown { until: i64 },
     NeedsReview { attempt_id: i64 },
+    PreferredSource { url: String, platform: String },
 }
 impl Eligibility {
     pub fn error(&self) -> Option<String> {
         match self {
             Self::Eligible => None,
             Self::CoolingDown { .. } => {
-                Some("同一岗位距上次成功投递尚未超过15天，三个账号共享此去重记录".into())
+                Some("同一岗位距上次成功投递尚未超过15天，所有平台和账号共享此去重记录".into())
             }
             Self::NeedsReview { .. } => {
-                Some("同一岗位存在发送中、部分发送或待核验记录，不能按时间自动重投".into())
+                Some("同一岗位存在发送中、部分发送、待核验记录或疑似跨平台同岗位，已阻止重复投递，请核验原记录".into())
             }
+            Self::PreferredSource{url,platform}=>Some(format!("同一岗位优先保留{}，请使用优先来源投递：{url}",super::tracking::site_label(platform))),
         }
     }
 }

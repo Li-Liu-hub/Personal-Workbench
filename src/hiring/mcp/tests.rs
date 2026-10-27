@@ -54,7 +54,7 @@ fn handshake_catalog_read_status_and_validation_are_clean_json_rpc() {
     assert_eq!(replies[0]["error"]["code"], -32002);
     assert_eq!(replies[1]["result"]["protocolVersion"], PROTOCOL);
     let tools = replies[2]["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 34);
+    assert_eq!(tools.len(), 49);
     assert!(tools.iter().any(|t| t["name"] == "boss_apply"));
     assert!(tools.iter().any(|t| t["name"] == "official_submit"));
     assert!(tools.iter().any(|t| t["name"] == "otp_start"));
@@ -267,6 +267,72 @@ fn malformed_frames_do_not_poison_the_next_request() {
     assert_eq!(replies[0]["error"]["code"], -32700);
     assert_eq!(replies[1]["error"]["code"], -32600);
     assert_eq!(replies[2]["id"], 42);
+}
+#[test]
+fn all_platform_mcp_queue_views_use_one_table_and_keep_confirmation_required() {
+    let temp = tempfile::tempdir().unwrap();
+    let first = json!({"platform":"51job","url":"https://jobs.51job.com/shanghai/12345678.html","title":"Java开发","company":"测试科技","jd":"负责后端开发"});
+    let mut second = first.clone();
+    second["platform"] = json!("zhaopin");
+    second["url"] = json!("https://jobs.zhaopin.com/CC123456789J00000000001.htm");
+    let mut separate = second.clone();
+    separate["title"] = json!("测试开发");
+    let replies = session(
+        vec![
+            init(),
+            ready(),
+            call(2, "platform_queue_add", first),
+            call(3, "platform_queue_add", second),
+            call(4, "platform_queue_add", separate),
+            call(5, "hiring_queue_list", json!({})),
+            call(6, "boss_queue_list", json!({})),
+            call(7, "hiring_status", json!({})),
+            call(
+                8,
+                "platform_queue_run",
+                json!({"platform":"51job","confirmed":false}),
+            ),
+            call(
+                9,
+                "platform_apply",
+                json!({"platform":"zhaopin","url":"https://jobs.zhaopin.com/CC123456789J00000000001.htm","dry_run":false}),
+            ),
+        ],
+        temp.path(),
+    );
+    assert_eq!(replies[1]["result"]["structuredContent"]["added"], true);
+    assert_eq!(replies[2]["result"]["structuredContent"]["added"], false);
+    assert_eq!(replies[3]["result"]["structuredContent"]["added"], true);
+    assert_eq!(
+        replies[4]["result"]["structuredContent"]["items"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+    assert_eq!(
+        replies[5]["result"]["structuredContent"]["items"],
+        json!([])
+    );
+    assert_eq!(replies[6]["result"]["structuredContent"]["queue_count"], 2);
+    assert_eq!(
+        replies[6]["result"]["structuredContent"]["shared_across_platforms"],
+        true
+    );
+    for reply in &replies[7..] {
+        assert_eq!(reply["result"]["isError"], true);
+    }
+    let conn = rusqlite::Connection::open(temp.path().join("hiring.sqlite")).unwrap();
+    assert_eq!(
+        conn.query_row("SELECT COUNT(*) FROM queue", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        2
+    );
+    assert_eq!(
+        conn.query_row("SELECT COUNT(*) FROM attempts", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        0
+    );
 }
 
 #[test]

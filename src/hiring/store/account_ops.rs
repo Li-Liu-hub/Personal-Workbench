@@ -102,7 +102,7 @@ impl Store {
         Ok(())
     }
     pub fn account_usage(&self, site: &str, id: &str, day: &str) -> Result<(u32, u32)> {
-        let (count,sent):(u32,u32)=self.conn.query_row("SELECT COUNT(*),COALESCE(SUM(a.status='sent'),0) FROM attempts a LEFT JOIN attempt_identity m ON m.attempt_id=a.id WHERE a.site=?1 AND a.day=?2 AND COALESCE(m.account_id,'default')=?3",params![site,day,id],|r|Ok((r.get(0)?,r.get(1)?))).map_err(err)?;
+        let (count,sent):(u32,u32)=self.conn.query_row("SELECT COUNT(*),COALESCE(SUM(a.status='sent'),0) FROM attempts a LEFT JOIN attempt_identity m ON m.attempt_id=a.id WHERE a.day=?1 AND COALESCE(m.account_id,'default')=?2",params![day,id],|r|Ok((r.get(0)?,r.get(1)?))).map_err(err)?;
         let key = if id == DEFAULT_ACCOUNT {
             format!("{site}:imported:{day}")
         } else {

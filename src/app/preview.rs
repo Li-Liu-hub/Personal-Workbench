@@ -382,6 +382,28 @@ impl PersonalDeskApp {
                             1280., 800.,
                         )));
                     }
+                    66 => self.hiring.preview_tab(3),
+                    67 => self.hiring.preview_tab(4),
+                    68 => self.hiring.preview_tab(5),
+                    69 => self.hiring.preview_tab(7),
+                    70 => {
+                        self.hiring.preview_tab(3);
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1000., 680.,
+                        )));
+                    }
+                    71 => self.hiring.preview_tab(4),
+                    72 => self.hiring.preview_tab(5),
+                    73 => self.hiring.preview_tab(7),
+                    74 => {
+                        self.hiring.preview_tab(6);
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                            1280., 800.,
+                        )));
+                    }
+                    75 => ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(
+                        1000., 680.,
+                    ))),
                     _ => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
                 }
             }
@@ -471,6 +493,16 @@ impl PersonalDeskApp {
             "hiring-official-small",
             "hiring-otp-small",
             "hiring-tools-gallery",
+            "hiring-51job",
+            "hiring-zhaopin",
+            "hiring-shixiseng",
+            "hiring-unified-queue",
+            "hiring-51job-small",
+            "hiring-zhaopin-small",
+            "hiring-shixiseng-small",
+            "hiring-unified-queue-small",
+            "hiring-unified-run",
+            "hiring-unified-run-small",
         ][c.step];
         let name = if campus_preview {
             if c.step == 57 {

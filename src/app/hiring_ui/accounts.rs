@@ -25,6 +25,7 @@ impl HiringState {
             Err(error) => self.error = error,
         }
         if let Ok(snapshot) = hiring::tracking::read(dir) {
+            self.unified_queue = snapshot.queue;
             self.attempts = snapshot.attempts;
         }
     }
@@ -148,8 +149,9 @@ impl HiringState {
     pub(super) fn history_panel(&mut self, ui: &mut egui::Ui, dir: &std::path::Path) {
         for row in self.attempts.clone() {
             ui.label(format!(
-                "{} · {} · {} · {} · {}",
+                "{} · {} · {} · {} · {} · {}",
                 row.day,
+                hiring::tracking::site_label(&row.site),
                 row.account_label,
                 row.company,
                 row.title,
@@ -163,7 +165,9 @@ impl HiringState {
                     let boss = row.site == "boss";
                     if !boss || self.select_account(dir, row.account_id.clone()).is_ok() {
                         self.action = Some(Action::Open(
-                            if boss { Site::Boss } else { Site::Official },
+                            hiring::platforms::Platform::parse(&row.site)
+                                .map(|p| p.site())
+                                .unwrap_or(if boss { Site::Boss } else { Site::Official }),
                             row.url.clone(),
                         ));
                     }

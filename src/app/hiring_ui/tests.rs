@@ -7,7 +7,7 @@ fn position(output: &egui::FullOutput, value: &str) -> Option<egui::Pos2> {
     })
 }
 #[test]
-fn all_three_builtin_tools_open_from_grid_and_list() {
+fn all_seven_builtin_tools_open_from_grid_and_list() {
     let dir = tempfile::tempdir().unwrap();
     let mut app = PersonalDeskApp::open_data_directory(dir.path().join("data"));
     app.section = Section::Tools;
@@ -18,7 +18,16 @@ fn all_three_builtin_tools_open_from_grid_and_list() {
             app.set_view_mode(mode);
             app.hiring.open = false;
             // 搜索词用关键词而非卡片标题，避免 position 命中搜索框文本而不是工具入口。
-            app.search_query = ["岗位搜索", "自动填表", "手机短信"][index].into();
+            app.search_query = [
+                "岗位搜索",
+                "自动填表",
+                "手机短信",
+                "前程岗位",
+                "智联岗位",
+                "实习岗位",
+                "全平台自动求职",
+            ][index]
+                .into();
             input_frame(&mut app, &ctx, 0., vec![], vec![]);
             let out = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
             let p = position(&out, label).unwrap_or_else(|| panic!("missing tool {label}"));

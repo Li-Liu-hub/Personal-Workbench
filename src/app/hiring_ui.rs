@@ -9,9 +9,10 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 mod accounts;
+mod platforms;
 #[cfg(test)]
 mod tests;
-pub(super) const TOOLS: [(&str, &str, &str); 3] = [
+pub(super) const TOOLS: [(&str, &str, &str); 7] = [
     ("builtin:boss", "BOSS 直聘", "岗位搜索 · 招呼投递 · 队列"),
     (
         "builtin:official-apply",
@@ -19,6 +20,26 @@ pub(super) const TOOLS: [(&str, &str, &str); 3] = [
         "个人资料 · 自动填表 · 附件上传",
     ),
     ("builtin:otp", "接码", "手机短信转发 · 本地验证码接收"),
+    (
+        "builtin:51job",
+        "前程无忧",
+        "前程岗位 · 搜索详情 · 简历投递 · 队列",
+    ),
+    (
+        "builtin:zhaopin",
+        "智联招聘",
+        "智联岗位 · 搜索详情 · 简历投递 · 队列",
+    ),
+    (
+        "builtin:shixiseng",
+        "实习僧",
+        "实习岗位 · 搜索详情 · 简历投递 · 队列",
+    ),
+    (
+        "builtin:hiring",
+        "求职套件",
+        "全平台自动求职 · 同时搜索 · 统一筛选投递",
+    ),
 ];
 enum Message {
     Progress(String),
@@ -27,6 +48,7 @@ enum Message {
 enum Output {
     Text(String),
     Jobs(Vec<Job>),
+    PlatformJobs(hiring::platforms::Platform, Vec<Job>),
     Detail(Box<Job>),
     Imported(String),
 }
@@ -48,6 +70,13 @@ enum Action {
     Preflight,
     Submit,
     Import(PathBuf),
+    PlatformLogin(hiring::platforms::Platform),
+    PlatformSearch(hiring::platforms::Platform),
+    PlatformScroll(hiring::platforms::Platform),
+    PlatformDetail(hiring::platforms::Platform, Job),
+    PlatformApply(hiring::platforms::Platform, Job, bool),
+    PlatformQueue(hiring::platforms::Platform),
+    Unified(bool),
 }
 pub(super) struct HiringState {
     pub open: bool,
@@ -89,6 +118,11 @@ pub(super) struct HiringState {
     attempts: Vec<hiring::tracking::Attempt>,
     shared_busy: bool,
     shared_checked: Option<std::time::Instant>,
+    platform_jobs: Vec<Job>,
+    platform_queue: Vec<Job>,
+    platform_loaded: Option<hiring::platforms::Platform>,
+    unified_queue: Vec<Job>,
+    queue_filter: String,
 }
 impl Default for HiringState {
     fn default() -> Self {
@@ -133,10 +167,28 @@ impl Default for HiringState {
             attempts: vec![],
             shared_busy: false,
             shared_checked: None,
+            platform_jobs: vec![],
+            platform_queue: vec![],
+            platform_loaded: None,
+            unified_queue: vec![],
+            queue_filter: String::new(),
         }
     }
 }
 impl HiringState {
+    pub(super) fn open_unified(&mut self) {
+        self.open = true;
+        self.tab = 6;
+        self.confirmed = false;
+        self.confirmation = None;
+    }
+    pub(super) fn open_platform(&mut self, p: hiring::platforms::Platform) {
+        self.open = true;
+        self.tab = 3 + hiring::platforms::Platform::ALL
+            .iter()
+            .position(|v| *v == p)
+            .unwrap();
+    }
     pub(super) fn jobhunt_open(
         &mut self,
         dir: &std::path::Path,
@@ -155,6 +207,21 @@ impl HiringState {
         self.confirmation = None;
         self.terms = false;
         if let Some(row) = row {
+            if let Some(p) = hiring::platforms::Platform::detect(&row.url) {
+                self.tab = 3 + hiring::platforms::Platform::ALL
+                    .iter()
+                    .position(|v| *v == p)
+                    .unwrap();
+                self.platform_loaded = Some(p);
+                self.platform_jobs = vec![Job {
+                    url: row.url.clone(),
+                    title: row.position.clone(),
+                    company: row.company.clone(),
+                    location: row.location.clone(),
+                    jd: row.description.clone(),
+                    ..Default::default()
+                }];
+            }
             self.url = row.url.clone();
             self.title = row.position.clone();
             self.company = row.company.clone();
@@ -199,7 +266,12 @@ impl HiringState {
                         )
                     })
                     .collect();
-                self.queue = snapshot.queue;
+                self.unified_queue = snapshot.queue.clone();
+                self.queue = snapshot
+                    .queue
+                    .into_iter()
+                    .filter(|j| hiring::store::canonical(&j.url, true).is_ok())
+                    .collect();
             }
             Err(e) => self.error = e,
         }
@@ -245,6 +317,12 @@ impl HiringState {
                         Ok(Output::Jobs(jobs)) => {
                             self.status = format!("读取到 {} 个岗位", jobs.len());
                             self.jobs = jobs;
+                        }
+                        Ok(Output::PlatformJobs(p, jobs)) => {
+                            if self.platform_loaded == Some(p) {
+                                self.status = format!("{}读取到{}个岗位", p.label(), jobs.len());
+                                self.platform_jobs = jobs;
+                            }
                         }
                         Ok(Output::Detail(job)) => {
                             self.report = format!(
@@ -316,7 +394,13 @@ impl HiringState {
         let cancel = self.cancel.clone();
         thread::spawn(move || {
             let result = (|| -> hiring::Result<Output> {
-                let managed = matches!(&action, Action::Queue | Action::Pool(..));
+                let managed = matches!(
+                    &action,
+                    Action::Queue
+                        | Action::Pool(..)
+                        | Action::PlatformQueue(_)
+                        | Action::Unified(_)
+                );
                 let _coordinator = if managed {
                     None
                 } else {
@@ -340,6 +424,35 @@ impl HiringState {
                     Some(hiring::lease::Lease::acquire(&dir)?)
                 };
                 match action {
+                    Action::Unified(dry) => {
+                        hiring::unified::run(&dir, &settings, dry, cancel, |s| {
+                            let _ = sender.send(Message::Progress(s));
+                        })
+                        .map(Output::Text)
+                    }
+                    Action::PlatformLogin(p) => {
+                        hiring::platforms::login_status(&dir, p).map(Output::Text)
+                    }
+                    Action::PlatformSearch(p) => {
+                        hiring::platforms::search(&dir, &settings, p, page)
+                            .map(|jobs| Output::PlatformJobs(p, jobs))
+                    }
+                    Action::PlatformScroll(p) => {
+                        hiring::platforms::scroll(&dir, p).map(|jobs| Output::PlatformJobs(p, jobs))
+                    }
+                    Action::PlatformDetail(p, job) => {
+                        hiring::platforms::detail(&dir, &settings, p, &job.url)
+                            .map(|j| Output::Detail(Box::new(j)))
+                    }
+                    Action::PlatformApply(p, job, dry) => {
+                        hiring::platforms::apply(&dir, &settings, p, &job, dry).map(Output::Text)
+                    }
+                    Action::PlatformQueue(p) => {
+                        hiring::platforms::run_queue(&dir, &settings, p, limit, cancel, |s| {
+                            let _ = sender.send(Message::Progress(s));
+                        })
+                        .map(Output::Text)
+                    }
                     Action::Open(site, url) => {
                         browser::open(&dir, &settings, site, &url)?;
                         Ok(Output::Text(
@@ -836,6 +949,8 @@ impl HiringState {
 fn status_label(status: &str) -> &str {
     match status {
         "pending" => "待投递",
+        "candidate" => "待筛选",
+        "duplicate" => "重复已跳过",
         "sent" => "已发送",
         "partial" => "部分发送",
         "ambiguous" => "待核验",
@@ -892,8 +1007,9 @@ impl PersonalDeskApp {
                 for (i, (_, title, _)) in TOOLS.iter().enumerate() {
                     ui.selectable_value(&mut state.tab, i, *title);
                 }
-                ui.selectable_value(&mut state.tab, 3, "投递记录");
-                ui.selectable_value(&mut state.tab, 4, "资料与设置");
+                ui.selectable_value(&mut state.tab, 7, "统一队列");
+                ui.selectable_value(&mut state.tab, 8, "投递记录");
+                ui.selectable_value(&mut state.tab, 9, "资料与设置");
             });
             ui.separator();
             if busy {
@@ -915,8 +1031,8 @@ impl PersonalDeskApp {
             }
             egui::ScrollArea::vertical().id_salt("hiring-scroll").max_height((ctx.content_rect().height()-230.).max(220.)).auto_shrink([false,false]).show(ui,|ui|{
                 ui.add_enabled_ui(!busy,|ui|match state.tab{
-                    0=>state.boss(ui,&dir),1=>state.official(ui,&dir),2=>state.otp(ui,&dir),3=>state.history_panel(ui,&dir),_=>{
-                        ui.label("三个工具使用办公台数据目录，原工具目录作为导入来源保留。");
+                    0=>state.boss(ui,&dir),1=>state.official(ui,&dir),2=>state.otp(ui,&dir),3..=5=>{let p=hiring::platforms::Platform::ALL[state.tab-3]; state.platform(ui,&dir,p);},6=>state.unified_panel(ui,&dir),7=>state.unified_queue_panel(ui,&dir),8=>state.history_panel(ui,&dir),_=>{
+                        ui.label("求职套件使用办公台数据目录，各招聘平台独立登录，原工具目录作为导入来源保留。");
                         if ui.button("导入原三个工具的资料和队列").clicked()&&let Some(path)=rfd::FileDialog::new().set_title("选择包含三个工具的个人办公台目录").pick_folder(){state.action=Some(Action::Import(path));}
                         ui.label("原待投队列作为快照导入并默认跳过；核验旧任务停止后，可在队列里设为待投。");
                         ui.horizontal(|ui| {
@@ -938,6 +1054,21 @@ impl PersonalDeskApp {
             if let Some(action) = state.confirmation.take() {
                 ui.separator();
                 let label = match &action {
+                    Action::Unified(_) => format!(
+                        "将启动四平台同时搜索、统一入库去重并投递，今日全平台总上限{}项；没达到上限继续搜下一页，直到达到上限、无新岗位、遇到异常或手动停止。",
+                        state.settings.daily_limit
+                    ),
+                    Action::PlatformApply(p, job, _) => format!(
+                        "将使用{}网页中当前选中的简历申请 {} · {}，请先核对简历及条款",
+                        p.label(),
+                        job.company,
+                        job.title
+                    ),
+                    Action::PlatformQueue(p) => format!(
+                        "将使用{}当前登录账号和在线简历执行待投队列，最多{}项；遇到登录、简历选择或结果不明即停止。",
+                        p.label(),
+                        state.queue_limit
+                    ),
                     Action::Send(job) => format!(
                         "将向 {} · {} 发送招呼语和 {} 张图片",
                         job.company,

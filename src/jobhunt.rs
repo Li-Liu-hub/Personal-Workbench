@@ -53,6 +53,15 @@ pub struct Entry {
     pub manual: Option<Site>,
 }
 impl Entry {
+    pub fn tool_label(&self) -> &'static str {
+        if self.boss() {
+            "BOSS 工具"
+        } else if let Some(p) = crate::hiring::platforms::Platform::detect(&self.url) {
+            p.label()
+        } else {
+            "官网投递工具"
+        }
+    }
     pub fn matches(&self, query: &str) -> bool {
         matches(
             query,
@@ -81,6 +90,9 @@ pub fn matches(query: &str, fields: &[&str]) -> bool {
         .all(|word| text.contains(&word.to_lowercase()))
 }
 pub fn identity(url: &str) -> String {
+    if let Some(p) = crate::hiring::platforms::Platform::detect(url) {
+        return p.canonical(url).unwrap_or_default();
+    }
     if url::Url::parse(url).ok().is_some_and(|u| {
         u.host_str()
             .is_some_and(|h| h.ends_with(".zhipin.com") || h == "zhipin.com")
@@ -145,15 +157,18 @@ pub fn entries(
         });
     }
     for job in &snapshot.queue {
+        let site = crate::hiring::platforms::Platform::detect(&job.url)
+            .map(|p| p.id())
+            .unwrap_or("boss");
         rows.push(Entry {
-            id: format!("boss:{}", job.url),
+            id: format!("{site}:{}", job.url),
             company: job.company.clone(),
             position: job.title.clone(),
             url: job.url.clone(),
             location: job.location.clone(),
             description: job.jd.clone(),
-            source: "BOSS 队列".into(),
-            status: format!("队列：{}", tracking::status("boss", &job.status)),
+            source: format!("{} 队列", tracking::site_label(site)),
+            status: format!("队列：{}", tracking::status(site, &job.status)),
             ..Default::default()
         });
     }
@@ -170,12 +185,7 @@ pub fn entries(
                 company: attempt.company.clone(),
                 position: attempt.title.clone(),
                 url: attempt.url.clone(),
-                source: if attempt.site == "boss" {
-                    "BOSS 投递"
-                } else {
-                    "官网投递"
-                }
-                .into(),
+                source: tracking::site_label(&attempt.site).into(),
                 ..Default::default()
             });
         }

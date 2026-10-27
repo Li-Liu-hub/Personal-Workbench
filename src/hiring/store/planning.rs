@@ -82,7 +82,7 @@ impl Store {
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(err)?;
         let candidates: Vec<(String, String)> = {
-            let mut q=tx.prepare("SELECT q.payload,COALESCE(m.account_id,'') FROM queue q LEFT JOIN queue_identity m ON m.url=q.url WHERE q.status='pending' ORDER BY q.priority DESC,q.rowid").map_err(err)?;
+            let mut q=tx.prepare("SELECT q.payload,COALESCE(m.account_id,'') FROM queue q LEFT JOIN queue_identity m ON m.url=q.url WHERE q.platform='boss' AND q.status='pending' ORDER BY q.priority DESC,q.rowid").map_err(err)?;
             q.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
                 .map_err(err)?
                 .collect::<std::result::Result<_, _>>()
@@ -103,7 +103,7 @@ impl Store {
                     plan.cooling_down += 1;
                     continue;
                 }
-                Eligibility::NeedsReview { .. } => {
+                Eligibility::NeedsReview { .. } | Eligibility::PreferredSource { .. } => {
                     plan.needs_review += 1;
                     continue;
                 }
@@ -140,7 +140,7 @@ impl Store {
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(err)?;
         let rows: Vec<String> = {
-            let mut q=tx.prepare("SELECT q.payload FROM queue q LEFT JOIN queue_identity m ON m.url=q.url WHERE q.status='pending' AND (COALESCE(m.account_id,'')='' OR m.account_id=?1) ORDER BY q.priority DESC,q.rowid").map_err(err)?;
+            let mut q=tx.prepare("SELECT q.payload FROM queue q LEFT JOIN queue_identity m ON m.url=q.url WHERE q.platform='boss' AND q.status='pending' AND (COALESCE(m.account_id,'')='' OR m.account_id=?1) ORDER BY q.priority DESC,q.rowid").map_err(err)?;
             q.query_map([&account_id], |r| r.get(0))
                 .map_err(err)?
                 .collect::<std::result::Result<_, _>>()

@@ -30,7 +30,7 @@ pub fn tools() -> Vec<Value> {
     let settings = object(
         json!({"keyword":string(),"city":string(),"experience":string(),"degree":string(),"job_type":string(),
         "greeting":string(),"images":strings(),"daily_limit":integer(1,u64::from(crate::hiring::BOSS_MAX_DAILY)),"interval_min":integer(30,3600),"interval_max":integer(30,3600),
-        "send_windows":strings(),"browser_path":string(),"otp_host":string(),"otp_port":integer(0,65535)}),
+        "send_windows":strings(),"browser_path":string(),"otp_host":string(),"otp_port":integer(0,65535),"unified_max_pages":integer(1,50)}),
         &[],
     );
     let mut catalog = vec![
@@ -269,6 +269,125 @@ pub fn tools() -> Vec<Value> {
         tool("hiring_dedupe_check","根据公司、岗位名称、完整岗位简介及原链接检查共享15天去重状态；未核验发送记录不随时间自动放行。",json!({"url":string(),"title":string(),"company":string(),"jd":json!({"type":"string","maxLength":100000})}),&["url"],true,false),
         tool("hiring_attempt_resolve","仅在用户已于网页人工核验实际结果后确认记录；verified_on_site和confirmed都必须为true。部分发送不能标为未发送以重发文字。",json!({"attempt_id":integer(1,i64::MAX as u64),"sent":boolean(),"verified_on_site":boolean(),"confirmed":boolean()}),&["attempt_id","sent","verified_on_site","confirmed"],false,false),
     ]);
+    let platform = json!({"type":"string","enum":["51job","zhaopin","shixiseng"]});
+    catalog.push(tool("hiring_run","一次启动四平台同时搜索、携带平台账号入库、统一去重筛选与补充岗位循环。固定优先级BOSS→智联→前程无忧→实习僧。默认dry_run=true只搜不投；正式自动投递须用户明确授权且confirmed=true,dry_run=false。今日全平台总额度达到上限即停止；无新岗位、验证或结果不明时暂停。",json!({"dry_run":boolean(),"confirmed":boolean(),"daily_limit":integer(1,150),"max_pages":integer(1,50)}),&[],false,true));
+    catalog.push(tool(
+        "hiring_stop",
+        "停止统一搜索与投递任务及各平台队列；当前项核验完成后退出。",
+        json!({}),
+        &[],
+        false,
+        false,
+    ));
+    catalog.push(tool("hiring_queue_list","查看所有平台共用的一张岗位队列表，可按平台和状态筛选；每条返回来源平台。",json!({"platform":{"type":"string","enum":["boss","51job","zhaopin","shixiseng"]},"status":string()}),&[],true,false));
+    catalog.push(tool(
+        "hiring_platforms",
+        "列出新增招聘平台及能力；各平台独立登录，所有平台共用一张岗位队列表、投递记录和15天去重。",
+        json!({}),
+        &[],
+        true,
+        false,
+    ));
+    for (name, description, mut properties, required, read_only, external) in [
+        (
+            "platform_open_login",
+            "打开指定平台专用浏览器；用户自行登录并完善在线简历。",
+            json!({}),
+            vec!["platform"],
+            false,
+            true,
+        ),
+        (
+            "platform_check_login",
+            "检查当前平台网页的登录信号；未识别状态不会假定已登录。",
+            json!({}),
+            vec!["platform"],
+            true,
+            true,
+        ),
+        (
+            "platform_search_jobs",
+            "搜索前程无忧/智联/实习僧岗位，支持关键词、城市、页码；其他筛选在网页操作。",
+            json!({"keyword":string(),"city":string(),"page":integer(1,50)}),
+            vec!["platform"],
+            false,
+            true,
+        ),
+        (
+            "platform_scroll_jobs",
+            "读取当前平台列表加载后的更多岗位。",
+            json!({}),
+            vec!["platform"],
+            false,
+            true,
+        ),
+        (
+            "platform_job_detail",
+            "读取平台职位详情；必须识别岗位、公司及完整简介。",
+            json!({"url":string()}),
+            vec!["platform", "url"],
+            false,
+            true,
+        ),
+        (
+            "platform_apply",
+            "默认dry_run=true仅预检。正式投递须用户明确授权且confirmed=true,dry_run=false，五分钟内预检及当前网页未变化；使用网页在线简历，结果不明阻止重投。",
+            json!({"url":string(),"title":string(),"company":string(),"dry_run":boolean(),"confirmed":boolean()}),
+            vec!["platform", "url"],
+            false,
+            true,
+        ),
+        (
+            "platform_queue_list",
+            "查看指定平台持久待投队列。",
+            json!({"status":string()}),
+            vec!["platform"],
+            true,
+            false,
+        ),
+        (
+            "platform_queue_add",
+            "将职位加入指定平台队列，不发送申请。",
+            json!({"url":string(),"title":string(),"company":string(),"jd":json!({"type":"string","maxLength":100000}),"priority":integer(0,100)}),
+            vec!["platform", "url"],
+            false,
+            false,
+        ),
+        (
+            "platform_queue_update",
+            "跳过或恢复指定平台队列项；待核验和冷却中的岗位不能恢复待投。",
+            json!({"url":string(),"status":{"type":"string","enum":["pending","skipped"]}}),
+            vec!["platform", "url", "status"],
+            false,
+            false,
+        ),
+        (
+            "platform_queue_run",
+            "获得用户明确授权后confirmed=true执行平台队列；每项先预检，保留时段、间隔、每日上限和去重，遇到验证或结果不明停止。",
+            json!({"limit":integer(1,150),"confirmed":boolean()}),
+            vec!["platform", "confirmed"],
+            false,
+            true,
+        ),
+    ] {
+        properties["platform"] = platform.clone();
+        catalog.push(tool(
+            name,
+            description,
+            properties,
+            &required,
+            read_only,
+            external,
+        ));
+    }
+    catalog.push(tool(
+        "platform_queue_stop",
+        "停止所有平台和BOSS后台队列，等待当前项完成核验。",
+        json!({}),
+        &[],
+        false,
+        false,
+    ));
     catalog
 }
 pub fn find(name: &str) -> Option<Value> {

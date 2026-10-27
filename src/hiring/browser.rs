@@ -12,18 +12,27 @@ use tungstenite::{Message, WebSocket};
 pub enum Site {
     Boss,
     Official,
+    Job51,
+    Zhaopin,
+    Shixiseng,
 }
 impl Site {
     pub fn port(self) -> u16 {
         match self {
             Self::Boss => 19333,
             Self::Official => 19444,
+            Self::Job51 => 19551,
+            Self::Zhaopin => 19552,
+            Self::Shixiseng => 19553,
         }
     }
     fn name(self) -> &'static str {
         match self {
             Self::Boss => "boss",
             Self::Official => "official",
+            Self::Job51 => "51job",
+            Self::Zhaopin => "zhaopin",
+            Self::Shixiseng => "shixiseng",
         }
     }
 }
@@ -101,6 +110,21 @@ pub fn validate_url(raw: &str, site: Site) -> Result<url::Url> {
     {
         return Err("BOSS 工具只接受 zhipin.com 岗位地址".into());
     }
+    let domain = match site {
+        Site::Job51 => Some("51job.com"),
+        Site::Zhaopin => Some("zhaopin.com"),
+        Site::Shixiseng => Some("shixiseng.com"),
+        _ => None,
+    };
+    if let Some(domain) = domain
+        && (url.scheme() != "https"
+            || url.port().is_some()
+            || !url
+                .host_str()
+                .is_some_and(|h| h == domain || h.ends_with(&format!(".{domain}"))))
+    {
+        return Err(format!("此平台只接受 {domain} 的 HTTPS 网页"));
+    }
     Ok(url)
 }
 pub fn open(dir: &Path, settings: &Settings, site: Site, raw: &str) -> Result<String> {
@@ -145,7 +169,7 @@ pub fn open(dir: &Path, settings: &Settings, site: Site, raw: &str) -> Result<St
     let socket = version["webSocketDebuggerUrl"]
         .as_str()
         .ok_or("无浏览器连接")?;
-    if site == Site::Boss && !launched {
+    if site != Site::Official && !launched {
         let owned = std::fs::read(&session_path)
             .ok()
             .and_then(|b| serde_json::from_slice::<String>(&b).ok())
@@ -163,7 +187,7 @@ pub fn open(dir: &Path, settings: &Settings, site: Site, raw: &str) -> Result<St
             );
         }
     }
-    if site == Site::Boss {
+    if site != Site::Official {
         super::atomic_json(&session_path, &socket)?;
     }
     let mut client = Cdp::connect(socket, port)?;
@@ -193,7 +217,7 @@ pub fn selected_for(dir: &Path, settings: &Settings, site: Site) -> Result<Cdp> 
     let raw = target["url"].as_str().ok_or("网页地址无效")?;
     // Chrome can briefly expose an empty URL while a navigation starts. The tab id
     // is pinned to this account; callers wait for the exact requested URL next.
-    if site != Site::Boss || (!raw.is_empty() && raw != "about:blank") {
+    if site == Site::Official || (!raw.is_empty() && raw != "about:blank") {
         validate_url(raw, site)?;
     }
     Cdp::connect(

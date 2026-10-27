@@ -12,9 +12,11 @@ pub mod lease;
 pub mod mcp;
 pub mod official;
 pub mod otp;
+pub mod platforms;
 pub mod profile;
 pub mod store;
 pub mod tracking;
+pub mod unified;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 pub const BOSS_MAX_DAILY: u32 = 150;
@@ -53,6 +55,7 @@ pub struct Settings {
     pub browser_path: String,
     pub otp_host: String,
     pub otp_port: u16,
+    pub unified_max_pages: u32,
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -72,6 +75,7 @@ impl Default for Settings {
             browser_path: String::new(),
             otp_host: "auto".into(),
             otp_port: 8765,
+            unified_max_pages: 50,
         }
     }
 }
@@ -89,6 +93,8 @@ impl Settings {
             || self.interval_max > 3600
             || self.daily_limit == 0
             || self.daily_limit > BOSS_MAX_DAILY
+            || self.unified_max_pages == 0
+            || self.unified_max_pages > 50
         {
             return Err("投递间隔须为 30–3600 秒，每日上限须为 1–150".into());
         }

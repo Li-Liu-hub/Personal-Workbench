@@ -106,15 +106,30 @@ impl PersonalDeskApp {
                 self.jobhunt.page = 0;
             }
             ui.separator();
+            if ui.button("开始自动求职").clicked() {
+                self.hiring.open = true;
+                self.hiring.open_unified();
+            }
             if ui.button("校招搜索").clicked() {
                 self.open_campus_search();
             }
-            if ui.button("BOSS 直聘工具").clicked() {
-                self.open_jobhunt_tool(true, None);
-            }
-            if ui.button("官网投递工具").clicked() {
-                self.open_jobhunt_tool(false, None);
-            }
+            ui.menu_button("平台工具", |ui| {
+                if ui.button("BOSS 直聘").clicked() {
+                    self.open_jobhunt_tool(true, None);
+                    ui.close();
+                }
+                for p in crate::hiring::platforms::Platform::ALL {
+                    if ui.button(p.label()).clicked() {
+                        self.open_jobhunt_tool(false, None);
+                        self.hiring.open_platform(p);
+                        ui.close();
+                    }
+                }
+                if ui.button("官网投递").clicked() {
+                    self.open_jobhunt_tool(false, None);
+                    ui.close();
+                }
+            });
             if ui.button("刷新数据").clicked() {
                 self.refresh_jobhunt();
             }
@@ -165,21 +180,36 @@ impl PersonalDeskApp {
                         }
                     }
                 });
-            for (value, label) in [
-                (0, "全部来源"),
-                (1, "校招 / 官网"),
-                (2, "BOSS"),
-                (3, "手动记录"),
-            ] {
-                if ui
-                    .selectable_value(&mut self.jobhunt.source, value, label)
-                    .changed()
-                {
-                    self.jobhunt.page = 0;
-                }
-            }
+            let sources = [
+                "全部来源",
+                "校招 / 官网",
+                "BOSS",
+                "手动记录",
+                "前程无忧",
+                "智联招聘",
+                "实习僧",
+            ];
+            egui::ComboBox::from_id_salt("jobhunt-source")
+                .selected_text(
+                    sources
+                        .get(usize::from(self.jobhunt.source))
+                        .copied()
+                        .unwrap_or(sources[0]),
+                )
+                .show_ui(ui, |ui| {
+                    for (value, label) in sources.into_iter().enumerate() {
+                        if ui
+                            .selectable_value(&mut self.jobhunt.source, value as u8, label)
+                            .changed()
+                        {
+                            self.jobhunt.page = 0;
+                        }
+                    }
+                });
         });
-        ui.small("搜索结果自动进入此页；投递状态来自 BOSS / 官网工具的数据库，列表每 3 秒刷新。点击岗位展开说明。");
+        ui.small(
+            "搜索结果自动进入此页；投递状态与求职套件共用记录，列表每3秒刷新。点击岗位展开说明。",
+        );
         let rows: Vec<_> = self
             .jobhunt
             .rows
@@ -188,9 +218,20 @@ impl PersonalDeskApp {
                 r.matches(&self.search_query)
                     && (self.jobhunt.company.is_empty() || r.company == self.jobhunt.company)
                     && match self.jobhunt.source {
-                        1 => !r.boss() && r.manual.is_none(),
+                        1 => {
+                            !r.boss()
+                                && crate::hiring::platforms::Platform::detect(&r.url).is_none()
+                                && r.manual.is_none()
+                        }
                         2 => r.boss(),
                         3 => r.manual.is_some(),
+                        4..=6 => {
+                            crate::hiring::platforms::Platform::detect(&r.url)
+                                == Some(
+                                    crate::hiring::platforms::Platform::ALL
+                                        [usize::from(self.jobhunt.source - 4)],
+                                )
+                        }
                         _ => true,
                     }
             })
@@ -270,14 +311,7 @@ impl PersonalDeskApp {
                                             {
                                                 ui.hyperlink_to("公告原文", &row.source_url);
                                             }
-                                            if ui
-                                                .small_button(if row.boss() {
-                                                    "BOSS 工具"
-                                                } else {
-                                                    "官网投递工具"
-                                                })
-                                                .clicked()
-                                            {
+                                            if ui.small_button(row.tool_label()).clicked() {
                                                 self.open_jobhunt_tool(row.boss(), Some(&row));
                                             }
                                             if let Some(site) = &row.manual {
@@ -304,7 +338,7 @@ impl PersonalDeskApp {
         }
     }
     fn render_jobhunt_attempts(&mut self, ui: &mut egui::Ui) {
-        ui.small("与 BOSS 和官网投递工具共用记录；BOSS“招呼已发送”表示消息已发送，部分发送和待核验分别保留。");
+        ui.small("与四个招聘平台及官网投递共用记录；部分发送和待核验分别保留。");
         let rows: Vec<_> = self
             .jobhunt
             .attempts
@@ -319,7 +353,7 @@ impl PersonalDeskApp {
                         &r.note,
                         &r.day,
                         tracking::status(&r.site, &r.status),
-                        if r.site == "boss" { "BOSS" } else { "官网" },
+                        tracking::site_label(&r.site),
                     ],
                 )
             })
@@ -327,7 +361,7 @@ impl PersonalDeskApp {
             .collect();
         pagination(ui, &mut self.jobhunt.page, rows.len());
         if rows.is_empty() {
-            ui.label("暂无匹配投递记录。使用 BOSS 或官网投递工具后，记录会自动出现在这里。");
+            ui.label("暂无匹配投递记录。使用求职套件投递后，记录会自动出现在这里。");
         }
         for attempt in rows.into_iter().skip(self.jobhunt.page * 30).take(30) {
             ui.push_id(attempt.id, |ui| {
@@ -364,11 +398,7 @@ impl PersonalDeskApp {
                         ui.small(format!(
                             "{} · {} · {}",
                             time,
-                            if attempt.site == "boss" {
-                                "BOSS 直聘"
-                            } else {
-                                "官网投递"
-                            },
+                            tracking::site_label(&attempt.site),
                             attempt.note
                         ));
                         if campus::canonical_url(&attempt.url).is_some() {

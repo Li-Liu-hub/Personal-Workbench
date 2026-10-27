@@ -1,6 +1,6 @@
 [package]
 name = "personal-desk"
-version = "0.15.31"
+version = "0.15.32"
 edition = "2024"
 rust-version = "1.95"
 description = "A private Rust desktop office hub"

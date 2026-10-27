@@ -54,6 +54,9 @@ pub fn read(directory: &Path) -> Result<Snapshot> {
         for row in rows {
             let (payload, status, account_id) = row.map_err(err)?;
             let mut job: Job = serde_json::from_str(&payload).map_err(err)?;
+            if job.platform.is_empty() {
+                job.platform = super::store::site_for_url(&job.url).into();
+            }
             job.status = status;
             job.account_id = account_id;
             snapshot.queue.push(job);
@@ -97,7 +100,18 @@ pub fn status(site: &str, value: &str) -> &'static str {
         "reserved" | "running" | "ambiguous" => "待核验",
         "failed" => "失败",
         "pending" => "待处理",
+        "candidate" => "待筛选",
+        "duplicate" => "重复已跳过",
         "skipped" => "已跳过",
         _ => "未知状态",
+    }
+}
+pub fn site_label(site: &str) -> &'static str {
+    match site {
+        "boss" => "BOSS 直聘",
+        "51job" => "前程无忧",
+        "zhaopin" => "智联招聘",
+        "shixiseng" => "实习僧",
+        _ => "官网投递",
     }
 }

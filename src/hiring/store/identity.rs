@@ -117,8 +117,36 @@ impl Store {
         job: &Job,
         now: i64,
     ) -> Result<Eligibility> {
-        let url = canonical(&job.url, site == "boss")?;
+        let url = Self::canonical_site(&job.url, site)?;
         let fp = dedupe::fingerprint(job).unwrap_or_default();
+        // Portals often rewrite the same advert. A changed description on another
+        // portal is insufficient evidence that this is a different position.
+        if !dedupe::normalize(&job.company).is_empty() && !dedupe::normalize(&job.title).is_empty()
+        {
+            let mut q=conn.prepare("SELECT a.id,a.company,a.title,a.status,COALESCE(m.cooldown_at,a.at),COALESCE(m.fingerprint,'') FROM attempts a LEFT JOIN attempt_identity m ON m.attempt_id=a.id WHERE (a.site<>?1 OR COALESCE(m.fingerprint,'')='') AND a.status IN ('reserved','sent','ambiguous','partial')").map_err(err)?;
+            let rows = q
+                .query_map([site], |r| {
+                    Ok((
+                        r.get::<_, i64>(0)?,
+                        r.get::<_, String>(1)?,
+                        r.get::<_, String>(2)?,
+                        r.get::<_, String>(3)?,
+                        r.get::<_, i64>(4)?,
+                        r.get::<_, String>(5)?,
+                    ))
+                })
+                .map_err(err)?;
+            for row in rows {
+                let (id, company, title, status, at, prior_fp) = row.map_err(err)?;
+                if dedupe::normalize(&company) == dedupe::normalize(&job.company)
+                    && dedupe::normalize(&title) == dedupe::normalize(&job.title)
+                    && (status != "sent" || at.saturating_add(dedupe::WINDOW_SECONDS) >= now)
+                    && (fp.is_empty() || prior_fp != fp)
+                {
+                    return Ok(Eligibility::NeedsReview { attempt_id: id });
+                }
+            }
+        }
         let fallback: i64 = conn
             .query_row(
                 "SELECT value FROM guard WHERE key='identity:migrated_at'",
@@ -126,9 +154,9 @@ impl Store {
                 |r| r.get(0),
             )
             .map_err(err)?;
-        let mut stmt=conn.prepare("SELECT a.id,a.status,a.at,a.day,m.cooldown_at FROM attempts a LEFT JOIN attempt_identity m ON m.attempt_id=a.id WHERE ((a.site=?1 AND a.url=?2) OR (?3<>'' AND m.fingerprint=?3)) AND a.status IN ('reserved','sent','ambiguous','partial') ORDER BY a.id DESC").map_err(err)?;
+        let mut stmt=conn.prepare("SELECT a.id,a.status,a.at,a.day,m.cooldown_at FROM attempts a LEFT JOIN attempt_identity m ON m.attempt_id=a.id WHERE (a.url=?1 OR (?2<>'' AND m.fingerprint=?2)) AND a.status IN ('reserved','sent','ambiguous','partial') ORDER BY a.id DESC").map_err(err)?;
         let rows = stmt
-            .query_map(params![site, url, fp], |r| {
+            .query_map(params![url, fp], |r| {
                 Ok((
                     r.get::<_, i64>(0)?,
                     r.get::<_, String>(1)?,
@@ -154,6 +182,37 @@ impl Store {
         Ok(if until > 0 {
             Eligibility::CoolingDown { until }
         } else {
+            let has_platform: bool = conn
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM pragma_table_info('queue') WHERE name='platform')",
+                    [],
+                    |r| r.get(0),
+                )
+                .map_err(err)?;
+            if has_platform {
+                let mut candidate = job.clone();
+                candidate.platform = site.into();
+                let mut q=conn.prepare("SELECT payload,platform FROM queue WHERE url<>?1 AND status IN ('pending','candidate')").map_err(err)?;
+                let rows = q
+                    .query_map([&url], |r| {
+                        Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+                    })
+                    .map_err(err)?;
+                for row in rows {
+                    let (payload, platform) = row.map_err(err)?;
+                    if super::super::unified::rank(&platform) >= super::super::unified::rank(site) {
+                        continue;
+                    }
+                    let mut prior: Job = serde_json::from_str(&payload).map_err(err)?;
+                    prior.platform = platform.clone();
+                    if super::super::unified::same_candidate(&prior, &candidate) {
+                        return Ok(Eligibility::PreferredSource {
+                            url: prior.url,
+                            platform,
+                        });
+                    }
+                }
+            }
             Eligibility::Eligible
         })
     }

@@ -6,15 +6,20 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{path::Path, time::Duration};
 mod account_ops;
+#[cfg(test)]
+mod cross_platform_tests;
 mod identity;
 #[cfg(test)]
 mod multi_account_tests;
 mod planning;
+mod platforms;
+mod unified;
 pub use planning::PoolPlan;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Job {
+    pub platform: String,
     pub url: String,
     pub title: String,
     pub company: String,
@@ -62,7 +67,29 @@ pub fn canonical(raw: &str, boss: bool) -> Result<String> {
     }
     Ok(url.to_string())
 }
+pub fn site_for_url(raw: &str) -> &'static str {
+    if let Some(p) = super::platforms::Platform::detect(raw) {
+        p.id()
+    } else if canonical(raw, true).is_ok() {
+        "boss"
+    } else {
+        "official"
+    }
+}
 impl Store {
+    pub fn canonical_site(raw: &str, site: &str) -> Result<String> {
+        match site {
+            "boss" => canonical(raw, true),
+            "official" => {
+                if let Some(p) = super::platforms::Platform::detect(raw) {
+                    p.canonical(raw)
+                } else {
+                    canonical(raw, false)
+                }
+            }
+            _ => super::platforms::Platform::parse(site)?.canonical(raw),
+        }
+    }
     pub fn open(dir: &Path) -> Result<Self> {
         std::fs::create_dir_all(dir).map_err(err)?;
         let conn = Connection::open(dir.join("hiring.sqlite")).map_err(err)?;
@@ -77,6 +104,7 @@ impl Store {
             conn,
             account_id: super::accounts::DEFAULT_ACCOUNT.into(),
         };
+        store.migrate_queue()?;
         store.migrate_identity()?;
         Ok(store)
     }
@@ -89,7 +117,7 @@ impl Store {
     pub fn jobs(&self) -> Result<Vec<Job>> {
         let mut q = self
             .conn
-            .prepare("SELECT q.payload,q.status,COALESCE(m.account_id,'') FROM queue q LEFT JOIN queue_identity m ON m.url=q.url ORDER BY q.priority DESC,q.rowid")
+            .prepare("SELECT q.payload,q.status,COALESCE(m.account_id,'') FROM queue q LEFT JOIN queue_identity m ON m.url=q.url WHERE q.platform='boss' ORDER BY q.priority DESC,q.rowid")
             .map_err(err)?;
         let rows = q
             .query_map([], |r| {
@@ -110,10 +138,17 @@ impl Store {
         .collect()
     }
     pub fn add(&mut self, job: &Job) -> Result<bool> {
-        let url = canonical(&job.url, true)?;
+        self.add_to("boss", job)
+    }
+    fn add_to(&mut self, site: &str, job: &Job) -> Result<bool> {
+        let url = Self::canonical_site(&job.url, site)?;
         let mut job = job.clone();
+        job.platform = site.into();
         job.url = url;
-        if !job.account_id.is_empty() {
+        if job.account_id.is_empty() && site != "boss" {
+            job.account_id = super::accounts::DEFAULT_ACCOUNT.into();
+        }
+        if site == "boss" && !job.account_id.is_empty() {
             self.account(&job.account_id, super::BOSS_MAX_DAILY)?;
         }
         let tx = self
@@ -148,7 +183,7 @@ impl Store {
                 }
             }
         }
-        if Self::eligibility_at(&tx, "boss", &job, Local::now().timestamp())?
+        if Self::eligibility_at(&tx, site, &job, Local::now().timestamp())?
             != super::dedupe::Eligibility::Eligible
         {
             return Ok(false);
@@ -157,7 +192,7 @@ impl Store {
         if !fp.is_empty() && tx.query_row("SELECT EXISTS(SELECT 1 FROM queue q JOIN queue_identity m ON m.url=q.url WHERE m.fingerprint=?1 AND q.status='pending' AND q.url<>?2)",params![fp,job.url],|r|r.get::<_,bool>(0)).map_err(err)? {return Ok(false);}
         let inserted = old.as_ref().is_none_or(|(_, status)| status != "pending");
         job.status = "pending".into();
-        tx.execute("INSERT INTO queue(url,payload,status,priority) VALUES(?1,?2,'pending',?3) ON CONFLICT(url) DO UPDATE SET payload=excluded.payload,status='pending',priority=excluded.priority",params![job.url,serde_json::to_string(&job).map_err(err)?,job.priority]).map_err(err)?;
+        tx.execute("INSERT INTO queue(url,payload,status,priority,platform) VALUES(?1,?2,'pending',?3,?4) ON CONFLICT(url) DO UPDATE SET payload=excluded.payload,status='pending',priority=excluded.priority",params![job.url,serde_json::to_string(&job).map_err(err)?,job.priority,site]).map_err(err)?;
         tx.execute("INSERT INTO queue_identity VALUES(?1,?2,?3,?4) ON CONFLICT(url) DO UPDATE SET fingerprint=excluded.fingerprint,account_id=CASE WHEN excluded.account_id='' THEN queue_identity.account_id ELSE excluded.account_id END",params![job.url,fp,job.account_id,Local::now().timestamp()]).map_err(err)?;
         tx.commit().map_err(err)?;
         Ok(inserted)
@@ -191,7 +226,7 @@ impl Store {
                 })
                 .map_err(err)?;
             let job: Job = serde_json::from_str(&payload).map_err(err)?;
-            if let Some(error) = self.eligibility("boss", &job)?.error() {
+            if let Some(error) = self.eligibility(site_for_url(url), &job)?.error() {
                 return Err(error);
             }
         }
@@ -227,10 +262,10 @@ impl Store {
     fn reserve_at(&mut self, site: &str, job: &Job, settings: &Settings, now: i64) -> Result<i64> {
         use chrono::TimeZone;
         let instant = Local.timestamp_opt(now, 0).single().ok_or("投递时间无效")?;
-        if site == "boss" && !in_window(&settings.send_windows, instant.time())? {
+        if !in_window(&settings.send_windows, instant.time())? {
             return Err("当前时间不在允许投递窗口内".into());
         }
-        let url = canonical(&job.url, site == "boss")?;
+        let url = Self::canonical_site(&job.url, site)?;
         let account_id = if site == "boss" {
             super::accounts::id(&settings.account_id)?.to_owned()
         } else {
@@ -240,12 +275,12 @@ impl Store {
             return Err("任务账号与计数账号不一致，已停止投递".into());
         }
         let account = self.account(&account_id, settings.daily_limit)?;
-        if site == "boss" && !account.enabled {
+        if !account.enabled {
             return Err("此账号已停用".into());
         }
         let day = instant.format("%Y-%m-%d").to_string();
         let risk_key = self.account_key(site, "lock");
-        let imported_key = self.account_key(site, &format!("imported:{day}"));
+        let imported_key = self.account_key("boss", &format!("imported:{day}"));
         let tx = self
             .conn
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
@@ -263,7 +298,7 @@ impl Store {
         if let Some(error) = Self::eligibility_at(&tx, site, job, now)?.error() {
             return Err(error);
         }
-        let count:i64=tx.query_row("SELECT COUNT(*) FROM attempts a LEFT JOIN attempt_identity m ON m.attempt_id=a.id WHERE a.site=?1 AND a.day=?2 AND COALESCE(m.account_id,'default')=?3",params![site,day,account_id],|r|r.get(0)).map_err(err)?;
+        let count:i64=tx.query_row("SELECT COUNT(*) FROM attempts a LEFT JOIN attempt_identity m ON m.attempt_id=a.id WHERE a.day=?1 AND COALESCE(m.account_id,'default')=?2",params![day,account_id],|r|r.get(0)).map_err(err)?;
         let imported: i64 = tx
             .query_row(
                 "SELECT COALESCE(MAX(value),0) FROM guard WHERE key=?1",
@@ -271,18 +306,14 @@ impl Store {
                 |r| r.get(0),
             )
             .map_err(err)?;
-        let limit = if site == "boss" {
-            settings
-                .daily_limit
-                .min(account.daily_limit)
-                .min(super::BOSS_MAX_DAILY)
-        } else {
-            20
-        };
+        let limit = settings
+            .daily_limit
+            .min(account.daily_limit)
+            .min(super::BOSS_MAX_DAILY);
         if count + imported >= i64::from(limit) {
             return Err("已达到此账号今日投递上限".into());
         }
-        let last:i64=tx.query_row("SELECT COALESCE(MAX(a.at),0) FROM attempts a LEFT JOIN attempt_identity m ON m.attempt_id=a.id WHERE a.site=?1 AND COALESCE(m.account_id,'default')=?2",params![site,account_id],|r|r.get(0)).map_err(err)?;
+        let last:i64=tx.query_row("SELECT COALESCE(MAX(a.at),0) FROM attempts a LEFT JOIN attempt_identity m ON m.attempt_id=a.id WHERE COALESCE(m.account_id,'default')=?1",params![account_id],|r|r.get(0)).map_err(err)?;
         if now - last < settings.interval_min.max(30) as i64 {
             return Err("尚未达到此账号两次投递的最短间隔".into());
         }
@@ -299,7 +330,7 @@ impl Store {
         )
         .map_err(err)?;
         tx.execute("INSERT INTO attempt_job_snapshots VALUES(?1,?2,'delivery_preflight')",params![id,serde_json::to_string(&serde_json::json!({"url":job.url,"company":job.company,"title":job.title,"jd":job.jd,"salary":job.salary,"location":job.location,"experience":job.experience,"education":job.education})).map_err(err)?]).map_err(err)?;
-        tx.execute("UPDATE queue SET status='ambiguous' WHERE url=?1", [url])
+        tx.execute("UPDATE queue SET status='ambiguous' WHERE url=?1", [&url])
             .map_err(err)?;
         tx.commit().map_err(err)?;
         Ok(id)
@@ -337,7 +368,11 @@ impl Store {
         } else {
             format!("page:{}:{day}:{kind}", self.account_id)
         };
-        let limit = if kind == "search" { 60 } else { 400 };
+        let limit = if kind == "search" || kind.ends_with(":search") {
+            60
+        } else {
+            400
+        };
         let tx = self
             .conn
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
@@ -397,7 +432,7 @@ impl Store {
             job.note = "从旧队列快照导入；待投项默认跳过，核验旧队列停止后可重新启用".into();
             added += tx
                 .execute(
-                    "INSERT OR IGNORE INTO queue VALUES(?1,?2,?3,?4)",
+                    "INSERT OR IGNORE INTO queue(url,payload,status,priority) VALUES(?1,?2,?3,?4)",
                     params![
                         job.url,
                         serde_json::to_string(&job).map_err(err)?,

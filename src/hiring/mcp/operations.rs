@@ -75,6 +75,14 @@ impl Server {
         }
         let browser_action = matches!(
             name,
+            "platform_open_login"
+                | "platform_check_login"
+                | "platform_search_jobs"
+                | "platform_scroll_jobs"
+                | "platform_job_detail"
+                | "platform_apply"
+        ) || matches!(
+            name,
             "boss_open_login"
                 | "boss_check_login"
                 | "boss_search_jobs"
@@ -99,6 +107,7 @@ impl Server {
                     | "hiring_account_select"
                     | "hiring_attempt_resolve"
             )
+            || matches!(name, "platform_queue_update" | "platform_queue_add")
             || (name == "boss_pool_plan" && args["dry_run"] == false);
         if exclusive && self.busy() {
             return Err("后台队列运行中，请先调用 boss_queue_stop 并等待任务停止".into());
@@ -118,8 +127,91 @@ impl Server {
             None
         };
         match name {
+            "hiring_queue_list" => Ok(json!(
+                hiring::tracking::read(dir)?
+                    .queue
+                    .into_iter()
+                    .filter(|j| (text(args, "platform").is_empty()
+                        || hiring::store::site_for_url(&j.url) == text(args, "platform"))
+                        && (text(args, "status").is_empty() || j.status == text(args, "status")))
+                    .map(|j| json!({"platform":hiring::store::site_for_url(&j.url),"job":j}))
+                    .collect::<Vec<_>>()
+            )),
+            "hiring_platforms" => Ok(hiring::platforms::catalog()),
+            "platform_open_login"
+            | "platform_check_login"
+            | "platform_search_jobs"
+            | "platform_scroll_jobs"
+            | "platform_job_detail"
+            | "platform_apply"
+            | "platform_queue_list"
+            | "platform_queue_add"
+            | "platform_queue_update" => {
+                let p = hiring::platforms::Platform::parse(text(args, "platform"))?;
+                match name {
+                    "platform_open_login" => browser::open(dir, &settings, p.site(), p.home())
+                        .map(|_| message("已打开平台专用浏览器，请登录并核对在线简历")),
+                    "platform_check_login" => hiring::platforms::login_status(dir, p).map(message),
+                    "platform_search_jobs" => {
+                        if let Some(keyword) = args["keyword"].as_str() {
+                            settings.keyword = keyword.into();
+                        }
+                        if let Some(city) = args["city"].as_str() {
+                            settings.city = city.into();
+                        }
+                        serde_json::to_value(hiring::platforms::search(
+                            dir,
+                            &settings,
+                            p,
+                            args["page"].as_u64().unwrap_or(1) as u32,
+                        )?)
+                        .map_err(err)
+                    }
+                    "platform_scroll_jobs" => {
+                        serde_json::to_value(hiring::platforms::scroll(dir, p)?).map_err(err)
+                    }
+                    "platform_job_detail" => serde_json::to_value(hiring::platforms::detail(
+                        dir,
+                        &settings,
+                        p,
+                        text(args, "url"),
+                    )?)
+                    .map_err(err),
+                    "platform_apply" => {
+                        let dry = args["dry_run"].as_bool().unwrap_or(true);
+                        if !dry {
+                            confirmed(args)?;
+                        }
+                        let job: Job = serde_json::from_value(args.clone()).map_err(err)?;
+                        hiring::platforms::apply(dir, &settings, p, &job, dry).map(message)
+                    }
+                    "platform_queue_list" => {
+                        let filter = text(args, "status");
+                        serde_json::to_value(
+                            Store::open(dir)?
+                                .platform_jobs(p)?
+                                .into_iter()
+                                .filter(|j| filter.is_empty() || j.status == filter)
+                                .collect::<Vec<_>>(),
+                        )
+                        .map_err(err)
+                    }
+                    "platform_queue_add" => {
+                        let job: Job = serde_json::from_value(args.clone()).map_err(err)?;
+                        Ok(json!({"added":Store::open(dir)?.platform_add(p,&job)?}))
+                    }
+                    _ => {
+                        Store::open(dir)?.platform_status(
+                            p,
+                            text(args, "url"),
+                            text(args, "status"),
+                        )?;
+                        Ok(message("平台队列状态已更新"))
+                    }
+                }
+            }
             "hiring_status" => {
-                let jobs = self.queue()?;
+                let jobs = hiring::tracking::read(dir)?.queue;
                 let accounts = if dir.join("hiring.sqlite").is_file() {
                     Store::open(dir)?.accounts(settings.daily_limit)?
                 } else {
@@ -129,7 +221,7 @@ impl Server {
                     json!({"version":env!("CARGO_PKG_VERSION"),"data_directory":dir.display().to_string(),
                     "profile_configured":dir.join("profile.md").is_file(),"queue_count":jobs.len(),"pending_count":jobs.iter().filter(|j|j.status=="pending").count(),
                     "task":self.background.as_ref().map(Background::status),"otp":self.otp_status(),"accounts":accounts,
-                    "active_account_id":hiring::accounts::id(&settings.account_id)?,"shared_dedup_days":hiring::dedupe::DAYS,"max_accounts":hiring::accounts::MAX_ACCOUNTS,"shared_task_running":Lease::coordinator_busy(dir)}),
+                    "active_account_id":hiring::accounts::id(&settings.account_id)?,"shared_dedup_days":hiring::dedupe::DAYS,"shared_across_platforms":true,"queue_table":"queue","attempt_table":"attempts","platforms":hiring::platforms::catalog(),"max_accounts":hiring::accounts::MAX_ACCOUNTS,"shared_task_running":Lease::coordinator_busy(dir)}),
                 )
             }
             "hiring_accounts_list" => {
@@ -156,10 +248,12 @@ impl Server {
                 )
             }
             "hiring_dedupe_check" => {
-                let job = job(args)?;
-                let status = Store::open(dir)?.eligibility("boss", &job)?;
+                let mut job: Job = serde_json::from_value(args.clone()).map_err(err)?;
+                let site = hiring::store::site_for_url(&job.url);
+                job.url = Store::canonical_site(&job.url, site)?;
+                let status = Store::open(dir)?.eligibility(site, &job)?;
                 Ok(
-                    json!({"fingerprint":hiring::dedupe::fingerprint(&job),"eligibility":status,"shared_across_accounts":true,"window_days":hiring::dedupe::DAYS}),
+                    json!({"fingerprint":hiring::dedupe::fingerprint(&job),"eligibility":status,"shared_across_accounts":true,"shared_across_platforms":true,"window_days":hiring::dedupe::DAYS}),
                 )
             }
             "hiring_attempt_resolve" => {
@@ -264,13 +358,30 @@ impl Server {
                 Store::open(dir)?.set_status(&url, text(args, "status"))?;
                 Ok(message("队列状态已更新"))
             }
-            "boss_queue_run" | "boss_pool_run" => {
-                confirmed(args)?;
+            "boss_queue_run" | "boss_pool_run" | "platform_queue_run" | "hiring_run" => {
+                let unified = name == "hiring_run";
+                let dry = args["dry_run"].as_bool().unwrap_or(true);
+                if !unified || !dry {
+                    confirmed(args)?;
+                }
+                if unified {
+                    if let Some(limit) = args["daily_limit"].as_u64() {
+                        settings.daily_limit = limit as u32;
+                    }
+                    if let Some(pages) = args["max_pages"].as_u64() {
+                        settings.unified_max_pages = pages as u32;
+                    }
+                }
                 if self.busy() {
                     return Err("已有后台队列正在执行".into());
                 }
                 let dir = directory;
                 let pool = name == "boss_pool_run";
+                let platform = if name == "platform_queue_run" {
+                    Some(hiring::platforms::Platform::parse(text(args, "platform"))?)
+                } else {
+                    None
+                };
                 let ids = if pool { account_ids(args)? } else { vec![] };
                 let limit = args["limit"].as_u64().unwrap_or(if pool { 450 } else { 1 }) as usize;
                 let cancel = Arc::new(AtomicBool::new(false));
@@ -285,7 +396,18 @@ impl Server {
                             items.pop_front();
                         }
                     };
-                    let outcome = if pool {
+                    let outcome = if unified {
+                        hiring::unified::run(&dir, &settings, dry, c, progress_callback)
+                    } else if let Some(platform) = platform {
+                        hiring::platforms::run_queue(
+                            &dir,
+                            &settings,
+                            platform,
+                            limit,
+                            c,
+                            progress_callback,
+                        )
+                    } else if pool {
                         hiring::boss::run_pool(&dir, &settings, &ids, limit, c, progress_callback)
                     } else {
                         hiring::boss::run_queue(&dir, &settings, limit, c, progress_callback)
@@ -301,7 +423,7 @@ impl Server {
                 });
                 Ok(self.background.as_ref().unwrap().status())
             }
-            "boss_queue_stop" => {
+            "boss_queue_stop" | "platform_queue_stop" | "hiring_stop" => {
                 let generation = Store::open(dir)?.request_stop()?;
                 if let Some(background) = self.background.as_ref() {
                     background.cancel.store(true, Ordering::Release);
