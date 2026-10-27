@@ -2,7 +2,7 @@
 
 Rust 原生 Windows 桌面工具。直接打开使用，集中管理个人记录、文档、知识和练习。当前版本：**0.15.31**。
 
-下载最新版：[Releases](https://github.com/Li-Liu-hub/Personal-Workbench/releases/latest)（`PersonalDesk-Windows-x64.zip` 免安装，解压即用）。程序内“更新 → 检查更新”会读取该发布页，发现新版本后自动下载安装。
+下载最新版：[Releases](https://github.com/Li-Liu-hub/Personal-Workbench/releases/latest)。程序内“更新 → 检查更新”会读取该发布页，发现新版本后自动下载安装。
 
 ## 项目理念
 
@@ -19,11 +19,19 @@ Rust 原生 Windows 桌面工具。直接打开使用，集中管理个人记录
 
 从 [GitHub Releases](https://github.com/Li-Liu-hub/Personal-Workbench/releases/latest) 下载 Windows x64 版本：
 
-- `PersonalDesk-0.14.0-Setup-x64.exe`：安装向导，支持选择程序和数据目录、创建快捷方式及可选开机启动。
-- `PersonalDesk-0.14.0-Windows-x64.zip` 或 `PersonalDesk.exe`：免安装，解压后直接运行。
-- `SHA256SUMS.txt`：发布文件校验值。客户端包不包含个人数据、本地模型或模型运行时。
+- `PersonalDesk-<版本>-Windows-x64.zip` 或 `PersonalDesk.exe`：免安装，解压后直接运行。当前发布提供这两种。
+- `PersonalDesk-<版本>-Setup-x64.exe`：安装向导，支持选择程序和数据目录、创建快捷方式及可选开机启动；由仓库的 `package-release.yml` 工作流生成，未随每次发布提供时可以只用免安装包。
+- `SHA256SUMS.txt`：发布文件校验值；`latest.json`：客户端检查更新使用的清单。
+- 客户端包不包含个人数据、本地模型或模型运行时。
 
 已有数据请保留程序旁的 `personal-desk-data-path.txt`；安装时选择原数据目录。升级只替换程序，卸载保留账号、文档、学习与游戏记录。软件记住已选择的数据位置，已安装目录中的路径配置优先保留。
+
+## 仓库与数据
+
+- 仓库只放程序源码、内容包和示例数据；简历、账号密码、投递记录、笔记库、`desk.db` 和模型文件都只保存在本机数据目录。
+- 求职工具的运行数据（`BOSS直聘/data`、`官网投递/data`、`接码/data`、个人资料 Markdown 与配置）在 `.gitignore` 中排除；笔记迁移脚本使用示例目录名，按需修改后本地使用。
+- 示例与测试统一使用占位姓名、手机号、邮箱、学校与公司，不放真实个人经历。
+- 提交前可用 `git status` 与 `git grep` 检查是否误加了个人文件。
 
 ## 最近更新
 

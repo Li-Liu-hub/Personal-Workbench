@@ -60,7 +60,7 @@ bosshunter.bat --json check-login
 
 1. 运行 `bosshunter.bat login`，在弹出的 Chrome 窗口扫码/短信登录。
 2. 运行 `bosshunter.bat --json check-login`，确认 `logged_in` 为真。
-3. **核对真实账号 userId**：`check-login` 只能证明登录态有效，不能区分同名账号。历史上多个 BOSS 账号都显示为“张三”；此前核验过的账号 userId 是 `100000001`。切换账号或首次登录后，必须在 BOSS 页面/接口核对其 userId，确认是要投递的账号后再跑队列。
+3. **核对真实账号 userId**：`check-login` 只能证明登录态有效，不能区分昵称相同的账号。切换账号或首次登录后，必须在 BOSS 页面/接口核对当前账号的 userId，确认是要投递的账号后再跑队列。
 4. 不要用昵称判断账号。
 
 ### 搜索与详情
@@ -109,7 +109,7 @@ bosshunter.bat queue run --wait-window --max-minutes 620
 | 每日页面预算 | 600（搜索 60 / 详情 400 / 聊天按实际） |
 | 连续失败熔断 | 10 次 |
 | 默认招呼语 | 已配置在 `config.yaml` |
-| 默认图片 | `./data/resumes/张三_简历_13800138000.png`（已复制到本目录） |
+| 默认图片 | `./data/resumes/resume.png`（按需替换为本人简历图片） |
 | 搜索关键词 | Java后端开发、全栈开发、Java开发实习生、后端开发 |
 | 城市 | 上海、深圳、杭州、成都、武汉、广州、苏州、无锡、宁波 |
 
