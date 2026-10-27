@@ -103,13 +103,21 @@ class Browser:
         if self.mode == "ambiguous":
             script = "this.textContent='处理中';window.sentCount=(window.sentCount||0)+1"
         block = '<div role="dialog">请完成安全验证，拖动滑块</div>' if self.mode == "captcha" else ""
+        if self.mode == "edgeone":
+            block = '<h1>www.zhaopin.com</h1><p>正在验证连接安全性，请勾选下方复选框。</p>'
+        account = '<a href="/profile">我的简历</a>' if self.mode != "logged_out" else '<div class="login-btn">登录/注册</div><a href="/resume">简历中心</a><div class="company-avatar">公司头像</div>'
+        card = f'<div class="job-item"><a class="intern-name jobinfo__name jname" href="{self.url}">{title}</a><span class="company-name">测试科技{self.identity}</span><span class="salary">200/天</span></div>'
+        if self.platform == "51job":
+            data = json.dumps({"jobId":"12345678","jobYear":"在校生","jobDegree":"本科"}).replace('"','&quot;')
+            card = f'<div class="joblist-item"><div class="joblist-item-job" sensorsdata="{data}"><span class="jname">{title}</span><span class="area">上海</span></div><a href="https://jobs.51job.com/all/co123.html"><span class="cname">测试科技{self.identity}</span></a></div>'
+        buttons = f'<button onclick="{script}">投递简历</button>'
+        if self.platform == "shixiseng":
+            buttons = f'<div class="btn_warp"><div class="resume_apply com_res" onclick="{script}">投个简历</div></div><div class="resume_content"><div class="resume_apply com_res" onclick="{script}">投个简历</div></div>'
         return f'''<!doctype html><meta charset="utf-8"><title>本地招聘验证</title>
-        <a href="/profile">我的简历</a>{block}
-        <div class="job-item"><a class="intern-name jobinfo__name jname" href="{self.url}">{title}</a>
-        <span class="company-name">测试科技{self.identity}</span><span class="salary">200/天</span></div>
-        <h1>{title}</h1><div class="job-description">负责Java后端开发与自动化测试</div>
+        {account}{block}{card}
+        <h1>{title}</h1><div class="company-name">测试科技{self.identity}</div><div class="job-description">负责Java后端开发与自动化测试</div>
         <label>选择简历<select name="resume"><option value="a">简历A</option><option value="b">简历B</option></select></label>
-        <button onclick="{script}">投递简历</button>'''
+        {buttons}'''
 
     def listen(self):
         while not self.closed:
@@ -209,6 +217,11 @@ def main():
                 apply = {"platform": p, "url": browser.url}
                 mcp.call("platform_queue_add", {**apply, "title": detail["title"], "company": detail["company"], "jd": detail["jd"]})
                 mcp.call("platform_apply", {**apply, "dry_run": False}, error=True)
+                browser.mode = "logged_out"
+                mcp.call("platform_job_detail", {"platform": p, "url": browser.url})
+                mcp.call("platform_apply", apply, error=True)
+                browser.mode = "normal"
+                mcp.call("platform_job_detail", {"platform": p, "url": browser.url})
                 mcp.call("platform_apply", apply)
                 assert browser.eval("window.sentCount||0") == 0
                 browser.eval("document.querySelector('select').value='b'")
@@ -232,9 +245,11 @@ def main():
             # Website verification must fail before any reservation or click.
             other.mode = "captcha"
             mcp.call("platform_search_jobs", {"platform": other.platform, "keyword": "Java", "city": "上海"}, error=True)
+            other.mode = "edgeone"
+            mcp.call("platform_search_jobs", {"platform": other.platform, "keyword": "Java", "city": "上海"}, error=True)
             assert all(b.requests > 0 for b in browsers)
             print(json.dumps({"passed": True, "platforms": list(PLATFORMS), "confirmed_fixture_sends": 3,
-                "checks": ["search", "detail", "single_shared_queue", "confirmation", "changed_resume", "duplicate", "cross_platform_duplicate", "captcha"],
+                "checks": ["search", "detail", "single_shared_queue", "confirmation", "changed_resume", "duplicate", "cross_platform_duplicate", "captcha", "51job_clickable_cards", "shixiseng_repeated_apply", "login_required", "edgeone_verification"],
                 "live_website_submissions": 0}, ensure_ascii=False))
         except Exception:
             for browser in browsers:

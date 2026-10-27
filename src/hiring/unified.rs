@@ -20,6 +20,12 @@ pub fn same_candidate(a: &Job, b: &Job) -> bool {
     if a.url == b.url {
         return true;
     }
+    if let Some(p) = Platform::detect(&a.url)
+        && p == Platform::Job51
+        && p.canonical(&a.url).ok() == p.canonical(&b.url).ok()
+    {
+        return true;
+    }
     if super::dedupe::fingerprint(a).is_some()
         && super::dedupe::fingerprint(a) == super::dedupe::fingerprint(b)
     {

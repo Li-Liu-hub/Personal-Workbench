@@ -22,7 +22,11 @@ fn platform_boundaries_city_codes_and_url_dedup() {
         assert_eq!(
             p.canonical(&format!("{}?utm_source=x#tracking", j.url))
                 .unwrap(),
-            j.url
+            if p == Platform::Job51 {
+                "https://jobs.51job.com/all/12345678.html"
+            } else {
+                &j.url
+            }
         );
         for bad in [
             "https://51job.com.evil.test/job.htm",

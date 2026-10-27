@@ -154,9 +154,19 @@ impl Store {
                 |r| r.get(0),
             )
             .map_err(err)?;
-        let mut stmt=conn.prepare("SELECT a.id,a.status,a.at,a.day,m.cooldown_at FROM attempts a LEFT JOIN attempt_identity m ON m.attempt_id=a.id WHERE (a.url=?1 OR (?2<>'' AND m.fingerprint=?2)) AND a.status IN ('reserved','sent','ambiguous','partial') ORDER BY a.id DESC").map_err(err)?;
+        let legacy_51 = if super::super::platforms::Platform::detect(&url)
+            == Some(super::super::platforms::Platform::Job51)
+        {
+            format!(
+                "https://jobs.51job.com/%/{}",
+                url.rsplit('/').next().unwrap()
+            )
+        } else {
+            String::new()
+        };
+        let mut stmt=conn.prepare("SELECT a.id,a.status,a.at,a.day,m.cooldown_at FROM attempts a LEFT JOIN attempt_identity m ON m.attempt_id=a.id WHERE (a.url=?1 OR (?2<>'' AND m.fingerprint=?2) OR (?3<>'' AND a.url LIKE ?3)) AND a.status IN ('reserved','sent','ambiguous','partial') ORDER BY a.id DESC").map_err(err)?;
         let rows = stmt
-            .query_map(params![url, fp], |r| {
+            .query_map(params![url, fp, legacy_51], |r| {
                 Ok((
                     r.get::<_, i64>(0)?,
                     r.get::<_, String>(1)?,

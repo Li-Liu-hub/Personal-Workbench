@@ -199,3 +199,28 @@ fn shared_quota_interval_and_queue_recovery_survive_restart() {
         1
     );
 }
+
+#[test]
+fn legacy_51_region_links_and_current_id_links_share_history_even_after_title_changes() {
+    let d = tempfile::tempdir().unwrap();
+    let mut store = Store::open(d.path()).unwrap();
+    let original = job("51job");
+    let id = store.reserve("51job", &original, &settings()).unwrap();
+    store.finish(id, "sent", "fixture").unwrap();
+    store
+        .conn
+        .execute(
+            "UPDATE attempts SET url=?1 WHERE id=?2",
+            params![original.url, id],
+        )
+        .unwrap();
+    let mut changed = original.clone();
+    changed.url = "https://jobs.51job.com/all/12345678.html".into();
+    changed.title = "更新后的职位名称".into();
+    changed.jd = "更新后的岗位说明".into();
+    assert!(matches!(
+        store.eligibility("51job", &changed).unwrap(),
+        Eligibility::CoolingDown { .. }
+    ));
+    assert!(crate::hiring::unified::same_candidate(&original, &changed));
+}

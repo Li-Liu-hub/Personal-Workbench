@@ -391,8 +391,17 @@ fn location_matches(expected: &str, actual: &str) -> bool {
     } else {
         actual.path()
     };
+    let same_51_job = super::platforms::Platform::Job51
+        .canonical(expected.as_str())
+        .is_ok_and(|url| {
+            super::platforms::Platform::Job51
+                .canonical(actual.as_str())
+                .ok()
+                .as_ref()
+                == Some(&url)
+        });
     expected.host_str() == actual.host_str()
-        && expected_path == actual_path
+        && (expected_path == actual_path || same_51_job)
         && expected
             .query_pairs()
             .all(|(key, value)| actual.query_pairs().any(|(k, v)| k == key && v == value))
@@ -403,6 +412,14 @@ mod navigation_tests {
     use super::*;
     #[test]
     fn redirected_search_must_match_requested_query_and_job_identity() {
+        assert!(location_matches(
+            "https://jobs.51job.com/all/12345678.html",
+            "https://jobs.51job.com/shanghai-pdxq/12345678.html?s=search"
+        ));
+        assert!(!location_matches(
+            "https://jobs.51job.com/all/12345678.html",
+            "https://jobs.51job.com/shanghai-pdxq/99999999.html"
+        ));
         let expected = "https://www.zhipin.com/web/geek/job?query=Java&city=100010000&page=1";
         assert!(location_matches(
             expected,

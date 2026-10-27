@@ -92,6 +92,10 @@ impl Platform {
         if !valid {
             return Err(format!("请输入{}的职位详情链接", self.label()));
         }
+        if self == Self::Job51 {
+            let id = u.path().rsplit('/').next().unwrap().to_owned();
+            u.set_path(&format!("/all/{id}"));
+        }
         u.set_query(None);
         u.set_fragment(None);
         Ok(u.to_string())
@@ -336,6 +340,9 @@ pub fn apply(
     tab.wait_ready()?;
     let page = probe(&mut tab, p)?;
     let job = read_job(&page, p)?;
+    if page["logged_in"] != true {
+        return Err("尚未确认此平台已登录，请登录并核对在线简历后重新预检".into());
+    }
     if job.url != url
         || (!expected.title.is_empty()
             && super::dedupe::normalize(&expected.title) != super::dedupe::normalize(&job.title))

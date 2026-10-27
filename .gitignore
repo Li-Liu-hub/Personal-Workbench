@@ -1,5 +1,6 @@
 /target/
 /.artifacts/
+/output/playwright/
 /dist/
 *.sqlite
 *.sqlite-shm
