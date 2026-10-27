@@ -37,28 +37,24 @@ def category(relative):
     top = parts[0]
     if top == "日记":
         return "生活 · 日记", ["生活", "日记", name[:7]]
-    if top == "示例公司":
+    if top == "工作":
         if "项目一" in parts:
-            return "工作 · 项目一", ["工作", "示例公司", "项目一"]
-        if "资产负债" in parts:
-            return "工作 · 项目二", ["工作", "示例公司", "项目二"]
-        return "工作 · 项目三", ["工作", "示例公司", "项目三"]
+            return "工作 · 项目一", ["工作", "项目一"]
+        if "项目二" in parts:
+            return "工作 · 项目二", ["工作", "项目二"]
+        return "工作 · 日常", ["工作", "日常"]
     if top in ("语法错误集合", "Spring框架源码阅读"):
         return "学习 · Java 与 Spring", ["学习", "Java", top]
     if top == "开源项目拆解":
         return "学习 · 开源项目拆解", ["学习", "开源项目", "Codex"]
-    if top == "示例项目一":
-        return "项目 · 示例项目一", ["项目", "AI Agent"]
-    if top == "示例项目二":
+    if top == "项目一":
+        return "项目 · 示例项目一", ["项目", "示例项目一"]
+    if top == "项目二":
         return "项目 · 示例项目二", ["项目", "示例项目二"]
     if name in ("大模型Api-key", "手机号", "游戏账号", "账号密码"):
         return "私人 · 账号资料", ["私人", "账号资料"]
     if name in ("简历", "面试题库"):
         return "求职 · 简历与面试", ["求职", "面试"]
-    if name == "关联对账":
-        return "工作 · 项目三", ["工作", "对账"]
-    if name.startswith("双线客户渗透率报表"):
-        return "工作 · 项目一", ["工作", "项目一"]
     if name == "记账本":
         return "生活 · 记账", ["生活", "记账"]
     if name == "常用指令":
