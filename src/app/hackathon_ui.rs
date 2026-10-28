@@ -9,6 +9,8 @@ struct Event {
     title: String,
     details: String,
     url: String,
+    #[serde(default)]
+    official_url: String,
     source: String,
     collected: String,
 }
@@ -53,6 +55,7 @@ fn parse_trip(body: &str) -> Vec<Event> {
                 title,
                 details,
                 url: format!("https://hackertrip.cn{href}"),
+                official_url: String::new(),
                 source: "HackerTrip（聚合页面）".into(),
                 collected: chrono::Local::now().format("%Y-%m-%d %H:%M").to_string(),
             });
@@ -60,37 +63,66 @@ fn parse_trip(body: &str) -> Vec<Event> {
     }
     events
 }
+fn valid_external_url(value: &str) -> Option<String> {
+    let parsed = url::Url::parse(value).ok()?;
+    if matches!(parsed.scheme(), "http" | "https") && parsed.host_str().is_some() {
+        Some(parsed.into())
+    } else {
+        None
+    }
+}
 fn parse_hack123(body: &str) -> Vec<Event> {
     let doc = Html::parse_document(body);
-    let cards = Selector::parse("a.main[href^='/h/']").unwrap();
-    let heading = Selector::parse("h2, h3, h4").unwrap();
+    let cards = Selector::parse("li.card").unwrap();
+    let main = Selector::parse("a.main[href^='/h/']").unwrap();
+    let heading = Selector::parse(".title").unwrap();
+    let link = Selector::parse("a.go[href]").unwrap();
     doc.select(&cards)
         .filter_map(|card| {
-            let href = card.value().attr("href")?;
-            let details = card
+            let main = card.select(&main).next()?;
+            let href = main.value().attr("href")?;
+            let details = main
                 .text()
                 .collect::<Vec<_>>()
                 .join(" ")
                 .split_whitespace()
                 .collect::<Vec<_>>()
                 .join(" ");
-            let title = card
+            let title = main
                 .select(&heading)
-                .next()
-                .map(|h| h.text().collect::<Vec<_>>().join(" "))
-                .unwrap_or_else(|| details.clone());
-            if title.trim().is_empty() {
+                .next()?
+                .text()
+                .collect::<Vec<_>>()
+                .join(" ")
+                .trim()
+                .to_owned();
+            if title.is_empty() {
                 return None;
             }
+            let official_url = card
+                .select(&link)
+                .next()
+                .and_then(|a| a.value().attr("href"))
+                .and_then(valid_external_url)
+                .unwrap_or_default();
             Some(Event {
-                title: title.trim().to_owned(),
+                title,
                 details,
                 url: format!("https://hack123.henryht.sh{href}"),
+                official_url,
                 source: "黑123（聚合页面）".into(),
                 collected: chrono::Local::now().format("%Y-%m-%d %H:%M").to_string(),
             })
         })
         .collect()
+}
+fn trip_official(body: &str) -> Option<String> {
+    let doc = Html::parse_document(body);
+    let selector = Selector::parse("a[class*='registerButton'][href]").unwrap();
+    doc.select(&selector)
+        .next()
+        .and_then(|a| a.value().attr("href"))
+        .and_then(valid_external_url)
 }
 fn collect() -> (Vec<Event>, Vec<String>) {
     let agent: ureq::Agent = ureq::Agent::config_builder()
@@ -104,21 +136,24 @@ fn collect() -> (Vec<Event>, Vec<String>) {
         ("黑123", "https://hack123.henryht.sh/"),
         ("Devpost", "https://devpost.com/hackathons"),
     ] {
-        let result = agent
-            .get(url)
-            .header("User-Agent", "Mozilla/5.0 PersonalDesk/1.0")
-            .call()
-            .map_err(|e| e.to_string())
-            .and_then(|mut r| {
-                r.body_mut()
-                    .with_config()
-                    .limit(8_000_000)
-                    .read_to_string()
-                    .map_err(|e| e.to_string())
-            });
+        let fetch = || {
+            agent
+                .get(url)
+                .header("User-Agent", "Mozilla/5.0 PersonalDesk/1.0")
+                .call()
+                .map_err(|e| e.to_string())
+                .and_then(|mut r| {
+                    r.body_mut()
+                        .with_config()
+                        .limit(8_000_000)
+                        .read_to_string()
+                        .map_err(|e| e.to_string())
+                })
+        };
+        let result = fetch().or_else(|_| fetch());
         match result {
             Ok(body) if name == "HackerTrip" || name == "黑123" => {
-                let found = if name == "HackerTrip" {
+                let mut found = if name == "HackerTrip" {
                     parse_trip(&body)
                 } else {
                     parse_hack123(&body)
@@ -126,7 +161,28 @@ fn collect() -> (Vec<Event>, Vec<String>) {
                 if found.is_empty() {
                     reports.push(format!("{name}：未识别赛事，页面可能已变化"));
                 } else {
-                    reports.push(format!("{name}：获取 {} 条", found.len()));
+                    if name == "HackerTrip" {
+                        for event in &mut found {
+                            if let Ok(mut response) = agent
+                                .get(&event.url)
+                                .header("User-Agent", "Mozilla/5.0 PersonalDesk/1.0")
+                                .call()
+                                && let Ok(body) = response
+                                    .body_mut()
+                                    .with_config()
+                                    .limit(4_000_000)
+                                    .read_to_string()
+                                && let Some(url) = trip_official(&body)
+                            {
+                                event.official_url = url;
+                            }
+                        }
+                    }
+                    let linked = found.iter().filter(|e| !e.official_url.is_empty()).count();
+                    reports.push(format!(
+                        "{name}：获取 {} 条，其中 {linked} 条提供报名链接",
+                        found.len()
+                    ));
                     events.extend(found);
                 }
             }
@@ -145,7 +201,7 @@ impl PersonalDeskApp {
         if !self.record_matches_filter(TagScope::Tools, TOOL_ID)
             || !matches_query(
                 &self.search_query.to_lowercase(),
-                &["黑客松赛事", "hackathon 比赛 赛事 活动 搜索 爬虫"],
+                &["黑客松比赛", "hackathon 比赛 赛事 活动 搜索 爬虫"],
             )
         {
             return;
@@ -153,7 +209,7 @@ impl PersonalDeskApp {
         let response = entry(
             ui,
             TOOL_ID,
-            "黑客松赛事",
+            "黑客松比赛",
             if self.hackathon.busy() {
                 "正在采集 · 点击查看"
             } else {
@@ -186,6 +242,10 @@ impl PersonalDeskApp {
                     .iter_mut()
                     .find(|e| e.url == event.url)
                 {
+                    let mut event = event;
+                    if event.official_url.is_empty() {
+                        event.official_url = old.official_url.clone();
+                    }
                     *old = event;
                 } else {
                     self.hackathon.events.push(event);
@@ -205,77 +265,95 @@ impl PersonalDeskApp {
             }
         }
     }
-    pub(super) fn render_hackathon_dialog(&mut self, ctx: &egui::Context) {
-        if !self.hackathon.open {
+    fn load_hackathons(&mut self) {
+        if self.hackathon.loaded {
             return;
         }
-        if !self.hackathon.loaded {
-            if let Some(db) = self.db.as_ref() {
-                match db.setting("hackathon.events") {
-                    Ok(Some(s)) => match serde_json::from_str(&s) {
-                        Ok(events) => self.hackathon.events = events,
-                        Err(e) => self.hackathon.error = format!("读取历史失败：{e}"),
-                    },
-                    Ok(None) => {}
-                    Err(e) => self.hackathon.error = e.to_string(),
+        if let Some(db) = self.db.as_ref() {
+            match db.setting("hackathon.events") {
+                Ok(Some(s)) => match serde_json::from_str(&s) {
+                    Ok(events) => self.hackathon.events = events,
+                    Err(e) => {
+                        self.hackathon.error = format!("读取历史失败：{e}");
+                        return;
+                    }
+                },
+                Ok(None) => {}
+                Err(e) => {
+                    self.hackathon.error = e.to_string();
+                    return;
                 }
             }
-            self.hackathon.loaded = true;
+        } else {
+            self.hackathon.error = "数据库不可用，无法保存比赛".into();
+            return;
         }
+        self.hackathon.loaded = true;
+    }
+    pub(super) fn render_hackathon_page(&mut self, ui: &mut egui::Ui) {
+        self.load_hackathons();
         let state = &mut self.hackathon;
         let mut start = false;
-        let dialog = centered_dialog(
-            ctx,
-            "hackathon-search",
-            "黑客松赛事",
-            "公开来源聚合，报名时间和资格请以主办方页面为准。",
-            1000.,
-            |ui| {
-                ui.horizontal(|ui| {
-                    if ui
-                        .add_enabled(!state.busy(), primary_button("更新赛事"))
-                        .clicked()
-                    {
-                        start = true;
-                    }
-                    ui.label(if state.busy() {
-                        "采集中…"
-                    } else {
-                        "输入关键词筛选已采集赛事"
-                    });
-                    ui.text_edit_singleline(&mut state.query);
-                });
-                ui.label("覆盖受各网站开放情况限制，无法保证全网完整；历史结果可能已过期。");
-                for report in &state.reports {
-                    ui.label(report);
-                }
-                if !state.error.is_empty() {
-                    ui.colored_label(Color32::from_rgb(184, 65, 71), &state.error);
-                }
-                let query = state.query.to_lowercase();
-                egui::ScrollArea::vertical()
-                    .id_salt("hackathon-results")
-                    .max_height(520.)
-                    .show(ui, |ui| {
-                        for event in state.events.iter().filter(|e| {
-                            query.is_empty()
-                                || format!("{} {} {}", e.title, e.details, e.source)
-                                    .to_lowercase()
-                                    .contains(&query)
-                        }) {
-                            ui.group(|ui| {
-                                ui.strong(&event.title);
-                                ui.label(&event.details);
-                                ui.label(format!("{} · 采集于 {}", event.source, event.collected));
-                                ui.hyperlink_to("查看赛事来源及报名入口", &event.url);
-                            });
-                        }
-                    });
-            },
+        ui.heading("黑客松比赛");
+        ui.horizontal_wrapped(|ui| {
+            if ui
+                .add_enabled(state.loaded && !state.busy(), primary_button("更新比赛"))
+                .clicked()
+            {
+                start = true;
+            }
+            ui.label(if state.busy() {
+                "采集中…"
+            } else {
+                "关键词"
+            });
+            ui.text_edit_singleline(&mut state.query);
+        });
+        ui.label(
+            "公开网站收集的具体比赛；报名链接由来源提供，时间、资格和真实性请在主办方页面核实。",
         );
-        if dialog_closed(&dialog) {
-            self.hackathon.open = false;
+        for report in &state.reports {
+            ui.label(report);
         }
+        if !state.error.is_empty() {
+            ui.colored_label(Color32::from_rgb(184, 65, 71), &state.error);
+        }
+        let query = state.query.to_lowercase();
+        let count = state
+            .events
+            .iter()
+            .filter(|e| {
+                query.is_empty()
+                    || format!("{} {} {}", e.title, e.details, e.source)
+                        .to_lowercase()
+                        .contains(&query)
+            })
+            .count();
+        ui.label(format!("{count} 场比赛 · 历史信息可能过期"));
+        egui::ScrollArea::vertical()
+            .id_salt("hackathon-results")
+            .show(ui, |ui| {
+                for event in state.events.iter().filter(|e| {
+                    query.is_empty()
+                        || format!("{} {} {}", e.title, e.details, e.source)
+                            .to_lowercase()
+                            .contains(&query)
+                }) {
+                    ui.group(|ui| {
+                        ui.strong(&event.title);
+                        ui.label(&event.details);
+                        ui.label(format!("{} · 采集于 {}", event.source, event.collected));
+                        ui.horizontal_wrapped(|ui| {
+                            ui.hyperlink_to("赛事来源", &event.url);
+                            if !event.official_url.is_empty() {
+                                ui.hyperlink_to("报名 / 比赛网站", &event.official_url);
+                            } else {
+                                ui.label("未取得报名网址，请查看赛事来源");
+                            }
+                        });
+                    });
+                }
+            });
         if start {
             let (tx, rx) = mpsc::channel();
             self.hackathon.receiver = Some(rx);
@@ -283,6 +361,17 @@ impl PersonalDeskApp {
             std::thread::spawn(move || {
                 let _ = tx.send(collect());
             });
+        }
+    }
+    pub(super) fn render_hackathon_dialog(&mut self, ctx: &egui::Context) {
+        if !self.hackathon.open {
+            return;
+        }
+        let dialog = centered_dialog(ctx, "hackathon-search", "黑客松比赛", "", 1000., |ui| {
+            self.render_hackathon_page(ui);
+        });
+        if dialog_closed(&dialog) {
+            self.hackathon.open = false;
         }
     }
 }
@@ -298,6 +387,24 @@ mod tests {
         }
         println!("events: {}", events.len());
         assert!(!events.is_empty(), "no source returned recognizable events");
+    }
+    #[test]
+    fn extracts_event_and_its_registration_url() {
+        let items = parse_hack123(
+            r#"<li class='card'><a class='main' href='/h/sample'><span class='title'>示例比赛</span><span>线上 截止 11-02</span></a><a class='go' href='https://example.org/register'>报名</a></li>"#,
+        );
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].title, "示例比赛");
+        assert_eq!(items[0].official_url, "https://example.org/register");
+        assert!(items[0].details.contains("11-02"));
+        assert_eq!(trip_official(r#"<a class='event-detail_registerButton__abc' href='https://example.org/apply'>报名</a>"#).as_deref(), Some("https://example.org/apply"));
+        assert!(valid_external_url("javascript:alert(1)").is_none());
+        let legacy = r#"[{"title":"旧比赛","details":"","url":"https://example.org","source":"来源","collected":""}]"#;
+        assert!(
+            serde_json::from_str::<Vec<Event>>(legacy).unwrap()[0]
+                .official_url
+                .is_empty()
+        );
     }
     #[test]
     fn parses_event_cards_and_ignores_navigation() {

@@ -105,6 +105,12 @@ impl PersonalDeskApp {
             {
                 self.jobhunt.page = 0;
             }
+            if ui
+                .selectable_value(&mut self.jobhunt.tab, 3, "黑客松比赛")
+                .changed()
+            {
+                self.jobhunt.page = 0;
+            }
             ui.separator();
             if ui.button("开始自动求职").clicked() {
                 self.hiring.open = true;
@@ -140,6 +146,8 @@ impl PersonalDeskApp {
         ui.add_space(6.);
         if self.jobhunt.tab == 0 {
             self.render_jobhunt_sites(ui);
+        } else if self.jobhunt.tab == 3 {
+            self.render_hackathon_page(ui);
         } else {
             self.render_jobhunt_attempts(ui);
         }

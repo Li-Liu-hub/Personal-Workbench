@@ -175,3 +175,21 @@ fn jobhunt_card_actions_remain_horizontal_in_small_and_standard_windows() {
         }
     }
 }
+
+#[test]
+fn hackathon_tab_displays_saved_competitions_and_registration() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+    app.db.as_mut().unwrap().set_setting("hackathon.events", r#"[{"title":"示例黑客松","details":"线上比赛","url":"https://example.org/source","official_url":"https://example.org/register","source":"测试赛事","collected":"2026-10-29"}]"#).unwrap();
+    app.section = Section::JobHunt;
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0., vec![], vec![]);
+    let output = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    let p = position(&output, "黑客松比赛").unwrap();
+    input_frame(&mut app, &ctx, 0.2, pointer(p, true), vec![]);
+    input_frame(&mut app, &ctx, 0.3, pointer(p, false), vec![]);
+    let output = input_frame(&mut app, &ctx, 0.4, vec![], vec![]);
+    assert!(position(&output, "示例黑客松").is_some());
+    assert!(position(&output, "报名 / 比赛网站").is_some());
+}
