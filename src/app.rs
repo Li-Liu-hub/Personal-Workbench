@@ -21,6 +21,7 @@ mod credential_ui;
 mod document_group_ui;
 mod favorites_ui;
 mod game_ui;
+mod hackathon_ui;
 mod index_ui;
 mod navigation_ui;
 #[cfg(test)]
@@ -121,6 +122,7 @@ pub struct PersonalDeskApp {
     excel_merge: excel_merge_ui::ExcelMergeState,
     pdf_images: pdf_images_ui::PdfImagesState,
     campus: campus_ui::CampusState,
+    hackathon: hackathon_ui::HackathonState,
     hiring: hiring_ui::HiringState,
     jobhunt: jobhunt_ui::JobHuntState,
     website_open_request: Option<Website>,
@@ -312,6 +314,7 @@ impl PersonalDeskApp {
             excel_merge: Default::default(),
             pdf_images: Default::default(),
             campus: Default::default(),
+            hackathon: Default::default(),
             hiring: Default::default(),
             jobhunt: Default::default(),
             website_open_request: None,
@@ -788,6 +791,7 @@ impl eframe::App for PersonalDeskApp {
         }
         self.poll_resume(&ctx);
         self.poll_campus();
+        self.poll_hackathons();
         if let Some(message) = self.pdf_images.poll() {
             self.notice = message;
         }
@@ -853,6 +857,7 @@ impl eframe::App for PersonalDeskApp {
         }
         ctx.request_repaint_after(
             if self.campus.busy()
+                || self.hackathon.busy()
                 || self.contact_import_busy
                 || self.excel_merge.busy()
                 || self.pdf_images.busy()
