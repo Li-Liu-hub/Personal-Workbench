@@ -19,6 +19,12 @@ pub(super) struct JobHuntState {
     draft: Option<Site>,
     deleting: Option<Site>,
     error: String,
+    demand_query: String,
+    demand_selected_keyword: String,
+    demand_last_query: String,
+    demand_filter: String,
+    demand_results: crate::demand::Results,
+    demand_receiver: Option<std::sync::mpsc::Receiver<crate::demand::Results>>,
 }
 #[cfg(test)]
 mod tests;
@@ -106,6 +112,12 @@ impl PersonalDeskApp {
                 self.jobhunt.page = 0;
             }
             if ui
+                .selectable_value(&mut self.jobhunt.tab, 2, "需求搜集")
+                .changed()
+            {
+                self.jobhunt.page = 0;
+            }
+            if ui
                 .selectable_value(&mut self.jobhunt.tab, 3, "黑客松比赛")
                 .changed()
             {
@@ -146,10 +158,154 @@ impl PersonalDeskApp {
         ui.add_space(6.);
         if self.jobhunt.tab == 0 {
             self.render_jobhunt_sites(ui);
+        } else if self.jobhunt.tab == 1 {
+            self.render_jobhunt_attempts(ui);
         } else if self.jobhunt.tab == 3 {
             self.render_hackathon_page(ui);
         } else {
-            self.render_jobhunt_attempts(ui);
+            self.render_demand(ui);
+        }
+    }
+    fn render_demand(&mut self, ui: &mut egui::Ui) {
+        if let Some(rx) = &self.jobhunt.demand_receiver {
+            match rx.try_recv() {
+                Ok(result) => {
+                    self.jobhunt.demand_results = result;
+                    self.jobhunt.demand_receiver = None;
+                }
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    self.jobhunt.demand_receiver = None;
+                    self.jobhunt.error = "需求搜索意外中断".into();
+                }
+                Err(std::sync::mpsc::TryRecvError::Empty) => {
+                    ui.ctx().request_repaint_after(Duration::from_millis(200));
+                }
+            }
+        }
+        ui.heading("岗位关键词与公开需求线索");
+        ui.label("从招聘队列已有的岗位说明统计技能词，每份 JD 同一词只计一次；需要更多岗位时，请在“开始自动求职”窗口选择“仅搜索并筛选”。词表覆盖常见技术，不能代表全部关键词。");
+        let words = crate::demand::keywords(&self.jobhunt.rows);
+        let jd_count = self
+            .jobhunt
+            .rows
+            .iter()
+            .filter(|r| r.source.ends_with("队列") && !r.description.trim().is_empty())
+            .count();
+        ui.small(format!(
+            "当前有 {jd_count} 份带说明的队列岗位 · 点击关键词填入搜索"
+        ));
+        ui.horizontal_wrapped(|ui| {
+            for word in words.iter().take(40) {
+                if ui
+                    .button(format!("{} ({})", word.word, word.jobs))
+                    .clicked()
+                {
+                    self.jobhunt.demand_query = word.word.clone();
+                    self.jobhunt.demand_selected_keyword = word.word.clone();
+                    self.jobhunt.demand_filter = word.word.clone();
+                }
+            }
+        });
+        if !self.jobhunt.demand_selected_keyword.is_empty() {
+            let keyword = self.jobhunt.demand_selected_keyword.to_lowercase();
+            let matched: Vec<_> = self
+                .jobhunt
+                .rows
+                .iter()
+                .filter(|r| {
+                    r.source.ends_with("队列")
+                        && crate::demand::keyword_match(&r.description.to_lowercase(), &keyword)
+                })
+                .collect();
+            egui::CollapsingHeader::new(format!(
+                "包含 {} 的岗位（{}）",
+                self.jobhunt.demand_selected_keyword,
+                matched.len()
+            ))
+            .show(ui, |ui| {
+                for row in matched.iter().take(50) {
+                    ui.horizontal_wrapped(|ui| {
+                        ui.label(format!(
+                            "{} · {} · {}",
+                            row.company, row.position, row.source
+                        ));
+                        ui.hyperlink_to("查看岗位", &row.url);
+                    });
+                }
+                if matched.len() > 50 {
+                    ui.small("仅展示前 50 条，请在求职网站页查看全部岗位。");
+                }
+            });
+            if ui.button("清除关键词关联筛选").clicked() {
+                self.jobhunt.demand_selected_keyword.clear();
+                self.jobhunt.demand_filter.clear();
+            }
+        }
+        ui.separator();
+        ui.label("搜索 GitHub 开放问题、Hacker News 公开评论及 V2EX 最新主题，并用抱怨词初筛；结果是候选线索，需打开原文判断是否属于真实抱怨或需求。");
+        ui.horizontal_wrapped(|ui| {
+            ui.label("搜索主题");
+            ui.text_edit_singleline(&mut self.jobhunt.demand_query);
+            if ui
+                .add_enabled(
+                    self.jobhunt.demand_receiver.is_none()
+                        && !self.jobhunt.demand_query.trim().is_empty(),
+                    egui::Button::new("搜索公开社区"),
+                )
+                .clicked()
+            {
+                let query = self.jobhunt.demand_query.clone();
+                self.jobhunt.demand_last_query = query.clone();
+                let (tx, rx) = std::sync::mpsc::channel();
+                self.jobhunt.demand_receiver = Some(rx);
+                std::thread::spawn(move || {
+                    let _ = tx.send(crate::demand::search(&query));
+                });
+            }
+        });
+        if self.jobhunt.demand_receiver.is_some() {
+            ui.label("正在搜索公开社区…");
+        }
+        if !self.jobhunt.demand_last_query.is_empty() {
+            ui.small(format!("社区搜索词：{}", self.jobhunt.demand_last_query));
+        }
+        for status in &self.jobhunt.demand_results.statuses {
+            ui.small(status);
+        }
+        ui.horizontal(|ui| {
+            ui.label("线索内筛选");
+            ui.text_edit_singleline(&mut self.jobhunt.demand_filter);
+        });
+        let filter = self.jobhunt.demand_filter.to_lowercase();
+        let clues: Vec<_> = self
+            .jobhunt
+            .demand_results
+            .clues
+            .iter()
+            .filter(|c| {
+                filter.is_empty()
+                    || format!("{} {} {}", c.title, c.excerpt, c.source)
+                        .to_lowercase()
+                        .contains(&filter)
+            })
+            .collect();
+        ui.label(format!("{} 条候选线索", clues.len()));
+        for clue in clues {
+            egui::Frame::new()
+                .fill(surface())
+                .corner_radius(8)
+                .inner_margin(10)
+                .show(ui, |ui| {
+                    ui.strong(if clue.title.is_empty() {
+                        "社区评论"
+                    } else {
+                        &clue.title
+                    });
+                    ui.small(format!("{} · {}", clue.source, clue.date));
+                    ui.label(&clue.excerpt);
+                    ui.hyperlink_to("查看原文", &clue.url);
+                });
+            ui.add_space(6.);
         }
     }
     fn render_jobhunt_sites(&mut self, ui: &mut egui::Ui) {

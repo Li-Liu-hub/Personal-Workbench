@@ -9,6 +9,7 @@ mod contacts;
 mod crypto;
 mod curriculum;
 mod db;
+mod demand;
 mod english;
 mod error;
 mod essays;

@@ -177,6 +177,34 @@ fn jobhunt_card_actions_remain_horizontal_in_small_and_standard_windows() {
 }
 
 #[test]
+fn demand_tab_links_keywords_to_matching_jobs() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+    app.section = Section::JobHunt;
+    app.jobhunt.tab = 2;
+    app.jobhunt.loaded = Some(std::time::Instant::now());
+    app.jobhunt.rows = vec![Entry {
+        id: "boss:1".into(),
+        company: "测试公司".into(),
+        position: "开发工程师".into(),
+        source: "BOSS 直聘 队列".into(),
+        description: "Java Redis".into(),
+        url: "https://www.zhipin.com/job_detail/test.html".into(),
+        ..Default::default()
+    }];
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    input_frame(&mut app, &ctx, 0., vec![], vec![]);
+    let out = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+    let p = position(&out, "Java (1)").expect("keyword button");
+    input_frame(&mut app, &ctx, 0.2, pointer(p, true), vec![]);
+    input_frame(&mut app, &ctx, 0.3, pointer(p, false), vec![]);
+    assert_eq!(app.jobhunt.demand_selected_keyword, "Java");
+    assert_eq!(app.jobhunt.demand_query, "Java");
+    assert_eq!(app.jobhunt.demand_filter, "Java");
+}
+
+#[test]
 fn hackathon_tab_displays_saved_competitions_and_registration() {
     let dir = tempfile::tempdir().unwrap();
     let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
