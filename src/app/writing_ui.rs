@@ -6,6 +6,70 @@ mod book_navigation;
 mod floating;
 mod hierarchy;
 
+// The same insertion palette is used by the main and floating writers.
+fn writing_format_toolbar(ui: &mut egui::Ui) -> Option<&'static str> {
+    let mut insert = None;
+    ui.horizontal_wrapped(|ui| {
+        ui.menu_button("标题", |ui| {
+            for (label, syntax) in [
+                ("一级标题", "# "),
+                ("二级标题", "## "),
+                ("三级标题", "### "),
+            ] {
+                if ui.button(label).clicked() {
+                    insert = Some(syntax);
+                    ui.close();
+                }
+            }
+        });
+        for (label, syntax, help) in [
+            ("加粗", "**文字**", "插入加粗文字"),
+            ("列表", "- ", "插入无序列表"),
+            ("编号", "1. ", "插入有序列表"),
+            ("待办", "- [ ] ", "插入待办事项"),
+            ("引用", "> ", "插入引用"),
+            (
+                "代码块",
+                "\n```\n代码\n```\n",
+                "插入代码块，可在开头三个反引号后填写语言",
+            ),
+            ("链接", "[链接文字](https://)", "插入链接"),
+            (
+                "表格",
+                "\n| 列一 | 列二 |\n| --- | --- |\n| 内容 | 内容 |\n",
+                "插入表格",
+            ),
+        ] {
+            if ui.button(label).on_hover_text(help).clicked() {
+                insert = Some(syntax);
+            }
+        }
+    });
+    insert
+}
+
+fn insert_writing_format(ctx: &egui::Context, id: egui::Id, body: &mut String, syntax: &str) {
+    let mut state = egui::text_edit::TextEditState::load(ctx, id).unwrap_or_default();
+    let len = body.chars().count();
+    let range = state.cursor.char_range().map(|r| r.as_sorted_char_range());
+    let start = range.as_ref().map_or(len, |r| r.start.0.min(len));
+    let end = range.as_ref().map_or(len, |r| r.end.0.min(len));
+    let byte_at = |index: usize| {
+        body.char_indices()
+            .nth(index)
+            .map_or(body.len(), |(i, _)| i)
+    };
+    let bytes = byte_at(start)..byte_at(end);
+    body.replace_range(bytes, syntax);
+    state
+        .cursor
+        .set_char_range(Some(egui::text::CCursorRange::one(
+            egui::text::CCursor::new(start + syntax.chars().count()),
+        )));
+    state.store(ctx, id);
+    ctx.memory_mut(|m| m.request_focus(id));
+}
+
 pub(super) struct WritingState {
     pub page: Option<Page>,
     pub dirty: bool,
@@ -479,19 +543,6 @@ impl PersonalDeskApp {
                     self.open_tag_manager(TagScope::BookPages);
                     ui.close();
                 }
-                ui.separator();
-                for (label, syntax) in [
-                    ("标题", "# "),
-                    ("加粗", "**文字**"),
-                    ("列表", "- "),
-                    ("待办", "- [ ] "),
-                    ("引用", "> "),
-                ] {
-                    if ui.button(label).clicked() {
-                        format = Some(syntax);
-                        ui.close();
-                    }
-                }
             });
         });
         if let Some((id, title, page)) = remove {
@@ -538,6 +589,9 @@ impl PersonalDeskApp {
             });
             return;
         }
+        if let Some(syntax) = writing_format_toolbar(ui) {
+            format = Some(syntax);
+        }
         if !self.writing.error.is_empty() {
             ui.colored_label(Color32::from_rgb(184, 65, 71), &self.writing.error);
         }
@@ -573,9 +627,13 @@ impl PersonalDeskApp {
         let body_id = egui::Id::unique(("writing-body", &id));
         if let Some(syntax) = format {
             self.writing.preview = false;
-            ui.ctx().memory_mut(|m| m.request_focus(body_id));
-            ui.ctx()
-                .input_mut(|i| i.events.push(egui::Event::Paste(syntax.into())));
+            insert_writing_format(
+                ui.ctx(),
+                body_id,
+                &mut self.writing.page.as_mut().unwrap().body,
+                syntax,
+            );
+            changed = true;
         }
         egui::ScrollArea::vertical()
             .id_salt(("writing-paper", &id))

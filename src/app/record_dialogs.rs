@@ -330,6 +330,7 @@ impl PersonalDeskApp {
         self.render_excel_merge_dialog(ctx);
         self.render_pdf_images_dialog(ctx);
         self.render_campus_dialog(ctx);
+        self.render_hackathon_dialog(ctx);
         self.render_jobhunt_dialogs(ctx);
         self.render_hiring_dialog(ctx);
         self.render_theme_dialog(ctx);

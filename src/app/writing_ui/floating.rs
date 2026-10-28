@@ -43,6 +43,7 @@ impl PersonalDeskApp {
             |ui, _class| {
                 let close = ui.input(|i| i.viewport().close_requested());
                 let mut restore = false;
+                let mut format = None;
                 let mut save = ui.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::S));
                 egui::Panel::top("floating-writer-toolbar").show(ui, |ui| {
                     ui.horizontal_wrapped(|ui| {
@@ -73,6 +74,12 @@ impl PersonalDeskApp {
                             }
                         });
                     });
+                    crate::ui_components::chrome::segmented(
+                        ui,
+                        &mut self.writing.preview,
+                        &[(false, "写作"), (true, "预览")],
+                    );
+                    format = writing_format_toolbar(ui);
                     ui.horizontal(|ui| {
                         let status = if !self.writing.error.is_empty() {
                             "保存失败"
@@ -93,6 +100,20 @@ impl PersonalDeskApp {
                     }
                 });
                 let mut changed = false;
+                if let Some(syntax) = format {
+                    self.writing.preview = false;
+                    let id = egui::Id::unique((
+                        "floating-body",
+                        &self.writing.page.as_ref().unwrap().id,
+                    ));
+                    insert_writing_format(
+                        ui.ctx(),
+                        id,
+                        &mut self.writing.page.as_mut().unwrap().body,
+                        syntax,
+                    );
+                    changed = true;
+                }
                 egui::CentralPanel::default()
                     .frame(egui::Frame::new().fill(surface()).inner_margin(18))
                     .show(ui, |ui| {
@@ -112,19 +133,27 @@ impl PersonalDeskApp {
                                     )
                                     .changed();
                                 ui.add_space(14.);
-                                let response = ui.add(
-                                    egui::TextEdit::multiline(&mut page.body)
-                                        .id_salt(("floating-body", &page.id))
-                                        .font(egui::FontId::proportional(17.))
-                                        .frame(egui::Frame::NONE)
-                                        .desired_width(f32::INFINITY)
-                                        .desired_rows(18)
-                                        .hint_text("对照简历提问，把结论写在这里…"),
-                                );
-                                changed |= response.changed();
-                                if self.writing.focus_body {
-                                    response.request_focus();
-                                    self.writing.focus_body = false;
+                                if self.writing.preview {
+                                    CommonMarkViewer::new().show(
+                                        ui,
+                                        &mut self.writing.cache,
+                                        &page.body,
+                                    );
+                                } else {
+                                    let response = ui.add(
+                                        egui::TextEdit::multiline(&mut page.body)
+                                            .id(egui::Id::unique(("floating-body", &page.id)))
+                                            .font(egui::FontId::proportional(17.))
+                                            .frame(egui::Frame::NONE)
+                                            .desired_width(f32::INFINITY)
+                                            .desired_rows(18)
+                                            .hint_text("对照简历提问，把结论写在这里…"),
+                                    );
+                                    changed |= response.changed();
+                                    if self.writing.focus_body {
+                                        response.request_focus();
+                                        self.writing.focus_body = false;
+                                    }
                                 }
                             });
                     });

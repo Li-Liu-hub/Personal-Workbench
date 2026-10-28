@@ -14,6 +14,9 @@ impl PersonalDeskApp {
         let mut launch = None;
         let mut add = false;
         collection(ui, "tools-gallery", self.view_mode(), |ui, layout| {
+            if self.is_favorite("tools", "builtin:hackathon-search") {
+                self.render_hackathon_entry(ui, layout);
+            }
             if self.is_favorite("tools", campus_ui::TOOL_ID) {
                 self.render_campus_entry(ui, layout);
             }
@@ -79,6 +82,9 @@ impl PersonalDeskApp {
             self.render_hiring_entries(ui, layout, false);
             if !self.is_favorite("tools", campus_ui::TOOL_ID) {
                 self.render_campus_entry(ui, layout);
+            }
+            if !self.is_favorite("tools", "builtin:hackathon-search") {
+                self.render_hackathon_entry(ui, layout);
             }
             add = entry(
                 ui,

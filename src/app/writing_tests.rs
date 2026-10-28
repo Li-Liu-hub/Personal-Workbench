@@ -170,6 +170,52 @@ fn floating_writer_types_autosaves_outside_documents_and_returns_to_same_page() 
 }
 
 #[test]
+fn format_toolbar_inserts_code_blocks_in_main_and_floating_writers() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+    assert!(app.new_writing(false));
+    let ctx = egui::Context::default();
+    configure_theme(&ctx);
+    let out = input_frame(&mut app, &ctx, 0., vec![], vec![]);
+    let button = text_position(&out, "代码块");
+    input_frame(&mut app, &ctx, 0.1, pointer(button, true), vec![]);
+    input_frame(&mut app, &ctx, 0.2, pointer(button, false), vec![]);
+    assert!(app.writing.page.as_ref().unwrap().body.contains("```"));
+    assert!(app.flush_writing());
+    app.open_floating_writer();
+    floating_frame(&mut app, &ctx, 1., vec![], [600., 600.], false);
+    let out = floating_frame(&mut app, &ctx, 1.05, vec![], [600., 600.], false);
+    let button = text_position(&out, "代码块");
+    floating_frame(
+        &mut app,
+        &ctx,
+        1.1,
+        pointer(button, true),
+        [600., 600.],
+        false,
+    );
+    floating_frame(
+        &mut app,
+        &ctx,
+        1.2,
+        pointer(button, false),
+        [600., 600.],
+        false,
+    );
+    assert_eq!(
+        app.writing
+            .page
+            .as_ref()
+            .unwrap()
+            .body
+            .matches("```")
+            .count(),
+        4
+    );
+    assert!(app.flush_writing());
+}
+
+#[test]
 fn floating_close_keeps_conflicting_draft_open_and_never_overwrites_other_writer() {
     let dir = tempfile::tempdir().unwrap();
     let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
