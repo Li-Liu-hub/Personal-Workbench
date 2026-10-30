@@ -328,6 +328,7 @@ impl PersonalDeskApp {
         self.render_contact_dialogs(ctx);
         self.render_tool_dialog(ctx);
         self.render_excel_merge_dialog(ctx);
+        self.render_report_workshop_dialog(ctx);
         self.render_pdf_images_dialog(ctx);
         self.render_campus_dialog(ctx);
         self.render_hackathon_dialog(ctx);

@@ -28,6 +28,7 @@ mod local_ai;
 mod model;
 mod pdf_images;
 mod reference;
+mod report_workshop;
 mod resume;
 mod runner;
 #[cfg(test)]

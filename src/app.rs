@@ -15,6 +15,7 @@ mod excel_merge_ui;
 mod hiring_ui;
 mod jobhunt_ui;
 mod pdf_images_ui;
+mod report_workshop_ui;
 use appearance::configure_theme;
 mod contact_ui;
 mod credential_ui;
@@ -120,6 +121,7 @@ pub struct PersonalDeskApp {
     tool_error: String,
     tool_launch_request: Option<PathBuf>,
     excel_merge: excel_merge_ui::ExcelMergeState,
+    report_workshop: report_workshop_ui::ReportState,
     pdf_images: pdf_images_ui::PdfImagesState,
     campus: campus_ui::CampusState,
     hackathon: hackathon_ui::HackathonState,
@@ -227,6 +229,10 @@ impl PersonalDeskApp {
         configure_theme(&cc.egui_ctx);
         let mut app = Self::open_data_directory(base);
         app.prepare_preview_capture();
+        if std::env::var_os("PERSONAL_DESK_PREVIEW_REPORT").is_some() {
+            app.section = Section::Tools;
+            app.report_workshop.open = true;
+        }
         if std::env::var_os("PERSONAL_DESK_PREVIEW_TOOLS").is_some() {
             app.section = Section::Tools;
             if let Some(capture) = app.preview_capture.as_mut() {
@@ -312,6 +318,7 @@ impl PersonalDeskApp {
             tool_error: String::new(),
             tool_launch_request: None,
             excel_merge: Default::default(),
+            report_workshop: Default::default(),
             pdf_images: Default::default(),
             campus: Default::default(),
             hackathon: Default::default(),
@@ -798,6 +805,7 @@ impl eframe::App for PersonalDeskApp {
         if let Some(message) = self.excel_merge.poll() {
             self.notice = message;
         }
+        self.report_workshop.poll(self.db.as_ref());
         self.study
             .ai
             .unload_if_idle(matches!(self.section, Section::Practice | Section::Words));
@@ -814,6 +822,7 @@ impl eframe::App for PersonalDeskApp {
             if self.export_busy
                 || self.contact_import_busy
                 || self.excel_merge.busy()
+                || self.report_workshop.busy()
                 || self.pdf_images.busy()
                 || self.hiring.busy()
                 || self.resume.busy()
@@ -860,6 +869,7 @@ impl eframe::App for PersonalDeskApp {
                 || self.hackathon.busy()
                 || self.contact_import_busy
                 || self.excel_merge.busy()
+                || self.report_workshop.busy()
                 || self.pdf_images.busy()
                 || self.hiring.busy()
                 || self.export_busy

@@ -14,6 +14,7 @@ impl PersonalDeskApp {
         let mut launch = None;
         let mut add = false;
         collection(ui, "tools-gallery", self.view_mode(), |ui, layout| {
+            self.render_report_workshop_entry(ui, layout);
             if self.is_favorite("tools", "builtin:hackathon-search") {
                 self.render_hackathon_entry(ui, layout);
             }

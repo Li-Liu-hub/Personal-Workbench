@@ -25,6 +25,7 @@ mod reference;
 mod reference_learning;
 #[cfg(test)]
 mod reference_tests;
+mod report_workshop;
 mod study;
 mod tag_cache;
 mod writing;
