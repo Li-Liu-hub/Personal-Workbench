@@ -14,7 +14,6 @@ fn page_filters_and_search_share_one_fixed_row_even_with_many_categories() {
         TagScope::Documents,
         TagScope::Websites,
         TagScope::Shortcuts,
-        TagScope::Tools,
     ] {
         for n in 0..24 {
             app.db
@@ -33,7 +32,6 @@ fn page_filters_and_search_share_one_fixed_row_even_with_many_categories() {
             Section::Inventory,
             Section::Documents,
             Section::Websites,
-            Section::Tools,
         ] {
             app.section = section;
             app.notice = "操作结果".into();
@@ -110,7 +108,6 @@ fn additional_module_label_assignment_saves_and_filters_with_search_in_both_view
         (Section::Documents, TagScope::BookPages),
         (Section::Websites, TagScope::Websites),
         (Section::Contacts, TagScope::Contacts),
-        (Section::Tools, TagScope::Tools),
     ] {
         let directory = tempfile::tempdir().unwrap();
         let mut app = PersonalDeskApp::open_data_directory(directory.path().join("data"));
@@ -141,12 +138,6 @@ fn additional_module_label_assignment_saves_and_filters_with_search_in_both_view
                     let mut item = Contact::new();
                     item.name = name.into();
                     db.save_contact(&item).unwrap();
-                    item.id
-                }
-                TagScope::Tools => {
-                    let mut item = crate::launcher::AppTool::new(path);
-                    item.name = name.into();
-                    db.save_app_tool(&item).unwrap();
                     item.id
                 }
                 _ => unreachable!(),
@@ -219,7 +210,6 @@ fn unified_toolbar_stays_on_one_line_without_instruction_panels_at_supported_siz
             Section::Inventory,
             Section::Contacts,
             Section::Websites,
-            Section::Tools,
             Section::Settings,
         ] {
             app.section = section;
@@ -523,27 +513,10 @@ fn website_buttons_queue_direct_open_and_tools_double_click_launch_in_both_views
         input_frame(&mut app, &ctx, 1.22, pointer(at, false), vec![]);
         assert_eq!(app.website_open_request.as_ref().unwrap().url, site.url);
         assert!(!app.website_dialog_open);
-        let path = dir.path().join("Synthetic.exe");
-        fs::write(&path, b"MZ synthetic").unwrap();
-        let mut tool = crate::launcher::AppTool::new(path.clone());
-        tool.name = "测试工具".into();
-        app.db.as_mut().unwrap().save_app_tool(&tool).unwrap();
-        app.section = Section::Tools;
-        app.set_view_mode(mode);
-        let output = input_frame(&mut app, &ctx, 2.0, vec![], vec![]);
-        let at = position(&output, "测试工具") + egui::vec2(12.0, 8.0);
-        for (time, pressed) in [(2.1, true), (2.12, false), (2.2, true), (2.22, false)] {
-            input_frame(&mut app, &ctx, time, pointer(at, pressed), vec![]);
-            if time == 2.12 {
-                assert!(app.tool_launch_request.is_none());
-            }
-        }
-        assert_eq!(app.tool_launch_request, Some(path.canonicalize().unwrap()));
-        assert!(app.tool_draft.is_none());
     }
 }
 #[test]
-fn theme_image_is_copied_persists_after_source_removal_and_exports_with_chats_and_tools() {
+fn theme_image_is_copied_persists_after_source_removal_and_exports_with_chats() {
     let dir = tempfile::tempdir().unwrap();
     let base = dir.path().join("data");
     let mut app = PersonalDeskApp::open_data_directory(base.clone());
@@ -560,13 +533,6 @@ fn theme_image_is_copied_persists_after_source_removal_and_exports_with_chats_an
     assert!(relative.starts_with("theme-assets/"));
     fs::remove_file(source).unwrap();
     assert!(crate::theme::load_image(&base.join(&relative)).is_ok());
-    let executable = dir.path().join("Tool.exe");
-    fs::write(&executable, b"MZ synthetic").unwrap();
-    app.db
-        .as_mut()
-        .unwrap()
-        .save_app_tool(&crate::launcher::AppTool::new(executable.clone()))
-        .unwrap();
     fs::create_dir_all(base.join("codex")).unwrap();
     fs::write(base.join("codex/legacy.json"), br#"{"legacy":true}"#).unwrap();
     let zip = dir.path().join("all.zip");
@@ -574,22 +540,16 @@ fn theme_image_is_copied_persists_after_source_removal_and_exports_with_chats_an
     let mut archive = zip::ZipArchive::new(fs::File::open(zip).unwrap()).unwrap();
     assert!(archive.by_name("主题.json").is_ok());
     assert!(archive.by_name(&format!("data/{relative}")).is_ok());
-    assert!(archive.by_name("小工具.json").is_ok());
     assert!(
         archive
             .file_names()
             .any(|name| name.starts_with("data/codex/") && name.ends_with(".json"))
     );
-    assert!(
-        !archive
-            .file_names()
-            .any(|name| name.ends_with("Tool.exe") || name.contains("auth.json"))
-    );
+    assert!(!archive.file_names().any(|name| name.contains("auth.json")));
     drop(app);
     let restored = PersonalDeskApp::open_data_directory(base.clone());
     assert_eq!(restored.theme.accent, [20, 160, 140]);
     assert_eq!(restored.theme.fit, crate::theme::ImageFit::Contain);
-    assert_eq!(restored.db.as_ref().unwrap().app_tools().unwrap().len(), 1);
     assert!(base.join("codex/legacy.json").exists());
 }
 

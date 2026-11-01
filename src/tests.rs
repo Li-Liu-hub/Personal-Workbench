@@ -61,10 +61,6 @@ fn additional_module_labels_survive_edits_restart_rename_delete_and_scoped_expor
     let mut contact = Contact::new();
     contact.name = "示例联系人".into();
     db.save_contact(&contact).unwrap();
-    let program = directory.path().join("tool.exe");
-    fs::write(&program, b"MZ synthetic").unwrap();
-    let tool = crate::launcher::AppTool::new(program);
-    db.save_app_tool(&tool).unwrap();
     let cases = [
         (T::Shortcuts, shortcut.id.clone(), E::Folders),
         (
@@ -74,7 +70,6 @@ fn additional_module_labels_survive_edits_restart_rename_delete_and_scoped_expor
         ),
         (T::Websites, website.id.clone(), E::Websites),
         (T::Contacts, contact.id.clone(), E::Contacts),
-        (T::Tools, tool.id.clone(), E::Tools),
     ];
     for (scope, id, _) in &cases {
         db.set_record_tags(*scope, id, &["工作".into(), "工作".into()])
@@ -86,7 +81,6 @@ fn additional_module_labels_survive_edits_restart_rename_delete_and_scoped_expor
     db.save_website(&website).unwrap();
     contact.school = "示例学校".into();
     db.save_contact(&contact).unwrap();
-    db.save_app_tool(&tool).unwrap();
     db.set_document_title(&document.path, "文档新名").unwrap();
     drop(db);
     let mut db = Database::open(&base).unwrap();
@@ -874,30 +868,6 @@ fn old_document_records_gain_titles_without_losing_existing_content() {
 }
 
 #[test]
-fn tool_edits_persist_and_removal_preserves_the_external_program() {
-    let directory = tempfile::tempdir().unwrap();
-    let data = directory.path().join("data");
-    let path = directory.path().join("工具 & 测试程序.exe");
-    fs::write(&path, b"MZ synthetic executable").unwrap();
-    let mut db = Database::open(&data).unwrap();
-    let mut tool = crate::launcher::AppTool::new(path.clone());
-    tool.name = "开发工具".into();
-    db.save_app_tool(&tool).unwrap();
-    tool.name = "更新名称".into();
-    tool.notes = "测试备注".into();
-    db.save_app_tool(&tool).unwrap();
-    drop(db);
-    let mut db = Database::open(&data).unwrap();
-    let saved = db.app_tools().unwrap();
-    assert_eq!(saved.len(), 1);
-    assert_eq!(saved[0].name, "更新名称");
-    assert_eq!(saved[0].notes, "测试备注");
-    assert_eq!(saved[0].path, path.canonicalize().unwrap());
-    db.delete_app_tool(&tool.id).unwrap();
-    assert!(db.app_tools().unwrap().is_empty());
-    assert_eq!(fs::read(path).unwrap(), b"MZ synthetic executable");
-}
-
 #[test]
 fn website_legacy_categories_and_labels_share_persistent_selection_and_exports() {
     use crate::{model::Website, tags::Scope as TagScope};

@@ -14,8 +14,8 @@ impl PersonalDeskApp {
             Section::Inventory => "物品清单".into(),
             Section::Contacts => "联系人".into(),
             Section::Websites => "网站收藏".into(),
-            Section::Tools => "小工具".into(),
             Section::Games => "小游戏".into(),
+            Section::Tools => "报表工坊".into(),
             Section::Practice => "刷题王".into(),
             Section::Words => "每日单词".into(),
             Section::Settings => "设置".into(),
@@ -138,8 +138,8 @@ impl PersonalDeskApp {
                     (Section::Practice, "刷题王", TileKind::Practice, None),
                     (Section::Words, "每日单词", TileKind::Word, None),
                     (Section::Reference, "百科全书", TileKind::Document, None),
-                    (Section::Tools, "小工具", TileKind::Setting, None),
                     (Section::Games, "小游戏", TileKind::Game, Some(2)),
+                    (Section::Tools, "报表工坊", TileKind::Setting, None),
                     (Section::Settings, "设置", TileKind::Setting, None),
                 ];
                 navigation.sort_by_key(|(section, _, _, _)| {
@@ -152,7 +152,7 @@ impl PersonalDeskApp {
                     } else {
                         match section {
                             Section::Practice | Section::Words | Section::Reference => "学习",
-                            Section::Tools | Section::Games | Section::Settings => "工具",
+                            Section::Games | Section::Tools | Section::Settings => "工具",
                             _ => "日常",
                         }
                     };
@@ -235,7 +235,7 @@ impl PersonalDeskApp {
             Section::Websites => "添加网站",
             Section::JobHunt => "添加网站",
             Section::Contacts => "添加联系人",
-            Section::Tools => "添加工具",
+            Section::Tools => "打开报表工坊",
             Section::Settings => "",
             Section::Resume => "",
             Section::Games | Section::Practice | Section::Words => "",
@@ -268,8 +268,8 @@ impl PersonalDeskApp {
                 self.website_error.clear();
                 self.website_dialog_open = true;
             }
-            Section::Tools => self.add_tool(),
             Section::JobHunt => self.new_jobhunt_site(),
+            Section::Tools => self.report_workshop.open = true,
             Section::Settings => {}
             Section::Resume => {}
             Section::Games | Section::Practice | Section::Words => {}

@@ -47,16 +47,7 @@ pub struct InstallRequest {
 }
 
 pub fn default_source() -> String {
-    let local = std::env::current_exe()
-        .unwrap_or_default()
-        .parent()
-        .unwrap_or(Path::new("."))
-        .join("updates/latest.json");
-    if local.is_file() {
-        local.to_string_lossy().into_owned()
-    } else {
-        REMOTE_FEED.to_owned()
-    }
+    REMOTE_FEED.to_owned()
 }
 fn is_remote(source: &str) -> bool {
     source.starts_with("https://") || source.starts_with("http://")
@@ -356,12 +347,7 @@ pub fn apply_request(path: &Path) -> UpdateResult<()> {
         host_exited = true;
         let backup = replace(&request)?;
         if request.restart {
-            let mut command = Command::new(&request.target);
-            #[cfg(debug_assertions)]
-            if std::env::var_os("PERSONAL_DESK_UPDATE_RESTART_PREVIEW").is_some() {
-                command.arg("--layout-preview");
-            }
-            if let Err(error) = command.spawn() {
+            if let Err(error) = Command::new(&request.target).spawn() {
                 let failed = request.target.with_extension("failed.exe");
                 let _ = fs::rename(&request.target, failed);
                 let _ = fs::rename(&backup, &request.target);

@@ -210,7 +210,6 @@ fn every_application_dialog_is_centered_and_fits_after_resizing() {
         "contact-details",
         "contact-chat",
         "theme-editor",
-        "tool-details",
     ] {
         let directory = tempfile::tempdir().expect("isolated data");
         let mut app = PersonalDeskApp::open_data_directory(directory.path().to_path_buf());
@@ -223,12 +222,6 @@ fn every_application_dialog_is_centered_and_fits_after_resizing() {
             "website-details" => app.website_dialog_open = true,
             "export-details" => app.export_dialog_open = true,
             "theme-editor" => app.theme_editor_open = true,
-            "tool-details" => {
-                app.tool_draft = Some(crate::launcher::AppTool::new(
-                    directory.path().join("test.exe"),
-                ))
-            }
-
             "contact-details" => app.contact_dialog_open = true,
             "contact-chat" => {
                 let path = directory.path().join("chat.xlsx");

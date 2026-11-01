@@ -2,7 +2,6 @@ use std::path::{Path, PathBuf};
 
 #[cfg(test)]
 mod audit_tests;
-mod campus;
 mod coding;
 mod contacts;
 mod curriculum;
@@ -314,7 +313,6 @@ impl Database {
         database.prepare_reference()?;
         database.prepare_essays()?;
         database.prepare_games()?;
-        database.init_campus()?;
         database.init_jobhunt()?;
         Ok(database)
     }
@@ -630,21 +628,16 @@ impl Database {
         Ok(())
     }
 
-    pub fn set_setting(&mut self, key: &str, value: &str) -> Result<()> {
-        self.desk.execute("INSERT INTO settings(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value", params![key,value])?;
-        Ok(())
-    }
-
     pub fn app_tools(&self) -> Result<Vec<crate::launcher::AppTool>> {
-        let mut stmt = self.desk.prepare(
+        let mut statement = self.desk.prepare(
             "SELECT id,name,path_native,notes FROM app_tools ORDER BY name COLLATE NOCASE",
         )?;
-        let rows = stmt.query_map([], |r| {
+        let rows = statement.query_map([], |row| {
             Ok((
-                r.get::<_, String>(0)?,
-                r.get::<_, String>(1)?,
-                r.get::<_, Vec<u8>>(2)?,
-                r.get::<_, String>(3)?,
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Vec<u8>>(2)?,
+                row.get::<_, String>(3)?,
             ))
         })?;
         rows.map(|row| {
@@ -658,17 +651,28 @@ impl Database {
         })
         .collect()
     }
+
     pub fn save_app_tool(&mut self, item: &crate::launcher::AppTool) -> Result<()> {
         if item.name.trim().is_empty() {
-            return Err(DeskError::InvalidPath("请填写工具名称".into()));
+            return Err(DeskError::InvalidPath("请填写程序名称".into()));
         }
         let path = crate::launcher::prepare(&item.path)?;
-        self.desk.execute("INSERT INTO app_tools(id,name,path_native,notes) VALUES(?1,?2,?3,?4) ON CONFLICT(id) DO UPDATE SET name=excluded.name,path_native=excluded.path_native,notes=excluded.notes",params![item.id,item.name.trim(),encode_path(&path),item.notes])?;
+        self.desk.execute(
+            "INSERT INTO app_tools(id,name,path_native,notes) VALUES(?1,?2,?3,?4)
+             ON CONFLICT(id) DO UPDATE SET name=excluded.name,path_native=excluded.path_native,notes=excluded.notes",
+            params![item.id, item.name.trim(), encode_path(&path), item.notes],
+        )?;
         Ok(())
     }
+
     pub fn delete_app_tool(&mut self, id: &str) -> Result<()> {
         self.desk
             .execute("DELETE FROM app_tools WHERE id=?1", [id])?;
+        Ok(())
+    }
+
+    pub fn set_setting(&mut self, key: &str, value: &str) -> Result<()> {
+        self.desk.execute("INSERT INTO settings(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value", params![key,value])?;
         Ok(())
     }
 

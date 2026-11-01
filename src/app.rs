@@ -9,12 +9,8 @@ use std::{
 use eframe::egui::{self, Color32, RichText};
 
 mod appearance;
-mod campus_ui;
 mod essay_ui;
-mod excel_merge_ui;
-mod hiring_ui;
 mod jobhunt_ui;
-mod pdf_images_ui;
 mod report_workshop_ui;
 use appearance::configure_theme;
 mod contact_ui;
@@ -22,7 +18,6 @@ mod credential_ui;
 mod document_group_ui;
 mod favorites_ui;
 mod game_ui;
-mod hackathon_ui;
 mod index_ui;
 mod navigation_ui;
 #[cfg(test)]
@@ -43,8 +38,6 @@ mod layout_ui;
 mod library_deletion_tests;
 mod library_ui;
 mod module_tags;
-#[cfg(debug_assertions)]
-mod preview;
 
 #[cfg(test)]
 mod index_tests;
@@ -108,8 +101,6 @@ pub struct PersonalDeskApp {
     photo_cache: std::collections::HashMap<String, egui::TextureHandle>,
     contact_scroll_id: Option<String>,
     updates: update_ui::UpdateState,
-    #[cfg(debug_assertions)]
-    preview_capture: Option<preview::Capture>,
     theme: crate::theme::ThemeSettings,
     theme_saved: crate::theme::ThemeSettings,
     theme_applied: Option<crate::theme::ThemeSettings>,
@@ -117,15 +108,7 @@ pub struct PersonalDeskApp {
     theme_background_key: Option<String>,
     theme_editor_open: bool,
     theme_error: String,
-    tool_draft: Option<crate::launcher::AppTool>,
-    tool_error: String,
-    tool_launch_request: Option<PathBuf>,
-    excel_merge: excel_merge_ui::ExcelMergeState,
     report_workshop: report_workshop_ui::ReportState,
-    pdf_images: pdf_images_ui::PdfImagesState,
-    campus: campus_ui::CampusState,
-    hackathon: hackathon_ui::HackathonState,
-    hiring: hiring_ui::HiringState,
     jobhunt: jobhunt_ui::JobHuntState,
     website_open_request: Option<Website>,
     snake: crate::games::Snake,
@@ -202,66 +185,6 @@ impl PersonalDeskApp {
         app
     }
 
-    #[cfg(debug_assertions)]
-    pub fn desktop_visual_preview(cc: &eframe::CreationContext<'_>, base: PathBuf) -> Self {
-        configure_theme(&cc.egui_ctx);
-        let mut app = Self::open_data_directory(base);
-        app.section = Section::Folders;
-        app
-    }
-
-    #[cfg(debug_assertions)]
-    pub fn writing_preview(cc: &eframe::CreationContext<'_>, base: PathBuf) -> Self {
-        configure_theme(&cc.egui_ctx);
-        let mut app = Self::open_data_directory(base);
-        app.new_writing(false);
-        let page = app.writing.page.as_mut().unwrap();
-        page.title = "简历项目问答总结".into();
-        page.body = "## 项目中的关键问题\n\n为什么选择这个方案？遇到了什么问题？\n\n## 核实后的总结\n\n结合具体场景，记录自己的理解、证据和待补充内容。".into();
-        app.mark_writing_changed(0.);
-        app.flush_writing();
-        app.open_floating_writer();
-        app
-    }
-
-    #[cfg(debug_assertions)]
-    pub fn layout_preview(cc: &eframe::CreationContext<'_>, base: PathBuf) -> Self {
-        configure_theme(&cc.egui_ctx);
-        let mut app = Self::open_data_directory(base);
-        app.prepare_preview_capture();
-        if std::env::var_os("PERSONAL_DESK_PREVIEW_REPORT").is_some() {
-            app.section = Section::Tools;
-            app.report_workshop.open = true;
-        }
-        if std::env::var_os("PERSONAL_DESK_PREVIEW_TOOLS").is_some() {
-            app.section = Section::Tools;
-            if let Some(capture) = app.preview_capture.as_mut() {
-                capture.step = 47;
-            }
-        }
-        if std::env::var_os("PERSONAL_DESK_PREVIEW_RESUME").is_some() {
-            app.section = Section::Resume;
-            if let Some(capture) = app.preview_capture.as_mut() {
-                capture.step = 51;
-            }
-        }
-        if std::env::var_os("PERSONAL_DESK_PREVIEW_JOBHUNT").is_some() {
-            app.prepare_jobhunt_preview();
-        }
-        if std::env::var_os("PERSONAL_DESK_PREVIEW_CAMPUS").is_some() {
-            app.prepare_campus_preview();
-        }
-        if std::env::var_os("PERSONAL_DESK_PREVIEW_HISTORY").is_some() {
-            app.section = Section::Settings;
-            app.view_modes.set(Section::Settings, ViewMode::Grid);
-            cc.egui_ctx
-                .send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(1000., 680.)));
-            if let Some(capture) = app.preview_capture.as_mut() {
-                capture.step = 53;
-            }
-        }
-        app
-    }
     fn open_data_directory(base: PathBuf) -> Self {
         let (sender, receiver) = mpsc::channel();
         let (db, startup_error, migration_notice) = match Database::open(&base) {
@@ -305,8 +228,6 @@ impl PersonalDeskApp {
             library: Default::default(),
             photo_cache: Default::default(),
             contact_scroll_id: None,
-            #[cfg(debug_assertions)]
-            preview_capture: None,
             theme: theme.clone(),
             theme_saved: theme,
             theme_applied: None,
@@ -314,15 +235,7 @@ impl PersonalDeskApp {
             theme_background_key: None,
             theme_editor_open: false,
             theme_error: String::new(),
-            tool_draft: None,
-            tool_error: String::new(),
-            tool_launch_request: None,
-            excel_merge: Default::default(),
             report_workshop: Default::default(),
-            pdf_images: Default::default(),
-            campus: Default::default(),
-            hackathon: Default::default(),
-            hiring: Default::default(),
             jobhunt: Default::default(),
             website_open_request: None,
             games: Default::default(),
@@ -695,7 +608,6 @@ impl PersonalDeskApp {
             || self.study.route_open
             || self.study.settings
             || self.theme_editor_open
-            || self.tool_draft.is_some()
             || self.credential_dialog_open
             || self.inventory_dialog_open
             || self.library.dialog.is_some()
@@ -793,38 +705,19 @@ impl eframe::App for PersonalDeskApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
         self.poll_background();
-        if let Some(message) = self.hiring.poll(&self.data_dir.join("hiring")) {
-            self.notice = message;
-        }
         self.poll_resume(&ctx);
-        self.poll_campus();
-        self.poll_hackathons();
-        if let Some(message) = self.pdf_images.poll() {
-            self.notice = message;
-        }
-        if let Some(message) = self.excel_merge.poll() {
-            self.notice = message;
-        }
         self.report_workshop.poll(self.db.as_ref());
         self.study
             .ai
             .unload_if_idle(matches!(self.section, Section::Practice | Section::Words));
         if ctx.input(|input| input.viewport().close_requested()) {
-            let hiring_saved = self.hiring.flush(&self.data_dir.join("hiring"));
-            let mut records_saved = hiring_saved
-                && self.flush_writing()
+            let mut records_saved = self.flush_writing()
                 && self.flush_study_answer()
                 && self.flush_games()
                 && self.flush_resume();
-            if self.campus.busy() {
-                self.campus.cancel_on_exit();
-            }
             if self.export_busy
                 || self.contact_import_busy
-                || self.excel_merge.busy()
                 || self.report_workshop.busy()
-                || self.pdf_images.busy()
-                || self.hiring.busy()
                 || self.resume.busy()
             {
                 records_saved = false;
@@ -865,13 +758,8 @@ impl eframe::App for PersonalDeskApp {
             }
         }
         ctx.request_repaint_after(
-            if self.campus.busy()
-                || self.hackathon.busy()
-                || self.contact_import_busy
-                || self.excel_merge.busy()
+            if self.contact_import_busy
                 || self.report_workshop.busy()
-                || self.pdf_images.busy()
-                || self.hiring.busy()
                 || self.export_busy
                 || self.study.busy
                 || self.audio_active()
@@ -882,13 +770,6 @@ impl eframe::App for PersonalDeskApp {
             },
         );
         self.render_workspace(ui);
-        #[cfg(debug_assertions)]
-        self.capture_preview(&ctx);
-        if let Some(path) = self.tool_launch_request.take()
-            && let Err(error) = crate::launcher::launch(&path)
-        {
-            self.notice = error.to_string();
-        }
         if let Some(site) = self.website_open_request.take()
             && let Err(error) = open::that_detached(&site.url)
         {

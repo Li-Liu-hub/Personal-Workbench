@@ -10,6 +10,14 @@ pub(super) struct UpdateState {
 }
 impl UpdateState {
     pub fn new(source: Option<String>) -> Self {
+        let bundled_feed = std::env::current_exe()
+            .ok()
+            .and_then(|path| {
+                path.parent()
+                    .map(|parent| parent.join("updates/latest.json"))
+            })
+            .and_then(|path| path.canonicalize().ok());
+
         let status = std::env::current_exe()
             .ok()
             .and_then(|p| p.parent().map(|p| p.join("personal-desk-update.log")))
@@ -22,6 +30,15 @@ impl UpdateState {
                     value.starts_with("http://")
                         || value.starts_with("https://")
                         || Path::new(value).is_file()
+                })
+                .filter(|value| {
+                    let Some(bundled_feed) = bundled_feed.as_ref() else {
+                        return true;
+                    };
+                    Path::new(value)
+                        .canonicalize()
+                        .ok()
+                        .is_none_or(|selected| selected != *bundled_feed)
                 })
                 .unwrap_or_else(crate::updater::default_source),
             release: None,
