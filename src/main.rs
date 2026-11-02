@@ -2,35 +2,21 @@
 
 mod app;
 mod autostart;
-mod challenges;
-mod coding;
 mod contacts;
 mod crypto;
-mod curriculum;
 mod db;
-mod english;
 mod error;
 mod essays;
 mod export;
 mod files;
-mod games;
 mod import;
 mod install;
-mod jobhunt;
 mod launcher;
 mod legacy_credentials;
 mod library;
-mod local_ai;
 mod model;
-mod reference;
-mod report_workshop;
-mod resume;
-mod runner;
 #[cfg(test)]
 mod search;
-mod speech;
-mod sql_practice;
-mod study;
 mod tags;
 mod theme;
 mod ui_components;
@@ -124,6 +110,32 @@ fn main() -> eframe::Result {
             }
         }
         return Ok(());
+    }
+    #[cfg(debug_assertions)]
+    if action
+        .as_ref()
+        .is_some_and(|a| a == "--desktop-visual-preview" || a == "--writing-preview")
+    {
+        let base =
+            std::env::temp_dir().join(format!("personal-desk-preview-{}", std::process::id()));
+        let writing_preview = action.as_ref().is_some_and(|a| a == "--writing-preview");
+        return eframe::run_native(
+            "个人办公台 · 界面预览",
+            eframe::NativeOptions {
+                viewport: egui::ViewportBuilder::default()
+                    .with_icon(application_icon())
+                    .with_drag_and_drop(false)
+                    .with_inner_size([1280.0, 800.0]),
+                ..Default::default()
+            },
+            Box::new(move |cc| {
+                Ok(Box::new(if writing_preview {
+                    PersonalDeskApp::writing_preview(cc, base)
+                } else {
+                    PersonalDeskApp::desktop_visual_preview(cc, base)
+                }))
+            }),
+        );
     }
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()

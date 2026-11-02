@@ -868,7 +868,6 @@ fn old_document_records_gain_titles_without_losing_existing_content() {
 }
 
 #[test]
-#[test]
 fn website_legacy_categories_and_labels_share_persistent_selection_and_exports() {
     use crate::{model::Website, tags::Scope as TagScope};
     let directory = tempfile::tempdir().unwrap();

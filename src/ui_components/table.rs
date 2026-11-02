@@ -101,30 +101,7 @@ pub fn row(
     let (_, allocated) = ui.allocate_space(egui::vec2(width(columns), ROW_HEIGHT));
     let rect = allocated.shrink2(egui::vec2(0., 3.));
     let response = ui.interact(rect, ui.scope_id().with(id), egui::Sense::click());
-    let painter = ui.painter().with_clip_rect(ui.clip_rect());
-    painter.rect_filled(
-        rect,
-        10,
-        if response.hovered() {
-            surface().lerp_to_gamma(accent(), 0.025)
-        } else {
-            surface()
-        },
-    );
-    painter.rect_stroke(
-        rect,
-        10,
-        egui::Stroke::new(0.6, border().gamma_multiply(0.6)),
-        egui::StrokeKind::Inside,
-    );
-    if response.hovered() {
-        painter.rect_stroke(
-            rect,
-            9,
-            egui::Stroke::new(1.0, border()),
-            egui::StrokeKind::Inside,
-        );
-    }
+    motion::card(ui, &response, 11, false, false);
     (response, cells(rect, columns))
 }
 
@@ -156,9 +133,21 @@ pub fn text(
             .align(egui::Align2::CENTER_CENTER)
             .min_size(rect.size())
             .font(egui::FontId::proportional(14.))
-            .hint_text("—")
             .desired_width(rect.width()),
     );
+    // Decide after TextEdit handles input, so the placeholder disappears on
+    // the very frame that mouse or keyboard focus enters this empty cell.
+    if value.is_empty() && !response.has_focus() {
+        ui.painter()
+            .with_clip_rect(rect.intersect(ui.clip_rect()))
+            .text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                "—",
+                egui::FontId::proportional(14.),
+                muted(),
+            );
+    }
     super::select_on_focus(&response, value);
     response.on_hover_text(value.as_str()).changed()
 }
@@ -222,6 +211,87 @@ pub fn date_hint(ui: &mut Ui, rect: egui::Rect, value: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn empty_placeholder_hides_on_focus_without_editing_and_returns_only_after_blur() {
+        let ctx = egui::Context::default();
+        let rect = egui::Rect::from_min_size(egui::pos2(30., 30.), egui::vec2(180., 40.));
+        let render = |value: &mut String, events| {
+            let mut changed = false;
+            let mut output = ctx.run_ui(
+                egui::RawInput {
+                    events,
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(400., 200.),
+                    )),
+                    ..Default::default()
+                },
+                |ui| {
+                    changed = text(ui, rect, "empty-cell", value);
+                },
+            );
+            output.textures_delta.clear();
+            let placeholder = output.shapes.iter().any(|shape| matches!(&shape.shape, egui::Shape::Text(text) if text.galley.text() == "—"));
+            (changed, placeholder)
+        };
+        let pointer = |position, pressed| {
+            vec![
+                egui::Event::PointerMoved(position),
+                egui::Event::PointerButton {
+                    pos: position,
+                    button: egui::PointerButton::Primary,
+                    pressed,
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ]
+        };
+        let mut value = String::new();
+        render(&mut value, vec![]);
+        assert_eq!(render(&mut value, vec![]), (false, true));
+        // The mouse-down frame must already be clean, even before typing.
+        assert_eq!(
+            render(&mut value, pointer(rect.center(), true)),
+            (false, false)
+        );
+        assert!(value.is_empty());
+        assert_eq!(
+            render(&mut value, pointer(rect.center(), false)),
+            (false, false)
+        );
+        assert_eq!(
+            render(&mut value, vec![egui::Event::Text("中文输入".into())]),
+            (true, false)
+        );
+        assert_eq!(value, "中文输入");
+        // Deleting all text while editing must not bring the dash back.
+        let key = |key, modifiers| egui::Event::Key {
+            key,
+            physical_key: None,
+            pressed: true,
+            repeat: false,
+            modifiers,
+        };
+        assert_eq!(
+            render(
+                &mut value,
+                vec![
+                    key(egui::Key::A, egui::Modifiers::CTRL),
+                    key(egui::Key::Backspace, egui::Modifiers::NONE)
+                ]
+            ),
+            (true, false)
+        );
+        assert!(value.is_empty());
+        assert_eq!(
+            render(&mut value, pointer(egui::pos2(300., 150.), true)),
+            (false, true)
+        );
+        render(&mut value, pointer(egui::pos2(300., 150.), false));
+        render(&mut value, vec![key(egui::Key::Tab, egui::Modifiers::NONE)]);
+        assert_eq!(render(&mut value, vec![]), (false, false));
+        assert!(value.is_empty());
+    }
+
     #[test]
     fn entering_a_cell_selects_without_mutating_and_typing_replaces_the_value() {
         for original in ["1", "7799.00", "原来的中文姓名"] {

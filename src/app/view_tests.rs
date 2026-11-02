@@ -402,54 +402,6 @@ fn choosing_an_inventory_classification_saves_updates_summary_and_filters_after_
 }
 
 #[test]
-fn snake_keyboard_pause_high_score_and_games_export_work_through_the_app() {
-    use crate::games::{Cell, Direction, Status};
-    let dir = tempfile::tempdir().unwrap();
-    let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
-    app.section = Section::Games;
-    let ctx = egui::Context::default();
-    configure_theme(&ctx);
-    for mode in [ViewMode::Grid, ViewMode::List] {
-        app.set_view_mode(mode);
-        let output = input_frame(&mut app, &ctx, 0.0, vec![], vec![]);
-        position(&output, "贪吃蛇");
-    }
-    app.snake_open = true;
-    input_frame(&mut app, &ctx, 1.0, vec![], vec![]);
-    let original = app.snake.body[0];
-    input_frame(&mut app, &ctx, 1.1, key_event(egui::Key::Space), vec![]);
-    assert_eq!(app.snake.status, Status::Running);
-    input_frame(&mut app, &ctx, 1.3, vec![], vec![]);
-    assert_ne!(app.snake.body[0], original);
-    input_frame(&mut app, &ctx, 1.5, key_event(egui::Key::W), vec![]);
-    assert_eq!(app.snake.direction, Direction::Up);
-    input_frame(&mut app, &ctx, 1.6, key_event(egui::Key::Space), vec![]);
-    assert_eq!(app.snake.status, Status::Paused);
-    let paused = app.snake.body.clone();
-    input_frame(&mut app, &ctx, 20.0, vec![], vec![]);
-    assert_eq!(app.snake.body, paused);
-    app.snake = crate::games::Snake::new(2);
-    app.snake.toggle();
-    app.snake.food = Some(Cell { x: 9, y: 10 });
-    app.snake_last_time = None;
-    input_frame(&mut app, &ctx, 21.0, vec![], vec![]);
-    input_frame(&mut app, &ctx, 21.2, vec![], vec![]);
-    assert_eq!(app.snake_best, 10);
-    let id = app.search_field.unwrap();
-    ctx.memory_mut(|m| m.request_focus(id));
-    input_frame(&mut app, &ctx, 21.4, key_event(egui::Key::W), vec![]);
-    assert_eq!(app.snake.status, Status::Paused);
-    let restored = PersonalDeskApp::open_data_directory(dir.path().into());
-    assert_eq!(restored.snake_best, 10);
-    let path = dir.path().join("game.zip");
-    export::write(dir.path(), &path, export::Scope::Games).unwrap();
-    let mut zip = zip::ZipArchive::new(fs::File::open(path).unwrap()).unwrap();
-    let value: serde_json::Value =
-        serde_json::from_reader(zip.by_name("小游戏.json").unwrap()).unwrap();
-    assert_eq!(value["snake"]["best_score"], 10);
-    assert!(zip.by_name("账号密码.json").is_err());
-}
-#[test]
 fn quick_copy_buttons_copy_exact_values_in_both_views_without_opening_details() {
     for mode in [ViewMode::Grid, ViewMode::List] {
         let dir = tempfile::tempdir().unwrap();

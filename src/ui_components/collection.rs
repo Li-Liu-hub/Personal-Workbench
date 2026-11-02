@@ -159,32 +159,7 @@ fn row(
     let response = ui.interact(rect, ui.scope_id().with(id), egui::Sense::click_and_drag());
     let painter = ui.painter().with_clip_rect(rect.intersect(ui.clip_rect()));
     let add = matches!(kind, TileKind::Add);
-    painter.rect_filled(
-        rect,
-        9,
-        if add {
-            surface().lerp_to_gamma(accent(), 0.07)
-        } else if response.hovered() {
-            surface().lerp_to_gamma(accent(), 0.04)
-        } else {
-            surface()
-        },
-    );
-    if add || response.hovered() {
-        painter.rect_stroke(
-            rect,
-            9,
-            egui::Stroke::new(
-                1.0,
-                if response.hovered() {
-                    accent()
-                } else {
-                    border()
-                },
-            ),
-            egui::StrokeKind::Inside,
-        );
-    }
+    motion::card(ui, &response, 11, add, false);
     paint_icon(
         &painter,
         egui::Rect::from_center_size(

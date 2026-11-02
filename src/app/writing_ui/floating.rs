@@ -147,7 +147,7 @@ impl PersonalDeskApp {
                                             .frame(egui::Frame::NONE)
                                             .desired_width(f32::INFINITY)
                                             .desired_rows(18)
-                                            .hint_text("对照简历提问，把结论写在这里…"),
+                                            .hint_text("围绕项目问题，把核实后的结论写在这里…"),
                                     );
                                     changed |= response.changed();
                                     if self.writing.focus_body {

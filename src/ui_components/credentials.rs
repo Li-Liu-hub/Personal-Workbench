@@ -180,22 +180,7 @@ pub fn credential_entry(
     let (_, rect) = ui.allocate_space(egui::vec2(entry.width, height));
     let response = ui.interact(rect, ui.scope_id().with(&item.id), egui::Sense::click());
     let painter = ui.painter().with_clip_rect(rect.intersect(ui.clip_rect()));
-    painter.rect_filled(rect, if grid { 16 } else { 9 }, surface());
-    painter.rect_stroke(
-        rect,
-        if grid { 16 } else { 9 },
-        egui::Stroke::new(
-            1.0,
-            if editing {
-                accent()
-            } else if response.hovered() {
-                border().lerp_to_gamma(accent(), 0.4)
-            } else {
-                border()
-            },
-        ),
-        egui::StrokeKind::Inside,
-    );
+    motion::card(ui, &response, if grid { 16 } else { 11 }, editing, grid);
     let left = rect.left() + 20.0;
     let top = rect.top();
     let (title_rect, username_rect, password_rect, detail_rect, user_copy, password_copy) = if grid

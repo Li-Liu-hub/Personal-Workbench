@@ -18,20 +18,14 @@ impl ViewMode {
     }
 }
 
-pub const SECTIONS: [Section; 15] = [
+pub const SECTIONS: [Section; 9] = [
     Section::Essays,
-    Section::Reference,
-    Section::Practice,
-    Section::Words,
     Section::Folders,
     Section::Credentials,
     Section::Documents,
-    Section::Resume,
-    Section::JobHunt,
     Section::Inventory,
     Section::Websites,
     Section::Contacts,
-    Section::Games,
     Section::Tools,
     Section::Settings,
 ];
@@ -39,19 +33,13 @@ pub const SECTIONS: [Section; 15] = [
 pub fn key(section: Section) -> &'static str {
     match section {
         Section::Essays => "view.essays",
-        Section::Reference => "view.reference",
         Section::Books => "view.books",
-        Section::Practice => "view.practice",
-        Section::Words => "view.words",
         Section::Folders => "view.folders",
         Section::Credentials => "view.credentials",
         Section::Documents => "view.documents",
-        Section::Resume => "view.resume",
-        Section::JobHunt => "view.jobhunt",
         Section::Inventory => "view.inventory",
         Section::Websites => "view.websites",
         Section::Contacts => "view.contacts",
-        Section::Games => "view.games",
         Section::Tools => "view.tools",
         Section::Settings => "view.settings",
     }

@@ -10,37 +10,30 @@ use eframe::egui::{self, Color32, RichText};
 
 mod appearance;
 mod essay_ui;
-mod jobhunt_ui;
-mod report_workshop_ui;
 use appearance::configure_theme;
 mod contact_ui;
 mod credential_ui;
 mod document_group_ui;
 mod favorites_ui;
-mod game_ui;
 mod index_ui;
 mod navigation_ui;
 #[cfg(test)]
 mod performance_tests;
 mod record_dialogs;
-mod reference_ui;
-mod resume_ui;
 mod settings_ui;
-mod study_ui;
 mod website_ui;
 #[cfg(test)]
 mod writing_tests;
 mod writing_ui;
 
+#[cfg(test)]
+mod index_tests;
 mod inventory_ui;
 mod layout_ui;
 #[cfg(test)]
 mod library_deletion_tests;
 mod library_ui;
 mod module_tags;
-
-#[cfg(test)]
-mod index_tests;
 mod theme_ui;
 mod tool_ui;
 mod update_ui;
@@ -65,18 +58,8 @@ use crate::{
 };
 
 enum BackgroundMessage {
-    StudyGraded(Box<study_ui::GradedMessage>),
-    SqlExecuted(study_ui::SqlMessage),
-    Learning(study_ui::LearningMessage),
-    CodeExecuted(study_ui::coding_ui::CodeMessage),
-    Audio(study_ui::audio::AudioMessage),
     ContactChats(String, std::result::Result<Vec<ChatRecord>, String>),
     Exported(std::result::Result<export::Report, String>),
-}
-impl BackgroundMessage {
-    fn graded(message: study_ui::GradedMessage) -> Self {
-        Self::StudyGraded(Box::new(message))
-    }
 }
 
 #[derive(Clone)]
@@ -87,10 +70,7 @@ struct TagAssignment {
 }
 
 pub struct PersonalDeskApp {
-    resume: resume_ui::ResumeState,
     essay: essay_ui::EssayState,
-    reference: reference_ui::ReferenceState,
-    study: study_ui::StudyState,
     credential_layout: credential_ui::CredentialLayoutCache,
     favorites: std::collections::BTreeSet<(String, String)>,
     inline_inventory: std::collections::HashMap<String, InventoryItem>,
@@ -101,6 +81,9 @@ pub struct PersonalDeskApp {
     photo_cache: std::collections::HashMap<String, egui::TextureHandle>,
     contact_scroll_id: Option<String>,
     updates: update_ui::UpdateState,
+    tool_draft: Option<crate::launcher::AppTool>,
+    tool_error: String,
+    tool_launch_request: Option<PathBuf>,
     theme: crate::theme::ThemeSettings,
     theme_saved: crate::theme::ThemeSettings,
     theme_applied: Option<crate::theme::ThemeSettings>,
@@ -108,14 +91,7 @@ pub struct PersonalDeskApp {
     theme_background_key: Option<String>,
     theme_editor_open: bool,
     theme_error: String,
-    report_workshop: report_workshop_ui::ReportState,
-    jobhunt: jobhunt_ui::JobHuntState,
     website_open_request: Option<Website>,
-    snake: crate::games::Snake,
-    snake_open: bool,
-    snake_last_time: Option<f64>,
-    snake_best: u32,
-    games: game_ui::GameState,
     view_modes: Preferences,
     contact_items: Vec<Contact>,
     contact_draft: Contact,
@@ -140,6 +116,7 @@ pub struct PersonalDeskApp {
     data_dir: PathBuf,
     startup_error: String,
     section: Section,
+    navigation_compact: bool,
     website_items: Vec<Website>,
     website_draft: Website,
     website_draft_tags: Vec<String>,
@@ -185,6 +162,28 @@ impl PersonalDeskApp {
         app
     }
 
+    #[cfg(debug_assertions)]
+    pub fn desktop_visual_preview(cc: &eframe::CreationContext<'_>, base: PathBuf) -> Self {
+        configure_theme(&cc.egui_ctx);
+        let mut app = Self::open_data_directory(base);
+        app.section = Section::Folders;
+        app
+    }
+
+    #[cfg(debug_assertions)]
+    pub fn writing_preview(cc: &eframe::CreationContext<'_>, base: PathBuf) -> Self {
+        configure_theme(&cc.egui_ctx);
+        let mut app = Self::open_data_directory(base);
+        app.new_writing(false);
+        let page = app.writing.page.as_mut().unwrap();
+        page.title = "项目复盘问答总结".into();
+        page.body = "## 项目中的关键问题\n\n为什么选择这个方案？遇到了什么问题？\n\n## 核实后的总结\n\n结合具体场景，记录自己的理解、证据和待补充内容。".into();
+        app.mark_writing_changed(0.);
+        app.flush_writing();
+        app.open_floating_writer();
+        app
+    }
+
     fn open_data_directory(base: PathBuf) -> Self {
         let (sender, receiver) = mpsc::channel();
         let (db, startup_error, migration_notice) = match Database::open(&base) {
@@ -213,10 +212,7 @@ impl PersonalDeskApp {
             .into_iter()
             .collect();
         let mut app = Self {
-            resume: Default::default(),
             essay: Default::default(),
-            reference: Default::default(),
-            study: Default::default(),
             credential_layout: Default::default(),
             favorites,
             inline_inventory: Default::default(),
@@ -235,18 +231,7 @@ impl PersonalDeskApp {
             theme_background_key: None,
             theme_editor_open: false,
             theme_error: String::new(),
-            report_workshop: Default::default(),
-            jobhunt: Default::default(),
             website_open_request: None,
-            games: Default::default(),
-            snake: crate::games::random_game(),
-            snake_open: false,
-            snake_last_time: None,
-            snake_best: db
-                .as_ref()
-                .and_then(|db| db.settings().ok())
-                .and_then(|s| s.get("games.snake.best").and_then(|s| s.parse().ok()))
-                .unwrap_or(0),
             view_modes: Preferences::load(
                 &db.as_ref()
                     .and_then(|db| db.settings().ok())
@@ -257,6 +242,9 @@ impl PersonalDeskApp {
                     .and_then(|db| db.settings().ok())
                     .and_then(|s| s.get("updates.source").cloned()),
             ),
+            tool_draft: None,
+            tool_error: String::new(),
+            tool_launch_request: None,
             contact_items: Vec::new(),
             contact_draft: Contact::new(),
             contact_draft_tags: vec![],
@@ -280,6 +268,7 @@ impl PersonalDeskApp {
             data_dir: base,
             startup_error,
             section: Section::Folders,
+            navigation_compact: false,
             website_items: Vec::new(),
             website_draft: Website::new(),
             website_draft_tags: Vec::new(),
@@ -315,8 +304,6 @@ impl PersonalDeskApp {
             app.load_websites();
             app.load_contacts();
             app.load_tags();
-            app.initialize_study();
-            app.initialize_games();
         }
         app
     }
@@ -381,16 +368,6 @@ impl PersonalDeskApp {
     }
 
     fn start_export(&mut self, scope: export::Scope) -> bool {
-        if self.resume.busy() {
-            self.notice = "简历排版完成后即可备份".into();
-            return false;
-        }
-        if scope == export::Scope::All {
-            self.ensure_resume_loaded();
-        }
-        if !self.flush_resume() {
-            return false;
-        }
         if self.export_busy {
             return false;
         }
@@ -429,11 +406,6 @@ impl PersonalDeskApp {
     fn poll_background(&mut self) {
         while let Ok(message) = self.receiver.try_recv() {
             match message {
-                BackgroundMessage::StudyGraded(message) => self.accept_study_grade(*message),
-                BackgroundMessage::SqlExecuted(message) => self.accept_sql_execution(message),
-                BackgroundMessage::Learning(message) => self.accept_learning(message),
-                BackgroundMessage::CodeExecuted(message) => self.accept_code(message),
-                BackgroundMessage::Audio(message) => self.accept_audio(message),
                 BackgroundMessage::ContactChats(id, result) => {
                     self.contact_import_busy = false;
                     if self.contact_dialog_open && self.contact_draft.id == id {
@@ -501,10 +473,16 @@ impl PersonalDeskApp {
         let ctx = ui.ctx().clone();
         self.paint_theme_background(ui);
         if self.db.is_some() {
+            let navigation_width = if self.navigation_compact && self.section == Section::Documents
+            {
+                64.0
+            } else {
+                184.0
+            };
             egui::Panel::left("navigation")
                 .resizable(false)
                 .show_separator_line(false)
-                .exact_size(184.0)
+                .exact_size(navigation_width)
                 .frame(
                     egui::Frame::default()
                         .fill(sidebar())
@@ -538,18 +516,15 @@ impl PersonalDeskApp {
                     .inner_margin(egui::Margin::symmetric(24, 14)),
             )
             .show(ui, |ui| {
-                if self.section == Section::Resume {
-                    self.render_resume(ui);
-                    return;
-                }
-                if self.section == Section::Games {
-                    self.search_field = None;
-                    self.render_header(ui, &ctx);
-                    self.handle_workspace_shortcuts(&ctx);
-                    ui.add_space(10.);
-                    self.render_games(ui);
-                    return;
-                }
+                let opacity = crate::ui_components::motion::page_opacity(
+                    ui,
+                    (
+                        views::key(self.section),
+                        self.view_mode().value(),
+                        self.writing.page.as_ref().map(|page| &page.id),
+                    ),
+                );
+                ui.multiply_opacity(opacity);
                 if matches!(self.section, Section::Documents | Section::Books)
                     && self.writing.page.is_some()
                 {
@@ -557,16 +532,8 @@ impl PersonalDeskApp {
                     self.handle_workspace_shortcuts(&ctx);
                     return;
                 }
-                if matches!(self.section, Section::Practice | Section::Words) {
-                    self.render_study(ui);
-                    return;
-                }
                 if self.section == Section::Essays {
                     self.render_essays(ui);
-                    return;
-                }
-                if self.section == Section::Reference {
-                    self.render_reference(ui);
                     return;
                 }
                 self.search_field = None;
@@ -588,15 +555,10 @@ impl PersonalDeskApp {
                         Section::Documents => self.render_writing_documents(ui),
                         Section::Inventory => self.render_inventory(ui),
                         Section::Websites => self.render_websites(ui),
-                        Section::Contacts => self.render_contacts(ui),
-                        Section::Games => self.render_games(ui),
-                        Section::Practice | Section::Words => self.render_study(ui),
-                        Section::Settings => self.render_settings(ui),
                         Section::Tools => self.render_tools(ui),
-                        Section::JobHunt => self.render_jobhunt(ui),
+                        Section::Contacts => self.render_contacts(ui),
+                        Section::Settings => self.render_settings(ui),
                         Section::Essays => unreachable!("essays own their scroll workspace"),
-                        Section::Reference => unreachable!("reference owns its scroll workspace"),
-                        Section::Resume => unreachable!("resume owns its scroll workspace"),
                     });
             });
         self.render_detail_windows(&ctx);
@@ -604,10 +566,7 @@ impl PersonalDeskApp {
     }
 
     fn detail_open(&self) -> bool {
-        self.jobhunt.dialog_open()
-            || self.study.route_open
-            || self.study.settings
-            || self.theme_editor_open
+        self.theme_editor_open
             || self.credential_dialog_open
             || self.inventory_dialog_open
             || self.library.dialog.is_some()
@@ -616,6 +575,7 @@ impl PersonalDeskApp {
             || self.settings_detail.is_some()
             || self.updates.open
             || self.website_dialog_open
+            || self.tool_draft.is_some()
             || self.export_dialog_open
             || self.tag_manager.is_some()
             || self.tag_assignment.is_some()
@@ -705,21 +665,9 @@ impl eframe::App for PersonalDeskApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
         self.poll_background();
-        self.poll_resume(&ctx);
-        self.report_workshop.poll(self.db.as_ref());
-        self.study
-            .ai
-            .unload_if_idle(matches!(self.section, Section::Practice | Section::Words));
         if ctx.input(|input| input.viewport().close_requested()) {
-            let mut records_saved = self.flush_writing()
-                && self.flush_study_answer()
-                && self.flush_games()
-                && self.flush_resume();
-            if self.export_busy
-                || self.contact_import_busy
-                || self.report_workshop.busy()
-                || self.resume.busy()
-            {
+            let mut records_saved = self.flush_writing();
+            if self.export_busy || self.contact_import_busy {
                 records_saved = false;
                 self.notice = "当前文件操作完成后即可退出".into();
             }
@@ -757,19 +705,13 @@ impl eframe::App for PersonalDeskApp {
                 ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
             }
         }
-        ctx.request_repaint_after(
-            if self.contact_import_busy
-                || self.report_workshop.busy()
-                || self.export_busy
-                || self.study.busy
-                || self.audio_active()
-            {
-                Duration::from_millis(100)
-            } else {
-                Duration::from_secs(5)
-            },
-        );
+        ctx.request_repaint_after(if self.contact_import_busy || self.export_busy {
+            Duration::from_millis(100)
+        } else {
+            Duration::from_secs(5)
+        });
         self.render_workspace(ui);
+        self.render_tool_dialog(&ctx);
         if let Some(site) = self.website_open_request.take()
             && let Err(error) = open::that_detached(&site.url)
         {
@@ -780,6 +722,11 @@ impl eframe::App for PersonalDeskApp {
         {
             self.notice = error.to_string();
         }
+        if let Some(path) = self.tool_launch_request.take()
+            && let Err(error) = crate::launcher::launch(&path)
+        {
+            self.notice = format!("启动程序失败：{error}");
+        }
     }
 }
 
@@ -788,12 +735,6 @@ fn matches_query(query: &str, fields: &[&str]) -> bool {
         || fields
             .iter()
             .any(|value| value.to_lowercase().contains(query))
-}
-
-impl Drop for PersonalDeskApp {
-    fn drop(&mut self) {
-        self.study.ai.shutdown();
-    }
 }
 
 #[cfg(test)]

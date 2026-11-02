@@ -17,19 +17,14 @@ use crate::{
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Scope {
     Essays,
-    Reference,
-    Practice,
-    Words,
     All,
     Credentials,
     Folders,
     Documents,
-    Resume,
-    JobHunt,
     Inventory,
     Websites,
     Contacts,
-    Games,
+    Tools,
     LegacyChats,
     Theme,
     Books,
@@ -39,20 +34,14 @@ impl Scope {
     pub fn for_section(section: Section) -> Self {
         match section {
             Section::Essays => Self::Essays,
-            Section::Reference => Self::Reference,
             Section::Books => Self::Books,
-            Section::Practice => Self::Practice,
-            Section::Words => Self::Words,
             Section::Credentials => Self::Credentials,
             Section::Folders => Self::Folders,
             Section::Documents => Self::Documents,
-            Section::Resume => Self::Resume,
-            Section::JobHunt => Self::JobHunt,
             Section::Inventory => Self::Inventory,
             Section::Websites => Self::Websites,
             Section::Contacts => Self::Contacts,
-            Section::Games => Self::Games,
-            Section::Tools => Self::All,
+            Section::Tools => Self::Tools,
             Section::Settings => Self::All,
         }
     }
@@ -60,20 +49,15 @@ impl Scope {
     pub fn label(self) -> &'static str {
         match self {
             Self::Essays => "每日随笔",
-            Self::Reference => "百科全书",
             Self::Books => "图书",
-            Self::Practice => "刷题王",
-            Self::Words => "每日单词",
             Self::All => "全部数据",
             Self::Credentials => "账号密码",
             Self::Folders => "快捷路径",
             Self::Documents => "文档",
-            Self::Resume => "简历",
-            Self::JobHunt => "求职",
             Self::Inventory => "物品清单",
             Self::Websites => "网站收藏",
             Self::Contacts => "联系人",
-            Self::Games => "小游戏",
+            Self::Tools => "小工具",
             Self::LegacyChats => "历史聊天",
             Self::Theme => "主题",
         }
@@ -93,7 +77,7 @@ impl Scope {
             T::Documents => Self::Documents,
             T::Websites => Self::Websites,
             T::Contacts => Self::Contacts,
-            T::Tools => return false,
+            T::Tools => Self::Tools,
         })
     }
 }
@@ -237,12 +221,6 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
             warnings: vec![],
         };
         let mut counts = BTreeMap::new();
-        if scope.includes(Scope::Resume) {
-            let configured = snapshot.setting("resume.directory")?;
-            let directory = crate::resume::directory(data_dir, configured.as_deref());
-            package.tree(&directory, "docs/简历")?;
-            counts.insert("简历", usize::from(directory.join("resume.json").is_file()));
-        }
         let favorites = snapshot
             .favorites()?
             .into_iter()
@@ -255,7 +233,6 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
                         "inventory" => scope == Scope::Inventory,
                         "contacts" => scope == Scope::Contacts,
                         "websites" => scope == Scope::Websites,
-                        "reference" => scope == Scope::Reference,
                         "books" | "book_pages" => scope.includes(Scope::Books),
                         _ => false,
                     }
@@ -279,26 +256,6 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
             }
             package.json("每日随笔.json", &records)?;
         }
-        if scope.includes(Scope::Reference) {
-            let entries = snapshot.reference_entries()?;
-            counts.insert("百科全书", entries.len());
-            package.json("百科全书.json", &entries)?;
-            let cards = snapshot
-                .study_cards("engineering")?
-                .into_iter()
-                .filter(|card| !card.knowledge_ids.is_empty())
-                .collect::<Vec<_>>();
-            package.json(
-                "百科练习.json",
-                &crate::study::Bundle {
-                    version: 1,
-                    cards,
-                    attempts: vec![],
-                    dialogue: vec![],
-                    projects: vec![],
-                },
-            )?;
-        }
         if scope.includes(Scope::Theme) {
             let theme = crate::theme::ThemeSettings::load(&snapshot.settings()?);
             package.json("主题.json", &theme)?;
@@ -311,40 +268,6 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
                 }
             }
         }
-        for (study_scope, kind, name) in [
-            (Scope::Practice, "engineering", "刷题王"),
-            (Scope::Words, "word", "每日单词"),
-        ] {
-            if scope.includes(study_scope) {
-                let cards = snapshot.study_cards(kind)?;
-                let attempts = snapshot.study_all_attempts(kind)?;
-                counts.insert(name, attempts.len());
-                package.json(
-                    &format!("{name}.json"),
-                    &crate::study::Bundle {
-                        version: 1,
-                        cards,
-                        attempts,
-                        dialogue: snapshot.study_all_dialogue(kind)?,
-                        projects: if kind == "engineering" {
-                            snapshot.study_projects()?
-                        } else {
-                            vec![]
-                        },
-                    },
-                )?;
-                package.json(
-                    &format!("{name}待完成.json"),
-                    &snapshot.study_pending(kind)?,
-                )?;
-                package.json("练习规则.json", &snapshot.study_rules())?;
-            }
-        }
-        if scope.includes(Scope::JobHunt) {
-            let sites = snapshot.jobhunt_sites()?;
-            counts.insert("求职网站", sites.len());
-            package.json("求职网站.json", &sites)?;
-        }
         if scope.includes(Scope::LegacyChats) {
             let settings = snapshot
                 .settings()?
@@ -353,18 +276,6 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
                 .collect::<BTreeMap<_, _>>();
             package.json("Codex设置.json", &settings)?;
             package.tree(&data_dir.join("codex"), "data/codex")?;
-        }
-        if scope.includes(Scope::Games) {
-            let settings = snapshot.settings()?;
-            let best = settings
-                .get("games.snake.best")
-                .and_then(|s| s.parse::<u32>().ok())
-                .unwrap_or(0);
-            package.json(
-                "小游戏.json",
-                &serde_json::json!({"snake":{"mode":"endless","best_score":best},"library":snapshot.game_library()?,"records":snapshot.game_records(u32::MAX)?}),
-            )?;
-            counts.insert("小游戏", 2);
         }
         if scope.includes(Scope::Contacts) {
             let records = snapshot.contacts()?;
@@ -489,6 +400,13 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
                 .map_err(|error| DeskError::InvalidPath(format!("读取网站记录失败：{error}")))?;
             counts.insert("网站收藏", records.len());
             package.json("网站收藏.json", &records)?;
+        }
+        if scope.includes(Scope::Tools) {
+            let records = snapshot
+                .app_tools()
+                .map_err(|error| DeskError::InvalidPath(format!("读取快捷程序失败：{error}")))?;
+            counts.insert("小工具", records.len());
+            package.json("快捷程序.json", &records)?;
         }
         if scope.includes(Scope::Inventory) {
             let records = snapshot

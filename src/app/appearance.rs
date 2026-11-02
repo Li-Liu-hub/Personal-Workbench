@@ -16,7 +16,7 @@ pub(super) fn configure_theme(ctx: &egui::Context) {
         style
             .text_styles
             .insert(egui::TextStyle::Heading, egui::FontId::proportional(24.0));
-        style.spacing.item_spacing = egui::vec2(8.0, 6.0);
+        style.spacing.item_spacing = egui::vec2(8.0, 8.0);
         style.spacing.button_padding = egui::vec2(10.0, 5.0);
         style.animation_time = 0.12;
         style.spacing.interact_size.y = 32.0;
@@ -52,6 +52,7 @@ pub(super) fn configure_theme(ctx: &egui::Context) {
         style.visuals.widgets.hovered.corner_radius = egui::CornerRadius::same(9);
         style.visuals.widgets.active.corner_radius = egui::CornerRadius::same(9);
     });
+    crate::theme::ThemeSettings::default().apply(ctx);
     #[cfg(windows)]
     if let Ok(bytes) = std::fs::read(r"C:\Windows\Fonts\msyh.ttc") {
         let mut fonts = egui::FontDefinitions::default();

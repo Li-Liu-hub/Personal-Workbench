@@ -3,8 +3,8 @@ use eframe::egui::{self, Color32, Response, Ui};
 pub mod chrome;
 mod collection;
 mod credentials;
+pub mod motion;
 pub mod table;
-pub mod tutor;
 mod website;
 pub use collection::EntryLayout;
 pub use collection::{collection, entry, tagged_entry, view_switcher};
@@ -29,12 +29,27 @@ pub fn select_on_focus(response: &Response, value: &str) {
     }
 }
 
-pub fn primary_button(label: &str) -> egui::Button<'_> {
-    egui::Button::new(egui::RichText::new(label).color(button_text()))
-        .fill(accent())
-        .stroke(egui::Stroke::NONE)
-        .corner_radius(10)
-        .min_size(egui::vec2(0.0, 32.0))
+pub fn primary_button(label: &str) -> impl egui::Widget + '_ {
+    move |ui: &mut Ui| {
+        let background = ui.painter().add(egui::Shape::Noop);
+        let response = ui.add(
+            egui::Button::new(egui::RichText::new(label).color(button_text()))
+                .frame(false)
+                .min_size(egui::vec2(0.0, 34.0)),
+        );
+        let hover = motion::hover(ui, &response);
+        let pressed = motion::amount(
+            ui,
+            response.id.with("press"),
+            response.is_pointer_button_down_on(),
+        );
+        let color = accent().lerp_to_gamma(ink(), 0.1 * hover + 0.12 * pressed);
+        ui.painter().set(
+            background,
+            egui::Shape::rect_filled(response.rect, 10, color),
+        );
+        response.on_hover_cursor(egui::CursorIcon::PointingHand)
+    }
 }
 
 pub fn toolbar_title(ui: &mut Ui, title: &str, width: f32, size: f32) -> Response {
@@ -98,7 +113,7 @@ pub fn centered_dialog(
     ctx: &egui::Context,
     id: &str,
     title: &str,
-    _subtitle: &str,
+    subtitle: &str,
     width: f32,
     content: impl FnOnce(&mut Ui),
 ) -> egui::ModalResponse<bool> {
@@ -110,11 +125,11 @@ pub fn centered_dialog(
     egui::Modal::new(egui::Id::unique(id))
         .area(
             egui::Modal::default_area(egui::Id::unique(id))
-                .fade_in(false)
+                .fade_in(crate::theme::animations())
                 .constrain_to(viewport)
                 .default_size(egui::vec2(width + 48.0, 0.0)),
         )
-        .backdrop_color(Color32::from_rgba_unmultiplied(19, 25, 43, 115))
+        .backdrop_color(Color32::from_rgba_unmultiplied(24, 32, 52, 80))
         .frame(
             egui::Frame::new()
                 .fill(surface())
@@ -122,10 +137,10 @@ pub fn centered_dialog(
                 .corner_radius(20)
                 .inner_margin(24)
                 .shadow(egui::epaint::Shadow {
-                    offset: [0, 12],
-                    blur: 40,
+                    offset: [0, 10],
+                    blur: 32,
                     spread: 0,
-                    color: Color32::from_black_alpha(40),
+                    color: Color32::from_black_alpha(28),
                 }),
         )
         .show(ctx, |ui| {
@@ -138,9 +153,9 @@ pub fn centered_dialog(
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     let (rect, response) =
                         ui.allocate_exact_size(egui::vec2(30.0, 30.0), egui::Sense::click());
-                    if response.hovered() {
-                        ui.painter().rect_filled(rect, 8, canvas());
-                    }
+                    let hover = motion::hover(ui, &response);
+                    ui.painter()
+                        .rect_filled(rect, 9, surface().lerp_to_gamma(ink(), hover * 0.06));
                     let center = rect.center();
                     for direction in [-1.0, 1.0] {
                         ui.painter().line_segment(
@@ -154,13 +169,19 @@ pub fn centered_dialog(
                     close = response.on_hover_text("关闭 · Esc").clicked();
                 });
             });
+            if !subtitle.is_empty() {
+                ui.add(
+                    egui::Label::new(egui::RichText::new(subtitle).size(12.0).color(muted()))
+                        .wrap(),
+                );
+            }
             ui.add_space(4.0);
             egui::ScrollArea::vertical()
                 .id_salt((id, "body", generation))
-                .max_height((viewport.height() - 200.0).max(80.0))
+                .max_height((viewport.height() - 240.0).max(80.0))
                 // Areas remember their previous size. Without this lower bound,
                 // the scroll viewport loses header height on every frame.
-                .min_scrolled_height((viewport.height() - 200.0).max(80.0))
+                .min_scrolled_height((viewport.height() - 240.0).max(80.0))
                 .auto_shrink([false, true])
                 .show(ui, content);
             close
@@ -197,18 +218,8 @@ pub fn navigation_item(
 ) -> Response {
     let (rect, response) =
         ui.allocate_exact_size(egui::vec2(ui.available_width(), 38.0), egui::Sense::click());
-    let color = if selected { ink() } else { sidebar_text() };
-    if selected || response.hovered() {
-        ui.painter().rect_filled(
-            rect,
-            10,
-            if selected {
-                sidebar().lerp_to_gamma(accent(), 0.11)
-            } else {
-                sidebar().lerp_to_gamma(ink(), 0.05)
-            },
-        );
-    }
+    let selected_amount = navigation_background(ui, &response, selected);
+    let color = sidebar_text().lerp_to_gamma(ink(), selected_amount);
     paint_icon(
         ui.painter(),
         egui::Rect::from_center_size(
@@ -226,22 +237,52 @@ pub fn navigation_item(
         color,
     );
     if let Some(count) = count.filter(|&n| n > 0) {
+        let badge = egui::Rect::from_center_size(
+            rect.right_center() - egui::vec2(22.0, 0.0),
+            egui::vec2(28.0, 21.0),
+        );
+        ui.painter().rect_filled(
+            badge,
+            7,
+            sidebar().lerp_to_gamma(accent(), 0.04 + 0.09 * selected_amount),
+        );
         ui.painter().text(
-            rect.right_center() - egui::vec2(15.0, 0.0),
-            egui::Align2::RIGHT_CENTER,
+            badge.center(),
+            egui::Align2::CENTER_CENTER,
             count.to_string(),
             egui::FontId::proportional(12.0),
-            muted(),
+            muted().lerp_to_gamma(accent(), selected_amount),
         );
     }
     response.on_hover_cursor(egui::CursorIcon::PointingHand)
 }
 
+pub fn navigation_icon_item(ui: &mut Ui, kind: TileKind, selected: bool) -> Response {
+    let (rect, response) =
+        ui.allocate_exact_size(egui::vec2(ui.available_width(), 38.0), egui::Sense::click());
+    navigation_background(ui, &response, selected);
+    paint_icon(
+        ui.painter(),
+        egui::Rect::from_center_size(rect.center(), egui::vec2(18.0, 18.0)),
+        kind,
+        if selected { accent() } else { sidebar_text() },
+    );
+    response.on_hover_cursor(egui::CursorIcon::PointingHand)
+}
+
+fn navigation_background(ui: &Ui, response: &Response, selected: bool) -> f32 {
+    let hover = motion::hover(ui, response);
+    let selected = motion::amount(ui, response.id.with("navigation-selected"), selected);
+    ui.painter().rect_filled(
+        response.rect,
+        11,
+        sidebar().lerp_to_gamma(accent(), 0.045 * hover + 0.10 * selected),
+    );
+    selected
+}
+
 #[derive(Clone, Copy)]
 pub enum TileKind {
-    Practice,
-    Word,
-    Game,
     Contact,
     Folder,
     Document,
@@ -249,6 +290,7 @@ pub enum TileKind {
     Item,
     Setting,
     Website,
+    Tool,
     Add,
 }
 
@@ -257,7 +299,8 @@ pub fn gallery(ui: &mut Ui, id: &str, content: impl FnOnce(&mut Ui, f32)) {
     let gap = 16.0;
     let available = ui.available_width();
     let columns = ((available + gap) / 206.0).floor().max(1.0);
-    let side = (available - gap * (columns - 1.0)) / columns;
+    // Leave a subpixel of slack so rounding cannot wrap the last column.
+    let side = ((available - gap * (columns - 1.0)) / columns).floor();
     ui.push_id(id, |ui| {
         ui.spacing_mut().item_spacing = egui::vec2(gap, gap);
         ui.with_layout(
@@ -282,9 +325,7 @@ pub fn tile(
     let response = ui.interact(rect, ui.scope_id().with(id), egui::Sense::click_and_drag());
     let painter = ui.painter().with_clip_rect(rect.intersect(ui.clip_rect()));
     let is_add = matches!(kind, TileKind::Add);
-    let hover = ui
-        .ctx()
-        .animate_bool(response.id.with("hover"), response.hovered());
+    let hover = motion::hover(ui, &response);
     let (icon_color, tint) = match kind {
         TileKind::Folder => (
             Color32::from_rgb(64, 156, 255),
@@ -302,32 +343,17 @@ pub fn tile(
             Color32::from_rgb(71, 151, 132),
             Color32::from_rgb(232, 246, 240),
         ),
-        _ => (accent(), Color32::from_rgb(239, 237, 252)),
-    };
-    painter.rect_filled(
-        rect,
-        16,
-        if is_add {
-            surface().lerp_to_gamma(accent(), 0.035)
-        } else {
-            surface().lerp_to_gamma(accent(), hover * 0.015)
-        },
-    );
-    painter.rect_stroke(
-        rect,
-        16,
-        egui::Stroke::new(
-            1.0,
-            if response.hovered() {
-                border().lerp_to_gamma(accent(), 0.4)
-            } else if is_add {
-                border().lerp_to_gamma(accent(), 0.18)
-            } else {
-                border()
-            },
+        TileKind::Contact => (
+            Color32::from_rgb(62, 147, 140),
+            Color32::from_rgb(230, 245, 243),
         ),
-        egui::StrokeKind::Inside,
-    );
+        TileKind::Website => (
+            Color32::from_rgb(84, 121, 196),
+            Color32::from_rgb(232, 240, 252),
+        ),
+        _ => (accent(), surface().lerp_to_gamma(accent(), 0.08)),
+    };
+    motion::card(ui, &response, 16, is_add, true);
     let icon_rect = if is_add {
         egui::Rect::from_center_size(
             rect.center_top() + egui::vec2(0.0, side * 0.36),
@@ -335,7 +361,8 @@ pub fn tile(
         )
     } else {
         egui::Rect::from_min_size(rect.min + egui::vec2(22.0, 56.0), egui::vec2(32.0, 32.0))
-    };
+    }
+    .translate(egui::vec2(0.0, -2.0 * hover));
     if is_add {
         painter.circle_filled(
             icon_rect.center(),
@@ -405,7 +432,7 @@ pub fn tagged_tile(
     let galley = painter.layout_job(job);
     let position = response.rect.min + egui::vec2(20.0, 19.0);
     let badge = egui::Rect::from_min_size(position, egui::vec2(galley.size().x + 14.0, 23.0));
-    painter.rect_filled(badge, 7, surface());
+    painter.rect_filled(badge, 7, surface().lerp_to_gamma(accent(), 0.06));
     painter.galley(position + egui::vec2(7.0, 3.0), galley, accent());
     response
 }
@@ -466,42 +493,6 @@ pub fn paint_icon(painter: &egui::Painter, rect: egui::Rect, kind: TileKind, col
     let box_rect =
         |x, y, w, h| egui::Rect::from_min_size(point(x, y), egui::vec2(w * scale, h * scale));
     match kind {
-        TileKind::Practice => {
-            painter.rect_stroke(
-                box_rect(4., 2., 16., 20.),
-                3,
-                stroke,
-                egui::StrokeKind::Inside,
-            );
-            line((8., 8.), (10., 10.));
-            line((10., 10.), (15., 5.));
-            line((8., 15.), (16., 15.));
-            line((8., 18.), (14., 18.));
-        }
-        TileKind::Word => {
-            painter.rect_stroke(
-                box_rect(3., 3., 18., 18.),
-                3,
-                stroke,
-                egui::StrokeKind::Inside,
-            );
-            line((7., 17.), (11., 7.));
-            line((11., 7.), (15., 17.));
-            line((8.5, 13.), (13.5, 13.));
-            line((18., 3.), (18., 21.));
-        }
-        TileKind::Game => {
-            painter.rect_stroke(
-                box_rect(2.0, 6.0, 20.0, 13.0),
-                4,
-                stroke,
-                egui::StrokeKind::Inside,
-            );
-            line((5.0, 12.0), (11.0, 12.0));
-            line((8.0, 9.0), (8.0, 15.0));
-            painter.circle_filled(point(17.0, 10.0), 1.3 * scale, color);
-            painter.circle_filled(point(19.0, 14.0), 1.3 * scale, color);
-        }
         TileKind::Contact => {
             painter.circle_stroke(point(12.0, 7.0), 4.0 * scale, stroke);
             painter.rect_stroke(
@@ -565,6 +556,16 @@ pub fn paint_icon(painter: &egui::Painter, rect: egui::Rect, kind: TileKind, col
                 painter.circle_filled(point(x, y), 2.5 * scale, color);
             }
         }
+        TileKind::Tool => {
+            for (x, y) in [(3.0, 3.0), (14.0, 3.0), (3.0, 14.0), (14.0, 14.0)] {
+                painter.rect_stroke(
+                    box_rect(x, y, 7.0, 7.0),
+                    2,
+                    stroke,
+                    egui::StrokeKind::Inside,
+                );
+            }
+        }
         TileKind::Add => {
             line((6.0, 12.0), (18.0, 12.0));
             line((12.0, 6.0), (12.0, 18.0));
@@ -581,26 +582,16 @@ fn quick_action(
 ) -> Response {
     let response = ui.interact(rect, ui.scope_id().with(id), egui::Sense::click());
     let painter = ui.painter().with_clip_rect(rect.intersect(ui.clip_rect()));
+    let hover = motion::hover(ui, &response);
     painter.rect_filled(
         rect,
-        6,
-        if response.hovered() {
-            canvas()
-        } else {
-            surface()
-        },
+        8,
+        surface().lerp_to_gamma(accent(), 0.04 + hover * 0.05),
     );
     painter.rect_stroke(
         rect,
-        6,
-        egui::Stroke::new(
-            1.0,
-            if response.hovered() {
-                accent()
-            } else {
-                border()
-            },
-        ),
+        8,
+        egui::Stroke::new(1.0, border().lerp_to_gamma(accent(), hover * 0.35)),
         egui::StrokeKind::Inside,
     );
     painter.text(
@@ -608,7 +599,7 @@ fn quick_action(
         egui::Align2::CENTER_CENTER,
         label,
         egui::FontId::proportional(11.0),
-        ink(),
+        ink().lerp_to_gamma(accent(), hover),
     );
     response.on_hover_cursor(egui::CursorIcon::PointingHand)
 }
@@ -724,6 +715,14 @@ mod tests {
             );
             output.textures_delta.clear();
             assert_eq!(rects.len(), 12);
+            let first_row = rects
+                .iter()
+                .take_while(|rect| (rect.top() - rects[0].top()).abs() < 1.0)
+                .collect::<Vec<_>>();
+            assert!(
+                width - first_row.last().unwrap().right() < 24.0,
+                "the final column must fill the available row at width {width}"
+            );
             for (index, rect) in rects.iter().enumerate() {
                 assert!((rect.width() - rect.height()).abs() < 0.1);
                 assert!(rect.width() >= 160.0 && rect.width() <= 228.1);

@@ -115,20 +115,14 @@ pub struct SearchResult {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Section {
     Essays,
-    Reference,
-    Practice,
-    Words,
     Books,
     Credentials,
     #[default]
     Folders,
     Documents,
-    Resume,
-    JobHunt,
     Inventory,
     Websites,
     Contacts,
-    Games,
     Tools,
     Settings,
 }

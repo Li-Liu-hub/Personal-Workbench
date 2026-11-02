@@ -44,9 +44,7 @@ impl PersonalDeskApp {
                 {
                     self.undo_index_removal();
                 }
-                if !matches!(self.section, Section::Games) {
-                    self.render_view_switcher(ui);
-                }
+                self.render_view_switcher(ui);
             });
         });
         ui.add_space(10.0);
@@ -65,10 +63,22 @@ impl PersonalDeskApp {
                 [width, 32.0],
                 egui::TextEdit::singleline(&mut self.search_query)
                     .id_salt("global-search")
-                    .margin(egui::Margin::symmetric(10, 7))
+                    .margin(egui::Margin {
+                        left: 34,
+                        right: 12,
+                        top: 8,
+                        bottom: 8,
+                    })
                     .hint_text(hint),
             );
             self.search_field = Some(response.id);
+            let center = response.rect.left_center() + egui::vec2(17.0, -1.0);
+            let stroke = egui::Stroke::new(1.4, muted());
+            ui.painter().circle_stroke(center, 5.0, stroke);
+            ui.painter().line_segment(
+                [center + egui::vec2(4.0, 4.0), center + egui::vec2(8.0, 8.0)],
+                stroke,
+            );
             if response.changed() {
                 self.search_pending = Some(ui.input(|input| input.time) + 0.3);
                 ctx.request_repaint_after(Duration::from_millis(310));

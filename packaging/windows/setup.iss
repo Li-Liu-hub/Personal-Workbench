@@ -43,9 +43,6 @@ Name: "autostart"; Description: "登录 Windows 后自动启动"; Flags: uncheck
 
 [Files]
 Source: "{#AppExe}"; DestDir: "{app}"; DestName: "个人办公台.exe"; Flags: ignoreversion
-#ifdef TypstDir
-Source: "{#TypstDir}\*"; DestDir: "{app}\tools\typst"; Flags: ignoreversion
-#endif
 
 [Icons]
 Name: "{group}\个人办公台"; Filename: "{app}\个人办公台.exe"

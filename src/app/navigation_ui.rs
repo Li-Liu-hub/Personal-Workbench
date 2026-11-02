@@ -4,20 +4,14 @@ impl PersonalDeskApp {
     pub(super) fn page_title(&self) -> String {
         match self.section {
             Section::Essays => "每日随笔".into(),
-            Section::Reference => "百科全书".into(),
             Section::Folders => "快捷路径".into(),
             Section::Documents => "文档写作".into(),
-            Section::Resume => "简历".into(),
-            Section::JobHunt => "求职".into(),
             Section::Books => "图书".into(),
             Section::Credentials => "账号密码".into(),
             Section::Inventory => "物品清单".into(),
             Section::Contacts => "联系人".into(),
             Section::Websites => "网站收藏".into(),
-            Section::Games => "小游戏".into(),
-            Section::Tools => "报表工坊".into(),
-            Section::Practice => "刷题王".into(),
-            Section::Words => "每日单词".into(),
+            Section::Tools => "小工具".into(),
             Section::Settings => "设置".into(),
         }
     }
@@ -57,7 +51,6 @@ impl PersonalDeskApp {
     pub(super) fn save_visible_rows(&mut self) -> bool {
         let mut saved = true;
         match self.section {
-            Section::Resume => saved = self.flush_resume(),
             Section::Documents | Section::Books | Section::Essays => saved = self.flush_writing(),
             Section::Contacts => {
                 for id in self.inline_contacts.keys().cloned().collect::<Vec<_>>() {
@@ -80,9 +73,18 @@ impl PersonalDeskApp {
     }
 
     pub(super) fn render_sidebar(&mut self, ui: &mut egui::Ui) {
+        let compact = self.navigation_compact && self.section == Section::Documents;
         ui.add_space(14.0);
         ui.horizontal(|ui| {
-            let (rect, _) = ui.allocate_exact_size(egui::vec2(38.0, 38.0), egui::Sense::hover());
+            let can_toggle = self.section == Section::Documents;
+            let (rect, response) = ui.allocate_exact_size(
+                egui::vec2(38.0, 38.0),
+                if can_toggle {
+                    egui::Sense::click()
+                } else {
+                    egui::Sense::hover()
+                },
+            );
             ui.painter().rect_filled(rect, 11, accent());
             for (x, y) in [(10.0, 10.0), (21.0, 10.0), (10.0, 21.0), (21.0, 21.0)] {
                 ui.painter().rect_filled(
@@ -91,12 +93,19 @@ impl PersonalDeskApp {
                     crate::theme::button_text(),
                 );
             }
-            ui.label(
-                RichText::new("个人办公台")
-                    .size(18.0)
-                    .strong()
-                    .color(crate::theme::sidebar_text()),
-            );
+            if can_toggle {
+                let response = response.on_hover_text(if compact {
+                    "展开导航"
+                } else {
+                    "收起导航"
+                });
+                if response.clicked() {
+                    self.navigation_compact = !compact;
+                }
+            }
+            if !compact {
+                ui.label(RichText::new("个人办公台").size(17.0).strong().color(ink()));
+            }
         });
         ui.add_space(16.0);
         let navigation_spacing = ui.spacing().item_spacing.y;
@@ -114,8 +123,6 @@ impl PersonalDeskApp {
                         Some(self.credentials.len()),
                     ),
                     (Section::Documents, "文档写作", TileKind::Document, None),
-                    (Section::Resume, "简历", TileKind::Document, None),
-                    (Section::JobHunt, "求职", TileKind::Website, None),
                     (Section::Essays, "每日随笔", TileKind::Document, None),
                     (
                         Section::Contacts,
@@ -135,11 +142,7 @@ impl PersonalDeskApp {
                         TileKind::Website,
                         Some(self.website_items.len()),
                     ),
-                    (Section::Practice, "刷题王", TileKind::Practice, None),
-                    (Section::Words, "每日单词", TileKind::Word, None),
-                    (Section::Reference, "百科全书", TileKind::Document, None),
-                    (Section::Games, "小游戏", TileKind::Game, Some(2)),
-                    (Section::Tools, "报表工坊", TileKind::Setting, None),
+                    (Section::Tools, "小工具", TileKind::Tool, None),
                     (Section::Settings, "设置", TileKind::Setting, None),
                 ];
                 navigation.sort_by_key(|(section, _, _, _)| {
@@ -151,12 +154,11 @@ impl PersonalDeskApp {
                         "置顶"
                     } else {
                         match section {
-                            Section::Practice | Section::Words | Section::Reference => "学习",
-                            Section::Games | Section::Tools | Section::Settings => "工具",
+                            Section::Tools | Section::Settings => "工具",
                             _ => "日常",
                         }
                     };
-                    if group != last_group {
+                    if !compact && group != last_group {
                         ui.add_space(if last_group.is_empty() { 0. } else { 10. });
                         ui.horizontal(|ui| {
                             ui.add_space(12.);
@@ -172,7 +174,16 @@ impl PersonalDeskApp {
                     } else {
                         title.to_string()
                     };
-                    let response = navigation_item(ui, &label, kind, selected, count);
+                    let response = if compact {
+                        let response =
+                            crate::ui_components::navigation_icon_item(ui, kind, selected);
+                        let hint = count
+                            .filter(|&count| count > 0)
+                            .map_or(label.clone(), |count| format!("{label} · {count}"));
+                        response.on_hover_text(hint)
+                    } else {
+                        navigation_item(ui, &label, kind, selected, count)
+                    };
                     response.context_menu(|ui| {
                         if ui
                             .button(if self.is_favorite("modules", views::key(section)) {
@@ -187,13 +198,14 @@ impl PersonalDeskApp {
                         }
                     });
                     if response.clicked() {
-                        if !self.flush_writing()
-                            || !self.flush_resume()
-                            || !self.flush_study_answer()
-                            || !self.flush_games()
-                        {
+                        if section == self.section && section == Section::Documents {
+                            self.navigation_compact = !self.navigation_compact;
                             continue;
                         }
+                        if !self.flush_writing() {
+                            continue;
+                        }
+                        self.navigation_compact = section == Section::Documents;
                         self.section = section;
                         self.notice.clear();
                         self.search_query.clear();
@@ -214,10 +226,15 @@ impl PersonalDeskApp {
                 }
             });
         ui.add_space(12.0);
-        if ui
-            .button(format!("更新  v{}", crate::updater::VERSION))
-            .clicked()
-        {
+        let update_clicked = if compact {
+            ui.button("↻")
+                .on_hover_text(format!("更新  v{}", crate::updater::VERSION))
+                .clicked()
+        } else {
+            ui.button(format!("更新  v{}", crate::updater::VERSION))
+                .clicked()
+        };
+        if update_clicked {
             self.updates.open = true;
         }
         ui.spacing_mut().item_spacing.y = navigation_spacing;
@@ -226,26 +243,21 @@ impl PersonalDeskApp {
     pub(super) fn add_label(&self) -> &'static str {
         match self.section {
             Section::Essays => "今日随笔",
-            Section::Reference => "添加条目",
             Section::Books => "新增图书",
             Section::Credentials => "添加账号",
             Section::Folders => "添加快捷路径",
             Section::Documents => "新建文档",
             Section::Inventory => "添加物品",
             Section::Websites => "添加网站",
-            Section::JobHunt => "添加网站",
             Section::Contacts => "添加联系人",
-            Section::Tools => "打开报表工坊",
+            Section::Tools => "添加程序",
             Section::Settings => "",
-            Section::Resume => "",
-            Section::Games | Section::Practice | Section::Words => "",
         }
     }
 
     pub(super) fn add_current_item(&mut self) {
         match self.section {
             Section::Essays => self.start_daily_essay(),
-            Section::Reference => self.add_reference(),
             Section::Books => self.library.dialog = Some(crate::library::Book::new()),
             Section::Credentials => {
                 self.selected_credential = None;
@@ -268,11 +280,8 @@ impl PersonalDeskApp {
                 self.website_error.clear();
                 self.website_dialog_open = true;
             }
-            Section::JobHunt => self.new_jobhunt_site(),
-            Section::Tools => self.report_workshop.open = true,
+            Section::Tools => self.add_tool(),
             Section::Settings => {}
-            Section::Resume => {}
-            Section::Games | Section::Practice | Section::Words => {}
             Section::Contacts => {
                 self.contact_draft = Contact::new();
                 self.contact_error.clear();

@@ -2,7 +2,6 @@ param(
     [Parameter(Mandatory=$true)][string]$Executable,
     [string]$OutputDirectory = (Join-Path $PSScriptRoot '../dist/release'),
     [string]$Compiler,
-    [string]$TypstDirectory = (Join-Path $PSScriptRoot '../.artifacts/resume/typst/typst-x86_64-pc-windows-msvc'),
     [string]$MetadataDirectory
 )
 $ErrorActionPreference = 'Stop'
@@ -28,10 +27,9 @@ $text = @"
 安装版：打开 PersonalDesk-$version-Setup-x64.exe，按向导选择程序和数据目录。
 已有数据：保留原 personal-desk-data-path.txt，或在安装向导选择原数据目录。
 默认数据目录：%LOCALAPPDATA%\PersonalDesk。
-游戏会保存棋盘、关卡和成绩。设置中可开启/关闭开机自启动。
+小游戏、刷题王、每日单词和百科全书由 D:\MyProject 下的独立程序提供，继续沿用原数据目录。设置中可开启/关闭开机自启动。
 本地模型和模型运行时不随客户端打包，客户端本身可独立使用。
-简历功能的 Typst 引擎如随包提供，位于 tools/typst；个人简历资料不随程序包提供。
-导出全部数据可备份记录及办公台文档；快捷路径只保存地址。
+导出全部数据可备份个人办公台记录及文档；小工具和快捷路径只保存 EXE 或文件地址。
 更新只替换程序；安装包不会包含个人账号、文档或模型文件。
 
 源码与发布：https://github.com/Li-Liu-hub/Personal-Workbench
@@ -39,26 +37,9 @@ $text = @"
 [IO.File]::WriteAllText($readme,$text,[Text.UTF8Encoding]::new($false))
 $portableZip = Join-Path $OutputDirectory "PersonalDesk-$version-Windows-x64.zip"
 $portableFiles = @($portable, $readme)
-$hiringLicense = Join-Path $metadataRoot 'assets/hiring/BossHunter-LICENSE.txt'
-if (Test-Path -LiteralPath $hiringLicense) {
-    $licenseDirectory = Join-Path $OutputDirectory 'licenses'
-    New-Item -ItemType Directory -Path $licenseDirectory -Force | Out-Null
-    Copy-Item -LiteralPath $hiringLicense -Destination (Join-Path $licenseDirectory 'BossHunter-LICENSE.txt') -Force
-    $portableFiles += $licenseDirectory
-}
-$typstFiles = $null
-if (Test-Path -LiteralPath (Join-Path $TypstDirectory 'typst.exe')) {
-    $typstFiles = Join-Path $OutputDirectory 'tools/typst'
-    New-Item -ItemType Directory -Path $typstFiles -Force | Out-Null
-    foreach ($name in @('typst.exe', 'LICENSE', 'NOTICE', 'README.md')) {
-        Copy-Item -LiteralPath (Join-Path $TypstDirectory $name) -Destination (Join-Path $typstFiles $name) -Force
-    }
-    $portableFiles += (Join-Path $OutputDirectory 'tools')
-}
 Compress-Archive -LiteralPath $portableFiles -DestinationPath $portableZip -Force
 if ($Compiler) {
     $compilerArgs = @("/DAppVersion=$version", "/DAppExe=$portable", "/DOutputDir=$OutputDirectory")
-    if ($typstFiles) { $compilerArgs += "/DTypstDir=$typstFiles" }
     & $Compiler @compilerArgs (Join-Path $root 'packaging/windows/setup.iss')
     if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed' }
 }
@@ -67,4 +48,17 @@ $setup = Join-Path $OutputDirectory "PersonalDesk-$version-Setup-x64.exe"
 if (Test-Path -LiteralPath $setup) { $assets += $setup }
 $checksums = $assets | ForEach-Object { "{0}  {1}" -f (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant(),[IO.Path]::GetFileName($_) }
 [IO.File]::WriteAllLines((Join-Path $OutputDirectory 'SHA256SUMS.txt'),$checksums,[Text.UTF8Encoding]::new($false))
+$legacyTypstDirectory = [IO.Path]::GetFullPath((Join-Path $root 'dist/release/tools/typst'))
+$releaseRoot = [IO.Path]::GetFullPath((Join-Path $root 'dist/release'))
+if ([StringComparer]::OrdinalIgnoreCase.Equals($OutputDirectory, $releaseRoot)) {
+    $keepNames = @("PersonalDesk-$version-Windows-x64.zip", "PersonalDesk-$version-Setup-x64.exe")
+    Get-ChildItem -LiteralPath $releaseRoot -File | Where-Object {
+        ($_.Name -like 'PersonalDesk-*-Windows-x64.zip' -or $_.Name -like 'PersonalDesk-*-Setup-x64.exe') -and
+        $_.Name -notin $keepNames
+    } | ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }
+}
+if ($legacyTypstDirectory.StartsWith($releaseRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -and
+    (Test-Path -LiteralPath $legacyTypstDirectory)) {
+    Remove-Item -LiteralPath $legacyTypstDirectory -Recurse -Force
+}
 Write-Output "Release files: $OutputDirectory"

@@ -94,7 +94,7 @@ fn floating_writer_types_autosaves_outside_documents_and_returns_to_same_page() 
     input_frame(&mut app, &ctx, 0.1, pointer(button, true), vec![]);
     input_frame(&mut app, &ctx, 0.2, pointer(button, false), vec![]);
     assert!(app.writing.floating);
-    app.section = Section::Resume;
+    app.section = Section::Documents;
     app.open_floating_writer();
     for (n, size) in [[340., 300.], [440., 560.]].into_iter().enumerate() {
         let out = floating_frame(&mut app, &ctx, 1. + n as f64 * 0.1, vec![], size, false);
@@ -107,7 +107,7 @@ fn floating_writer_types_autosaves_outside_documents_and_returns_to_same_page() 
         &mut app,
         &ctx,
         1.3,
-        vec![egui::Event::Paste("简历中的项目问题\n核实后的总结".into())],
+        vec![egui::Event::Paste("项目中的关键问题\n核实后的总结".into())],
         [440., 560.],
         false,
     );
@@ -165,7 +165,7 @@ fn floating_writer_types_autosaves_outside_documents_and_returns_to_same_page() 
     let db = Database::open(dir.path()).unwrap();
     assert_eq!(
         db.writing_page(&id).unwrap().unwrap().body,
-        "简历中的项目问题\n核实后的总结"
+        "项目中的关键问题\n核实后的总结"
     );
 }
 

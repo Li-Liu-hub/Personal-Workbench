@@ -34,27 +34,29 @@ pub struct ThemeSettings {
     pub image_opacity: f32,
     pub content_overlay: f32,
     pub zoom: f32,
+    pub animations: bool,
     pub background: Option<String>,
     pub fit: ImageFit,
 }
 impl Default for ThemeSettings {
     fn default() -> Self {
         Self {
-            accent: [0, 113, 227],
-            text: [31, 35, 42],
-            muted: [118, 126, 139],
-            canvas: [248, 249, 251],
-            sidebar: [241, 244, 248],
+            accent: [75, 91, 212],
+            text: [38, 48, 69],
+            muted: [104, 118, 139],
+            canvas: [243, 245, 249],
+            sidebar: [249, 250, 253],
             surface: [255, 255, 255],
-            input: [246, 248, 251],
-            border: [227, 232, 239],
+            input: [241, 244, 250],
+            border: [225, 231, 240],
             button_text: [255, 255, 255],
-            sidebar_text: [94, 103, 117],
+            sidebar_text: [91, 104, 127],
             surface_opacity: 1.0,
             sidebar_opacity: 1.0,
             image_opacity: 0.7,
             content_overlay: 0.12,
             zoom: 1.0,
+            animations: true,
             background: None,
             fit: ImageFit::Cover,
         }
@@ -80,6 +82,16 @@ impl ThemeSettings {
                 && theme.muted == [112, 112, 119]
                 && theme.sidebar_text == [88, 88, 96]
                 && theme.surface == [255, 255, 255])
+            || (theme.accent == [0, 113, 227]
+                && theme.text == [31, 35, 42]
+                && theme.muted == [118, 126, 139]
+                && theme.canvas == [248, 249, 251]
+                && theme.sidebar == [241, 244, 248]
+                && theme.surface == [255, 255, 255]
+                && theme.input == [246, 248, 251]
+                && theme.border == [227, 232, 239]
+                && theme.button_text == [255, 255, 255]
+                && theme.sidebar_text == [94, 103, 117])
         {
             let fresh = Self::default();
             theme.accent = fresh.accent;
@@ -89,6 +101,7 @@ impl ThemeSettings {
             theme.sidebar = fresh.sidebar;
             theme.input = fresh.input;
             theme.border = fresh.border;
+            theme.muted = fresh.muted;
             theme.sidebar_text = fresh.sidebar_text;
         }
         theme
@@ -116,6 +129,7 @@ impl ThemeSettings {
         self.activate();
         ctx.set_zoom_factor(self.zoom);
         ctx.style_mut_of(egui::Theme::Light, |style| {
+            style.animation_time = if self.animations { 0.16 } else { 0.0 };
             let v = &mut style.visuals;
             v.panel_fill = canvas();
             v.window_fill = surface();
@@ -126,6 +140,14 @@ impl ThemeSettings {
             v.weak_text_color = Some(muted());
             v.hyperlink_color = accent();
             v.window_stroke = egui::Stroke::new(1.0, border());
+            v.window_corner_radius = egui::CornerRadius::same(18);
+            v.menu_corner_radius = egui::CornerRadius::same(12);
+            v.window_shadow = egui::epaint::Shadow {
+                offset: [0, 8],
+                blur: 28,
+                spread: 0,
+                color: Color32::from_black_alpha(24),
+            };
             v.selection.bg_fill = accent().gamma_multiply(0.22);
             v.selection.stroke = egui::Stroke::new(1.0, accent());
             for widget in [
@@ -139,6 +161,8 @@ impl ThemeSettings {
                 widget.bg_stroke = egui::Stroke::new(1.0, border());
                 widget.bg_fill = surface();
                 widget.weak_bg_fill = surface();
+                widget.corner_radius = egui::CornerRadius::same(9);
+                widget.expansion = 0.0;
             }
             v.widgets.noninteractive.bg_fill = border();
             v.widgets.inactive.weak_bg_fill = input();
@@ -148,7 +172,9 @@ impl ThemeSettings {
             v.widgets.active.weak_bg_fill = v.widgets.active.bg_fill;
             v.widgets.hovered.bg_stroke =
                 egui::Stroke::new(1.0, border().lerp_to_gamma(accent(), 0.3));
-            v.widgets.active.bg_stroke = egui::Stroke::new(1.0, accent());
+            v.widgets.active.bg_stroke = egui::Stroke::new(1.0, accent().gamma_multiply(0.65));
+            v.widgets.open.bg_fill = input();
+            v.widgets.open.weak_bg_fill = input();
         });
     }
 }
@@ -162,6 +188,9 @@ fn rgba(color: [u8; 3], alpha: f32) -> Color32 {
 }
 pub fn accent() -> Color32 {
     ACTIVE.with(|t| rgb(t.borrow().accent))
+}
+pub fn animations() -> bool {
+    ACTIVE.with(|t| t.borrow().animations)
 }
 pub fn ink() -> Color32 {
     ACTIVE.with(|t| rgb(t.borrow().text))
@@ -314,6 +343,49 @@ pub fn image_rects(rect: egui::Rect, size: egui::Vec2, fit: ImageFit) -> (egui::
 #[cfg(test)]
 mod palette_tests {
     use super::*;
+    #[test]
+    fn current_stock_palette_refresh_preserves_preferences_and_custom_palette() {
+        let old = ThemeSettings {
+            accent: [0, 113, 227],
+            text: [31, 35, 42],
+            muted: [118, 126, 139],
+            canvas: [248, 249, 251],
+            sidebar: [241, 244, 248],
+            surface: [255, 255, 255],
+            input: [246, 248, 251],
+            border: [227, 232, 239],
+            button_text: [255, 255, 255],
+            sidebar_text: [94, 103, 117],
+            zoom: 1.25,
+            animations: false,
+            background: Some("theme-assets/custom.png".into()),
+            surface_opacity: 0.8,
+            ..Default::default()
+        };
+        let load = |theme: &ThemeSettings| {
+            ThemeSettings::load(&BTreeMap::from([(
+                "appearance.theme".into(),
+                serde_json::to_string(theme).unwrap(),
+            )]))
+        };
+        let refreshed = load(&old);
+        assert_eq!(refreshed.accent, ThemeSettings::default().accent);
+        assert_eq!(refreshed.zoom, old.zoom);
+        assert_eq!(refreshed.background, old.background);
+        assert_eq!(refreshed.surface_opacity, old.surface_opacity);
+        assert!(!refreshed.animations);
+        let custom = ThemeSettings {
+            input: [220, 230, 240],
+            ..old
+        };
+        assert_eq!(load(&custom), custom);
+        assert!(
+            serde_json::from_str::<ThemeSettings>("{}")
+                .unwrap()
+                .animations
+        );
+    }
+
     #[test]
     fn theme_values_reject_nonfinite_or_out_of_range_numbers_and_load_defaults() {
         for value in [f32::NAN, f32::INFINITY, -0.1, 1.1] {

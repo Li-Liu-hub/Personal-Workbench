@@ -2,30 +2,9 @@ use std::path::{Path, PathBuf};
 
 #[cfg(test)]
 mod audit_tests;
-mod coding;
 mod contacts;
-mod curriculum;
-mod encyclopedia;
-#[cfg(test)]
-mod encyclopedia_cs408_tests;
-#[cfg(test)]
-mod encyclopedia_deep_tests;
-#[cfg(test)]
-mod encyclopedia_other_languages_tests;
-#[cfg(test)]
-mod encyclopedia_tests;
 mod essays;
-mod games;
-mod jobhunt;
-#[cfg(test)]
-mod knowledge_tests;
 mod library;
-mod reference;
-mod reference_learning;
-#[cfg(test)]
-mod reference_tests;
-mod report_workshop;
-mod study;
 mod tag_cache;
 mod writing;
 mod writing_import;
@@ -188,7 +167,7 @@ impl Database {
                title, path_display, body, content='file_index', content_rowid='rowid', tokenize='trigram'
              );
              CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT NOT NULL);
-             CREATE TABLE IF NOT EXISTS app_tools(id TEXT PRIMARY KEY,name TEXT NOT NULL,path_native BLOB NOT NULL,notes TEXT NOT NULL);
+             CREATE TABLE IF NOT EXISTS app_tools(id TEXT PRIMARY KEY,name TEXT NOT NULL,path_native BLOB NOT NULL,notes TEXT NOT NULL,tags_json TEXT NOT NULL DEFAULT '[]');
              CREATE TABLE IF NOT EXISTS credentials(
                id TEXT PRIMARY KEY, title TEXT NOT NULL, username TEXT NOT NULL,
                password TEXT NOT NULL, website TEXT NOT NULL, notes TEXT NOT NULL,
@@ -309,11 +288,7 @@ impl Database {
             migration_notice,
         };
         database.prepare_writing(data_dir)?;
-        database.prepare_study()?;
-        database.prepare_reference()?;
         database.prepare_essays()?;
-        database.prepare_games()?;
-        database.init_jobhunt()?;
         Ok(database)
     }
 

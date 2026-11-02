@@ -117,7 +117,7 @@ fn moved_page_draft_tracks_its_new_book() {
 }
 
 #[test]
-fn invalid_persisted_study_rules_fall_back_without_changing_the_setting() {
+fn migrated_tool_settings_are_preserved_verbatim_when_reopening_the_main_database() {
     let dir = tempfile::tempdir().unwrap();
     let mut db = Database::open(dir.path()).unwrap();
     for value in [
@@ -125,9 +125,12 @@ fn invalid_persisted_study_rules_fall_back_without_changing_the_setting() {
         r#"{"threshold":0,"consecutive":0,"mastered":"Rare","daily_words":0}"#,
     ] {
         db.set_setting("study.rules", value).unwrap();
-        assert_eq!(db.study_rules().threshold, 85);
-        assert_eq!(db.study_rules().consecutive, 5);
         assert_eq!(db.setting("study.rules").unwrap().as_deref(), Some(value));
+        let reopened = Database::open(dir.path()).unwrap();
+        assert_eq!(
+            reopened.setting("study.rules").unwrap().as_deref(),
+            Some(value)
+        );
     }
 }
 

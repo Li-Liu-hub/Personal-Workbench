@@ -326,8 +326,6 @@ impl PersonalDeskApp {
         }
         self.render_tag_dialogs(ctx);
         self.render_contact_dialogs(ctx);
-        self.render_report_workshop_dialog(ctx);
-        self.render_jobhunt_dialogs(ctx);
         self.render_theme_dialog(ctx);
         self.render_update_dialog(ctx);
         self.render_book_dialog(ctx);

@@ -506,7 +506,7 @@ impl PersonalDeskApp {
             }
             float = ui
                 .button("悬浮窗")
-                .on_hover_text("置顶小窗，方便对照简历或聊天记录写总结")
+                .on_hover_text("置顶小窗，方便对照其他应用内容写总结")
                 .clicked();
             crate::ui_components::chrome::segmented(
                 ui,
@@ -571,7 +571,7 @@ impl PersonalDeskApp {
         if self.writing.floating {
             ui.add_space(30.);
             ui.heading(&self.writing.page.as_ref().unwrap().title);
-            ui.label("正在悬浮窗中写作，可切换到简历或其他应用。内容自动保存到这份文档。");
+            ui.label("正在悬浮窗中写作，可切换到其他应用。内容自动保存到这份文档。");
             ui.horizontal(|ui| {
                 if ui.button("显示悬浮窗").clicked() {
                     ui.ctx().send_viewport_cmd_to(

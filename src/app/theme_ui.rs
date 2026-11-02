@@ -122,6 +122,8 @@ impl PersonalDeskApp {
                         }
                     });
                 ui.add(egui::Slider::new(&mut self.theme.zoom, 0.8..=1.5).text("界面缩放"));
+                ui.checkbox(&mut self.theme.animations, "启用界面动画")
+                    .on_hover_text("导航、卡片、按钮与页面使用短暂过渡；关闭后立即切换。");
                 ui.add(
                     egui::Slider::new(&mut self.theme.surface_opacity, 0.15..=1.0)
                         .text("卡片与面板不透明度"),

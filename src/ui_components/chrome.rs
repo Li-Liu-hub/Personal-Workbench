@@ -2,79 +2,72 @@ use super::*;
 
 /// Native controls with one shared visual rhythm; no image or web dependencies.
 pub fn segmented<T: Copy + PartialEq>(ui: &mut Ui, value: &mut T, options: &[(T, &str)]) {
-    let width = options.len() as f32 * 60. + options.len().saturating_sub(1) as f32 * 3. + 6.;
-    ui.allocate_ui_with_layout(
-        egui::vec2(width, 34.),
-        egui::Layout::left_to_right(egui::Align::Center),
-        |ui| {
-            egui::Frame::new()
-                .fill(crate::theme::input())
-                .corner_radius(9)
-                .inner_margin(3)
-                .show(ui, |ui| {
-                    ui.spacing_mut().item_spacing.x = 3.;
-                    ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                        for &(option, label) in options {
-                            let active = *value == option;
-                            let response = ui.add(
-                                egui::Button::new(
-                                    egui::RichText::new(label).size(13.).color(if active {
-                                        ink()
-                                    } else {
-                                        muted()
-                                    }),
-                                )
-                                .min_size(egui::vec2(60., 28.))
-                                .corner_radius(7)
-                                .fill(if active {
-                                    surface()
-                                } else {
-                                    Color32::TRANSPARENT
-                                })
-                                .stroke(if active {
-                                    egui::Stroke::new(1., border().gamma_multiply(0.7))
-                                } else {
-                                    egui::Stroke::NONE
-                                }),
-                            );
-                            if response.clicked() {
-                                *value = option;
-                            }
-                        }
-                    });
-                });
-        },
-    );
-}
-
-pub fn badge(ui: &mut Ui, text: &str, color: Color32) {
-    egui::Frame::new()
-        .fill(surface().lerp_to_gamma(color, 0.07))
-        .corner_radius(6)
-        .inner_margin(egui::Margin::symmetric(8, 4))
-        .show(ui, |ui| {
-            ui.label(egui::RichText::new(text).size(12.).color(color));
+    if options.is_empty() {
+        return;
+    }
+    let width = options.len() as f32 * 63.0 + 3.0;
+    let (rect, response) = ui.allocate_exact_size(egui::vec2(width, 34.0), egui::Sense::hover());
+    let mut selected = options
+        .iter()
+        .position(|(option, _)| *option == *value)
+        .unwrap_or(0);
+    let mut buttons = Vec::with_capacity(options.len());
+    for (index, &(option, label)) in options.iter().enumerate() {
+        let button = egui::Rect::from_min_size(
+            rect.min + egui::vec2(3.0 + index as f32 * 63.0, 3.0),
+            egui::vec2(60.0, 28.0),
+        );
+        let response = ui.interact(button, response.id.with(index), egui::Sense::click());
+        response.widget_info(|| {
+            egui::WidgetInfo::selected(egui::Role::Tab, ui.is_enabled(), *value == option, label)
         });
-}
-
-pub fn paper() -> egui::Frame {
-    egui::Frame::new()
-        .fill(surface())
-        .stroke(egui::Stroke::new(1., border().gamma_multiply(0.65)))
-        .corner_radius(16)
-        .inner_margin(28)
-}
-
-pub fn empty_state(ui: &mut Ui, title: &str, detail: &str, kind: TileKind) {
-    ui.vertical_centered(|ui| {
-        ui.add_space(38.);
-        let (rect, _) = ui.allocate_exact_size(egui::vec2(56., 56.), egui::Sense::hover());
-        ui.painter()
-            .circle_filled(rect.center(), 28., surface().lerp_to_gamma(accent(), 0.06));
-        paint_icon(ui.painter(), rect.shrink(15.), kind, accent());
-        ui.add_space(14.);
-        ui.label(egui::RichText::new(title).size(18.).strong());
-        ui.add_space(5.);
-        ui.label(egui::RichText::new(detail).size(13.).color(muted()));
-    });
+        if response.clicked() {
+            *value = option;
+            selected = index;
+        }
+        buttons.push((
+            button,
+            response.on_hover_cursor(egui::CursorIcon::PointingHand),
+            label,
+        ));
+    }
+    let offset = if crate::theme::animations() {
+        ui.ctx().animate_value_with_time(
+            response.id.with("selection-offset"),
+            selected as f32 * 63.0,
+            0.18,
+        )
+    } else {
+        selected as f32 * 63.0
+    };
+    let painter = ui.painter();
+    painter.rect_filled(rect, 10, crate::theme::input());
+    let pill = egui::Rect::from_min_size(
+        rect.min + egui::vec2(3.0 + offset, 3.0),
+        egui::vec2(60.0, 28.0),
+    );
+    painter.add(
+        egui::epaint::Shadow {
+            offset: [0, 1],
+            blur: 5,
+            spread: 0,
+            color: Color32::from_black_alpha(12),
+        }
+        .as_shape(pill, egui::CornerRadius::same(8)),
+    );
+    painter.rect_filled(pill, 8, surface());
+    for (index, (rect, response, label)) in buttons.iter().enumerate() {
+        let hover = motion::hover(ui, response);
+        painter.text(
+            rect.center(),
+            egui::Align2::CENTER_CENTER,
+            label,
+            egui::FontId::proportional(13.0),
+            if index == selected {
+                accent()
+            } else {
+                muted().lerp_to_gamma(ink(), hover)
+            },
+        );
+    }
 }
