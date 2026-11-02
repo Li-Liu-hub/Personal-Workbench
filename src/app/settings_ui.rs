@@ -6,8 +6,7 @@ mod tests;
 
 impl PersonalDeskApp {
     pub(super) fn render_settings(&mut self, ui: &mut egui::Ui) {
-        egui::Frame::group(ui.style())
-            .fill(surface())
+        crate::ui_components::surface_frame()
             .inner_margin(16.0)
             .show(ui, |ui| {
                 ui.set_min_width((ui.available_width() - 1.0).max(0.0));
@@ -40,7 +39,7 @@ impl PersonalDeskApp {
                     if let Ok(Some(value)) = &registered
                         && let Ok(path) = std::env::current_exe()
                         && *value != crate::autostart::command(&path)
-                        && ui.button("更新启动路径").clicked()
+                        && ui.animated_button("更新启动路径").clicked()
                     {
                         self.notice = match crate::autostart::set(true, &path) {
                             Ok(()) => "启动路径已更新".into(),

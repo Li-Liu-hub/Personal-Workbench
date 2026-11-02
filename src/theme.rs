@@ -101,7 +101,6 @@ impl ThemeSettings {
             theme.sidebar = fresh.sidebar;
             theme.input = fresh.input;
             theme.border = fresh.border;
-            theme.muted = fresh.muted;
             theme.sidebar_text = fresh.sidebar_text;
         }
         theme
@@ -130,12 +129,20 @@ impl ThemeSettings {
         ctx.set_zoom_factor(self.zoom);
         ctx.style_mut_of(egui::Theme::Light, |style| {
             style.animation_time = if self.animations { 0.16 } else { 0.0 };
+            style.spacing.scroll = egui::style::ScrollStyle {
+                bar_width: 8.0,
+                floating_width: 3.0,
+                floating_allocated_width: 5.0,
+                ..egui::style::ScrollStyle::thin()
+            };
             let v = &mut style.visuals;
             v.panel_fill = canvas();
             v.window_fill = surface();
             v.extreme_bg_color = input();
             v.text_edit_bg_color = Some(input());
             v.faint_bg_color = input();
+            v.handle_shape = egui::style::HandleShape::Circle;
+            v.slider_trailing_fill = true;
             v.override_text_color = Some(ink());
             v.weak_text_color = Some(muted());
             v.hyperlink_color = accent();
@@ -165,11 +172,12 @@ impl ThemeSettings {
                 widget.expansion = 0.0;
             }
             v.widgets.noninteractive.bg_fill = border();
+            v.widgets.inactive.bg_fill = border().lerp_to_gamma(muted(), 0.18);
             v.widgets.inactive.weak_bg_fill = input();
-            v.widgets.hovered.bg_fill = input();
+            v.widgets.hovered.bg_fill = border().lerp_to_gamma(accent(), 0.18);
             v.widgets.hovered.weak_bg_fill = input();
-            v.widgets.active.bg_fill = surface().lerp_to_gamma(accent(), 0.08);
-            v.widgets.active.weak_bg_fill = v.widgets.active.bg_fill;
+            v.widgets.active.bg_fill = border().lerp_to_gamma(accent(), 0.45);
+            v.widgets.active.weak_bg_fill = surface().lerp_to_gamma(accent(), 0.08);
             v.widgets.hovered.bg_stroke =
                 egui::Stroke::new(1.0, border().lerp_to_gamma(accent(), 0.3));
             v.widgets.active.bg_stroke = egui::Stroke::new(1.0, accent().gamma_multiply(0.65));

@@ -108,11 +108,11 @@ impl PersonalDeskApp {
             response.dnd_set_drag_payload(BookDrag(book.id.clone()));
             let mut drop = book_drop(ui, &response, &book.id);
             response.context_menu(|ui| {
-                if ui.button("重命名图书").clicked() {
+                if ui.animated_button("重命名图书").clicked() {
                     self.library.dialog = Some(book.clone());
                     ui.close();
                 }
-                if ui.button("移到上一级").clicked() {
+                if ui.animated_button("移到上一级").clicked() {
                     let parent = self
                         .parent_of(book.parent_id.as_deref())
                         .and_then(|book| book.parent_id);
@@ -120,7 +120,7 @@ impl PersonalDeskApp {
                     ui.close();
                 }
                 self.record_tag_menu(ui, TagScope::Books, &book.id);
-                if ui.button("删除图书").clicked() {
+                if ui.animated_button("删除图书").clicked() {
                     self.request_library_deletion(&book.id, &book.title, false);
                     ui.close();
                 }
@@ -175,7 +175,7 @@ impl PersonalDeskApp {
                         }
                         response.context_menu(|ui| {
                             self.record_tag_menu(ui, TagScope::BookPages, &page.id);
-                            if ui.button("删除文档").clicked() {
+                            if ui.animated_button("删除文档").clicked() {
                                 self.request_library_deletion(&page.id, &page.title, true);
                                 ui.close();
                             }

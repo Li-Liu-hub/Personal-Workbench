@@ -34,7 +34,8 @@ pub fn primary_button(label: &str) -> impl egui::Widget + '_ {
         let background = ui.painter().add(egui::Shape::Noop);
         let response = ui.add(
             egui::Button::new(egui::RichText::new(label).color(button_text()))
-                .frame(false)
+                .fill(Color32::TRANSPARENT)
+                .stroke(egui::Stroke::NONE)
                 .min_size(egui::vec2(0.0, 34.0)),
         );
         let hover = motion::hover(ui, &response);
@@ -50,6 +51,61 @@ pub fn primary_button(label: &str) -> impl egui::Widget + '_ {
         );
         response.on_hover_cursor(egui::CursorIcon::PointingHand)
     }
+}
+
+/// Keep native button sizing, keyboard activation and accessibility while sharing
+/// the same animated background across every workspace and dialog.
+pub trait UiExt {
+    fn animated_button<'a>(&mut self, label: impl egui::IntoAtoms<'a>) -> Response;
+    fn small_animated_button<'a>(&mut self, label: impl egui::IntoAtoms<'a>) -> Response;
+}
+
+impl UiExt for Ui {
+    fn animated_button<'a>(&mut self, label: impl egui::IntoAtoms<'a>) -> Response {
+        animated_button(self, egui::Button::new(label))
+    }
+
+    fn small_animated_button<'a>(&mut self, label: impl egui::IntoAtoms<'a>) -> Response {
+        animated_button(self, egui::Button::new(label).small())
+    }
+}
+
+fn animated_button(ui: &mut Ui, button: egui::Button<'_>) -> Response {
+    let background = ui.painter().add(egui::Shape::Noop);
+    let response = ui.add(button.fill(Color32::TRANSPARENT).stroke(egui::Stroke::NONE));
+    let hover = motion::hover(ui, &response);
+    let pressed = motion::amount(
+        ui,
+        response.id.with("button-press"),
+        response.is_pointer_button_down_on(),
+    );
+    let fill = surface().lerp_to_gamma(accent(), 0.035 + 0.045 * hover + 0.045 * pressed);
+    ui.painter().set(
+        background,
+        egui::Shape::Vec(vec![
+            egui::Shape::rect_filled(response.rect, 9, fill),
+            egui::Shape::rect_stroke(
+                response.rect,
+                9,
+                egui::Stroke::new(0.8, border().lerp_to_gamma(accent(), 0.25 * hover)),
+                egui::StrokeKind::Inside,
+            ),
+        ]),
+    );
+    response.on_hover_cursor(egui::CursorIcon::PointingHand)
+}
+
+pub fn surface_frame() -> egui::Frame {
+    egui::Frame::new()
+        .fill(surface())
+        .stroke(egui::Stroke::new(0.8, border()))
+        .corner_radius(16)
+        .shadow(egui::epaint::Shadow {
+            offset: [0, 2],
+            blur: 10,
+            spread: 0,
+            color: Color32::from_black_alpha(7),
+        })
 }
 
 pub fn toolbar_title(ui: &mut Ui, title: &str, width: f32, size: f32) -> Response {
@@ -291,6 +347,7 @@ pub enum TileKind {
     Setting,
     Website,
     Tool,
+    Update,
     Add,
 }
 
@@ -455,7 +512,9 @@ pub fn tag_filter_bar(ui: &mut Ui, filter: &mut crate::tags::Filter, names: &[St
                 ui.selectable_value(filter, crate::tags::Filter::Named(name.clone()), name);
             }
         });
-    ui.button("标签").on_hover_text("管理分类标签").clicked()
+    ui.animated_button("标签")
+        .on_hover_text("管理分类标签")
+        .clicked()
 }
 
 pub fn tag_choices(ui: &mut Ui, selected: &mut Vec<String>, names: &[String]) -> bool {
@@ -479,7 +538,7 @@ pub fn tag_choices(ui: &mut Ui, selected: &mut Vec<String>, names: &[String]) ->
             }
         }
     });
-    ui.button("管理标签").clicked()
+    ui.animated_button("管理标签").clicked()
 }
 
 /// Vector icons stay sharp at Windows display scaling and need no icon font.
@@ -565,6 +624,17 @@ pub fn paint_icon(painter: &egui::Painter, rect: egui::Rect, kind: TileKind, col
                     egui::StrokeKind::Inside,
                 );
             }
+        }
+        TileKind::Update => {
+            let arc = (0..=28)
+                .map(|i| {
+                    let angle = 0.3 + i as f32 / 28.0 * 5.0;
+                    point(12.0 + 8.0 * angle.cos(), 12.0 + 8.0 * angle.sin())
+                })
+                .collect();
+            painter.add(egui::Shape::line(arc, stroke));
+            line((17.0, 3.0), (17.0, 8.0));
+            line((17.0, 8.0), (12.0, 7.0));
         }
         TileKind::Add => {
             line((6.0, 12.0), (18.0, 12.0));
@@ -777,7 +847,7 @@ mod tests {
                                 rect = response.rect;
                                 clicked |= response.clicked();
                                 response.context_menu(|ui| {
-                                    ui.button("Delete").clicked();
+                                    ui.animated_button("Delete").clicked();
                                 });
                                 menu_open |= response.context_menu_opened();
                             });

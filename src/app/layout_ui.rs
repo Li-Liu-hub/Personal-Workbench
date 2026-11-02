@@ -27,7 +27,8 @@ impl PersonalDeskApp {
                 {
                     self.add_current_item();
                 }
-                if self.section == Section::Documents && ui.button("生成日志").clicked() {
+                if self.section == Section::Documents && ui.animated_button("生成日志").clicked()
+                {
                     self.new_writing(true);
                 }
                 if ui
@@ -36,11 +37,11 @@ impl PersonalDeskApp {
                 {
                     self.export_dialog_open = true;
                 }
-                if self.has_visible_edits() && ui.button("保存修改").clicked() {
+                if self.has_visible_edits() && ui.animated_button("保存修改").clicked() {
                     self.save_visible_rows();
                 }
                 if self.index_undo_available()
-                    && ui.button("撤回").on_hover_text("Ctrl+Z").clicked()
+                    && ui.animated_button("撤回").on_hover_text("Ctrl+Z").clicked()
                 {
                     self.undo_index_removal();
                 }
@@ -83,7 +84,7 @@ impl PersonalDeskApp {
                 self.search_pending = Some(ui.input(|input| input.time) + 0.3);
                 ctx.request_repaint_after(Duration::from_millis(310));
             }
-            if ui.button("搜索").clicked()
+            if ui.animated_button("搜索").clicked()
                 || (response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)))
             {
                 self.search_pending = None;
@@ -130,7 +131,11 @@ impl PersonalDeskApp {
                 egui::Label::new(RichText::new(&self.notice).small().color(muted())).truncate(),
             )
             .on_hover_text(&self.notice);
-            if !self.notice.is_empty() && ui.small_button("×").on_hover_text("关闭提示").clicked()
+            if !self.notice.is_empty()
+                && ui
+                    .small_animated_button("×")
+                    .on_hover_text("关闭提示")
+                    .clicked()
             {
                 self.notice.clear();
             }

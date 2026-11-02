@@ -102,7 +102,7 @@ impl PersonalDeskApp {
                 {
                     self.updates.check(ctx);
                 }
-                if ui.button("选择更新清单").clicked()
+                if ui.animated_button("选择更新清单").clicked()
                     && let Some(path) = rfd::FileDialog::new()
                         .add_filter("更新清单", &["json"])
                         .pick_file()

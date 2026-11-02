@@ -138,7 +138,7 @@ impl PersonalDeskApp {
                         self.favorite_control(ui, &response, "inventory", &item.id);
                         response.context_menu(|ui| {
                             self.record_tag_menu(ui, TagScope::Inventory, &item.id);
-                            if ui.button("删除物品记录").clicked() {
+                            if ui.animated_button("删除物品记录").clicked() {
                                 self.delete_inventory_record(&item.id);
                                 ui.close();
                             }
@@ -327,7 +327,7 @@ impl PersonalDeskApp {
                     selected = Some(item.clone());
                 }
                 response.context_menu(|ui| {
-                    if ui.button("设置分类").clicked() {
+                    if ui.animated_button("设置分类").clicked() {
                         self.tag_assignment = Some(TagAssignment {
                             scope: TagScope::Inventory,
                             id: item.id.clone(),
@@ -336,7 +336,7 @@ impl PersonalDeskApp {
                         self.tag_error.clear();
                         ui.close();
                     }
-                    if ui.button("删除物品记录").clicked() {
+                    if ui.animated_button("删除物品记录").clicked() {
                         delete = Some(item.id.clone());
                         ui.close();
                     }

@@ -16,7 +16,7 @@ fn writing_format_toolbar(ui: &mut egui::Ui) -> Option<&'static str> {
                 ("二级标题", "## "),
                 ("三级标题", "### "),
             ] {
-                if ui.button(label).clicked() {
+                if ui.animated_button(label).clicked() {
                     insert = Some(syntax);
                     ui.close();
                 }
@@ -40,7 +40,7 @@ fn writing_format_toolbar(ui: &mut egui::Ui) -> Option<&'static str> {
                 "插入表格",
             ),
         ] {
-            if ui.button(label).on_hover_text(help).clicked() {
+            if ui.animated_button(label).on_hover_text(help).clicked() {
                 insert = Some(syntax);
             }
         }
@@ -333,13 +333,13 @@ impl PersonalDeskApp {
                     self.open_parent_book();
                 }
                 ui.label(&book.title);
-                if ui.button("删除图书").clicked() {
+                if ui.animated_button("删除图书").clicked() {
                     self.request_library_deletion(&book.id, &book.title, false);
                 }
             });
             ui.add_space(8.);
         }
-        if ui.button("创建图书").clicked() {
+        if ui.animated_button("创建图书").clicked() {
             self.new_child_book();
         }
         ui.label(
@@ -383,11 +383,11 @@ impl PersonalDeskApp {
                     drop_action = Some(action);
                 }
                 response.context_menu(|ui| {
-                    if ui.button("重命名图书").clicked() {
+                    if ui.animated_button("重命名图书").clicked() {
                         self.library.dialog = Some(book.clone());
                         ui.close();
                     }
-                    if book.parent_id.is_some() && ui.button("移到上一级").clicked() {
+                    if book.parent_id.is_some() && ui.animated_button("移到上一级").clicked() {
                         let parent = self
                             .parent_of(book.parent_id.as_deref())
                             .and_then(|b| b.parent_id);
@@ -396,7 +396,7 @@ impl PersonalDeskApp {
                     }
                     self.record_tag_menu(ui, TagScope::Books, &book.id);
                     ui.separator();
-                    if ui.button("删除图书").clicked() {
+                    if ui.animated_button("删除图书").clicked() {
                         remove = Some((book.id.clone(), book.title.clone(), false));
                         ui.close();
                     }
@@ -427,7 +427,7 @@ impl PersonalDeskApp {
                 }
                 response.context_menu(|ui| {
                     self.record_tag_menu(ui, TagScope::BookPages, &note.id);
-                    if ui.button("删除文档").clicked() {
+                    if ui.animated_button("删除文档").clicked() {
                         remove = Some((note.id.clone(), note.title.clone(), true));
                         ui.close();
                     }
@@ -493,7 +493,7 @@ impl PersonalDeskApp {
                     .color(muted()),
             );
             if self.section != Section::Essays
-                && ui.button("删除页面").clicked()
+                && ui.animated_button("删除页面").clicked()
                 && let Some(page) = self.writing.page.as_ref()
             {
                 remove = Some((page.id.clone(), page.title.clone(), true));
@@ -501,7 +501,7 @@ impl PersonalDeskApp {
             if self.section != Section::Essays && ui.add(primary_button("新建")).clicked() {
                 self.new_writing(false);
             }
-            if self.section != Section::Essays && ui.button("生成日志").clicked() {
+            if self.section != Section::Essays && ui.animated_button("生成日志").clicked() {
                 self.new_writing(true);
             }
             float = ui
@@ -516,16 +516,16 @@ impl PersonalDeskApp {
             self.render_writing_zoom(ui);
             ui.menu_button("更多", |ui| {
                 if let Some(book) = self.library.book.as_ref() {
-                    if ui.button("删除图书").clicked() {
+                    if ui.animated_button("删除图书").clicked() {
                         remove = Some((book.id.clone(), book.title.clone(), false));
                         ui.close();
                     }
                     ui.separator();
                 }
-                save = ui.button("保存 · Ctrl+S").clicked();
-                export = ui.button("导出 Markdown").clicked();
+                save = ui.animated_button("保存 · Ctrl+S").clicked();
+                export = ui.animated_button("导出 Markdown").clicked();
                 if !self.writing.error.is_empty() {
-                    copy = ui.button("另存为新文档").clicked();
+                    copy = ui.animated_button("另存为新文档").clicked();
                 }
                 let options = self.names_for_scope(TagScope::BookPages);
                 if let Some(page) = self.writing.page.as_mut()
@@ -539,7 +539,7 @@ impl PersonalDeskApp {
                 {
                     self.mark_writing_changed(ui.input(|i| i.time));
                 }
-                if ui.button("管理标签").clicked() {
+                if ui.animated_button("管理标签").clicked() {
                     self.open_tag_manager(TagScope::BookPages);
                     ui.close();
                 }
@@ -573,7 +573,7 @@ impl PersonalDeskApp {
             ui.heading(&self.writing.page.as_ref().unwrap().title);
             ui.label("正在悬浮窗中写作，可切换到其他应用。内容自动保存到这份文档。");
             ui.horizontal(|ui| {
-                if ui.button("显示悬浮窗").clicked() {
+                if ui.animated_button("显示悬浮窗").clicked() {
                     ui.ctx().send_viewport_cmd_to(
                         floating::viewport_id(),
                         egui::ViewportCommand::Minimized(false),
@@ -583,7 +583,7 @@ impl PersonalDeskApp {
                         egui::ViewportCommand::Focus,
                     );
                 }
-                if ui.button("回到主窗口").clicked() {
+                if ui.animated_button("回到主窗口").clicked() {
                     self.close_floating_writer();
                 }
             });
@@ -641,9 +641,7 @@ impl PersonalDeskApp {
             .show(ui, |ui| {
                 ui.horizontal_top(|ui| {
                     ui.add_space(((available - width) / 2.).max(0.));
-                    egui::Frame::new()
-                        .fill(surface())
-                        .corner_radius(14)
+                    crate::ui_components::surface_frame()
                         .inner_margin(egui::Margin::symmetric(38, 30))
                         .show(ui, |ui| {
                             ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {

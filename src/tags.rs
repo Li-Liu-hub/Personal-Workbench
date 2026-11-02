@@ -16,7 +16,7 @@ pub enum Scope {
 }
 
 impl Scope {
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 9] = [
         Self::Books,
         Self::BookPages,
         Self::Credentials,
@@ -25,6 +25,7 @@ impl Scope {
         Self::Documents,
         Self::Websites,
         Self::Contacts,
+        Self::Tools,
     ];
     pub fn for_section(section: crate::model::Section) -> Option<Self> {
         use crate::model::Section;
@@ -35,6 +36,7 @@ impl Scope {
             Section::Documents => Self::BookPages,
             Section::Websites => Self::Websites,
             Section::Contacts => Self::Contacts,
+            Section::Tools => Self::Tools,
             Section::Books => Self::Books,
             _ => return None,
         })

@@ -651,6 +651,7 @@ impl Database {
         Ok(())
     }
 
+    #[cfg(test)]
     pub fn setting(&self, key: &str) -> Result<Option<String>> {
         Ok(self
             .desk

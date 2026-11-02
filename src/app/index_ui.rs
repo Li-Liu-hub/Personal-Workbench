@@ -125,12 +125,12 @@ impl PersonalDeskApp {
                     open = Some(item.path.clone());
                 }
                 response.context_menu(|ui| {
-                    if ui.button("打开所在位置").clicked() {
+                    if ui.animated_button("打开所在位置").clicked() {
                         open = Some(item.path.clone());
                         ui.close();
                     }
                     self.record_tag_menu(ui, TagScope::Shortcuts, &item.id);
-                    if ui.button("删除索引").clicked() {
+                    if ui.animated_button("删除索引").clicked() {
                         remove = Some(item.id.clone());
                         ui.close();
                     }

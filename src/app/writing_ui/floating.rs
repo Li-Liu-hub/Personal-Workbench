@@ -59,16 +59,16 @@ impl PersonalDeskApp {
                             ui.ctx()
                                 .send_viewport_cmd(egui::ViewportCommand::WindowLevel(level));
                         }
-                        save |= ui.button("保存").clicked();
-                        restore = ui.button("回到主窗口").clicked();
+                        save |= ui.animated_button("保存").clicked();
+                        restore = ui.animated_button("回到主窗口").clicked();
                         ui.menu_button("更多", |ui| {
-                            if ui.button("复制全文").clicked() {
+                            if ui.animated_button("复制全文").clicked() {
                                 let page = self.writing.page.as_ref().unwrap();
                                 ui.ctx()
                                     .copy_text(format!("# {}\n\n{}", page.title, page.body));
                                 ui.close();
                             }
-                            if ui.button("导出 Markdown").clicked() {
+                            if ui.animated_button("导出 Markdown").clicked() {
                                 self.export_writing();
                                 ui.close();
                             }

@@ -39,6 +39,27 @@ fn application_icon() -> egui::IconData {
 fn main() -> eframe::Result {
     let mut arguments = std::env::args_os().skip(1);
     let action = arguments.next();
+    #[cfg(debug_assertions)]
+    if action.as_ref().is_some_and(|a| a == "--capture-ui") {
+        let output = arguments
+            .next()
+            .map(std::path::PathBuf::from)
+            .expect("visual output path");
+        return eframe::run_native(
+            "个人办公台 · 自动界面验收",
+            eframe::NativeOptions {
+                viewport: egui::ViewportBuilder::default()
+                    .with_inner_size([1280.0, 800.0])
+                    .with_drag_and_drop(false),
+                ..Default::default()
+            },
+            Box::new(move |cc| {
+                Ok(Box::new(app::visual_preview::VisualPreview::new(
+                    cc, output,
+                )))
+            }),
+        );
+    }
     if action
         .as_ref()
         .is_some_and(|a| a == "--import-writing-bundle")

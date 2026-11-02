@@ -150,11 +150,11 @@ impl PersonalDeskApp {
                 }
                 response.context_menu(|ui| {
                     self.record_tag_menu(ui, TagScope::Contacts, &item.id);
-                    if ui.button("查看联系人").clicked() {
+                    if ui.animated_button("查看联系人").clicked() {
                         selected = Some(item.clone());
                         ui.close();
                     }
-                    if ui.button("删除联系人").clicked() {
+                    if ui.animated_button("删除联系人").clicked() {
                         delete = Some(item.id.clone());
                         ui.close();
                     }
@@ -256,7 +256,7 @@ impl PersonalDeskApp {
                                     .corner_radius(12),
                             );
                         }
-                        if ui.button("上传照片").clicked()
+                        if ui.animated_button("上传照片").clicked()
                             && let Some(path) = rfd::FileDialog::new()
                                 .add_filter("照片", &["png", "jpg", "jpeg", "webp", "bmp"])
                                 .pick_file()
@@ -269,7 +269,8 @@ impl PersonalDeskApp {
                                 Err(error) => self.contact_error = error.to_string(),
                             }
                         }
-                        if !self.contact_draft.photo.is_empty() && ui.button("移除照片").clicked()
+                        if !self.contact_draft.photo.is_empty()
+                            && ui.animated_button("移除照片").clicked()
                         {
                             self.contact_draft.photo.clear();
                             self.photo_cache.remove("draft-photo");
@@ -310,7 +311,7 @@ impl PersonalDeskApp {
                             &options,
                             220.0,
                         );
-                        if ui.button("管理分类").clicked() {
+                        if ui.animated_button("管理分类").clicked() {
                             self.open_tag_manager(TagScope::Contacts);
                         }
                     });
@@ -357,10 +358,10 @@ impl PersonalDeskApp {
                                             egui::Label::new(&chat.title).truncate(),
                                         )
                                         .on_hover_text(&chat.title);
-                                        if ui.button("查看").clicked() {
+                                        if ui.animated_button("查看").clicked() {
                                             view = Some(chat.id.clone());
                                         }
-                                        if ui.button("移除").clicked() {
+                                        if ui.animated_button("移除").clicked() {
                                             remove = Some(chat.id.clone());
                                         }
                                     });
@@ -418,8 +419,8 @@ impl PersonalDeskApp {
                         ui.add(egui::Label::new(RichText::new(&chat.title).strong()).truncate())
                             .on_hover_text(&chat.title);
                         ui.horizontal_wrapped(|ui| {
-                            export = ui.button("导出原文件").clicked();
-                            if ui.button("复制全部文字").clicked() {
+                            export = ui.animated_button("导出原文件").clicked();
+                            if ui.animated_button("复制全部文字").clicked() {
                                 ctx.copy_text(chat.text.clone());
                             }
                         });
@@ -650,7 +651,7 @@ impl PersonalDeskApp {
                         );
                         self.favorite_control(ui, &response, "contacts", &item.id);
                         response.context_menu(|ui| {
-                            if ui.button("删除联系人").clicked() {
+                            if ui.animated_button("删除联系人").clicked() {
                                 if let Some(db) = self.db.as_mut() {
                                     match db.delete_contact(&item.id) {
                                         Ok(()) => {

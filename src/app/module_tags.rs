@@ -147,7 +147,7 @@ impl PersonalDeskApp {
             .is_none_or(|filter| filter.matches(&self.record_labels(scope, id)))
     }
     pub(super) fn record_tag_menu(&mut self, ui: &mut egui::Ui, scope: TagScope, id: &str) {
-        if ui.button("设置标签").clicked() {
+        if ui.animated_button("设置标签").clicked() {
             let id = if scope == TagScope::Documents {
                 match self
                     .db
@@ -399,7 +399,8 @@ impl PersonalDeskApp {
                                 "创建标签"
                             }))
                             .clicked();
-                        if self.tag_original.is_some() && ui.button("取消重命名").clicked() {
+                        if self.tag_original.is_some() && ui.animated_button("取消重命名").clicked()
+                        {
                             self.tag_original = None;
                             self.tag_name.clear();
                         }
@@ -416,12 +417,12 @@ impl PersonalDeskApp {
                             let width = (ui.available_width() - 170.0).max(40.0);
                             ui.add_sized([width, 30.0], egui::Label::new(&name).truncate())
                                 .on_hover_text(&name);
-                            if ui.button("重命名").clicked() {
+                            if ui.animated_button("重命名").clicked() {
                                 self.tag_name = name.clone();
                                 self.tag_original = Some(name.clone());
                                 self.tag_error.clear();
                             }
-                            if ui.button("删除标签").clicked() {
+                            if ui.animated_button("删除标签").clicked() {
                                 delete = Some(name);
                             }
                         });

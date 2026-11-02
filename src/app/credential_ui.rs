@@ -195,19 +195,19 @@ impl PersonalDeskApp {
                     selected = Some(item.id.clone());
                 }
                 response.response.context_menu(|ui| {
-                    if ui.button("查看详情").clicked() {
+                    if ui.animated_button("查看详情").clicked() {
                         selected = Some(item.id.clone());
                         ui.close();
                     }
-                    if ui.button("复制账号").clicked() {
+                    if ui.animated_button("复制账号").clicked() {
                         ui.ctx().copy_text(item.username.clone());
                         ui.close();
                     }
-                    if ui.button("复制密码").clicked() {
+                    if ui.animated_button("复制密码").clicked() {
                         ui.ctx().copy_text(item.password.clone());
                         ui.close();
                     }
-                    if ui.button("设置标签").clicked() {
+                    if ui.animated_button("设置标签").clicked() {
                         self.tag_assignment = Some(TagAssignment {
                             scope: TagScope::Credentials,
                             id: item.id.clone(),
@@ -216,7 +216,7 @@ impl PersonalDeskApp {
                         self.tag_error.clear();
                         ui.close();
                     }
-                    if ui.button("删除账号").clicked() {
+                    if ui.animated_button("删除账号").clicked() {
                         delete = Some(item.id.clone());
                         ui.close();
                     }

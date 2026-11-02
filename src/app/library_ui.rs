@@ -141,8 +141,8 @@ impl PersonalDeskApp {
                     ui.colored_label(Color32::from_rgb(184, 65, 71), &self.library.error);
                 }
                 ui.horizontal(|ui| {
-                    cancel = ui.button("取消").clicked();
-                    confirm = ui.button("确认删除").clicked();
+                    cancel = ui.animated_button("取消").clicked();
+                    confirm = ui.animated_button("确认删除").clicked();
                 });
             },
         );

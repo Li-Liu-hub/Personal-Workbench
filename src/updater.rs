@@ -346,13 +346,13 @@ pub fn apply_request(path: &Path) -> UpdateResult<()> {
         wait_for_exit(request.parent_pid)?;
         host_exited = true;
         let backup = replace(&request)?;
-        if request.restart {
-            if let Err(error) = Command::new(&request.target).spawn() {
-                let failed = request.target.with_extension("failed.exe");
-                let _ = fs::rename(&request.target, failed);
-                let _ = fs::rename(&backup, &request.target);
-                return Err(format!("新版启动失败，已恢复原版：{error}"));
-            }
+        if request.restart
+            && let Err(error) = Command::new(&request.target).spawn()
+        {
+            let failed = request.target.with_extension("failed.exe");
+            let _ = fs::rename(&request.target, failed);
+            let _ = fs::rename(&backup, &request.target);
+            return Err(format!("新版启动失败，已恢复原版：{error}"));
         }
         Ok(())
     })();

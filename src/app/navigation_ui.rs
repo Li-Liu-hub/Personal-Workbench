@@ -227,11 +227,11 @@ impl PersonalDeskApp {
             });
         ui.add_space(12.0);
         let update_clicked = if compact {
-            ui.button("↻")
+            crate::ui_components::navigation_icon_item(ui, TileKind::Update, false)
                 .on_hover_text(format!("更新  v{}", crate::updater::VERSION))
                 .clicked()
         } else {
-            ui.button(format!("更新  v{}", crate::updater::VERSION))
+            ui.animated_button(format!("更新  v{}", crate::updater::VERSION))
                 .clicked()
         };
         if update_clicked {

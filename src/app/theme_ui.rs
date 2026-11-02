@@ -87,11 +87,11 @@ impl PersonalDeskApp {
             |ui| {
                 ui.horizontal_wrapped(|ui| {
                     save = ui.add(primary_button("保存主题")).clicked();
-                    if ui.button("恢复默认").clicked() {
+                    if ui.animated_button("恢复默认").clicked() {
                         self.theme = ThemeSettings::default();
                         self.theme_error.clear();
                     }
-                    export = ui.button("导出主题").clicked();
+                    export = ui.animated_button("导出主题").clicked();
                 });
                 ui.separator();
                 ui.label(RichText::new("界面颜色").strong());
@@ -135,7 +135,7 @@ impl PersonalDeskApp {
                 ui.separator();
                 ui.label(RichText::new("背景图片").strong());
                 ui.horizontal_wrapped(|ui| {
-                    if ui.button("上传图片").clicked()
+                    if ui.animated_button("上传图片").clicked()
                         && let Some(path) = rfd::FileDialog::new()
                             .set_title("选择主题背景图片")
                             .add_filter("图片", &["png", "jpg", "jpeg", "webp", "bmp"])
@@ -150,7 +150,7 @@ impl PersonalDeskApp {
                             Err(error) => self.theme_error = error.to_string(),
                         }
                     }
-                    if ui.button("移除背景图片").clicked() {
+                    if ui.animated_button("移除背景图片").clicked() {
                         self.theme.background = None;
                         self.theme_background_key = None;
                         self.theme_background = None;

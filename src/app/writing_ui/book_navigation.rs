@@ -76,7 +76,7 @@ fn page_row(
         actions.select = Some(page.id.clone());
     }
     response.context_menu(|ui| {
-        if ui.button("删除页面").clicked() {
+        if ui.animated_button("删除页面").clicked() {
             actions.remove = Some((page.id.clone(), page.title.clone()));
             ui.close();
         }
@@ -336,7 +336,7 @@ impl PersonalDeskApp {
                 {
                     zoom = (zoom - 0.1).max(0.8);
                 }
-                if ui.button("重置 100%").clicked() {
+                if ui.animated_button("重置 100%").clicked() {
                     zoom = 1.;
                 }
                 if ui
@@ -431,15 +431,13 @@ impl PersonalDeskApp {
         let mut parent = false;
         let mut create = false;
         let mut actions = DirectoryActions::default();
-        egui::Frame::new()
-            .fill(surface())
-            .corner_radius(12)
+        crate::ui_components::surface_frame()
             .inner_margin(12)
             .show(ui, |ui| {
                 ui.set_width(ui.available_width());
                 ui.horizontal_wrapped(|ui| {
-                    parent = ui.small_button("← 上一级").clicked();
-                    create = ui.small_button("新建子图书").clicked();
+                    parent = ui.small_animated_button("← 上一级").clicked();
+                    create = ui.small_animated_button("新建子图书").clicked();
                 });
                 ui.label(RichText::new("页面目录").strong().color(ink()));
                 // Consume this before the body TextEdit: Ctrl+K otherwise deletes text there.
@@ -456,7 +454,8 @@ impl PersonalDeskApp {
                     self.writing.focus_body = false;
                     response.request_focus();
                 }
-                if !navigation.query.is_empty() && ui.small_button("清除搜索").clicked() {
+                if !navigation.query.is_empty() && ui.small_animated_button("清除搜索").clicked()
+                {
                     navigation.query.clear();
                     response.request_focus();
                 }

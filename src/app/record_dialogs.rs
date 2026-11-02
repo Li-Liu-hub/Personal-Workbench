@@ -32,7 +32,7 @@ impl PersonalDeskApp {
                         &options,
                         ui.available_width(),
                     );
-                    if ui.button("管理分类").clicked() {
+                    if ui.animated_button("管理分类").clicked() {
                         self.open_tag_manager(TagScope::Websites);
                     }
                     ui.label("备注");
@@ -46,8 +46,8 @@ impl PersonalDeskApp {
                     }
                     ui.horizontal_wrapped(|ui| {
                         save = ui.add(primary_button("保存网站")).clicked();
-                        browse = ui.button("打开网站").clicked();
-                        if ui.button("复制网址").clicked() {
+                        browse = ui.animated_button("打开网站").clicked();
+                        if ui.animated_button("复制网址").clicked() {
                             ctx.copy_text(self.website_draft.url.clone());
                         }
                     });
@@ -128,7 +128,7 @@ impl PersonalDeskApp {
                     ui.text_edit_singleline(&mut self.credential_draft.title);
                     ui.horizontal(|ui| {
                         ui.label("用户名");
-                        if ui.small_button("复制账号").clicked() {
+                        if ui.small_animated_button("复制账号").clicked() {
                             ctx.copy_text(self.credential_draft.username.clone());
                             self.notice = "账号已复制到剪贴板".into();
                         }
@@ -138,7 +138,7 @@ impl PersonalDeskApp {
                     ui.text_edit_singleline(&mut self.credential_draft.website);
                     ui.label("密码");
                     ui.text_edit_singleline(&mut self.credential_draft.password);
-                    if ui.button("复制密码").clicked() {
+                    if ui.animated_button("复制密码").clicked() {
                         ctx.copy_text(self.credential_draft.password.clone());
                         self.notice = "密码已复制到剪贴板".into();
                     }
@@ -277,7 +277,7 @@ impl PersonalDeskApp {
                         if ui.add(primary_button("选择文件夹")).clicked() {
                             path = files::choose_folder();
                         }
-                        if ui.button("选择文件").clicked() {
+                        if ui.animated_button("选择文件").clicked() {
                             path = files::choose_file();
                         }
                     });
@@ -309,7 +309,7 @@ impl PersonalDeskApp {
                         self.render_version_history(ui);
                     } else if title == "本地数据" {
                         ui.label(format!("数据目录：{}", self.data_dir.display()));
-                        if ui.button("打开数据目录").clicked()
+                        if ui.animated_button("打开数据目录").clicked()
                             && let Err(error) = files::open_in_system(&self.data_dir)
                         {
                             self.notice = error.to_string();

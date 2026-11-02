@@ -15,7 +15,11 @@ impl PersonalDeskApp {
         let mut launch = None;
         let mut add = false;
 
-        ui.label("双击快捷入口或右键启动程序；移除入口不会删除目标程序。");
+        ui.label(
+            RichText::new("双击快捷入口或右键启动程序；移除入口不会删除目标程序。")
+                .small()
+                .color(muted()),
+        );
         collection(ui, "tools-gallery", self.view_mode(), |ui, layout| {
             let visible = records
                 .iter()
@@ -36,7 +40,7 @@ impl PersonalDeskApp {
                     &item.id,
                     &item.name,
                     (&item.path.to_string_lossy(), &labels),
-                    TileKind::Setting,
+                    TileKind::Tool,
                     layout,
                 );
                 self.favorite_control(ui, &response, "tools", &item.id);
@@ -45,15 +49,15 @@ impl PersonalDeskApp {
                 }
                 response.context_menu(|ui| {
                     self.record_tag_menu(ui, TagScope::Tools, &item.id);
-                    if ui.button("启动程序").clicked() {
+                    if ui.animated_button("启动程序").clicked() {
                         launch = Some(item.path.clone());
                         ui.close();
                     }
-                    if ui.button("编辑入口").clicked() {
+                    if ui.animated_button("编辑入口").clicked() {
                         edit = Some(item.clone());
                         ui.close();
                     }
-                    if ui.button("移除入口").clicked() {
+                    if ui.animated_button("移除入口").clicked() {
                         remove = Some(item.id.clone());
                         ui.close();
                     }
@@ -122,7 +126,7 @@ impl PersonalDeskApp {
                 ui.text_edit_singleline(&mut draft.name);
                 ui.label("程序路径");
                 ui.text_edit_singleline(&mut path_text);
-                if ui.button("重新选择程序").clicked()
+                if ui.animated_button("重新选择程序").clicked()
                     && let Some(path) = rfd::FileDialog::new()
                         .add_filter("Windows 程序", &["exe"])
                         .pick_file()

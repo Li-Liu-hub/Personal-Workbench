@@ -77,7 +77,7 @@ impl PersonalDeskApp {
         ui.horizontal(|ui| {
             crate::ui_components::toolbar_title(ui, "每日随笔", 180., 24.);
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("导出").clicked() {
+                if ui.animated_button("导出").clicked() {
                     self.export_dialog_open = true;
                 }
                 crate::ui_components::chrome::segmented(
@@ -101,9 +101,7 @@ impl PersonalDeskApp {
                     let width = ui.available_width().min(820.);
                     ui.horizontal_top(|ui| {
                         ui.add_space(((ui.available_width() - width) / 2.).max(0.));
-                        egui::Frame::new()
-                            .fill(surface())
-                            .corner_radius(16)
+                        crate::ui_components::surface_frame()
                             .inner_margin(egui::Margin::same(30))
                             .show(ui, |ui| {
                                 ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
@@ -137,7 +135,8 @@ impl PersonalDeskApp {
                                         {
                                             self.start_daily_essay();
                                         }
-                                        if a.page_id.is_none() && ui.button("换个主题").clicked()
+                                        if a.page_id.is_none()
+                                            && ui.animated_button("换个主题").clicked()
                                         {
                                             match self
                                                 .db

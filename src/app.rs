@@ -10,6 +10,8 @@ use eframe::egui::{self, Color32, RichText};
 
 mod appearance;
 mod essay_ui;
+#[cfg(debug_assertions)]
+pub mod visual_preview;
 use appearance::configure_theme;
 mod contact_ui;
 mod credential_ui;
@@ -48,7 +50,7 @@ use crate::{
     model::{Credential, CredentialSummary, InventoryItem, Section, Website},
     tags::{self, Filter as TagFilter, Scope as TagScope},
     ui_components::{
-        TileKind, accent, border, canvas, centered_dialog, collection, content_fill,
+        TileKind, UiExt, accent, canvas, centered_dialog, collection, content_fill,
         credential_entry, credential_list_header, dialog_closed, entry, ink, muted,
         navigation_item, primary_button, sidebar, surface, tag_choices, tag_filter_bar,
         tagged_entry, view_switcher, website_entry,

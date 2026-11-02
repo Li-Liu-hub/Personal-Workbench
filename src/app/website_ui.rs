@@ -59,19 +59,19 @@ impl PersonalDeskApp {
                 }
                 response.context_menu(|ui| {
                     self.record_tag_menu(ui, TagScope::Websites, &item.id);
-                    if ui.button("打开网站").clicked() {
+                    if ui.animated_button("打开网站").clicked() {
                         open = Some(item.clone());
                         ui.close();
                     }
-                    if ui.button("复制网址").clicked() {
+                    if ui.animated_button("复制网址").clicked() {
                         ui.ctx().copy_text(item.url.clone());
                         ui.close();
                     }
-                    if ui.button("编辑网站").clicked() {
+                    if ui.animated_button("编辑网站").clicked() {
                         selected = Some(item.clone());
                         ui.close();
                     }
-                    if ui.button("删除网站").clicked() {
+                    if ui.animated_button("删除网站").clicked() {
                         delete = Some(item.id.clone());
                         ui.close();
                     }

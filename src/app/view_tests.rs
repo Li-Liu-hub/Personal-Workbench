@@ -270,16 +270,6 @@ fn unified_toolbar_stays_on_one_line_without_instruction_panels_at_supported_siz
     }
 }
 
-fn key_event(key: egui::Key) -> Vec<egui::Event> {
-    vec![egui::Event::Key {
-        key,
-        physical_key: None,
-        pressed: true,
-        repeat: false,
-        modifiers: egui::Modifiers::NONE,
-    }]
-}
-
 #[test]
 fn account_values_are_visible_in_grid_and_list_without_opening_a_dialog() {
     for mode in [ViewMode::Grid, ViewMode::List] {

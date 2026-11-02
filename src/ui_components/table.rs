@@ -137,7 +137,7 @@ pub fn text(
     );
     // Decide after TextEdit handles input, so the placeholder disappears on
     // the very frame that mouse or keyboard focus enters this empty cell.
-    if value.is_empty() && !response.has_focus() {
+    if value.is_empty() && !ui.memory(|memory| memory.has_focus(field)) {
         ui.painter()
             .with_clip_rect(rect.intersect(ui.clip_rect()))
             .text(
@@ -275,7 +275,14 @@ mod tests {
             render(
                 &mut value,
                 vec![
-                    key(egui::Key::A, egui::Modifiers::CTRL),
+                    key(
+                        egui::Key::A,
+                        egui::Modifiers {
+                            ctrl: true,
+                            command: true,
+                            ..Default::default()
+                        }
+                    ),
                     key(egui::Key::Backspace, egui::Modifiers::NONE)
                 ]
             ),
@@ -284,12 +291,30 @@ mod tests {
         assert!(value.is_empty());
         assert_eq!(
             render(&mut value, pointer(egui::pos2(300., 150.), true)),
+            (false, false)
+        );
+        assert_eq!(
+            render(&mut value, pointer(egui::pos2(300., 150.), false)),
             (false, true)
         );
-        render(&mut value, pointer(egui::pos2(300., 150.), false));
         render(&mut value, vec![key(egui::Key::Tab, egui::Modifiers::NONE)]);
         assert_eq!(render(&mut value, vec![]), (false, false));
         assert!(value.is_empty());
+        let output = ctx.run_ui(
+            egui::RawInput {
+                focused: false,
+                ..Default::default()
+            },
+            |ui| {
+                text(ui, rect, "empty-cell", &mut value);
+            },
+        );
+        assert!(
+            !output.shapes.iter().any(
+                |shape| matches!(&shape.shape, egui::Shape::Text(text) if text.galley.text() == "—")
+            ),
+            "temporarily switching away from the window must not restore the dash in the active cell"
+        );
     }
 
     #[test]
