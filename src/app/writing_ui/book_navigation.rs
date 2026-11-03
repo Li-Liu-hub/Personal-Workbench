@@ -19,14 +19,16 @@ enum DirectoryAction {
     Parent,
     Create,
     Open(String),
-    Delete(String, String),
+    Rename(Book),
+    Delete(String, String, bool),
 }
 
 #[derive(Default)]
 struct DirectoryActions {
     drop: Option<LibraryDrop>,
     select: Option<String>,
-    remove: Option<(String, String)>,
+    rename: Option<Book>,
+    remove: Option<(String, String, bool)>,
 }
 
 // A page switch must happen after the paper has rendered, otherwise clearing the
@@ -77,7 +79,7 @@ fn page_row(
     }
     response.context_menu(|ui| {
         if ui.animated_button("删除页面").clicked() {
-            actions.remove = Some((page.id.clone(), page.title.clone()));
+            actions.remove = Some((page.id.clone(), page.title.clone(), true));
             ui.close();
         }
     });
@@ -130,6 +132,16 @@ fn child_books(
                 expanded.remove(&child.id);
             }
         }
+        response.context_menu(|ui| {
+            if ui.animated_button("重命名图书").clicked() {
+                actions.rename = Some(child.clone());
+                ui.close();
+            }
+            if ui.animated_button("删除图书").clicked() {
+                actions.remove = Some((child.id.clone(), child.title.clone(), false));
+                ui.close();
+            }
+        });
         if open {
             ui.indent(("book-directory-child", &child.id), |ui| {
                 let child_pages = pages.get(&child.id).map(Vec::as_slice).unwrap_or(&[]);
@@ -297,8 +309,12 @@ impl PersonalDeskApp {
             DirectoryAction::Open(id) => {
                 self.open_book_directory_page(&id);
             }
-            DirectoryAction::Delete(id, title) => {
-                self.request_library_deletion(&id, &title, true);
+            DirectoryAction::Rename(book) => {
+                self.library.error.clear();
+                self.library.dialog = Some(book);
+            }
+            DirectoryAction::Delete(id, title, page) => {
+                self.request_library_deletion(&id, &title, page);
             }
         }
     }
@@ -526,8 +542,11 @@ impl PersonalDeskApp {
         if let Some(id) = actions.select {
             return Some(DirectoryAction::Open(id));
         }
-        if let Some((id, title)) = actions.remove {
-            return Some(DirectoryAction::Delete(id, title));
+        if let Some(book) = actions.rename {
+            return Some(DirectoryAction::Rename(book));
+        }
+        if let Some((id, title, page)) = actions.remove {
+            return Some(DirectoryAction::Delete(id, title, page));
         }
         None
     }

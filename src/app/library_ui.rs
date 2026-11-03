@@ -182,6 +182,10 @@ impl PersonalDeskApp {
         if dialog_closed(&result) {
             self.library.dialog = None;
         } else if save {
+            let existing = self.db.as_ref().is_some_and(|db| {
+                db.books()
+                    .is_ok_and(|books| books.iter().any(|saved| saved.id == book.id))
+            });
             match self
                 .db
                 .as_mut()
@@ -190,7 +194,22 @@ impl PersonalDeskApp {
             {
                 Ok(()) => {
                     self.library.dialog = None;
-                    self.enter_book(book);
+                    self.library.error.clear();
+                    self.writing.catalog_key = None;
+                    if existing {
+                        // Renaming a directory entry must keep the current page and draft.
+                        if self
+                            .library
+                            .book
+                            .as_ref()
+                            .is_some_and(|active| active.id == book.id)
+                        {
+                            self.library.book = Some(book);
+                        }
+                        self.notice = "图书已保存".into();
+                    } else {
+                        self.enter_book(book);
+                    }
                 }
                 Err(error) => self.library.error = error.to_string(),
             }

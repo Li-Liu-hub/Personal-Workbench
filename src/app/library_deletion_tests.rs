@@ -44,6 +44,152 @@ fn right_click(
 }
 
 #[test]
+fn nested_book_menus_rename_and_delete_from_catalog_and_editor() {
+    for catalog in [false, true] {
+        for depth in [2, 3] {
+            let dir = tempfile::tempdir().unwrap();
+            let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+            let mut root = crate::library::Book::new();
+            root.title = "父图书".into();
+            let mut child = crate::library::Book::new();
+            child.title = "二级图书".into();
+            child.parent_id = Some(root.id.clone());
+            let mut grandchild = crate::library::Book::new();
+            grandchild.title = "三级图书".into();
+            grandchild.parent_id = Some(child.id.clone());
+            let target = if depth == 2 { &child } else { &grandchild };
+            let db = app.db.as_mut().unwrap();
+            for book in [&root, &child, &grandchild] {
+                db.save_book(book).unwrap();
+            }
+            let keep = db.create_writing("保留父页", Some(&root.id), None).unwrap();
+            let child_page = db.create_writing("子页", Some(&child.id), None).unwrap();
+            let grandchild_page = db
+                .create_writing("孙页", Some(&grandchild.id), None)
+                .unwrap();
+            app.section = Section::Books;
+            app.library.book = Some(root.clone());
+            if !catalog {
+                app.open_writing(&keep.id);
+            }
+            let ctx = egui::Context::default();
+            configure_theme(&ctx);
+            input_frame(&mut app, &ctx, 0., vec![], vec![]);
+            if depth == 3 {
+                // Expand through the UI in either directory presentation.
+                let out = input_frame(&mut app, &ctx, 0.01, vec![], vec![]);
+                click(&mut app, &ctx, text_at(&out, "▸ 图书 · 二级图书"), 0.02);
+            }
+            let out = input_frame(&mut app, &ctx, 0.1, vec![], vec![]);
+            let label = format!("▸ 图书 · {}", target.title);
+            let menu = right_click(&mut app, &ctx, text_at(&out, &label), 0.2);
+            text_at(&menu, "删除图书");
+            click(&mut app, &ctx, text_at(&menu, "重命名图书"), 0.3);
+            assert_eq!(app.library.dialog.as_ref().unwrap().id, target.id);
+            app.library.dialog.as_mut().unwrap().title = "修改后的图书".into();
+            if !catalog {
+                app.writing.page.as_mut().unwrap().body = "重命名时的未保存正文".into();
+                app.mark_writing_changed(0.35);
+            }
+            let dialog = input_frame(&mut app, &ctx, 0.4, vec![], vec![]);
+            click(&mut app, &ctx, text_at(&dialog, "保存图书"), 0.5);
+            assert!(app.library.dialog.is_none());
+            assert_eq!(app.library.book.as_ref().unwrap().id, root.id);
+            assert_eq!(
+                app.writing.page.as_ref().map(|p| &p.id),
+                (!catalog).then_some(&keep.id)
+            );
+            if !catalog {
+                assert!(app.writing.dirty);
+                assert_eq!(
+                    app.writing.page.as_ref().unwrap().body,
+                    "重命名时的未保存正文"
+                );
+            }
+            let renamed = Database::open(dir.path())
+                .unwrap()
+                .books()
+                .unwrap()
+                .into_iter()
+                .find(|book| book.id == target.id)
+                .unwrap();
+            assert_eq!(renamed.title, "修改后的图书");
+            assert_eq!(renamed.parent_id, target.parent_id);
+            let out = input_frame(&mut app, &ctx, 0.6, vec![], vec![]);
+            let menu = right_click(&mut app, &ctx, text_at(&out, "▸ 图书 · 修改后的图书"), 0.7);
+            click(&mut app, &ctx, text_at(&menu, "删除图书"), 0.8);
+            let deletion = app.library.deletion.as_ref().unwrap();
+            assert_eq!(deletion.id, target.id);
+            assert!(!deletion.page);
+            let dialog = input_frame(&mut app, &ctx, 0.9, vec![], vec![]);
+            click(&mut app, &ctx, text_at(&dialog, "取消"), 1.0);
+            assert_eq!(app.db.as_ref().unwrap().books().unwrap().len(), 3);
+            // Reopen the actual menu and confirm, including descendant handling.
+            let out = input_frame(&mut app, &ctx, 1.1, vec![], vec![]);
+            let menu = right_click(&mut app, &ctx, text_at(&out, "▸ 图书 · 修改后的图书"), 1.2);
+            click(&mut app, &ctx, text_at(&menu, "删除图书"), 1.3);
+            let dialog = input_frame(&mut app, &ctx, 1.4, vec![], vec![]);
+            click(&mut app, &ctx, text_at(&dialog, "确认删除"), 1.5);
+            assert!(app.library.deletion.is_none());
+            assert_eq!(app.library.book.as_ref().unwrap().id, root.id);
+            drop(app);
+            let db = Database::open(dir.path()).unwrap();
+            let books = db.books().unwrap();
+            assert_eq!(books.len(), if depth == 2 { 1 } else { 2 });
+            assert!(books.iter().any(|b| b.id == root.id));
+            assert!(db.writing_page(&keep.id).unwrap().is_some());
+            assert_eq!(
+                db.writing_page(&child_page.id).unwrap().is_some(),
+                depth == 3
+            );
+            assert!(db.writing_page(&grandchild_page.id).unwrap().is_none());
+        }
+    }
+}
+
+#[test]
+fn deleting_nested_book_with_active_descendant_keeps_parent_and_rejects_old_draft() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = PersonalDeskApp::open_data_directory(dir.path().into());
+    let root = crate::library::Book::new();
+    let mut child = crate::library::Book::new();
+    child.parent_id = Some(root.id.clone());
+    let mut grandchild = crate::library::Book::new();
+    grandchild.parent_id = Some(child.id.clone());
+    let db = app.db.as_mut().unwrap();
+    for book in [&root, &child, &grandchild] {
+        db.save_book(book).unwrap();
+    }
+    let keep = db.create_writing("父页", Some(&root.id), None).unwrap();
+    let page = db
+        .create_writing("正在编辑的孙页", Some(&grandchild.id), None)
+        .unwrap();
+    app.open_writing(&page.id);
+    app.library.book = Some(root.clone());
+    app.writing.page.as_mut().unwrap().body = "删除前的未保存正文".into();
+    app.mark_writing_changed(0.);
+    app.writing.floating = true;
+    app.request_library_deletion(&child.id, &child.title, false);
+    assert!(app.confirm_library_deletion());
+    assert_eq!(app.library.book.as_ref().unwrap().id, root.id);
+    assert!(app.writing.page.is_none());
+    assert!(!app.writing.floating);
+    assert!(
+        app.db
+            .as_mut()
+            .unwrap()
+            .save_book_page(&mut page.clone())
+            .is_err()
+    );
+    drop(app);
+    let mut db = Database::open(dir.path()).unwrap();
+    db.recover_writing_drafts().unwrap();
+    assert!(db.writing_page(&page.id).unwrap().is_none());
+    assert!(db.writing_page(&keep.id).unwrap().is_some());
+    assert_eq!(db.books().unwrap().len(), 1);
+}
+
+#[test]
 fn book_deletion_menu_confirms_cancels_and_persists_in_both_views() {
     for mode in [ViewMode::Grid, ViewMode::List] {
         let dir = tempfile::tempdir().unwrap();
