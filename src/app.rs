@@ -724,10 +724,14 @@ impl eframe::App for PersonalDeskApp {
         {
             self.notice = error.to_string();
         }
-        if let Some(path) = self.tool_launch_request.take()
-            && let Err(error) = crate::launcher::launch(&path)
-        {
-            self.notice = format!("启动程序失败：{error}");
+        if let Some(path) = self.tool_launch_request.take() {
+            self.notice = match crate::launcher::launch(&path) {
+                Ok(()) => format!(
+                    "已发送启动请求：{}",
+                    path.file_name().unwrap_or_default().to_string_lossy()
+                ),
+                Err(error) => format!("启动程序失败：{error}"),
+            };
         }
     }
 }

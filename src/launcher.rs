@@ -37,7 +37,9 @@ pub fn prepare(path: &Path) -> Result<PathBuf> {
     {
         return Err(DeskError::InvalidPath("请选择一个 .exe 程序文件".into()));
     }
-    Ok(path)
+    // Use ordinary Windows paths for child programs, including their working directory.
+    // Stored entries from older versions may still have a verbatim (\\?\) prefix.
+    Ok(crate::files::shell_path(&path))
 }
 
 pub fn launch(path: &Path) -> Result<()> {
@@ -48,4 +50,33 @@ pub fn launch(path: &Path) -> Result<()> {
     }
     command.spawn()?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn prepares_legacy_paths_with_chinese_spaces_and_uppercase_extension() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("中文 程序.EXE");
+        std::fs::write(&path, b"test fixture").unwrap();
+        let legacy = path.canonicalize().unwrap();
+        let prepared = prepare(&legacy).unwrap();
+        assert_eq!(prepared, crate::files::shell_path(&legacy));
+        assert!(prepared.is_absolute());
+        assert_eq!(std::fs::read(prepared).unwrap(), b"test fixture");
+    }
+
+    #[test]
+    fn rejects_missing_programs_directories_and_non_executables() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(launch(&dir.path().join("missing.exe")).is_err());
+        let folder = dir.path().join("folder.exe");
+        std::fs::create_dir(&folder).unwrap();
+        assert!(prepare(&folder).is_err());
+        let text = dir.path().join("program.txt");
+        std::fs::write(&text, b"text").unwrap();
+        assert!(prepare(&text).is_err());
+    }
 }

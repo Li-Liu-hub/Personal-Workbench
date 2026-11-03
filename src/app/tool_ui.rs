@@ -16,7 +16,7 @@ impl PersonalDeskApp {
         let mut add = false;
 
         ui.label(
-            RichText::new("双击快捷入口或右键启动程序；移除入口不会删除目标程序。")
+            RichText::new("单击快捷入口启动程序；右键可编辑或移除，移除入口不会删除目标程序。")
                 .small()
                 .color(muted()),
         );
@@ -44,7 +44,8 @@ impl PersonalDeskApp {
                     layout,
                 );
                 self.favorite_control(ui, &response, "tools", &item.id);
-                if response.double_clicked() {
+                // The second click of a double-click must not start a second instance.
+                if response.clicked() && !response.double_clicked() {
                     launch = Some(item.path.clone());
                 }
                 response.context_menu(|ui| {

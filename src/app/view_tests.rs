@@ -435,7 +435,7 @@ fn quick_copy_buttons_copy_exact_values_in_both_views_without_opening_details() 
     }
 }
 #[test]
-fn website_buttons_queue_direct_open_and_tools_double_click_launch_in_both_views() {
+fn website_buttons_queue_direct_open_in_both_views() {
     for mode in [ViewMode::Grid, ViewMode::List] {
         let dir = tempfile::tempdir().unwrap();
         let mut app = PersonalDeskApp::open_data_directory(dir.path().join("data"));
@@ -455,6 +455,55 @@ fn website_buttons_queue_direct_open_and_tools_double_click_launch_in_both_views
         input_frame(&mut app, &ctx, 1.22, pointer(at, false), vec![]);
         assert_eq!(app.website_open_request.as_ref().unwrap().url, site.url);
         assert!(!app.website_dialog_open);
+    }
+}
+
+#[test]
+fn tool_single_click_launches_once_and_double_click_does_not_launch_again_in_both_views() {
+    for mode in [ViewMode::Grid, ViewMode::List] {
+        let dir = tempfile::tempdir().unwrap();
+        let mut app = PersonalDeskApp::open_data_directory(dir.path().join("data"));
+        let path = dir.path().join("中文 程序.exe");
+        fs::write(&path, b"MZ synthetic").unwrap();
+        let mut item = crate::launcher::AppTool::new(path);
+        item.name = "测试快捷程序".into();
+        app.db.as_mut().unwrap().save_app_tool(&item).unwrap();
+        let saved = app.db.as_ref().unwrap().app_tools().unwrap().remove(0);
+        app.section = Section::Tools;
+        app.set_view_mode(mode);
+        let ctx = egui::Context::default();
+        configure_theme(&ctx);
+        input_frame(&mut app, &ctx, 1.0, vec![], vec![]);
+        let output = input_frame(&mut app, &ctx, 1.1, vec![], vec![]);
+        let at = position(&output, &item.name) + egui::vec2(8., 7.);
+        input_frame(&mut app, &ctx, 1.2, pointer(at, true), vec![]);
+        assert!(app.tool_launch_request.is_none());
+        input_frame(&mut app, &ctx, 1.22, pointer(at, false), vec![]);
+        assert_eq!(app.tool_launch_request.take(), Some(saved.path));
+        input_frame(&mut app, &ctx, 1.3, pointer(at, true), vec![]);
+        input_frame(&mut app, &ctx, 1.32, pointer(at, false), vec![]);
+        assert!(app.tool_launch_request.is_none(), "double click: {mode:?}");
+        // Right-click should open the management menu without starting the program.
+        let right = |pressed| {
+            vec![
+                egui::Event::PointerMoved(at),
+                egui::Event::PointerButton {
+                    pos: at,
+                    button: egui::PointerButton::Secondary,
+                    pressed,
+                    modifiers: Default::default(),
+                },
+            ]
+        };
+        input_frame(&mut app, &ctx, 2.0, right(true), vec![]);
+        input_frame(&mut app, &ctx, 2.02, right(false), vec![]);
+        let output = input_frame(&mut app, &ctx, 2.1, vec![], vec![]);
+        assert!(app.tool_launch_request.is_none());
+        position(&output, "启动程序");
+        let launch_at = position(&output, "启动程序") + egui::vec2(8., 7.);
+        input_frame(&mut app, &ctx, 2.2, pointer(launch_at, true), vec![]);
+        input_frame(&mut app, &ctx, 2.22, pointer(launch_at, false), vec![]);
+        assert!(app.tool_launch_request.is_some());
     }
 }
 #[test]
