@@ -236,7 +236,6 @@ impl eframe::App for VisualPreview {
         if self.frames == 0 {
             self.app.section = section;
             self.app.view_modes.set(section, mode);
-            self.app.navigation_compact = section == Section::Documents;
             self.app.theme_editor_open = name == "theme-dialog";
             self.app.export_dialog_open = name == "export-dialog";
             self.app.updates.open = name == "update-dialog";

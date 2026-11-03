@@ -198,14 +198,9 @@ impl PersonalDeskApp {
                         }
                     });
                     if response.clicked() {
-                        if section == self.section && section == Section::Documents {
-                            self.navigation_compact = !self.navigation_compact;
-                            continue;
-                        }
                         if !self.flush_writing() {
                             continue;
                         }
-                        self.navigation_compact = section == Section::Documents;
                         self.section = section;
                         self.notice.clear();
                         self.search_query.clear();
