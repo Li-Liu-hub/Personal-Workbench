@@ -20,12 +20,14 @@ New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 $portable = Join-Path $OutputDirectory 'PersonalDesk.exe'
 if ($Executable -ne $portable) { Copy-Item -LiteralPath $Executable -Destination $portable -Force }
 $readme = Join-Path $OutputDirectory '使用说明.txt'
+$installerLine = if ($Compiler) { "安装版：打开 PersonalDesk-$version-Setup-x64.exe，按向导选择程序和数据目录。" } else { '当前发布包含免安装程序和 ZIP 压缩包；本次未生成安装向导。' }
+$dataPathLine = if ($Compiler) { '已有数据：保留原 personal-desk-data-path.txt，或在安装向导选择原数据目录。' } else { '已有数据：将原 personal-desk-data-path.txt 放在程序旁边，继续使用原数据目录。' }
 $text = @"
 个人办公台 $version · Windows x64
 
 免安装：直接打开 PersonalDesk.exe。
-安装版：打开 PersonalDesk-$version-Setup-x64.exe，按向导选择程序和数据目录。
-已有数据：保留原 personal-desk-data-path.txt，或在安装向导选择原数据目录。
+$installerLine
+$dataPathLine
 默认数据目录：%LOCALAPPDATA%\PersonalDesk。
 小游戏、刷题王、每日单词和百科全书由 D:\MyProject 下的独立程序提供，继续沿用原数据目录。设置中可开启/关闭开机自启动。
 本地模型和模型运行时不随客户端打包，客户端本身可独立使用。

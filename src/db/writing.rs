@@ -286,6 +286,18 @@ impl Database {
         super::library::page_saved(page);
         Ok(())
     }
+    /// Move a live page to a live book or the writing root, invalidating stale editors.
+    pub fn move_writing_page(&mut self, id: &str, target: Option<&str>) -> Result<()> {
+        let destination=target.unwrap_or(WRITING_ROOT);
+        let tx=self.desk.transaction()?;
+        tx.execute("INSERT OR IGNORE INTO books(id,title) VALUES(?1,'文档')",[WRITING_ROOT])?;
+        let valid:bool=tx.query_row("SELECT EXISTS(SELECT 1 FROM live_books WHERE id=?1 AND deleted=0)",[destination],|r|r.get(0))?;
+        if !valid{return Err(DeskError::InvalidInput("目标图书已不存在".into()))}
+        let source:Option<String>=tx.query_row("SELECT book_id FROM book_pages WHERE id=?1 AND deleted=0 AND book_id IN (SELECT id FROM live_books)",[id],|r|r.get(0)).optional()?;
+        let source=source.ok_or_else(||DeskError::InvalidInput("文档已不存在".into()))?;
+        if source!=destination {tx.execute("UPDATE book_pages SET book_id=?1,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE id=?2",params![destination,id])?;}
+        tx.commit()?;Ok(())
+    }
     pub fn group_writing(&mut self, ids: &[String], target: Option<&str>) -> Result<Book> {
         let mut unique = Vec::new();
         for id in ids {

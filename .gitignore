@@ -23,3 +23,5 @@ __pycache__/
 
 # 工作区个人记忆，不提交
 /.workbuddy/
+
+node_modules/

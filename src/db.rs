@@ -640,6 +640,23 @@ impl Database {
         Ok(())
     }
 
+    /// Save an application shortcut and its classifications in one transaction.
+    pub fn save_app_tool_classified(&mut self, item: &crate::launcher::AppTool, tags: &[String]) -> Result<()> {
+        if item.name.trim().is_empty() {
+            return Err(DeskError::InvalidPath("请填写程序名称".into()));
+        }
+        let path = crate::launcher::prepare(&item.path)?;
+        let values = tags::normalize(tags)?;
+        let tx = self.desk.transaction()?;
+        ensure_tags(&tx, TagScope::Tools, &values)?;
+        tx.execute(
+            "INSERT INTO app_tools(id,name,path_native,notes,tags_json) VALUES(?1,?2,?3,?4,?5)              ON CONFLICT(id) DO UPDATE SET name=excluded.name,path_native=excluded.path_native,notes=excluded.notes,tags_json=excluded.tags_json",
+            params![item.id, item.name.trim(), encode_path(&path), item.notes, serde_json::to_string(&values)?],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+
     pub fn delete_app_tool(&mut self, id: &str) -> Result<()> {
         self.desk
             .execute("DELETE FROM app_tools WHERE id=?1", [id])?;

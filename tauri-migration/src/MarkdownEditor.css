@@ -1,0 +1,23 @@
+.markdown-editor { color: var(--desk-text); background: var(--desk-surface); min-width: 0; }
+.markdown-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid var(--desk-border); border-bottom: 1px solid var(--desk-border); flex-wrap: wrap; margin-bottom: 18px; }
+.markdown-toolbar .ant-btn { border: 0; box-shadow: none; color: var(--desk-muted); background: transparent; border-radius: 4px; }
+.markdown-toolbar .ant-btn:hover { background: var(--desk-input); color: var(--desk-accent); }
+.markdown-toolbar .ant-segmented { font-size: 11px; }
+.markdown-editor .cm-editor { min-height: 340px; font: 15px/1.95 "Segoe UI", "Microsoft YaHei UI", sans-serif; background: transparent; color: var(--desk-text); }
+.markdown-editor .cm-content { min-height: 340px; padding: 8px 0 40px; caret-color: var(--desk-accent); }
+.markdown-editor .cm-line { padding: 0; }
+.markdown-editor .cm-editor.cm-focused { outline: none; }
+.markdown-editor .cm-placeholder { color: var(--desk-muted); opacity: .65; }
+.markdown-editor .cm-scroller { overflow: auto; }
+.markdown-editor .cm-selectionBackground, .markdown-editor .cm-editor.cm-focused .cm-selectionBackground { background: color-mix(in srgb, var(--desk-accent) 18%, transparent); }
+.markdown-preview { min-height: 340px; padding: 8px 0 40px; overflow-wrap: anywhere; font-size: 15px; line-height: 1.95; }
+.markdown-preview > * + * { margin-top: 16px; }
+.markdown-preview h1 { font-size: 28px; }.markdown-preview h2 { font-size: 22px; }.markdown-preview h3 { font-size: 18px; }
+.markdown-preview pre { overflow: auto; padding: 16px; background: var(--desk-input); border-radius: 6px; font: 13px/1.7 Consolas, monospace; }
+.markdown-preview code { font-family: Consolas, monospace; }
+.markdown-preview table { border-collapse: collapse; font-size: 13px; width: 100%; }
+.markdown-preview th, .markdown-preview td { border: 1px solid var(--desk-border); padding: 8px 12px; }
+.markdown-preview blockquote { margin-left: 0; padding-left: 18px; border-left: 3px solid var(--desk-accent); color: var(--desk-muted); }
+.markdown-preview img { max-width: 100%; border-radius: 6px; }
+.inline-writing-image { display: inline-block; max-width: 100%; vertical-align: middle; margin: 12px 0; }
+.inline-writing-image img { display: block; max-width: 100%; max-height: 480px; object-fit: contain; border-radius: 6px; }

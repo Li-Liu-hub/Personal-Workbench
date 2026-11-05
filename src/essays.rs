@@ -246,7 +246,7 @@ pub struct Record {
     pub page: Option<crate::library::Page>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Summary {
     pub day: String,
     pub title: String,

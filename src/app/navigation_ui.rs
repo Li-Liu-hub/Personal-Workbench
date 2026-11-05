@@ -7,7 +7,7 @@ impl PersonalDeskApp {
             Section::Folders => "快捷路径".into(),
             Section::Documents => "文档写作".into(),
             Section::Books => "图书".into(),
-            Section::Credentials => "账号密码".into(),
+            Section::Credentials => "账号密码管理".into(),
             Section::Inventory => "物品清单".into(),
             Section::Contacts => "联系人".into(),
             Section::Websites => "网站收藏".into(),
@@ -118,7 +118,7 @@ impl PersonalDeskApp {
                     (Section::Folders, "快捷路径", TileKind::Folder, None),
                     (
                         Section::Credentials,
-                        "账号密码",
+                        "账号密码管理",
                         TileKind::Credential,
                         Some(self.credentials.len()),
                     ),
