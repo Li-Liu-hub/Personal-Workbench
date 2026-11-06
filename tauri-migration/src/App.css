@@ -79,6 +79,19 @@ h2 { font-size: 14px; font-weight: 600; color: var(--desk-text); }
 .tool-card { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .tool-grid.list { display: grid; gap: 8px; }
 .tool-tags { width: 100%; padding-left: 45px; }
+.shortcut-card { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 14px; }
+.shortcut-launch, .website-launch { display: flex; align-items: flex-start; gap: 12px; width: 100%; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--desk-text); text-align: left; }
+.shortcut-copy, .website-copy { display: block; flex: 1; min-width: 0; }
+.shortcut-copy strong, .website-copy strong { display: block; overflow: hidden; color: var(--desk-text); font-size: 14px; font-weight: 600; line-height: 1.5; text-overflow: ellipsis; white-space: nowrap; }
+.shortcut-copy small, .website-copy small { display: block; margin-top: 4px; overflow-wrap: anywhere; color: var(--desk-muted); font-size: 11px; line-height: 1.6; }
+.shortcut-copy small { word-break: break-word; }
+.shortcut-actions, .website-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; min-width: 0; }
+.shortcut-actions .shortcut-category { flex: 1 1 130px; min-width: 110px; max-width: 100%; }
+.shortcut-tags, .website-tags { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.website-card { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+.website-launch { align-items: center; }
+.website-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.website-actions .ant-btn { max-width: 100%; }
 .empty { padding: 68px 20px; text-align: center; border: 1px dashed var(--desk-border); border-radius: 8px; color: var(--desk-muted); }
 .empty-icon { display: grid; place-items: center; margin: 0 auto 14px; color: var(--desk-accent); font-size: 28px; }
 .empty strong { font-size: 14px; font-weight: 500; color: var(--desk-text); }

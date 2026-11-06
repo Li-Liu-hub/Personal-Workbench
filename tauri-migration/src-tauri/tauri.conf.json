@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "PersonalDesk",
-  "version": "0.15.53",
+  "version": "0.15.54",
   "identifier": "cn.personaldesk.desktop",
   "build": {
     "frontendDist": "../dist",
