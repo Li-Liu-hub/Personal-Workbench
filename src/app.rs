@@ -83,6 +83,7 @@ pub struct PersonalDeskApp {
     photo_cache: std::collections::HashMap<String, egui::TextureHandle>,
     contact_scroll_id: Option<String>,
     updates: update_ui::UpdateState,
+    update_shutdown: bool,
     tool_draft: Option<crate::launcher::AppTool>,
     tool_error: String,
     tool_launch_request: Option<PathBuf>,
@@ -244,6 +245,7 @@ impl PersonalDeskApp {
                     .and_then(|db| db.settings().ok())
                     .and_then(|s| s.get("updates.source").cloned()),
             ),
+            update_shutdown: false,
             tool_draft: None,
             tool_error: String::new(),
             tool_launch_request: None,
@@ -663,47 +665,109 @@ pub fn data_directory() -> PathBuf {
         })
 }
 
+impl PersonalDeskApp {
+    pub(super) fn persist_before_close(&mut self) -> Result<(), String> {
+        let mut failure = None;
+        let mut records_saved = self.flush_writing();
+        if !records_saved {
+            failure = Some("文档尚未保存，请先处理保存提示".to_owned());
+        }
+        if self.export_busy || self.contact_import_busy {
+            records_saved = false;
+            failure.get_or_insert_with(|| "当前文件操作完成后即可退出".to_owned());
+        }
+        let blank_contact = Contact {
+            id: self.contact_draft.id.clone(),
+            ..Default::default()
+        };
+        if self.contact_dialog_open
+            && (self.contact_draft != blank_contact || !self.contact_draft_tags.is_empty())
+            && !self.save_contact_draft()
+        {
+            records_saved = false;
+            failure.get_or_insert_with(|| {
+                if self.contact_error.is_empty() {
+                    "联系人尚未保存".to_owned()
+                } else {
+                    format!("联系人保存失败：{}", self.contact_error)
+                }
+            });
+        }
+        if self.inventory_dialog_open
+            && !self.inventory_draft.name.trim().is_empty()
+            && !self.save_inventory_item()
+        {
+            records_saved = false;
+            failure.get_or_insert_with(|| {
+                if self.notice.is_empty() {
+                    "物品尚未保存".to_owned()
+                } else {
+                    self.notice.clone()
+                }
+            });
+        }
+        if self.credential_dialog_open
+            && !self.credential_draft.title.trim().is_empty()
+            && !self.save_credential_draft()
+        {
+            records_saved = false;
+            failure.get_or_insert_with(|| {
+                if self.notice.is_empty() {
+                    "账号尚未保存".to_owned()
+                } else {
+                    self.notice.clone()
+                }
+            });
+        }
+        if self.website_dialog_open
+            && (!self.website_draft.url.trim().is_empty()
+                || !self.website_draft.title.trim().is_empty())
+            && !self.save_website_draft()
+        {
+            records_saved = false;
+            failure.get_or_insert_with(|| {
+                if self.website_error.is_empty() {
+                    "网站尚未保存".to_owned()
+                } else {
+                    format!("网站保存失败：{}", self.website_error)
+                }
+            });
+        }
+        for id in self.inline_contacts.keys().cloned().collect::<Vec<_>>() {
+            if !self.save_inline_contact(&id) {
+                records_saved = false;
+                failure.get_or_insert_with(|| self.notice.clone());
+            }
+        }
+        for id in self.inline_credentials.keys().cloned().collect::<Vec<_>>() {
+            if !self.save_inline_credential(&id) {
+                records_saved = false;
+                failure.get_or_insert_with(|| self.notice.clone());
+            }
+        }
+        for id in self.inline_inventory.keys().cloned().collect::<Vec<_>>() {
+            if !self.save_inline_inventory(&id) {
+                records_saved = false;
+                failure.get_or_insert_with(|| self.notice.clone());
+            }
+        }
+        if records_saved {
+            Ok(())
+        } else {
+            let message = failure.unwrap_or_else(|| "关闭前保存失败，请检查未保存内容".to_owned());
+            self.notice = message.clone();
+            Err(message)
+        }
+    }
+}
+
 impl eframe::App for PersonalDeskApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
         self.poll_background();
-        if ctx.input(|input| input.viewport().close_requested()) {
-            let mut records_saved = self.flush_writing();
-            if self.export_busy || self.contact_import_busy {
-                records_saved = false;
-                self.notice = "当前文件操作完成后即可退出".into();
-            }
-            let blank_contact = Contact {
-                id: self.contact_draft.id.clone(),
-                ..Default::default()
-            };
-            if self.contact_dialog_open
-                && (self.contact_draft != blank_contact || !self.contact_draft_tags.is_empty())
-            {
-                records_saved &= self.save_contact_draft();
-            }
-            if self.inventory_dialog_open && !self.inventory_draft.name.trim().is_empty() {
-                records_saved &= self.save_inventory_item();
-            }
-            if self.credential_dialog_open && !self.credential_draft.title.trim().is_empty() {
-                records_saved &= self.save_credential_draft();
-            }
-            if self.website_dialog_open
-                && (!self.website_draft.url.trim().is_empty()
-                    || !self.website_draft.title.trim().is_empty())
-            {
-                records_saved &= self.save_website_draft();
-            }
-            for id in self.inline_contacts.keys().cloned().collect::<Vec<_>>() {
-                records_saved &= self.save_inline_contact(&id);
-            }
-            for id in self.inline_credentials.keys().cloned().collect::<Vec<_>>() {
-                records_saved &= self.save_inline_credential(&id);
-            }
-            for id in self.inline_inventory.keys().cloned().collect::<Vec<_>>() {
-                records_saved &= self.save_inline_inventory(&id);
-            }
-            if !records_saved {
+        if ctx.input(|input| input.viewport().close_requested()) && !self.update_shutdown {
+            if let Err(error) = self.persist_before_close() {
+                self.notice = error;
                 ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
             }
         }

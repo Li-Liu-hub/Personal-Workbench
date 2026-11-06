@@ -25,8 +25,9 @@ if (-not (Get-Command gcc.exe -ErrorAction SilentlyContinue)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($TargetDir)) {
-    $tempDir = [System.IO.Path]::GetTempPath()
-    $TargetDir = Join-Path $tempDir 'personal-desk-target'
+    $projectRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+    $projectParent = Split-Path -Parent $projectRoot
+    $TargetDir = Join-Path $projectParent 'personal-desk-target'
 }
 
 if ($TargetDir -match '[^\x00-\x7F]') {

@@ -144,11 +144,22 @@ impl PersonalDeskApp {
                 self.updates.status = "请先保存或取消物品修改".into();
             } else if self.export_busy || self.contact_import_busy {
                 self.updates.status = "当前操作完成后即可更新".into();
-            } else if !self.flush_writing() {
-                self.updates.status = "文档尚未保存，请先处理保存提示".into();
+            } else if let Err(error) = self.persist_before_close() {
+                self.updates.status = error;
             } else if let Some(release) = self.updates.release.as_ref() {
                 match crate::updater::launch(release, &self.data_dir) {
-                    Ok(()) => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+                    Ok(()) => {
+                        self.update_shutdown = true;
+                        self.updates.status = "正在关闭并应用更新…".into();
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                        // The installer waits for this process before replacing the executable.
+                        // If the window close request is delayed or vetoed by the backend, exit
+                        // after all editable state has already been persisted above.
+                        std::thread::spawn(|| {
+                            std::thread::sleep(std::time::Duration::from_secs(2));
+                            std::process::exit(0);
+                        });
+                    }
                     Err(error) => self.updates.status = error,
                 }
             }

@@ -23,7 +23,9 @@ try {
         }
     }
     if ([string]::IsNullOrWhiteSpace($TargetDir)) {
-        $TargetDir = Join-Path ([IO.Path]::GetTempPath()) 'personal-desk-target'
+        $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+        $projectParent = Split-Path -Parent $projectRoot
+        $TargetDir = Join-Path $projectParent 'personal-desk-target'
     }
     if ($TargetDir -match '[^\x00-\x7F]') {
         throw 'Use an ASCII target directory for the Windows GNU linker.'
