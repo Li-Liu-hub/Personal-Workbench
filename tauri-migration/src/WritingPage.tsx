@@ -65,7 +65,7 @@ export default function WritingPage({dirty,setDirty}:{dirty:boolean;setDirty:(v:
      <div className="document-scroll"><article className="document-paper">
       <Input className="document-title" variant="borderless" aria-label="文档标题" disabled={busy} value={active.title} placeholder="未命名文档" onChange={e=>{setActive({...active,title:e.target.value});setDirty(true)}}/>
       <div className="document-metadata"><span>标签</span><Select variant="borderless" disabled={busy} aria-label="文档标签" mode="multiple" placeholder="添加标签" value={active.tags} options={tags.map(t=>({value:t,label:t}))} onChange={selected=>{setActive({...active,tags:selected});setDirty(true)}}/></div>
-      <MarkdownEditor key={active.id} label="文档正文" disabled={busy} rows={22} value={active.body} onChange={body=>{setActive({...active,body});setDirty(true)}}/>
+      <MarkdownEditor key={active.id} documentId={active.id} label="文档正文" disabled={busy} rows={22} value={active.body} onChange={body=>{setActive({...active,body});setDirty(true)}}/>
      </article></div>
      <footer className="document-status"><span>{Array.from(active.body).length} 字</span><span>自动保存 · Ctrl+S 保存</span><span>Ctrl+V 粘贴图片</span></footer>
     </>:<div className="writing-empty"><span className="writing-empty-icon"><FileTextOutlined/></span><h2>从一页空白开始</h2><p>记录想法、整理资料，让文字有自己的位置。</p><Button type="primary" icon={<PlusOutlined/>} onClick={()=>void createPage()}>写一篇文档</Button><span>也可以从左侧打开已有文档</span></div>}

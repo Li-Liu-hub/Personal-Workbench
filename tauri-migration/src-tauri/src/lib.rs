@@ -450,16 +450,16 @@ fn writing_move_book(id:String,parent:Option<String>)->Result<(),String>{develop
 #[tauri::command]
 fn writing_move_page(id:String,target:Option<String>)->Result<(),String>{development_db()?.move_writing_page(&id,target.as_deref()).map_err(|e|e.to_string())}
 #[tauri::command]
-async fn writing_image_import()->Result<Option<String>,String>{
+async fn writing_image_import(document_id:String)->Result<Option<String>,String>{
  let Some(file)=rfd::AsyncFileDialog::new().set_title("插入图片").add_filter("图片",&["png","jpg","jpeg","webp","bmp"]).pick_file().await else{return Ok(None)};
  let source=file.path().to_owned();let data=data_directory()?;
- tauri::async_runtime::spawn_blocking(move||personal_desk::writing_images::import(&data,&source).map(Some).map_err(|e|e.to_string())).await.map_err(|e|e.to_string())?
+ tauri::async_runtime::spawn_blocking(move||personal_desk::writing_images::import_document(&data,&document_id,&source).map(Some).map_err(|e|e.to_string())).await.map_err(|e|e.to_string())?
 }
 #[tauri::command]
-async fn writing_image_paste(bytes:Vec<u8>)->Result<String,String>{
+async fn writing_image_paste(document_id:String,bytes:Vec<u8>)->Result<String,String>{
  if bytes.len()>personal_desk::contacts::MAX_FILE_BYTES{return Err("图片不能超过 8 MiB".into())}
  let data=data_directory()?;
- tauri::async_runtime::spawn_blocking(move||personal_desk::writing_images::import_bytes(&data,&bytes).map_err(|e|e.to_string())).await.map_err(|e|e.to_string())?
+ tauri::async_runtime::spawn_blocking(move||personal_desk::writing_images::import_document_bytes(&data,&document_id,&bytes).map_err(|e|e.to_string())).await.map_err(|e|e.to_string())?
 }
 #[tauri::command]
 async fn writing_image_read(reference:String)->Result<String,String>{

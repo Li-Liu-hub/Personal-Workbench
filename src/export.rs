@@ -248,7 +248,11 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
                         &format!("essays/{}.md", record.assignment.day),
                         format!(
                             "# {}\n\n> {}\n\n{}",
-                            page.title, record.assignment.topic.prompt, page.body.replace("](writing-assets/", "](../writing-assets/")
+                            page.title,
+                            record.assignment.topic.prompt,
+                            page.body
+                                .replace("](writing-assets/", "](../writing-assets/")
+                                .replace("](data/picture/", "](../data/picture/")
                         )
                         .as_bytes(),
                     )?;
@@ -345,6 +349,25 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
                     }
                 }
             }
+            let pictures = data_dir.join("data").join("picture");
+            if pictures.is_dir() {
+                for entry in walkdir::WalkDir::new(&pictures).follow_links(false) {
+                    let entry = entry.map_err(|e| DeskError::InvalidPath(e.to_string()))?;
+                    if entry.file_type().is_file() {
+                        let relative = entry
+                            .path()
+                            .strip_prefix(&pictures)
+                            .map_err(|e| DeskError::InvalidPath(e.to_string()))?;
+                        package.file(
+                            entry.path(),
+                            &format!(
+                                "data/picture/{}",
+                                relative.to_string_lossy().replace('\\', "/")
+                            ),
+                        )?;
+                    }
+                }
+            }
         }
         if scope.includes(Scope::Books) {
             let books = snapshot.books()?;
@@ -352,7 +375,13 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
             for book in &books {
                 for page in snapshot.book_pages(&book.id)? {
                     let member = format!("books/{}/{}.md", book.id, page.id);
-                    package.bytes(&member, page.body.replace("](writing-assets/", "](../../writing-assets/").as_bytes())?;
+                    package.bytes(
+                        &member,
+                        page.body
+                            .replace("](writing-assets/", "](../../writing-assets/")
+                            .replace("](data/picture/", "](../../data/picture/")
+                            .as_bytes(),
+                    )?;
                     pages.push(page);
                 }
             }
@@ -365,7 +394,14 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
             for page in &writing {
                 package.bytes(
                     &format!("writing/{}.md", page.id),
-                    format!("# {}\n\n{}", page.title, page.body.replace("](writing-assets/", "](../writing-assets/")).as_bytes(),
+                    format!(
+                        "# {}\n\n{}",
+                        page.title,
+                        page.body
+                            .replace("](writing-assets/", "](../writing-assets/")
+                            .replace("](data/picture/", "](../data/picture/")
+                    )
+                    .as_bytes(),
                 )?;
             }
             package.json("写作文档.json", &writing)?;
