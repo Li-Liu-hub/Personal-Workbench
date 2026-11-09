@@ -126,6 +126,11 @@ pub fn toolbar_title(ui: &mut Ui, title: &str, width: f32, size: f32) -> Respons
             ink(),
         );
     let response = response.on_hover_text("拖动此处移动窗口；双击最大化或还原");
+    window_drag_target(ui, &response);
+    response
+}
+
+pub fn window_drag_target(ui: &Ui, response: &Response) {
     if response.drag_started() {
         ui.ctx().send_viewport_cmd(egui::ViewportCommand::StartDrag);
     }
@@ -136,7 +141,6 @@ pub fn toolbar_title(ui: &mut Ui, title: &str, width: f32, size: f32) -> Respons
         ui.ctx()
             .send_viewport_cmd(egui::ViewportCommand::Maximized(!maximized));
     }
-    response
 }
 
 pub fn classification_dropdown(

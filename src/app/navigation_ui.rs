@@ -75,14 +75,9 @@ impl PersonalDeskApp {
     pub(super) fn render_app_brand(&mut self, ui: &mut egui::Ui, compact: bool) {
         ui.horizontal(|ui| {
             let can_toggle = self.section == Section::Documents;
-            let (rect, response) = ui.allocate_exact_size(
-                egui::vec2(38.0, 38.0),
-                if can_toggle {
-                    egui::Sense::click()
-                } else {
-                    egui::Sense::hover()
-                },
-            );
+            let (rect, response) =
+                ui.allocate_exact_size(egui::vec2(38.0, 38.0), egui::Sense::click_and_drag());
+            crate::ui_components::window_drag_target(ui, &response);
             ui.painter().rect_filled(rect, 11, accent());
             for (x, y) in [(10.0, 10.0), (21.0, 10.0), (10.0, 21.0), (21.0, 21.0)] {
                 ui.painter().rect_filled(
@@ -102,7 +97,13 @@ impl PersonalDeskApp {
                 }
             }
             if !compact {
-                ui.label(RichText::new("个人办公台").size(17.0).strong().color(ink()));
+                let response = ui.add_sized(
+                    [ui.available_width(), 38.0],
+                    egui::Label::new(RichText::new("个人办公台").size(17.0).strong().color(ink()))
+                        .truncate()
+                        .sense(egui::Sense::click_and_drag()),
+                );
+                crate::ui_components::window_drag_target(ui, &response);
             }
         });
     }

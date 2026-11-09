@@ -376,6 +376,12 @@ impl PersonalDeskApp {
         });
     }
 
+    pub(super) fn reset_markdown_editor_bounds(&mut self) {
+        // The editor is a native child window. Its previous-frame rectangle must not
+        // survive when the active workspace page no longer contains the editor.
+        self.writing.markdown_editor_rect = None;
+    }
+
     #[cfg(target_os = "windows")]
     pub(super) fn sync_markdown_editor_webview(&mut self, ctx: &egui::Context, frame: &eframe::Frame) {
         use std::{borrow::Cow, io::Read};

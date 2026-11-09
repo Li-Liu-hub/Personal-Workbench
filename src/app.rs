@@ -837,6 +837,7 @@ impl eframe::App for PersonalDeskApp {
             Duration::from_secs(5)
         });
         begin_window_resize(&ctx, ui.max_rect());
+        self.reset_markdown_editor_bounds();
         self.render_workspace(ui);
         #[cfg(target_os = "windows")]
         self.sync_markdown_editor_webview(&ctx, frame);
