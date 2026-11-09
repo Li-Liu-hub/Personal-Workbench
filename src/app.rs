@@ -59,9 +59,10 @@ use crate::{
     websites,
 };
 
-enum BackgroundMessage {
+pub(crate) enum BackgroundMessage {
     ContactChats(String, std::result::Result<Vec<ChatRecord>, String>),
     Exported(std::result::Result<export::Report, String>),
+    TaskbarPin(std::result::Result<bool, String>),
 }
 
 #[derive(Clone)]
@@ -140,6 +141,7 @@ pub struct PersonalDeskApp {
     inventory_dialog_open: bool,
     shortcut_dialog_open: bool,
     settings_detail: Option<String>,
+    taskbar_pin_pending: bool,
     search_query: String,
     search_field: Option<egui::Id>,
     search_pending: Option<f64>,
@@ -293,6 +295,7 @@ impl PersonalDeskApp {
             inventory_dialog_open: false,
             shortcut_dialog_open: false,
             settings_detail: None,
+            taskbar_pin_pending: false,
             search_query: String::new(),
             search_field: None,
             search_pending: None,
@@ -434,6 +437,14 @@ impl PersonalDeskApp {
                         Err(e) => e.to_string(),
                     };
                 }
+                BackgroundMessage::TaskbarPin(result) => {
+                    self.taskbar_pin_pending = false;
+                    self.notice = match result {
+                        Ok(true) => "已添加到任务栏。".into(),
+                        Ok(false) => "未添加到任务栏；你可以再次点击按钮重试。".into(),
+                        Err(error) => error,
+                    };
+                }
             }
         }
     }
@@ -483,6 +494,20 @@ impl PersonalDeskApp {
             } else {
                 184.0
             };
+            egui::Panel::top("workspace-header")
+                .show_separator_line(false)
+                .frame(
+                    egui::Frame::new()
+                        .fill(content_fill())
+                        .stroke(egui::Stroke::NONE)
+                        .inner_margin(egui::Margin {
+                            left: 0,
+                            right: 24,
+                            top: 8,
+                            bottom: 8,
+                        }),
+                )
+                .show(ui, |ui| self.render_workspace_header(ui));
             egui::Panel::left("navigation")
                 .resizable(false)
                 .show_separator_line(false)

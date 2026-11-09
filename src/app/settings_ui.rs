@@ -50,6 +50,37 @@ impl PersonalDeskApp {
                 if let Err(error) = registered {
                     ui.colored_label(Color32::from_rgb(185, 65, 71), error);
                 }
+                ui.add_space(14.0);
+                ui.separator();
+                ui.add_space(10.0);
+                ui.strong("任务栏快捷方式");
+                ui.add_space(6.0);
+                ui.horizontal_wrapped(|ui| {
+                    let label = if self.taskbar_pin_pending {
+                        "等待 Windows 确认…"
+                    } else {
+                        "添加到任务栏"
+                    };
+                    if ui
+                        .add_enabled(!self.taskbar_pin_pending, primary_button(label))
+                        .clicked()
+                    {
+                        self.taskbar_pin_pending = true;
+                        self.notice.clear();
+                        match crate::taskbar::request_pin(ui.ctx().clone(), self.sender.clone()) {
+                            Ok(()) => self.notice = "请在 Windows 提示中确认是否固定。".into(),
+                            Err(error) => {
+                                self.taskbar_pin_pending = false;
+                                self.notice = error;
+                            }
+                        }
+                    }
+                    ui.label(
+                        RichText::new("固定后可从任务栏直接打开；Windows 会先显示确认提示。")
+                            .small()
+                            .color(muted()),
+                    );
+                });
             });
         ui.add_space(16.0);
         collection(ui, "settings-gallery", self.view_mode(), |ui, side| {

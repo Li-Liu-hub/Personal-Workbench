@@ -1,25 +1,55 @@
 use super::*;
 
 impl PersonalDeskApp {
-    pub(super) fn render_header(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
+    pub(super) fn render_workspace_header(&mut self, ui: &mut egui::Ui) {
         let title = self.page_title();
         ui.horizontal(|ui| {
             ui.set_min_height(38.0);
-            let actions_width = 300.0
-                + if self.section == Section::Documents {
-                    90.
-                } else {
-                    0.
-                }
-                + if self.has_visible_edits() { 88.0 } else { 0.0 }
-                + if self.index_undo_available() {
-                    60.0
-                } else {
-                    0.0
-                };
+            let compact = self.navigation_compact && self.section == Section::Documents;
+            let navigation_width = if compact { 64.0 } else { 184.0 };
+            ui.add_space(12.0);
+            ui.allocate_ui_with_layout(
+                egui::vec2(navigation_width + 12.0, 38.0),
+                egui::Layout::left_to_right(egui::Align::Center),
+                |ui| self.render_app_brand(ui, compact),
+            );
+            let editing_document = matches!(self.section, Section::Documents | Section::Books)
+                && self.writing.page.is_some();
+            let actions_width = if editing_document {
+                0.0
+            } else if self.section == Section::Essays {
+                190.0
+            } else {
+                300.0
+                    + if self.section == Section::Documents {
+                        90.
+                    } else {
+                        0.
+                    }
+                    + if self.has_visible_edits() { 88.0 } else { 0.0 }
+                    + if self.index_undo_available() {
+                        60.0
+                    } else {
+                        0.0
+                    }
+            };
             let width = (ui.available_width() - actions_width).clamp(120.0, 320.0);
             crate::ui_components::toolbar_title(ui, &title, width, 24.0);
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if self.section == Section::Essays {
+                    crate::ui_components::chrome::segmented(
+                        ui,
+                        &mut self.essay.history,
+                        &[(false, "今日主题"), (true, "记录本")],
+                    );
+                    if ui.animated_button("导出").clicked() {
+                        self.export_dialog_open = true;
+                    }
+                    return;
+                }
+                if editing_document {
+                    return;
+                }
                 if !self.add_label().is_empty()
                     && ui
                         .add(primary_button(&format!("+ {}", self.add_label())))
@@ -48,7 +78,9 @@ impl PersonalDeskApp {
                 self.render_view_switcher(ui);
             });
         });
-        ui.add_space(10.0);
+    }
+
+    pub(super) fn render_header(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
         ui.horizontal(|ui| {
             ui.set_min_height(32.0);
             let has_filter = TagScope::for_section(self.section).is_some();

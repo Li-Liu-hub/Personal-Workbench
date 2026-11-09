@@ -18,6 +18,7 @@ mod model;
 #[cfg(test)]
 mod search;
 mod tags;
+mod taskbar;
 mod theme;
 mod ui_components;
 mod undo;

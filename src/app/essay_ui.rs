@@ -5,7 +5,7 @@ use crate::essays::{Assignment, Summary};
 pub(super) struct EssayState {
     today: Option<Assignment>,
     pub(super) active: Option<Assignment>,
-    history: bool,
+    pub(super) history: bool,
     query: String,
     catalog_key: Option<(u64, String)>,
     catalog: Vec<Summary>,
@@ -74,20 +74,7 @@ impl PersonalDeskApp {
         }
         self.essay.active = None;
         self.search_field = None;
-        ui.horizontal(|ui| {
-            crate::ui_components::toolbar_title(ui, "每日随笔", 180., 24.);
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.animated_button("导出").clicked() {
-                    self.export_dialog_open = true;
-                }
-                crate::ui_components::chrome::segmented(
-                    ui,
-                    &mut self.essay.history,
-                    &[(false, "今日主题"), (true, "记录本")],
-                );
-            });
-        });
-        ui.add_space(18.);
+        ui.add_space(8.);
         if !self.essay.error.is_empty() {
             ui.colored_label(Color32::from_rgb(184, 65, 71), &self.essay.error);
         }

@@ -72,9 +72,7 @@ impl PersonalDeskApp {
         saved
     }
 
-    pub(super) fn render_sidebar(&mut self, ui: &mut egui::Ui) {
-        let compact = self.navigation_compact && self.section == Section::Documents;
-        ui.add_space(14.0);
+    pub(super) fn render_app_brand(&mut self, ui: &mut egui::Ui, compact: bool) {
         ui.horizontal(|ui| {
             let can_toggle = self.section == Section::Documents;
             let (rect, response) = ui.allocate_exact_size(
@@ -107,7 +105,12 @@ impl PersonalDeskApp {
                 ui.label(RichText::new("个人办公台").size(17.0).strong().color(ink()));
             }
         });
-        ui.add_space(16.0);
+    }
+
+    pub(super) fn render_sidebar(&mut self, ui: &mut egui::Ui) {
+        let compact = self.navigation_compact && self.section == Section::Documents;
+        ui.add_space(14.0);
+        ui.add_space(4.0);
         let navigation_spacing = ui.spacing().item_spacing.y;
         ui.spacing_mut().item_spacing.y = 4.0;
         egui::ScrollArea::vertical()
