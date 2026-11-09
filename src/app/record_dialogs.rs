@@ -1,5 +1,45 @@
 use super::*;
 
+fn secure_random_index(upper_bound: usize) -> Result<usize, getrandom::Error> {
+    let bound = upper_bound as u64;
+    let limit = (u32::MAX as u64 + 1) / bound * bound;
+    loop {
+        let mut bytes = [0u8; 4];
+        getrandom::fill(&mut bytes)?;
+        let value = u32::from_le_bytes(bytes) as u64;
+        if value < limit {
+            return Ok((value % bound) as usize);
+        }
+    }
+}
+
+fn generate_password() -> Result<String, getrandom::Error> {
+    const UPPERCASE: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const LOWERCASE: &[u8] = b"abcdefghijkmnopqrstuvwxyz";
+    const DIGITS: &[u8] = b"23456789";
+    const SYMBOLS: &[u8] = b"!@#$%^&*()-_=+[]{}?";
+    const LENGTH: usize = 20;
+
+    let groups = [UPPERCASE, LOWERCASE, DIGITS, SYMBOLS];
+    let mut password = Vec::with_capacity(LENGTH);
+    for group in groups {
+        password.push(group[secure_random_index(group.len())?]);
+    }
+
+    let mut alphabet = Vec::new();
+    for group in groups {
+        alphabet.extend_from_slice(group);
+    }
+    while password.len() < LENGTH {
+        password.push(alphabet[secure_random_index(alphabet.len())?]);
+    }
+    for index in (1..password.len()).rev() {
+        password.swap(index, secure_random_index(index + 1)?);
+    }
+
+    Ok(password.into_iter().map(char::from).collect())
+}
+
 impl PersonalDeskApp {
     pub(super) fn render_detail_windows(&mut self, ctx: &egui::Context) {
         if self.website_dialog_open {
@@ -137,7 +177,34 @@ impl PersonalDeskApp {
                     ui.label("网址或应用");
                     ui.text_edit_singleline(&mut self.credential_draft.website);
                     ui.label("密码");
-                    ui.text_edit_singleline(&mut self.credential_draft.password);
+                    if self.selected_credential.is_some() {
+                        ui.text_edit_singleline(&mut self.credential_draft.password);
+                    } else {
+                        ui.horizontal(|ui| {
+                            let button_width = 104.0;
+                            let field_width =
+                                (ui.available_width() - button_width - ui.spacing().item_spacing.x)
+                                    .max(120.0);
+                            ui.add_sized(
+                                [field_width, 32.0],
+                                egui::TextEdit::singleline(&mut self.credential_draft.password),
+                            );
+                            if ui
+                                .add_sized([button_width, 32.0], primary_button("一键生成"))
+                                .clicked()
+                            {
+                                match generate_password() {
+                                    Ok(password) => {
+                                        self.credential_draft.password = password;
+                                    }
+                                    Err(error) => {
+                                        self.notice = format!("生成密码失败：{error}");
+                                    }
+                                }
+                            }
+                        });
+                        ui.colored_label(muted(), "20 位，包含大写、小写、数字和特殊符号");
+                    }
                     if ui.animated_button("复制密码").clicked() {
                         ctx.copy_text(self.credential_draft.password.clone());
                         self.notice = "密码已复制到剪贴板".into();
