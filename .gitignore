@@ -25,3 +25,7 @@ __pycache__/
 /.workbuddy/
 
 node_modules/
+assets/markdown-editor/index.html
+assets/markdown-editor/editor.js
+assets/markdown-editor/style.css
+assets/marktext/

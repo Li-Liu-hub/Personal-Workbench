@@ -1,6 +1,6 @@
 [package]
 name = "personal-desk"
-version = "0.15.59"
+version = "0.15.60"
 edition = "2024"
 rust-version = "1.95"
 description = "A private Rust desktop office hub"
@@ -32,10 +32,14 @@ zip = { version = "6", default-features = false, features = ["deflate"] }
 zeroize = { version = "1", features = ["derive"] }
 egui_commonmark = { version = "0.26", default-features = false, features = ["pulldown_cmark"] }
 ureq = { version = "3", default-features = false, features = ["charset", "gzip", "json", "rustls"] }
+base64 = "0.22"
 
 getrandom = "0.3"
 
 [dev-dependencies]
+
+[target.'cfg(target_os = "windows")'.dependencies]
+wry = "0.57.1"
 
 [build-dependencies]
 winresource = { version = "0.1.31", default-features = false }

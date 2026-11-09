@@ -9,6 +9,7 @@ use std::{
 use eframe::egui::{self, Color32, RichText};
 
 mod appearance;
+mod blog_publish;
 mod essay_ui;
 #[cfg(debug_assertions)]
 pub mod visual_preview;
@@ -63,6 +64,11 @@ pub(crate) enum BackgroundMessage {
     ContactChats(String, std::result::Result<Vec<ChatRecord>, String>),
     Exported(std::result::Result<export::Report, String>),
     TaskbarPin(std::result::Result<bool, String>),
+    MarkdownEditor(writing_ui::EditorMessage),
+    BlogPublished {
+        page_id: String,
+        result: std::result::Result<String, String>,
+    },
 }
 
 #[derive(Clone)]
@@ -209,6 +215,11 @@ impl PersonalDeskApp {
             .as_ref()
             .and_then(|db| db.settings().ok())
             .unwrap_or_default();
+        let mut writing = writing_ui::WritingState::default();
+        writing.ssh_key_path = settings
+            .get("blog.ssh_key_path")
+            .map(PathBuf::from)
+            .or_else(blog_publish::default_ssh_key);
         let theme = crate::theme::ThemeSettings::load(&settings);
         let favorites = db
             .as_ref()
@@ -225,7 +236,7 @@ impl PersonalDeskApp {
             contact_extra_columns: settings
                 .get("view.contacts.extra")
                 .is_some_and(|v| v == "true"),
-            writing: Default::default(),
+            writing,
             library: Default::default(),
             photo_cache: Default::default(),
             contact_scroll_id: None,
@@ -410,7 +421,12 @@ impl PersonalDeskApp {
 
     fn run_search(&mut self) {}
 
+    #[cfg(test)]
     fn poll_background(&mut self) {
+        self.poll_background_at(0.0);
+    }
+
+    fn poll_background_at(&mut self, now: f64) {
         while let Ok(message) = self.receiver.try_recv() {
             match message {
                 BackgroundMessage::ContactChats(id, result) => {
@@ -442,6 +458,25 @@ impl PersonalDeskApp {
                     self.notice = match result {
                         Ok(true) => "已添加到任务栏。".into(),
                         Ok(false) => "未添加到任务栏；你可以再次点击按钮重试。".into(),
+                        Err(error) => error,
+                    };
+                }
+                BackgroundMessage::MarkdownEditor(message) => {
+                    self.handle_markdown_editor_message(message, now);
+                }
+                BackgroundMessage::BlogPublished { page_id, result } => {
+                    self.writing.publish_busy = false;
+                    self.writing.publishing_page_id = None;
+                    self.notice = match result {
+                        Ok(_) => format!(
+                            "《{}》已发布到个人博客。",
+                            self.writing
+                                .page
+                                .as_ref()
+                                .filter(|page| page.id == page_id)
+                                .map(|page| page.title.as_str())
+                                .unwrap_or("文章")
+                        ),
                         Err(error) => error,
                     };
                 }
@@ -787,9 +822,9 @@ impl PersonalDeskApp {
 }
 
 impl eframe::App for PersonalDeskApp {
-    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
-        self.poll_background();
+        self.poll_background_at(ui.input(|input| input.time));
         if ctx.input(|input| input.viewport().close_requested()) && !self.update_shutdown {
             if let Err(error) = self.persist_before_close() {
                 self.notice = error;
@@ -803,6 +838,8 @@ impl eframe::App for PersonalDeskApp {
         });
         begin_window_resize(&ctx, ui.max_rect());
         self.render_workspace(ui);
+        #[cfg(target_os = "windows")]
+        self.sync_markdown_editor_webview(&ctx, frame);
         self.render_tool_dialog(&ctx);
         if let Some(site) = self.website_open_request.take()
             && let Err(error) = open::that_detached(&site.url)

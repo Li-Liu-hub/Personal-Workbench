@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 #[cfg(test)]
 mod audit_tests;
+mod blog;
 mod contacts;
 mod essays;
 mod library;
@@ -218,6 +219,7 @@ impl Database {
         }
         desk.execute_batch("CREATE TABLE IF NOT EXISTS books(id TEXT PRIMARY KEY,title TEXT NOT NULL,deleted INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
             CREATE TABLE IF NOT EXISTS book_pages(id TEXT PRIMARY KEY,book_id TEXT NOT NULL REFERENCES books(id),title TEXT NOT NULL,body TEXT NOT NULL DEFAULT '',revision INTEGER NOT NULL DEFAULT 1,deleted INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS blog_post_links(local_page_id TEXT PRIMARY KEY,remote_post_id TEXT NOT NULL UNIQUE);
             CREATE TABLE IF NOT EXISTS book_documents(document_path TEXT PRIMARY KEY,book_id TEXT NOT NULL REFERENCES books(id),position INTEGER NOT NULL DEFAULT 0);
             CREATE TABLE IF NOT EXISTS book_page_drafts(id TEXT PRIMARY KEY,book_id TEXT NOT NULL,writer TEXT NOT NULL,page_json TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS book_page_versions(page_id TEXT NOT NULL,revision INTEGER NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,tags_json TEXT NOT NULL,PRIMARY KEY(page_id,revision));")?;
