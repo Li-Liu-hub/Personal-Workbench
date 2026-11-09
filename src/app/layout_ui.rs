@@ -15,7 +15,7 @@ impl PersonalDeskApp {
             );
             let editing_document = matches!(self.section, Section::Documents | Section::Books)
                 && self.writing.page.is_some();
-            let actions_width = if editing_document {
+            let content_actions_width = if editing_document {
                 0.0
             } else if self.section == Section::Essays {
                 190.0
@@ -33,9 +33,11 @@ impl PersonalDeskApp {
                         0.0
                     }
             };
+            let actions_width = content_actions_width + 126.0;
             let width = (ui.available_width() - actions_width).clamp(120.0, 320.0);
             crate::ui_components::toolbar_title(ui, &title, width, 24.0);
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                self.render_window_controls(ui);
                 if self.section == Section::Essays {
                     crate::ui_components::chrome::segmented(
                         ui,
@@ -143,6 +145,48 @@ impl PersonalDeskApp {
             if matches!(self.section, Section::Folders | Section::Documents) {
                 self.run_search();
             }
+        }
+    }
+
+    fn render_window_controls(&self, ui: &mut egui::Ui) {
+        let ctx = ui.ctx().clone();
+        let maximized = ctx.input(|input| input.viewport().maximized.unwrap_or(false));
+
+        if ui
+            .add_sized([32.0, 28.0], egui::Button::new("×"))
+            .on_hover_text("关闭")
+            .clicked()
+        {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+        }
+        let maximize = ui.add_sized([32.0, 28.0], egui::Button::new(""));
+        let square = maximize.rect.shrink(9.0);
+        let stroke = egui::Stroke::new(1.3, ui.visuals().text_color());
+        if maximized {
+            ui.painter().rect_stroke(
+                square.translate(egui::vec2(2.0, -2.0)),
+                0,
+                stroke,
+                egui::StrokeKind::Inside,
+            );
+            ui.painter()
+                .rect_stroke(square, 0, stroke, egui::StrokeKind::Inside);
+        } else {
+            ui.painter()
+                .rect_stroke(square, 0, stroke, egui::StrokeKind::Inside);
+        }
+        if maximize
+            .on_hover_text(if maximized { "还原" } else { "最大化" })
+            .clicked()
+        {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Maximized(!maximized));
+        }
+        if ui
+            .add_sized([32.0, 28.0], egui::Button::new("—"))
+            .on_hover_text("最小化")
+            .clicked()
+        {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(true));
         }
     }
 

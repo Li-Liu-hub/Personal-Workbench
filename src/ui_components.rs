@@ -109,7 +109,7 @@ pub fn surface_frame() -> egui::Frame {
 }
 
 pub fn toolbar_title(ui: &mut Ui, title: &str, width: f32, size: f32) -> Response {
-    let (rect, response) = ui.allocate_exact_size(egui::vec2(width, 38.0), egui::Sense::click());
+    let (rect, response) = ui.allocate_exact_size(egui::vec2(width, 38.0), egui::Sense::drag());
     let mut job = egui::text::LayoutJob::simple(
         title.to_owned(),
         egui::FontId::proportional(size),
@@ -125,7 +125,18 @@ pub fn toolbar_title(ui: &mut Ui, title: &str, width: f32, size: f32) -> Respons
             galley,
             ink(),
         );
-    response.on_hover_text(title)
+    let response = response.on_hover_text("拖动此处移动窗口；双击最大化或还原");
+    if response.drag_started() {
+        ui.ctx().send_viewport_cmd(egui::ViewportCommand::StartDrag);
+    }
+    if response.double_clicked() {
+        let maximized = ui
+            .ctx()
+            .input(|input| input.viewport().maximized.unwrap_or(false));
+        ui.ctx()
+            .send_viewport_cmd(egui::ViewportCommand::Maximized(!maximized));
+    }
+    response
 }
 
 pub fn classification_dropdown(

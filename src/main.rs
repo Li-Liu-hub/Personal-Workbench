@@ -164,7 +164,9 @@ fn main() -> eframe::Result {
             .with_icon(application_icon())
             .with_drag_and_drop(false)
             .with_inner_size([1280.0, 800.0])
-            .with_min_inner_size([1000.0, 680.0]),
+            .with_min_inner_size([1000.0, 680.0])
+            .with_decorations(!cfg!(target_os = "windows"))
+            .with_resizable(true),
         ..Default::default()
     };
 

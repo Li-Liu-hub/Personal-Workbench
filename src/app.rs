@@ -801,6 +801,7 @@ impl eframe::App for PersonalDeskApp {
         } else {
             Duration::from_secs(5)
         });
+        begin_window_resize(&ctx, ui.max_rect());
         self.render_workspace(ui);
         self.render_tool_dialog(&ctx);
         if let Some(site) = self.website_open_request.take()
@@ -822,6 +823,39 @@ impl eframe::App for PersonalDeskApp {
                 Err(error) => format!("启动程序失败：{error}"),
             };
         }
+    }
+}
+
+fn begin_window_resize(ctx: &egui::Context, window_rect: egui::Rect) {
+    let maximized = ctx.input(|input| input.viewport().maximized.unwrap_or(false));
+    if maximized {
+        return;
+    }
+    let Some(pointer) = ctx.pointer_latest_pos() else {
+        return;
+    };
+    if !ctx.input(|input| input.pointer.button_pressed(egui::PointerButton::Primary)) {
+        return;
+    }
+
+    let edge = 6.0;
+    let left = pointer.x <= window_rect.left() + edge;
+    let right = pointer.x >= window_rect.right() - edge;
+    let top = pointer.y <= window_rect.top() + edge;
+    let bottom = pointer.y >= window_rect.bottom() - edge;
+    let direction = match (left, right, top, bottom) {
+        (true, _, true, _) => Some(egui::ResizeDirection::NorthWest),
+        (_, true, true, _) => Some(egui::ResizeDirection::NorthEast),
+        (true, _, _, true) => Some(egui::ResizeDirection::SouthWest),
+        (_, true, _, true) => Some(egui::ResizeDirection::SouthEast),
+        (true, _, _, _) => Some(egui::ResizeDirection::West),
+        (_, true, _, _) => Some(egui::ResizeDirection::East),
+        (_, _, true, _) => Some(egui::ResizeDirection::North),
+        (_, _, _, true) => Some(egui::ResizeDirection::South),
+        _ => None,
+    };
+    if let Some(direction) = direction {
+        ctx.send_viewport_cmd(egui::ViewportCommand::BeginResize(direction));
     }
 }
 
