@@ -28,8 +28,18 @@ function App() {
     setWorkspaceDirty(false)
     setSection(key)
   }
+  // 显式调用 startDragging：不依赖注入的 drag-region 脚本，按钮区域不触发拖动。
+  function beginDrag(event: React.MouseEvent) {
+    if (event.button !== 0) return
+    if ((event.target as HTMLElement).closest('button')) return
+    void getCurrentWindow().startDragging().catch(() => {})
+  }
+  function toggleMaximizeOnDoubleClick(event: React.MouseEvent) {
+    if ((event.target as HTMLElement).closest('button')) return
+    void getCurrentWindow().toggleMaximize().catch(() => {})
+  }
   return <div className="window-shell">
-    <header className="window-titlebar" data-tauri-drag-region>
+    <header className="window-titlebar" data-tauri-drag-region onMouseDown={beginDrag} onDoubleClick={toggleMaximizeOnDoubleClick}>
       <div className="window-title" data-tauri-drag-region><span className="window-title-mark"/>个人办公台</div>
       <div className="window-controls">
         <button onClick={() => void getCurrentWindow().minimize()} aria-label="最小化">─</button>
