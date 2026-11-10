@@ -1,12 +1,17 @@
 use crate::error::{DeskError, Result};
 use std::path::{Path, PathBuf};
-pub fn choose_folder() -> Option<PathBuf> {
-    rfd::FileDialog::new()
-        .set_title("选择快捷文件夹")
-        .pick_folder()
-}
-pub fn choose_file() -> Option<PathBuf> {
-    rfd::FileDialog::new().set_title("选择快捷文件").pick_file()
+
+/// A shortcut must carry a name and point at an existing folder or file.
+pub fn validate_shortcut(name: &str, path: &Path, is_dir: bool) -> Result<()> {
+    let exists = if is_dir {
+        path.is_dir()
+    } else {
+        path.is_file()
+    };
+    if name.trim().is_empty() || !exists {
+        return Err(DeskError::InvalidInput("请输入名称并选择存在的路径".into()));
+    }
+    Ok(())
 }
 pub fn open_in_system(path: &Path) -> Result<()> {
     if !path.is_dir() {
@@ -121,5 +126,40 @@ mod tests {
         ] {
             assert_eq!(shell_path(Path::new(input)), PathBuf::from(expected));
         }
+    }
+
+    #[test]
+    fn shortcut_validation_requires_a_name_and_an_existing_target() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("document.txt");
+        std::fs::write(&file, "keep").unwrap();
+        assert!(validate_shortcut("资料目录", dir.path(), true).is_ok());
+        assert!(validate_shortcut("文档", &file, false).is_ok());
+
+        let expected = "请输入名称并选择存在的路径";
+        assert_eq!(
+            validate_shortcut("  ", dir.path(), true)
+                .unwrap_err()
+                .to_string(),
+            expected
+        );
+        assert_eq!(
+            validate_shortcut("文档", &file, true)
+                .unwrap_err()
+                .to_string(),
+            expected
+        );
+        assert_eq!(
+            validate_shortcut("资料目录", dir.path(), false)
+                .unwrap_err()
+                .to_string(),
+            expected
+        );
+        assert_eq!(
+            validate_shortcut("缺失", &dir.path().join("missing"), true)
+                .unwrap_err()
+                .to_string(),
+            expected
+        );
     }
 }

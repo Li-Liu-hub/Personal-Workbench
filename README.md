@@ -1,10 +1,10 @@
 # 个人办公台
 
-Rust 原生 Windows 桌面工具。直接打开使用，集中管理个人记录、文档和 EXE 程序入口。当前源码版本：**0.15.63**。
+Windows x64 桌面工具，由 Rust 核心库 `personal-desk` 与 Tauri 2 + React 19 桌面客户端（`desktop/`）组成。直接打开使用，集中管理个人记录、文档和 EXE 程序入口。当前源码版本：**0.15.76**。
 
-下载最新版：[Releases](https://github.com/Li-Liu-hub/Personal-Workbench/releases/latest)。程序内“更新 → 检查更新”会读取该发布页，发现新版本后自动下载安装。
+下载最新版：[Releases](https://github.com/Li-Liu-hub/Personal-Workbench/releases/latest)。程序内“设置 → 版本更新 → 检查更新”会读取该发布页，发现新版本后自动下载安装。
 
-免安装版本请完整解压 ZIP，并保持 WebView2Loader.dll 与 PersonalDesk.exe 在同一文件夹。
+免安装版本请完整解压 ZIP，并保持 WebView2Loader.dll 与 PersonalDesk.exe 在同一文件夹；本机启动入口 `dist/个人办公台.exe` 同样需要旁边的 `WebView2Loader.dll`。
 
 ## 项目理念
 
@@ -21,21 +21,31 @@ Rust 原生 Windows 桌面工具。直接打开使用，集中管理个人记录
 
 从 [GitHub Releases](https://github.com/Li-Liu-hub/Personal-Workbench/releases/latest) 下载 Windows x64 版本：
 
-- `PersonalDesk-<版本>-Windows-x64.zip` 或 `PersonalDesk.exe`：免安装，解压后直接运行。当前发布提供这两种。
-- `PersonalDesk-<版本>-Setup-x64.exe`：安装向导，支持选择程序和数据目录、创建快捷方式及可选开机启动；由仓库的 `package-release.yml` 工作流生成，未随每次发布提供时可以只用免安装包。
+- `PersonalDesk-<版本>-Windows-x64.zip` 或 `PersonalDesk.exe`：免安装，解压后直接运行。发布包由 `scripts/package-release.ps1` 生成，包含 `PersonalDesk.exe`、`使用说明.txt` 与运行时需要的 `WebView2Loader.dll`。
+- `PersonalDesk-<版本>-Setup-x64.exe`：安装向导，支持选择程序和数据目录、创建快捷方式及可选开机启动；由仓库的 `.github/workflows/package-release.yml` 工作流按需生成，未随每次发布提供时可以只用免安装包。
 - `SHA256SUMS.txt`：发布文件校验值；`latest.json`：客户端检查更新使用的清单。
-- 客户端包不包含个人数据、本地模型或模型运行时。
+- 客户端包不包含个人数据或模型运行时。
 
 已有数据请保留程序旁的 `personal-desk-data-path.txt`；安装时选择原数据目录。升级只替换程序，卸载保留账号、文档、学习与游戏记录。软件记住已选择的数据位置，已安装目录中的路径配置优先保留。
 
 ## 仓库与数据
 
-- 仓库只放程序源码、内容包和示例数据；简历资料由独立的 `D:\MyProject\简历工具` 管理，账号密码、投递记录、笔记库、`desk.db` 和模型文件只保存在本机。
+- 仓库只放程序源码、内容包和示例数据；简历资料由独立的 `D:\MyProject\简历工具` 管理，个人数据与 `desk.db` 只保存在本机数据目录，不提交仓库。
 - 旧求职工具的个人资料、配置、队列和接码凭据保存在项目外的 `D:\MyProject\个人办公台-归档\求职个人数据`；首次迁移时由独立求职项目从该目录导入。
 - 示例与测试统一使用占位姓名、手机号、邮箱、学校与公司，不放真实个人经历。
 - 提交前可用 `git status` 与 `git grep` 检查是否误加了个人文件。
 
 ## 最近更新
+
+### v0.15.76 · 核心库结构整理与文档库发布
+
+- 完成 0.15.75 统一 Tauri 客户端后的结构拆分：根目录 `personal-desk` 只保留核心库（数据访问、领域规则、导入导出、更新与自启等），界面全部由 `desktop/` 的 Tauri + React 客户端承担；删除约 780 KB、52 个已废弃的原生 egui 界面文件与空模块目录，核心库不再依赖 eframe、egui、wry 等界面框架。
+- 写作资料（图书、文档、随笔、草稿、版本、日志及配图）改回本机 `desk.db` 与数据目录，只有账号密码等私密资料继续存放在私网加密库。首次启动会把旧版远端写作资料一次性合并到本机，合并前写出可恢复快照 `backups/remote-writing-*.db`；任一步失败都保留两端原样并可重试。
+- 设置页新增“MongoDB 文档库”配置，可把文档及受管图片发布到文档库；连接密码由当前 Windows 用户的 DPAPI 保护，不写入源码或数据导出。
+- 修复窗口最小化、最大化、关闭按钮因缺少 Tauri 权限而无效，以及安装更新后旧窗口无法关闭的问题。
+- WebView2 浏览器数据不再写入程序所在的分发目录，改存应用数据目录，避免污染 `dist` 和升级目录。
+- 恢复 `--import-data`、`--export-all`、`--import-writing-bundle` 三个命令行入口。
+- 修复发布构建在 Release 模式下的 11 项静态检查失败；统一验证入口新增前端回归与五处版本一致性回归，构建脚本改为先通过完整验证再打包。
 
 ### v0.15.63 · 扩大顶部窗口拖动区域
 
@@ -243,7 +253,7 @@ Rust 原生 Windows 桌面工具。直接打开使用，集中管理个人记录
 
 ## 每日随笔
 
-左侧选择“每日随笔”，在“今日主题”中点击“开始写作”；暂时没有灵感可以先点“换个主题”。文章正文不预填模板。写作页顶部保留原始题目与提示，文章标题可以自行修改。返回后点击“继续写作”，或在“记录本”中查找以前的文章。
+左侧选择“每日随笔”，在“今日主题”中点击“开始写作”；暂时没有灵感可以先点“换个主题”。主题卡片显示日期、分类、题目与提示，文章正文不预填模板。文章标题默认为“日期 · 主题”，可以自行修改。返回后点击“继续写作”，或在“记录本”中查找以前的文章。
 
 每天对应一篇随笔；切换日期创建新的主题，历史文章保留。已有文章不会因换题、图书归组或更新被覆盖。若主动在文档中删除随笔，不会自动重建或恢复已删除正文。
 
@@ -259,9 +269,8 @@ Rust 原生 Windows 桌面工具。直接打开使用，集中管理个人记录
 
 | 使用范围 | 所需环境 |
 | --- | --- |
-| 记录管理、写作、日志、SQLite 练习、导出 | Windows x64 客户端 |
-| AI 批改、讲解、追问和翻译题生成 | 在练习设置中选择本地 GGUF 模型及 `llama-server.exe` |
-| Java 项目实际编译与测试 | JDK 17+，`javac` 和 `java` 可从 PATH 找到 |
+| 记录管理、账号密码、写作、随笔、联系人、物品、网站、小工具、导出与更新 | Windows x64 客户端 |
+| 刷题、单词、百科、小游戏等独立工具 | 由 `D:\MyProject` 下对应程序提供，不随本客户端打包 |
 
 记录页可直接搜索和分类筛选，宫格用于浏览；账号、联系人和物品支持列表内编辑。首次点击字段会选中原值，输入覆盖，不输入则保留。写作从“新建文档”或“生成日志”开始；刷题和百科功能由各自的独立程序提供。
 
@@ -288,11 +297,11 @@ Rust 原生 Windows 桌面工具。直接打开使用，集中管理个人记录
 
 ### 写文档
 
-在 **文档写作** 中直接新建、输入标题和正文，停止输入后自动保存。顶部固定提供返回、写作/预览、生成日志和新建；工具栏提供格式模板，更多菜单提供分类和 Markdown 导出。
+在 **文档写作** 中直接新建、输入标题和正文，停止输入后自动保存。顶部提供新建文档、生成今日日志、恢复草稿、导出 Markdown 与目录开关；编辑器内提供写作 / 预览切换和 Markdown 格式工具栏。
 
-**生成日志**使用本机当前日期作为标题，例如 `2026-10-21`。同一天再次点击会打开已有日志，保留正文及所属图书。文档可拖到一起组成图书；拖入已有图书或其中的文档时，保留图书名称并进入原图书，自动打开被拖动文档的标签页。同一本图书内拖放不会另建图书，标签页使用文档标题。
+**生成日志**使用本机当前日期作为标题，例如 `2026-10-21`。同一天再次点击会打开已有日志，保留正文及所属图书。文档和图书可通过“移动文档 / 移动图书”归入其他图书或根目录，移动前要求先保存；同一本图书内移动不会另建图书。
 
-写作使用原生 egui 编辑区，Markdown 预览采用开源 [egui_commonmark](https://github.com/lampsitter/egui_commonmark)。正文使用无边框纸张布局，支持原生文本撤销。旧版本的台内文本及恢复草稿会复制到写作库，原文件保留；外部文件索引保留在历史数据和导出中。
+写作页使用 CodeMirror 6 编辑器（`desktop/src/MarkdownEditor.tsx`），Markdown 预览使用 react-markdown；正文使用无边框纸张布局，支持编辑撤销、写作 / 预览切换和图片粘贴。旧版本的台内文本及恢复草稿会复制到写作库，原文件保留；外部文件索引保留在历史数据和导出中。
 
 目前已发布的写作区是 Markdown 文本编辑，标题、列表和代码块在“写作”模式下显示为源码，切换到“预览”才按格式展示；它不是所见即所得编辑器。可以手动输入，例如：
 
@@ -306,9 +315,9 @@ System.out.println("Hello");
 ```
 ````
 
-正文变更会先写入恢复草稿，停止输入后尝试自动保存；返回、切换文档、导出和关闭悬浮窗前也会尝试保存。保存冲突或失败时不会把旧版本强行覆盖到已保存文档；未完成的草稿可在之后恢复为单独文档。悬浮窗与主窗口编辑的是同一篇文档。
+正文变更会先写入恢复草稿，停止输入后尝试自动保存；切换文档、导出和关闭程序前也会尝试保存。保存冲突或失败时不会把旧版本强行覆盖到已保存文档；未完成的草稿可在之后恢复为单独文档。
 
-文章、图书页面和悬浮窗提供共用 Markdown 格式工具栏，悬浮窗支持预览。工具栏插入 Markdown 模板，选中文字会被模板替换；目前没有文章大纲，也不是所见即所得编辑器。
+写作页提供 Markdown 格式工具栏和预览切换。工具栏插入 Markdown 模板，选中文字会被模板替换；目前没有文章大纲，也不是所见即所得编辑器。
 
 ### 独立项目：刷题王与每日单词
 
@@ -393,9 +402,9 @@ D:/models/llm/runtime/llama-b11669-cuda12.4/llama-server.exe
 | 网站收藏 | 名称、网址、标签、备注；通过系统默认浏览器打开 |
 | 小工具 | 保存外部 EXE 的名称、路径和备注；点击启动，移除入口不会删除程序 |
 | 独立项目 | 小游戏、刷题王、每日单词、百科全书、Excel 批量合并、PDF 转图片、求职工具、爬虫工具和简历工具；各自单独运行 |
-| 设置 | 开机自启动、自定义颜色和背景图、数据位置、全部导出 |
+| 设置 | 开机自启动、自定义颜色和背景图、主题缩放、数据位置、私网账号库与 MongoDB 文档库配置、更新检查与全部导出 |
 
-记录页支持当前页搜索、分类、收藏置顶和宫格/列表。账号宫格铺满可用宽度、按行对齐，仅绘制可见条目；联系人聊天原件按需加载。联系人聊天记录可导入 TXT、Markdown、JSON、Excel（`.xlsx` / `.xls`），原件随联系人保存。
+记录页支持当前页搜索、分类、收藏置顶和宫格/列表。联系人聊天原件按需加载；联系人聊天记录可导入 TXT、Markdown、JSON、Excel（`.xlsx` / `.xls`），原件随联系人保存。
 
 联系人、物品列表使用统一的圆角行、间距与编辑字段。物品列随窗口适配；联系人默认显示常用字段，证件号、地址和爱好可按需展开。切换宫格/列表不强制保存未完成的行，草稿保留到切回列表继续修改；无效日期在字段旁标记，不阻止视图切换。日期可输入 `YYYY-MM-DD`、斜杠、点号、连续数字或中文年月日格式，保存时统一格式。
 
@@ -412,19 +421,19 @@ D:/models/llm/runtime/llama-b11669-cuda12.4/llama-server.exe
 
 ### 开机自启动与更新
 
-**设置 → 启动设置 → 开机自启动**。只登记当前用户的程序路径；取消勾选即关闭。已开启时，移动 EXE 后手动打开一次正式版可更新路径，未开启时不会自动开启。
+**设置 → 开机启动** 打开或关闭当前用户的程序自启动登记；取消勾选即关闭。已开启时，移动 EXE 后手动打开一次正式版可更新路径，未开启时不会自动开启。
 
-左下角 **更新 → 检查更新 → 安装更新并重启**。客户端默认读取 GitHub 仓库最新发布版本的更新清单，在后台下载并校验程序后安装，不需要手动替换文件；也可以在“选择更新清单”里指定本机 `dist/updates/latest.json` 做内网分发。Rust 代码改动仍由开发端编译，使用者安装更新即可，重启后生效。
+**设置 → 版本更新 → 检查更新 → 安装并重启**。客户端默认读取 GitHub 仓库最新发布版本的更新清单，在后台下载并校验程序后再安装，不需要手动替换文件。Rust 代码改动仍由开发端编译，使用者安装更新即可，重启后生效。
 
-更新替换程序，保留个人数据目录，并在安装前创建数据库备份。保存失败或后台操作未完成时会阻止安装。模型权重不随客户端更新重复下载。
+更新替换程序，保留个人数据目录，并在安装前创建数据库备份。保存失败或后台操作未完成时会阻止安装。
 
 ## 数据与导出
 
-- 默认数据目录 `%LOCALAPPDATA%/PersonalDesk`；程序旁的位置文件可覆盖它。
-- `desk.db` 保存个人办公台记录、文档正文、草稿、版本和设置；独立工具继续沿用同一数据目录保存游戏、学习和百科数据。主题图片及旧版原件保留在数据目录。
-- 账号密码按普通文本保存，没有登录、权限校验或锁定流程。
-- 个人办公台可导出其记录、主题、Markdown 文档、旧版原件及数据库快照；独立工具继续使用同一数据库中的原有数据。
-- **快捷路径和历史外部文档索引只保存地址，不打包指向的外部文件夹。**模型权重、浏览器登录资料不打入数据导出。
+- 默认数据目录 `%LOCALAPPDATA%\PersonalDesk`；程序旁的位置文件可覆盖它。
+- `desk.db` 保存个人办公台记录、写作文档与图书正文、草稿、版本和设置；写作图片等附件保存在数据目录。小游戏、刷题王、每日单词和百科全书等独立项目继续沿用原数据目录中的既有数据，不在本客户端显示。
+- 账号密码在本机按普通文本保存并明文显示，没有登录、权限校验或锁定流程；发布版运行时会另外把账号资料同步到私网加密库（age 加密，身份密钥由当前 Windows 用户的 DPAPI 保护）。写作资料只保存在本机。
+- 个人办公台可导出其记录、主题、Markdown 文档、旧版原件及数据库快照。
+- **快捷路径和历史外部文档索引只保存地址，不打包指向的外部文件夹。**WebView2 登录资料与私网库连接密码不打入数据导出。
 - 导入使用事务，导出先写临时压缩包并验证，再替换目标。升级保留旧表、原件和草稿；建议定期全部导出。
 
 ```powershell
@@ -435,6 +444,32 @@ D:/models/llm/runtime/llama-b11669-cuda12.4/llama-server.exe
 账号导入 JSON 使用 `accounts` 和可选 `websites` 数组。同 ID 不覆盖现有记录。
 
 ## 本版验证
+
+v0.15.76 的最终验收数字见下方“0.15.76 验收记录”。当前自动检查由 `scripts/verify.ps1` 统一执行，覆盖 Rust 格式（根 crate 与 desktop 后端）、Clippy（debug 与 release 库）、Rust 回归、前端构建 / lint / vitest 回归、Tauri 后端 Clippy 与 Python 回归；具体通过数、忽略项与验证环境以集成验收记录为准。
+
+### 0.15.76 验收记录
+
+<!-- LEAD-FILL-VERIFY -->
+
+本版在 Windows 11 x64、Rust 1.99.1（`stable-x86_64-pc-windows-msvc`）、Node.js 26.13.0 上，由统一入口 `scripts/verify.ps1` 与 `scripts/build.ps1` 完成验收。
+
+| 检查 | 结果 |
+| --- | --- |
+| Rust 格式（根 crate 与 desktop 后端） | 通过 |
+| Clippy `-D warnings`（根 crate debug all-targets、根 crate release lib、desktop 后端 release all-targets） | 通过，零告警 |
+| Rust 回归 | **94 通过、0 失败、1 忽略**（核心库 72 + 集成 22） |
+| 前端 vitest 回归 | **19 个文件、39 个用例全部通过** |
+| 前端构建与 lint | 构建通过；lint 0 error，仍有 29 条既有 warning（与重构前基线相同，未作为通过条件） |
+| Python 回归 | 13 通过 |
+| 版本一致性 | 五处版本号与 `release_history` 首项一致（`tests/version_consistency.rs`） |
+
+新增回归覆盖：写作资料一次性迁移（正常迁移、重复幂等、内容冲突拒绝且两端原样、本机行不丢、图片冲突另存副本）、本地模式与降级导出、MongoDB 配置校验与发布入参 / 图片批次、账号与物品与快捷路径与博客发布校验、命令行入口与版本一致性。
+
+正式产物：`dist/个人办公台.exe` 0.15.76（27,764,736 字节，SHA-256 `92e30544…8ad4ac6`）；免安装包 `PersonalDesk-0.15.76-Windows-x64.zip`（10,791,622 字节，SHA-256 `70b4c197…70c385`），内含 EXE、`使用说明.txt` 与 `WebView2Loader.dll`。用隔离数据目录执行 `--export-all` 退出码 0、导出 21 个条目；`--import-data` 与 `--import-writing-bundle` 由开发版实测重复导入跳过。
+
+验证边界：未连接真实 MongoDB 与真实私网加密库（只做编译、纯本地回归与降级分类测试），首次启动的远端写作资料迁移需在真实配置下确认一次；WebView2 用户数据目录由开发版实测（数据目录下生成 `WebView2\EBWebView`，EXE 旁不再生成）；本次未对正式 EXE 做人工界面点击验收。
+
+以下为历史版本验收记录，只对应各自版本；其中原生界面、学习工具与部分测试命令已不在当前仓库。
 
 v0.14.0：普通回归 **170 项通过、10 项忽略**，格式与静态检查通过。新增覆盖百科增量导入、每个新知识点的练习关联、组合检索、个人修改 / 删除后重放、实际鼠标重置筛选、取消编辑后刷新、单元格点击选中与覆盖输入；百科布局检查 1000×680、1280×800、1920×1080。另选 **12 个** Java 示例在本机 JDK 17.0.15 编译并执行，包括值传递、防御性复制、金额、时间、Stream、包装类型、注解与读写锁；其余片段及框架集成未算作实际执行。
 
@@ -448,73 +483,6 @@ v0.12.0：普通回归 **156 项通过、9 项忽略**，格式与静态检查�
 
 正式程序通过旧数据副本升级与完整导出核对，原个人记录、写作正文、日记关联及已有文件保持一致，数据库和 ZIP 完整性检查通过。忽略项需要本地模型、JDK 或人工测量，不计入普通回归数。
 
-## 开发
-
-```text
-src/                  主程序、领域逻辑及同模块测试
-  app/                页面与交互回归测试
-    navigation_ui.rs  导航、页面入口与快捷键
-    appearance.rs     统一字体与界面样式
-    reference_ui.rs   百科目录、编辑与查阅状态
-  db/                 数据访问、增量迁移
-  reference.rs        百科条目、输入校验与展示内容
-  study.rs            题目、评分、记录和掌握规则
-  curriculum.rs       训练分类、能力路线、阶段与推荐选题
-  local_ai.rs         按需本地模型运行与结构化批改
-  sql_practice.rs     独立 SQLite 训练、结果验证与自动回滚
-  english.rs          单词配套练习、语义规则与变式计划
-  challenges.rs       多文件源码练习、ZIP 导入导出及真实测试
-  ui_components/      共用布局组件
-assets/               百科资料、Java 生态、工程题、基础训练题、IELTS 词条及许可证
-scripts/              构建与更新发布
-docs/开发文档.md     设计、持久化和验收说明
-dist/                本机运行及更新文件，不提交 Git
-```
-
-需要 Windows x64、Rust 1.95+、`x86_64-pc-windows-gnu`、MSYS2 UCRT64 GCC。普通办公功能无需 WebView2 或模型运行环境。
-
-程序图标使用 `assets/personaldesk.png`（窗口）和 `assets/personaldesk.ico`（EXE、安装包）。`build.rs` 在构建时嵌入 Windows 图标；GNU 工具链还需 MSYS2 UCRT64 的 `windres`，可通过 `WINDRES` 指定路径。
-
-```powershell
-rustup target add x86_64-pc-windows-gnu
-$env:MSYS2_UCRT64_BIN = 'D:\msys64\ucrt64\bin'
-.\scripts\build.ps1
-```
-
-构建脚本执行格式、Clippy、测试和发布编译。运行中的 EXE 不会被直接覆盖，只发布更新包。开发时将 `CARGO_TARGET_DIR`、`TEMP`、`TMP` 指向不含中文的目录，避免 GNU 链接器路径兼容问题。
-
-```powershell
-cargo fmt --all -- --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
-```
-
-代码边界及新增功能接入流程见 [开发规范](docs/开发规范.md)；日常贡献约定见 [CONTRIBUTING](CONTRIBUTING.md)。
-
-性能测量使用临时数据，可单独运行：
-
-```powershell
-cargo test record_list_render_measurement -- --ignored --nocapture
-cargo test reference_search_measurement -- --ignored --nocapture
-```
-
-本机调试构建对照：相同 1000 条模拟联系人、30 帧平均绘制耗时从约 291.8 ms 降到 5.8 ms；这是可见行渲染改造的局部测量，不代表所有数据规模和页面的速度。普通回归另行验证最后一行可达、草稿保留和滚动后的操作。
-
-真实模型回归需先安装上述权重及运行程序，再显式运行：
-
-```powershell
-cargo test live_local_grading_end_to_end -- --ignored --nocapture
-cargo test live_learning_tutor_english_modes_and_real_token_metrics -- --ignored --nocapture
-cargo test live_sql_execution_and_local_grading -- --ignored --nocapture
-cargo test live_model_controls_stop_idle_and_generating_models_without_losing_answers -- --ignored --nocapture
-```
-
-Java 项目验收需本机 JDK，单独运行：
-
-```powershell
-cargo test java_challenge_fails_before_and_passes_after_reference_fix -- --ignored --nocapture
-```
-
 v0.11.0 验收记录：普通回归 142 项通过、9 项忽略。新增随笔验证覆盖主题持久化、换题与重复点击、历史检索、重启和图书归组、故障回滚、删除不重建、导出，以及实际键盘写作、自动保存、返回和记录本打开。
 
 v0.10.0 验收记录：普通回归 136 项通过、9 项忽略。指令覆盖增删改查、全文索引更新、语言/分类组合筛选、旧修订号冲突、个人修改与删除保留、模块及全部导出，以及实际键盘输入和点击保存。10 个选取的 C/C++/Rust/Java/JavaScript 片段经过实际编译或运行验证，未把其余片段算作已执行。标准和小窗口预览已检查；10,000 条模拟指令的本机调试构建查询中位数约 4.8 ms、P95 约 5.3 ms。
@@ -527,11 +495,62 @@ v0.9.0 验收记录：普通回归 126 项通过、7 项忽略；真实本地模
 
 v0.8.1 验收记录：普通回归结果为 118 项通过、6 项忽略；日记归组覆盖宫格/列表实际拖放、重启后重开、继续保存和失败回滚。正式版还通过个人数据副本的升级与完整导出核对，原数据文件保持不变。该记录对应 v0.8.1 的验收结果。
 
+## 开发
+
+个人办公台采用「核心库 + 桌面客户端」两段结构，只有一个客户端：
+
+```text
+Cargo.toml / Cargo.lock    根目录核心库 personal-desk（无界面依赖）
+src/                       核心库
+  db.rs、db/               数据访问、建表、索引与增量迁移
+  model.rs、library.rs     领域模型与规则（账号、图书与页面、物品、网站等）
+  contacts.rs、essays.rs   联系人与每日随笔
+  import.rs、export.rs     数据导入与一致快照导出
+  updater.rs、install.rs   更新清单、安装替换与单实例
+  autostart.rs、files.rs   开机自启动、系统打开与文件操作
+  remote_vault.rs          私网加密账号库
+  vault_migration.rs       0.15.76 一次性写作资料迁回本机
+  mongo_config.rs、mongo_docs.rs  MongoDB 文档库配置与发布
+desktop/                   Tauri 2 + React 19 + Ant Design 6 桌面客户端
+  src/                     前端页面、组件、hooks 与 vitest 回归测试
+  src-tauri/src/commands/  Tauri 命令，按领域拆分，只做参数转换并调用核心库
+  src-tauri/src/state.rs   数据目录、数据库、单实例、主窗口与后台同步
+  src-tauri/src/main.rs    图形入口与命令行模式
+tests/                     跨模块 Rust 集成回归（迁移、导出、版本一致性）
+scripts/                   verify / build / 发布脚本
+assets/                    图标、版本历史与发布资源
+packaging/windows/         Inno Setup 安装脚本
+docs/                      设计、规范与历史文档
+dist/                      本机构建与更新产物，不提交 Git
+```
+
+开发环境为 Windows x64、Rust 1.95+ 的 `stable-x86_64-pc-windows-msvc` 工具链、Visual Studio C++ x64 生成工具，以及构建前端所需的 Node.js 与 npm。`scripts/windows-build-env.ps1` 负责初始化 MSVC 编译环境，其余脚本会先点源它。
+
+`scripts/verify.ps1` 是唯一检查入口：Rust 格式（根 crate 与 desktop 后端）、Clippy（含 release 库）、Rust 回归、`desktop` 前端构建 / lint / vitest 回归、Tauri 后端 Clippy 与 Python 回归。`scripts/build.ps1` 必须先通过同一入口，才构建 Tauri 发布程序、复制到 `dist/个人办公台.exe` 并发布本机更新清单；`scripts/package-release.ps1` 生成免安装 ZIP、可选安装包与 SHA-256 清单，`scripts/publish-update.ps1` 写入 `dist/updates/latest.json`，`scripts/publish-github-release.ps1` 创建或更新 GitHub Release。
+
+```powershell
+.\scripts\verify.ps1
+.\scripts\build.ps1
+```
+
+调试客户端时先指定隔离数据目录，开发版解析不到该变量会拒绝打开数据库：
+
+```powershell
+cd desktop
+$env:PERSONAL_DESK_TEST_DATA = "$env:TEMP\personaldesk-test"
+npx tauri dev
+```
+
+版本号五处必须一致：根 `Cargo.toml`、`desktop/src-tauri/Cargo.toml`、`desktop/src-tauri/tauri.conf.json`、`desktop/package.json`、`assets/release_history.json` 首项；`tests/version_consistency.rs` 做回归，`scripts/build-tauri-windows.ps1` 还会核对 EXE 的版本资源。
+
+Tauri 构建产物依赖 WebView2 加载器时会生成 `WebView2Loader.dll`；`scripts/build.ps1` 会检查构建产物是否真的导入该 DLL，需要时复制到 `dist`，不需要时清理旧 DLL。分发时保持该 DLL 与程序同目录。
+
+代码边界及新增功能接入流程见 [开发规范](docs/开发规范.md)；日常贡献约定见 [CONTRIBUTING](CONTRIBUTING.md)；详细设计见 [开发文档](docs/开发文档.md)。
+
 ### 扩展方式
 
-- 新工程题通过稳定 ID、题干、参考答案和评分点接入题库；SQL 题可附建表、样例与可执行验证配置。
-- 页面交互放在 `src/app/`，数据访问和迁移放在 `src/db/`；公共列表、分类和卡片复用 `src/ui_components/`。
-- 模型运行、英语练习、SQL 执行和项目测试各自独立，新增能力按需调用，保持客户端空闲时轻量。
+- 领域规则、数据访问与迁移放在根目录核心库；新增 Tauri 命令放在 `desktop/src-tauri/src/commands/`，并在 `desktop/src-tauri/src/lib.rs` 注册。
+- 页面与交互放在 `desktop/src/`，业务校验先由核心库提供；前端只做输入反馈和状态展示。
 - 涉及持久化和迁移的改动需验证旧数据、草稿和导出兼容；详细约定见 [开发文档](docs/开发文档.md)。
 
-普通测试不启动模型、不更改真实自启动项、不使用个人数据库。开发版隔离截图入口不编入正式版。项目采用 [MIT](LICENSE)；词库来源及许可证见 [assets/ECDICT-LICENSE.txt](assets/ECDICT-LICENSE.txt)。详细设计见 [开发文档](docs/开发文档.md)。
+普通测试不启动真实数据库服务、不更改真实自启动项、不使用个人数据库。项目采用 [MIT](LICENSE)。详细设计见 [开发文档](docs/开发文档.md)。

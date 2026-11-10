@@ -1,6 +1,7 @@
 /target/
 /.artifacts/
-/output/playwright/
+# 本机验收与截图产物，归档到项目外，不提交
+/output/
 /dist/
 *.sqlite
 *.sqlite-shm
@@ -23,8 +24,14 @@ __pycache__/
 
 # 工作区个人记忆，不提交
 /.workbuddy/
+/.playwright-cli/
 
+# 桌面客户端依赖与构建产物
 node_modules/
+/desktop/dist/
+/desktop/src-tauri/target/
+/desktop/src-tauri/gen/schemas/
+
 assets/markdown-editor/index.html
 assets/markdown-editor/editor.js
 assets/markdown-editor/style.css

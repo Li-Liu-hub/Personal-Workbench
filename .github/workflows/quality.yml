@@ -8,12 +8,19 @@ permissions:
 jobs:
   verify:
     runs-on: windows-2025
-    timeout-minutes: 30
+    # 统一入口包含 Rust 格式/Clippy/回归、前端构建/检查/回归与 Tauri 后端 Clippy，冷缓存需要较长时间。
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: Prepare Rust checks
         shell: pwsh
         run: rustup component add rustfmt clippy
+      - name: Cache Rust build artifacts
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/personal-desk-target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
       - name: Check code and run isolated feature tests
         shell: pwsh
         run: ./scripts/verify.ps1 -TargetDir (Join-Path $env:RUNNER_TEMP 'personal-desk-target')

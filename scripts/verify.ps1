@@ -1,37 +1,15 @@
-param([string]$TargetDir)
+﻿param([string]$TargetDir)
 
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$programFilesX86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
-$vswhere = Join-Path $programFilesX86 'Microsoft Visual Studio/Installer/vswhere.exe'
-$installation = $null
-if (Test-Path -LiteralPath $vswhere) {
-    $installation = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-}
-if (-not $installation) {
-    $candidates = @(
-        (Join-Path $programFilesX86 'Microsoft Visual Studio/2022/BuildTools'),
-        (Join-Path $env:ProgramFiles 'Microsoft Visual Studio/2022/BuildTools'),
-        (Join-Path $env:ProgramFiles 'Microsoft Visual Studio/2022/Community'),
-        (Join-Path $programFilesX86 'Microsoft Visual Studio/2022/Community')
-    ) | Where-Object { Test-Path -LiteralPath (Join-Path $_ 'VC/Auxiliary/Build/vcvars64.bat') }
-    if (@($candidates).Count -gt 0) { $installation = @($candidates)[0] }
-}
-if (-not $installation) { throw 'Visual Studio C++ x64 Build Tools were not found.' }
-$vcvars = Join-Path $installation 'VC/Auxiliary/Build/vcvars64.bat'
-$lines = & cmd.exe /c ('call "' + $vcvars + '" >nul && set')
-if ($LASTEXITCODE -ne 0) { throw 'Could not initialize the Visual Studio x64 build environment.' }
-foreach ($line in $lines) {
-    $separator = $line.IndexOf('=')
-    if ($separator -gt 0) {
-        [Environment]::SetEnvironmentVariable($line.Substring(0, $separator), $line.Substring($separator + 1), 'Process')
-    }
-}
-$env:RUSTUP_TOOLCHAIN = 'stable-x86_64-pc-windows-msvc'
+. (Join-Path $PSScriptRoot 'windows-build-env.ps1')
+
 if ([string]::IsNullOrWhiteSpace($TargetDir)) {
     $TargetDir = Join-Path (Split-Path -Parent $root) 'personal-desk-target'
 }
+$previousTargetDir = $env:CARGO_TARGET_DIR
 $env:CARGO_TARGET_DIR = $TargetDir
+$client = Join-Path $root 'desktop'
 
 Push-Location $root
 try {
@@ -43,8 +21,9 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Rust regression tests failed.' }
     & cargo.exe clippy --locked --release --lib -- -D warnings
     if ($LASTEXITCODE -ne 0) { throw 'Release-only Rust lint check failed.' }
+    & cargo.exe fmt --manifest-path (Join-Path $client 'src-tauri/Cargo.toml') --all -- --check
+    if ($LASTEXITCODE -ne 0) { throw 'Desktop backend formatting check failed.' }
 
-    $client = Join-Path $root 'tauri-migration'
     if (-not (Test-Path -LiteralPath (Join-Path $client 'node_modules'))) {
         Push-Location $client
         try {
@@ -60,15 +39,19 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Frontend build failed.' }
         & npm.cmd run lint
         if ($LASTEXITCODE -ne 0) { throw 'Frontend lint failed.' }
+        & npm.cmd run test
+        if ($LASTEXITCODE -ne 0) { throw 'Frontend regression tests failed.' }
     } finally {
         Pop-Location
     }
     & cargo.exe clippy --locked --release --manifest-path (Join-Path $client 'src-tauri/Cargo.toml') --all-targets -- -D warnings
-    if ($LASTEXITCODE -ne 0) { throw 'Tauri backend lint check failed.' }
+    if ($LASTEXITCODE -ne 0) { throw 'Desktop backend lint check failed.' }
 
     & python -m unittest discover -s scripts/tests -v
     if ($LASTEXITCODE -ne 0) { throw 'Python regression tests failed.' }
     Write-Output 'All standard checks passed.'
 } finally {
     Pop-Location
+    # 不要把构建目录泄漏给调用方（build.ps1 之后还要用同一目录构建 Tauri 程序）。
+    $env:CARGO_TARGET_DIR = $previousTargetDir
 }

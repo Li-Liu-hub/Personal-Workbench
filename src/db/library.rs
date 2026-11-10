@@ -2,14 +2,7 @@ use super::*;
 use crate::library::{Book, Page};
 impl Database {
     pub fn book_documents(&self, book: &str) -> Result<Vec<crate::model::DocumentRecord>> {
-        let documents_table = if self.desk.table_exists(Some("temp"), "private_documents")? {
-            "temp.private_documents"
-        } else {
-            "documents"
-        };
-        let sql = format!(
-            "SELECT d.path,d.title FROM book_documents b JOIN {documents_table} d ON d.path=b.document_path WHERE b.book_id=?1 AND d.hidden=0 ORDER BY b.position,b.rowid"
-        );
+        let sql = "SELECT d.path,d.title FROM book_documents b JOIN documents d ON d.path=b.document_path WHERE b.book_id=?1 AND d.hidden=0 ORDER BY b.position,b.rowid".to_string();
         let mut statement = self.desk.prepare(&sql)?;
         Ok(statement
             .query_map([book], |r| {

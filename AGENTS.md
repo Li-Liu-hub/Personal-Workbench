@@ -11,6 +11,17 @@
 - 发布后校验更新清单、载荷大小和 SHA-256，以及发布 ZIP 内的程序与更新载荷一致。正式发布包、更新载荷是分发文件，不是新增的日常入口。
 - 项目内只保留当前发布链。额外客户端和旧版本移到项目外的可恢复归档，不移动用户数据或运行时依赖。
 
+# 代码结构
+
+- 仓库是「核心库 + 桌面客户端」两段结构，只有一个客户端，不是两条产品线：
+  - 根目录 Cargo 工程 `personal-desk` 是核心库：SQLite 数据访问与增量迁移（`src/db/`）、领域模型与规则（`src/model.rs`、`src/library.rs`、`src/contacts.rs`、`src/essays.rs`、`src/websites.rs`、`src/tags.rs`、`src/theme.rs`、`src/launcher.rs`）、导入导出（`src/import.rs`、`src/export.rs`）、日志/图片/更新/自启动/私网库等。核心库不得依赖任何 UI 框架（egui、React、Tauri 都不行）。
+  - `desktop/` 是 Tauri + React 桌面客户端：`desktop/src/` 前端页面，`desktop/src-tauri/src/` 后端状态与命令，只调用核心库 API；业务校验放在核心库，命令层不重复写规则。
+- 旧的 `src/app*`、`src/ui_components*`、`src/main.rs`、`src/taskbar.rs`、`src/report_workshop*` 等原生 egui 界面已在 0.15.76 删除（历史见 git），不得恢复成第二个入口。
+- 开发环境是 Windows x64 + Rust `stable-x86_64-pc-windows-msvc` + Visual Studio C++ x64 生成工具；脚本统一通过 `scripts/windows-build-env.ps1` 初始化环境。
+- `scripts/verify.ps1` 是唯一检查入口（Rust 格式、Clippy、Rust 回归、前端构建/lint/回归、Tauri 后端 Clippy、Python 回归）；`scripts/build.ps1` 必须先通过同一入口再构建和发布。
+- 版本号五处必须一致：根 `Cargo.toml`、`desktop/src-tauri/Cargo.toml`、`desktop/src-tauri/tauri.conf.json`、`desktop/package.json`、`assets/release_history.json` 首项；`tests/version_consistency.rs` 做回归。
+- 本机验收产物（`output/`）与手动调试程序（`examples/`）不提交，归档到 `D:\MyProject\个人办公台-归档`。
+
 # 独立求职工具供 AI 调用
 
 - 求职项目位于 `D:\MyProject\求职工具`。BOSS直聘、智联招聘、前程无忧、实习僧、官网投递、接码通过该项目的独立桌面程序及 `personaldesk_hiring` MCP 服务使用；个人办公台不提供这些功能或 `--mcp` 入口，不启动原 Python 工具。

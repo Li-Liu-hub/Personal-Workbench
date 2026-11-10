@@ -203,13 +203,14 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
         .filter(|path| path.is_dir())
         .ok_or_else(|| DeskError::InvalidPath("导出目录不可用".into()))?;
     let snapshot_dir = tempfile::tempdir()?;
-    let source = Database::open(data_dir)
+    // 私网加密库不可用时降级为本地导出：副本必须只包含本机数据，且不能静默。
+    let (source, degraded) = Database::open_or_local(data_dir)
         .map_err(|error| DeskError::InvalidPath(format!("读取导出源失败：{error}")))?;
     source
         .snapshot(&snapshot_dir.path().join("desk.db"))
         .map_err(|error| DeskError::InvalidPath(format!("建立数据库快照失败：{error}")))?;
     drop(source);
-    let snapshot = Database::open(snapshot_dir.path())
+    let snapshot = Database::open_local(snapshot_dir.path())
         .map_err(|error| DeskError::InvalidPath(format!("读取快照失败：{error}")))?;
     let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
     let exclusions = HashSet::from([canonical(destination), canonical(temporary.path())]);
@@ -220,6 +221,11 @@ pub fn write(data_dir: &Path, destination: &Path, scope: Scope) -> Result<Report
             exclusions,
             warnings: vec![],
         };
+        if degraded {
+            package
+                .warnings
+                .push("私网加密库不可用，本次导出只包含本机数据".into());
+        }
         let mut counts = BTreeMap::new();
         let favorites = snapshot
             .favorites()?

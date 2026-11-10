@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$Executable = (Join-Path $PSScriptRoot '../dist/release/PersonalDesk.exe'),
     [string]$AssetsDirectory = (Join-Path $PSScriptRoot '../dist/release'),
     [string]$MetadataDirectory,

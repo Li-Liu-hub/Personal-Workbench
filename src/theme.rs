@@ -1,8 +1,6 @@
 use crate::error::{DeskError, Result};
-use eframe::egui::{self, Color32};
 use serde::{Deserialize, Serialize};
 use std::{
-    cell::RefCell,
     collections::BTreeMap,
     io::{Cursor, Read, Write},
     path::{Path, PathBuf},
@@ -14,6 +12,17 @@ pub enum ImageFit {
     Cover,
     Contain,
     Stretch,
+}
+
+/// A decoded image in a UI-agnostic layout: tightly packed RGBA8 rows.
+///
+/// The desktop client (Tauri/React) consumes theme images as data URLs, so the
+/// core library only needs pixels and dimensions, not a windowing toolkit type.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ImageData {
+    pub width: u32,
+    pub height: u32,
+    pub rgba: Vec<u8>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -121,131 +130,6 @@ impl ThemeSettings {
         }
         Ok(())
     }
-    pub fn activate(&self) {
-        ACTIVE.with(|state| *state.borrow_mut() = self.clone());
-    }
-    pub fn apply(&self, ctx: &egui::Context) {
-        self.activate();
-        ctx.set_zoom_factor(self.zoom);
-        ctx.style_mut_of(egui::Theme::Light, |style| {
-            style.animation_time = if self.animations { 0.16 } else { 0.0 };
-            style.spacing.scroll = egui::style::ScrollStyle {
-                bar_width: 8.0,
-                floating_width: 3.0,
-                floating_allocated_width: 5.0,
-                ..egui::style::ScrollStyle::thin()
-            };
-            let v = &mut style.visuals;
-            v.panel_fill = canvas();
-            v.window_fill = surface();
-            v.extreme_bg_color = input();
-            v.text_edit_bg_color = Some(input());
-            v.faint_bg_color = input();
-            v.handle_shape = egui::style::HandleShape::Circle;
-            v.slider_trailing_fill = true;
-            v.override_text_color = Some(ink());
-            v.weak_text_color = Some(muted());
-            v.hyperlink_color = accent();
-            v.window_stroke = egui::Stroke::new(1.0, border());
-            v.window_corner_radius = egui::CornerRadius::same(18);
-            v.menu_corner_radius = egui::CornerRadius::same(12);
-            v.window_shadow = egui::epaint::Shadow {
-                offset: [0, 8],
-                blur: 28,
-                spread: 0,
-                color: Color32::from_black_alpha(24),
-            };
-            v.selection.bg_fill = accent().gamma_multiply(0.22);
-            v.selection.stroke = egui::Stroke::new(1.0, accent());
-            for widget in [
-                &mut v.widgets.noninteractive,
-                &mut v.widgets.inactive,
-                &mut v.widgets.hovered,
-                &mut v.widgets.active,
-                &mut v.widgets.open,
-            ] {
-                widget.fg_stroke = egui::Stroke::new(1.0, ink());
-                widget.bg_stroke = egui::Stroke::new(1.0, border());
-                widget.bg_fill = surface();
-                widget.weak_bg_fill = surface();
-                widget.corner_radius = egui::CornerRadius::same(9);
-                widget.expansion = 0.0;
-            }
-            v.widgets.noninteractive.bg_fill = border();
-            v.widgets.inactive.bg_fill = border().lerp_to_gamma(muted(), 0.18);
-            v.widgets.inactive.weak_bg_fill = input();
-            v.widgets.hovered.bg_fill = border().lerp_to_gamma(accent(), 0.18);
-            v.widgets.hovered.weak_bg_fill = input();
-            v.widgets.active.bg_fill = border().lerp_to_gamma(accent(), 0.45);
-            v.widgets.active.weak_bg_fill = surface().lerp_to_gamma(accent(), 0.08);
-            v.widgets.hovered.bg_stroke =
-                egui::Stroke::new(1.0, border().lerp_to_gamma(accent(), 0.3));
-            v.widgets.active.bg_stroke = egui::Stroke::new(1.0, accent().gamma_multiply(0.65));
-            v.widgets.open.bg_fill = input();
-            v.widgets.open.weak_bg_fill = input();
-        });
-    }
-}
-
-thread_local! {static ACTIVE:RefCell<ThemeSettings>=RefCell::new(ThemeSettings::default());}
-fn rgb(color: [u8; 3]) -> Color32 {
-    Color32::from_rgb(color[0], color[1], color[2])
-}
-fn rgba(color: [u8; 3], alpha: f32) -> Color32 {
-    Color32::from_rgba_unmultiplied(color[0], color[1], color[2], (alpha * 255.0).round() as u8)
-}
-pub fn accent() -> Color32 {
-    ACTIVE.with(|t| rgb(t.borrow().accent))
-}
-pub fn animations() -> bool {
-    ACTIVE.with(|t| t.borrow().animations)
-}
-pub fn ink() -> Color32 {
-    ACTIVE.with(|t| rgb(t.borrow().text))
-}
-pub fn muted() -> Color32 {
-    ACTIVE.with(|t| rgb(t.borrow().muted))
-}
-pub fn canvas() -> Color32 {
-    ACTIVE.with(|t| rgb(t.borrow().canvas))
-}
-pub fn sidebar() -> Color32 {
-    ACTIVE.with(|t| {
-        let t = t.borrow();
-        rgba(t.sidebar, t.sidebar_opacity)
-    })
-}
-pub fn surface() -> Color32 {
-    ACTIVE.with(|t| {
-        let t = t.borrow();
-        rgba(t.surface, t.surface_opacity)
-    })
-}
-pub fn input() -> Color32 {
-    ACTIVE.with(|t| rgb(t.borrow().input))
-}
-pub fn border() -> Color32 {
-    ACTIVE.with(|t| rgb(t.borrow().border))
-}
-
-pub fn button_text() -> Color32 {
-    ACTIVE.with(|t| rgb(t.borrow().button_text))
-}
-pub fn sidebar_text() -> Color32 {
-    ACTIVE.with(|t| rgb(t.borrow().sidebar_text))
-}
-pub fn content_fill() -> Color32 {
-    ACTIVE.with(|t| {
-        let t = t.borrow();
-        rgba(
-            t.canvas,
-            if t.background.is_some() {
-                t.content_overlay
-            } else {
-                1.0
-            },
-        )
-    })
 }
 
 pub fn background_path(data: &Path, value: &str) -> Result<PathBuf> {
@@ -274,10 +158,7 @@ fn image_bytes(path: &Path) -> Result<Vec<u8>> {
     }
     Ok(bytes)
 }
-pub fn decode(bytes: &[u8]) -> Result<egui::ColorImage> {
-    decode_sized(bytes, 2048)
-}
-fn decode_sized(bytes: &[u8], max_side: usize) -> Result<egui::ColorImage> {
+pub fn decode(bytes: &[u8]) -> Result<ImageData> {
     let mut reader = image::ImageReader::new(Cursor::new(bytes)).with_guessed_format()?;
     let mut limits = image::Limits::default();
     limits.max_image_width = Some(8192);
@@ -287,23 +168,21 @@ fn decode_sized(bytes: &[u8], max_side: usize) -> Result<egui::ColorImage> {
     let image = reader
         .decode()
         .map_err(|e| DeskError::InvalidPath(format!("图片无法读取：{e}")))?;
-    let limit = max_side.clamp(1, 2048) as u32;
+    let limit = 2048;
     let image = if image.width() > limit || image.height() > limit {
         image.thumbnail(limit, limit)
     } else {
         image
     }
     .to_rgba8();
-    Ok(egui::ColorImage::from_rgba_unmultiplied(
-        [image.width() as usize, image.height() as usize],
-        image.as_raw(),
-    ))
+    Ok(ImageData {
+        width: image.width(),
+        height: image.height(),
+        rgba: image.into_raw(),
+    })
 }
-pub fn load_image(path: &Path) -> Result<egui::ColorImage> {
+pub fn load_image(path: &Path) -> Result<ImageData> {
     decode(&image_bytes(path)?)
-}
-pub fn load_image_with_limit(path: &Path, max_side: usize) -> Result<egui::ColorImage> {
-    decode_sized(&image_bytes(path)?, max_side)
 }
 pub fn import_image(data: &Path, source: &Path) -> Result<String> {
     let bytes = image_bytes(source)?;
@@ -326,26 +205,6 @@ pub fn import_image(data: &Path, source: &Path) -> Result<String> {
         .persist(directory.join(&name))
         .map_err(|e| DeskError::Io(e.error))?;
     Ok(format!("theme-assets/{name}"))
-}
-
-pub fn image_rects(rect: egui::Rect, size: egui::Vec2, fit: ImageFit) -> (egui::Rect, egui::Rect) {
-    let full = egui::Rect::from_min_max(egui::Pos2::ZERO, egui::pos2(1.0, 1.0));
-    if fit == ImageFit::Stretch {
-        return (rect, full);
-    }
-    if fit == ImageFit::Contain {
-        let scale = (rect.width() / size.x).min(rect.height() / size.y);
-        return (
-            egui::Rect::from_center_size(rect.center(), size * scale),
-            full,
-        );
-    }
-    let scale = (rect.width() / size.x).max(rect.height() / size.y);
-    let uv_size = rect.size() / (size * scale);
-    (
-        rect,
-        egui::Rect::from_center_size(egui::pos2(0.5, 0.5), uv_size),
-    )
 }
 
 #[cfg(test)]

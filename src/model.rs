@@ -87,6 +87,20 @@ impl InventoryItem {
             ..Self::default()
         }
     }
+
+    pub fn validate(&self) -> crate::error::Result<()> {
+        if self.id.is_empty() || self.name.trim().is_empty() {
+            return Err(crate::error::DeskError::InvalidInput(
+                "请填写物品名称".into(),
+            ));
+        }
+        if self.quantity < 0 {
+            return Err(crate::error::DeskError::InvalidInput(
+                "数量不能小于零".into(),
+            ));
+        }
+        Ok(())
+    }
 }
 
 impl Credential {
@@ -100,6 +114,15 @@ impl Credential {
             notes: String::new(),
             tags: Vec::new(),
         }
+    }
+
+    pub fn validate(&self) -> crate::error::Result<()> {
+        if self.id.is_empty() || self.title.trim().is_empty() {
+            return Err(crate::error::DeskError::InvalidInput(
+                "名称和编号不能为空".into(),
+            ));
+        }
+        Ok(())
     }
 }
 
@@ -164,5 +187,60 @@ mod tests {
         for value in ["2025-02-29", "2026-13-01", "2026-04-31", "tomorrow"] {
             assert!(normalize_date(value).is_err(), "{value}");
         }
+    }
+
+    #[test]
+    fn credential_validation_requires_an_id_and_a_name() {
+        let valid = Credential {
+            id: "credential-1".into(),
+            title: "邮箱".into(),
+            ..Credential::default()
+        };
+        valid.validate().unwrap();
+
+        let missing_title = Credential {
+            title: "  ".into(),
+            ..valid.clone()
+        };
+        assert_eq!(
+            missing_title.validate().unwrap_err().to_string(),
+            "名称和编号不能为空"
+        );
+        let missing_id = Credential {
+            id: String::new(),
+            ..valid
+        };
+        assert_eq!(
+            missing_id.validate().unwrap_err().to_string(),
+            "名称和编号不能为空"
+        );
+    }
+
+    #[test]
+    fn inventory_validation_requires_a_name_and_a_non_negative_quantity() {
+        let valid = InventoryItem {
+            id: "item-1".into(),
+            name: "键盘".into(),
+            quantity: 2,
+            ..InventoryItem::default()
+        };
+        valid.validate().unwrap();
+
+        let missing_name = InventoryItem {
+            name: "  ".into(),
+            ..valid.clone()
+        };
+        assert_eq!(
+            missing_name.validate().unwrap_err().to_string(),
+            "请填写物品名称"
+        );
+        let negative = InventoryItem {
+            quantity: -1,
+            ..valid
+        };
+        assert_eq!(
+            negative.validate().unwrap_err().to_string(),
+            "数量不能小于零"
+        );
     }
 }

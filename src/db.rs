@@ -107,7 +107,7 @@ impl Database {
     }
     pub fn favorites(&self) -> Result<Vec<(String, String)>> {
         let sql = if self.desk.table_exists(Some("temp"), "private_favorites")? {
-            "SELECT scope,id FROM favorites WHERE scope NOT IN ('books','book_pages','credentials','documents')
+            "SELECT scope,id FROM favorites WHERE scope <> 'credentials'
              UNION ALL SELECT scope,id FROM temp.private_favorites ORDER BY scope,id"
         } else {
             "SELECT scope,id FROM favorites ORDER BY scope,id"
@@ -119,7 +119,7 @@ impl Database {
             .collect::<std::result::Result<Vec<_>, _>>()?)
     }
     pub fn set_favorite(&mut self, scope: &str, id: &str, value: bool) -> Result<()> {
-        let table = if matches!(scope, "books" | "book_pages" | "credentials" | "documents")
+        let table = if scope == "credentials"
             && self.desk.table_exists(Some("temp"), "private_favorites")?
         {
             "temp.private_favorites"
@@ -139,7 +139,42 @@ impl Database {
         }
         Ok(())
     }
+    /// 打开数据目录：先在本机建库/迁移，再连接私网加密库（release 构建）。
     pub fn open(data_dir: &Path) -> Result<Self> {
+        Self::open_with_remote(data_dir, true)
+    }
+
+    /// 显式本地入口：跳过私网加密库 attach，其余建库/迁移行为与 [`Self::open`] 完全一致。
+    pub fn open_local(data_dir: &Path) -> Result<Self> {
+        Self::open_with_remote(data_dir, false)
+    }
+
+    /// 打开数据库；私网加密库不可用时降级为纯本地模式。
+    ///
+    /// 返回 `(数据库, 是否降级)`。只有私网加密库初始化阶段的连接/认证类错误
+    /// （网络超时、没有 SSH 私钥、MySQL 连接失败等）才降级；本地库自身的错误
+    /// （权限、损坏、迁移检查失败等）原样返回，不会被本地模式掩盖。
+    ///
+    /// 环境变量 `PERSONAL_DESK_LOCAL_ONLY=1` 设置时直接走 [`Self::open_local`]
+    /// 并返回降级标志 `true`，供 CI 与离线脚本跳过可能长达数十秒的网络等待。
+    pub fn open_or_local(data_dir: &Path) -> Result<(Self, bool)> {
+        Self::open_or_local_with(data_dir, local_only_requested())
+    }
+
+    /// [`Self::open_or_local`] 的可注入版本：是否强制本地由调用方决定，
+    /// 不读取环境变量，便于测试与上层显式控制。
+    pub fn open_or_local_with(data_dir: &Path, local_only: bool) -> Result<(Self, bool)> {
+        if local_only {
+            return Ok((Self::open_local(data_dir)?, true));
+        }
+        match Self::open(data_dir) {
+            Ok(database) => Ok((database, false)),
+            Err(error) if is_remote_unavailable(&error) => Ok((Self::open_local(data_dir)?, true)),
+            Err(error) => Err(error),
+        }
+    }
+
+    fn open_with_remote(data_dir: &Path, attach_remote: bool) -> Result<Self> {
         std::fs::create_dir_all(data_dir.join("documents"))?;
         std::fs::create_dir_all(data_dir.join("recovery"))?;
         let mut desk = Connection::open(data_dir.join("desk.db"))?;
@@ -320,13 +355,15 @@ impl Database {
         database.prepare_writing(data_dir)?;
         database.prepare_essays()?;
         #[cfg(not(debug_assertions))]
-        {
+        if attach_remote {
             database.desk.pragma_update(None, "temp_store", "MEMORY")?;
             database.remote_vault = Some(crate::remote_vault::RemoteVault::open_and_attach(
                 &mut database.desk,
                 data_dir,
             )?);
         }
+        #[cfg(debug_assertions)]
+        let _ = attach_remote;
         Ok(database)
     }
 
@@ -355,6 +392,7 @@ impl Database {
     }
 
     pub fn save_shortcut(&mut self, name: &str, path: &Path, is_dir: bool) -> Result<()> {
+        crate::files::validate_shortcut(name, path, is_dir)?;
         let display_path = path.to_string_lossy().into_owned();
         self.desk.execute("INSERT INTO shortcuts(id,name,path_native,path_display,is_dir,pinned) VALUES(?1,?2,?3,?4,?5,0)",
             params![Uuid::new_v4().to_string(), name.trim(), encode_path(path), display_path, is_dir])?;
@@ -881,30 +919,8 @@ impl Database {
     }
 
     pub fn touch_document(&mut self, path: &Path) -> Result<()> {
-        let original = path.to_string_lossy().into_owned();
         let normalized = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
         let normalized = normalized.to_string_lossy().into_owned();
-        let display = crate::files::shell_path(Path::new(&normalized))
-            .to_string_lossy()
-            .into_owned();
-        if self
-            .desk
-            .table_exists(Some("temp"), "private_documents")?
-            && let Some(private_key) = self
-                .desk
-                .query_row(
-                    "SELECT path FROM temp.private_documents WHERE path IN (?1,?2,?3) ORDER BY path=?1 DESC LIMIT 1",
-                    params![original, normalized, display],
-                    |row| row.get::<_, String>(0),
-                )
-                .optional()?
-        {
-            self.desk.execute(
-                "UPDATE temp.private_documents SET last_opened=CURRENT_TIMESTAMP,hidden=0 WHERE path=?1",
-                [&private_key],
-            )?;
-            return Ok(());
-        }
         let path = normalized;
         let format = Path::new(&path)
             .extension()
@@ -918,24 +934,6 @@ impl Database {
     pub fn document_record_key(&mut self, path: &Path) -> Result<String> {
         let normalized = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
         let display = crate::files::shell_path(&normalized);
-        if self
-            .desk
-            .table_exists(Some("temp"), "private_documents")?
-            && let Some(existing) = self
-                .desk
-                .query_row(
-                    "SELECT path FROM temp.private_documents WHERE path IN (?1,?2,?3) ORDER BY path=?1 DESC LIMIT 1",
-                    params![
-                        path.to_string_lossy().as_ref(),
-                        normalized.to_string_lossy().as_ref(),
-                        display.to_string_lossy().as_ref()
-                    ],
-                    |row| row.get::<_, String>(0),
-                )
-                .optional()?
-        {
-            return Ok(existing);
-        }
         let existing: Option<String> = self
             .desk
             .query_row(
@@ -1105,6 +1103,29 @@ impl Database {
     }
 }
 
+/// 环境变量名：设为 `1` 时 [`Database::open_or_local`] 跳过私网加密库。
+pub const LOCAL_ONLY_ENV: &str = "PERSONAL_DESK_LOCAL_ONLY";
+
+fn local_only_requested() -> bool {
+    local_only_from_value(std::env::var_os(LOCAL_ONLY_ENV).as_deref())
+}
+
+fn local_only_from_value(value: Option<&std::ffi::OsStr>) -> bool {
+    value.is_some_and(|value| value.to_string_lossy().trim() == "1")
+}
+
+/// 只有私网加密库初始化阶段的连接/认证类错误才允许降级为本地模式。
+///
+/// 本地建库/迁移错误（IO、SQLite、数据库检查失败等）不匹配这些前缀，照常返回；
+/// 远端可连但账号资料与本机冲突时也不算「不可用」，必须让用户先解决冲突。
+fn is_remote_unavailable(error: &DeskError) -> bool {
+    let DeskError::InvalidPath(message) = error else {
+        return false;
+    };
+    message.starts_with("直连 MySQL 失败：")
+        || (message.starts_with("个人服务器加密资料库：") && !message.contains("账号资料不一致"))
+}
+
 fn page_tag_revision(scope: TagScope) -> &'static str {
     if scope == TagScope::BookPages {
         ",revision=revision+1"
@@ -1257,12 +1278,7 @@ fn ensure_tags(tx: &rusqlite::Transaction<'_>, scope: TagScope, values: &[String
 }
 
 fn tag_table(scope: TagScope, has_remote_tags: bool) -> &'static str {
-    if has_remote_tags
-        && matches!(
-            scope,
-            TagScope::Books | TagScope::BookPages | TagScope::Credentials | TagScope::Documents
-        )
-    {
+    if has_remote_tags && scope == TagScope::Credentials {
         "temp.private_tags"
     } else {
         "tags"
@@ -1304,5 +1320,47 @@ fn decode_path(bytes: &[u8]) -> Result<PathBuf> {
         Ok(PathBuf::from(String::from_utf8(bytes.to_vec()).map_err(
             |_| DeskError::InvalidPath("路径记录无效".into()),
         )?))
+    }
+}
+
+#[cfg(test)]
+mod local_mode_tests {
+    use super::*;
+
+    #[test]
+    fn local_only_environment_value_only_accepts_one() {
+        assert!(local_only_from_value(Some(std::ffi::OsStr::new("1"))));
+        assert!(local_only_from_value(Some(std::ffi::OsStr::new(" 1 "))));
+        for value in ["", "0", "true", "yes"] {
+            assert!(
+                !local_only_from_value(Some(std::ffi::OsStr::new(value))),
+                "{value}"
+            );
+        }
+        assert!(!local_only_from_value(None));
+    }
+
+    #[test]
+    fn remote_unavailable_classification_keeps_local_errors_visible() {
+        for message in [
+            "直连 MySQL 失败：connection timeout",
+            "个人服务器加密资料库：没有找到服务器 SSH 登录私钥",
+            "个人服务器加密资料库：ssh: connect to host 49.234.49.192 port 22: Connection timed out",
+        ] {
+            assert!(
+                is_remote_unavailable(&DeskError::InvalidPath(message.into())),
+                "{message}"
+            );
+        }
+        for error in [
+            DeskError::InvalidPath("数据库检查未通过，已停止升级并保留原库".into()),
+            DeskError::InvalidPath(
+                "个人服务器加密资料库：服务器和本机的账号资料不一致；已保留两边数据，没有覆盖。"
+                    .into(),
+            ),
+            DeskError::Io(std::io::Error::other("磁盘只读")),
+        ] {
+            assert!(!is_remote_unavailable(&error), "{error}");
+        }
     }
 }

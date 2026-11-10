@@ -24,6 +24,28 @@ pub struct BlogPostPayload {
     pub published_date: String,
 }
 
+/// Blog publishing limits shared by the desktop command layer and the SSH
+/// publisher, so the same rules and error texts are used in both places.
+pub fn validate_post(title: &str, body: &str, tags: &[String]) -> crate::error::Result<()> {
+    use crate::error::DeskError;
+    if title.trim().is_empty() || title.chars().count() > MAX_TITLE_CHARS {
+        return Err(DeskError::InvalidInput(
+            "博客标题不能为空，且不能超过 200 个字符".into(),
+        ));
+    }
+    if body.len() > MAX_CONTENT_BYTES {
+        return Err(DeskError::InvalidInput(
+            "博客正文超过 200 KB，请拆分文档后再发布".into(),
+        ));
+    }
+    if tags.len() > MAX_TAGS || tags.iter().any(|tag| tag.trim().chars().count() > 50) {
+        return Err(DeskError::InvalidInput(
+            "博客标签最多 8 个，每个标签不能超过 50 个字符".into(),
+        ));
+    }
+    Ok(())
+}
+
 pub fn default_ssh_key() -> Option<PathBuf> {
     let path = std::env::var_os("USERPROFILE")
         .map(PathBuf::from)?
@@ -33,12 +55,7 @@ pub fn default_ssh_key() -> Option<PathBuf> {
 }
 
 pub fn publish_over_ssh(key_path: &Path, payload: &BlogPostPayload) -> Result<String, String> {
-    if payload.title.trim().is_empty() || payload.title.chars().count() > MAX_TITLE_CHARS {
-        return Err("博客标题不能为空，且不能超过 200 个字符。".into());
-    }
-    if payload.content.len() > MAX_CONTENT_BYTES {
-        return Err("博客正文超过 200 KB，请拆分文档后再发布。".into());
-    }
+    validate_post(&payload.title, &payload.content, &payload.tags).map_err(|e| e.to_string())?;
     if payload.tenant_id != TENANT_ID
         || payload.post_id.len() != 16
         || !payload.post_id.bytes().all(|b| b.is_ascii_hexdigit())
@@ -119,4 +136,53 @@ fn payload_post_id(json: &[u8]) -> Result<String, String> {
     serde_json::from_slice::<PostId>(json)
         .map(|payload| payload.post_id)
         .map_err(|error| error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tags(count: usize) -> Vec<String> {
+        (0..count).map(|index| format!("标签{index}")).collect()
+    }
+
+    #[test]
+    fn post_validation_accepts_publishable_content() {
+        validate_post("标题", "正文", &tags(2)).unwrap();
+        validate_post(&"字".repeat(MAX_TITLE_CHARS), "正文", &tags(MAX_TAGS)).unwrap();
+    }
+
+    #[test]
+    fn post_validation_rejects_oversized_title_body_and_tags() {
+        assert_eq!(
+            validate_post("  ", "正文", &[]).unwrap_err().to_string(),
+            "博客标题不能为空，且不能超过 200 个字符"
+        );
+        assert_eq!(
+            validate_post(&"字".repeat(MAX_TITLE_CHARS + 1), "正文", &[])
+                .unwrap_err()
+                .to_string(),
+            "博客标题不能为空，且不能超过 200 个字符"
+        );
+        assert_eq!(
+            validate_post("标题", &"文".repeat(MAX_CONTENT_BYTES + 1), &[])
+                .unwrap_err()
+                .to_string(),
+            "博客正文超过 200 KB，请拆分文档后再发布"
+        );
+        assert_eq!(
+            validate_post("标题", "正文", &tags(MAX_TAGS + 1))
+                .unwrap_err()
+                .to_string(),
+            "博客标签最多 8 个，每个标签不能超过 50 个字符"
+        );
+        let mut long_tag = tags(1);
+        long_tag[0] = "标".repeat(51);
+        assert_eq!(
+            validate_post("标题", "正文", &long_tag)
+                .unwrap_err()
+                .to_string(),
+            "博客标签最多 8 个，每个标签不能超过 50 个字符"
+        );
+    }
 }

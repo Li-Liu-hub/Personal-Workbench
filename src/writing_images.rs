@@ -1,122 +1,9 @@
 use crate::error::{DeskError, Result};
 use std::{
-    collections::BTreeMap,
     fs,
     io::Write,
     path::{Component, Path, PathBuf},
-    sync::{Mutex, OnceLock},
 };
-
-struct RemoteAssetCache {
-    assets: BTreeMap<String, Vec<u8>>,
-    dirty: bool,
-}
-
-static REMOTE_ASSETS: OnceLock<Mutex<BTreeMap<PathBuf, RemoteAssetCache>>> = OnceLock::new();
-
-fn remote_assets() -> &'static Mutex<BTreeMap<PathBuf, RemoteAssetCache>> {
-    REMOTE_ASSETS.get_or_init(|| Mutex::new(BTreeMap::new()))
-}
-
-fn data_key(data: &Path) -> PathBuf {
-    data.canonicalize().unwrap_or_else(|_| data.to_path_buf())
-}
-
-pub fn remote_assets_ready(data: &Path) -> bool {
-    #[cfg(debug_assertions)]
-    {
-        let _ = data;
-        true
-    }
-    #[cfg(not(debug_assertions))]
-    {
-        remote_assets()
-            .lock()
-            .ok()
-            .and_then(|cache| cache.get(&data_key(data)).map(|_| ()))
-            .is_some()
-    }
-}
-
-#[cfg(not(debug_assertions))]
-pub(crate) fn enable_remote_cache(data: &Path, assets: BTreeMap<String, Vec<u8>>) -> Result<()> {
-    for path in assets.keys() {
-        validate_remote_path(path)?;
-    }
-    remote_assets()
-        .lock()
-        .map_err(|_| DeskError::InvalidPath("远端图片缓存暂不可用".into()))?
-        .insert(
-            data_key(data),
-            RemoteAssetCache {
-                assets,
-                dirty: false,
-            },
-        );
-    Ok(())
-}
-
-#[cfg(not(debug_assertions))]
-pub(crate) fn remote_assets_dirty(data: &Path) -> bool {
-    remote_assets()
-        .lock()
-        .ok()
-        .and_then(|cache| cache.get(&data_key(data)).map(|cache| cache.dirty))
-        .unwrap_or(false)
-}
-
-#[cfg(not(debug_assertions))]
-pub(crate) fn remote_assets_snapshot(data: &Path) -> Option<BTreeMap<String, Vec<u8>>> {
-    remote_assets()
-        .lock()
-        .ok()?
-        .get(&data_key(data))
-        .map(|cache| cache.assets.clone())
-}
-
-#[cfg(not(debug_assertions))]
-pub(crate) fn mark_remote_assets_synced(data: &Path) {
-    if let Ok(mut cache) = remote_assets().lock()
-        && let Some(cache) = cache.get_mut(&data_key(data))
-    {
-        cache.dirty = false;
-    }
-}
-
-fn cache_remote_asset(data: &Path, path: String, bytes: &[u8]) -> Result<Option<String>> {
-    let mut cache = remote_assets()
-        .lock()
-        .map_err(|_| DeskError::InvalidPath("远端图片缓存暂不可用".into()))?;
-    let Some(cache) = cache.get_mut(&data_key(data)) else {
-        return Ok(None);
-    };
-    validate_remote_path(&path)?;
-    cache.assets.insert(path.clone(), bytes.to_vec());
-    cache.dirty = true;
-    Ok(Some(path))
-}
-
-fn cached_remote_asset(data: &Path, path: &str) -> Result<Option<Option<Vec<u8>>>> {
-    let cache = remote_assets()
-        .lock()
-        .map_err(|_| DeskError::InvalidPath("远端图片缓存暂不可用".into()))?;
-    Ok(cache
-        .get(&data_key(data))
-        .map(|cache| cache.assets.get(path).cloned()))
-}
-
-fn validate_remote_path(path: &str) -> Result<()> {
-    if !(path.starts_with("writing-assets/") || path.starts_with("data/picture/"))
-        || path.contains(':')
-        || path.starts_with('/')
-        || path
-            .split('/')
-            .any(|part| part.is_empty() || part == "." || part == "..")
-    {
-        return Err(DeskError::InvalidPath("文档图片路径无效".into()));
-    }
-    Ok(())
-}
 
 fn assets_directory(data: &Path) -> Result<PathBuf> {
     let root = data.canonicalize()?;
@@ -199,11 +86,6 @@ pub fn import(data: &Path, source: &Path) -> Result<String> {
 /// Save validated clipboard image bytes as a managed legacy writing asset.
 pub fn import_bytes(data: &Path, bytes: &[u8]) -> Result<String> {
     let ext = validate_image(bytes)?;
-    let name = format!("{}.{}", uuid::Uuid::new_v4(), ext);
-    let reference = format!("writing-assets/{name}");
-    if let Some(path) = cache_remote_asset(data, reference, bytes)? {
-        return Ok(path);
-    }
     let directory = assets_directory(data)?;
     let name = store(bytes, &directory, ext)?;
     Ok(format!("writing-assets/{name}"))
@@ -218,12 +100,6 @@ pub fn import_document(data: &Path, document_id: &str, source: &Path) -> Result<
 /// Save validated clipboard image bytes in the document's own picture directory.
 pub fn import_document_bytes(data: &Path, document_id: &str, bytes: &[u8]) -> Result<String> {
     let ext = validate_image(bytes)?;
-    let id = canonical_document_id(document_id)?;
-    let name = format!("{}.{}", uuid::Uuid::new_v4(), ext);
-    let reference = format!("data/picture/{id}/{name}");
-    if let Some(path) = cache_remote_asset(data, reference, bytes)? {
-        return Ok(path);
-    }
     let (id, directory) = picture_document_directory(data, document_id)?;
     let name = store(bytes, &directory, ext)?;
     Ok(format!("data/picture/{id}/{name}"))
@@ -256,12 +132,6 @@ fn decode_percent_encoding(value: &str) -> Result<String> {
 /// Only serve managed assets, disallow path traversal and links escaping the asset directory.
 pub fn read(data: &Path, reference: &str) -> Result<(Vec<u8>, &'static str)> {
     let decoded = decode_percent_encoding(reference)?;
-    if let Some(asset) = cached_remote_asset(data, &decoded)? {
-        let bytes = asset.ok_or_else(|| DeskError::InvalidPath("文档图片文件无效".into()))?;
-        let (_, mime) = format(&bytes)?;
-        crate::theme::decode(&bytes)?;
-        return Ok((bytes, mime));
-    }
     let path = Path::new(&decoded);
     let mut parts = path.components();
     let first = parts.next();

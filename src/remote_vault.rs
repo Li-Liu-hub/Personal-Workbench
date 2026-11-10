@@ -1,18 +1,21 @@
-//! Server-only storage for passwords and the writing library.
+//! Server-only storage for the private account vault.
 //!
-//! The remote MySQL table contains age-encrypted SQLite snapshots. A dedicated
-//! X25519 identity is protected with the current Windows user's DPAPI context.
-//! No plaintext record or attachment is sent over SSH.
+//! 0.15.76 起只有账号资料（密码、凭据标签/收藏、旧版账号导入标记）继续放在私网 MySQL 的
+//! age 加密 SQLite 快照里；写作资料（图书/页面/文档/随笔/草稿/版本/日志/导入/blog 链接
+//! 及其图片）全部保存在本机 `desk.db` 与数据目录。旧版远端载荷中的写作表由
+//! `vault_migration` 一次性迁回本机，成功后这里才把远端载荷裁成只剩账号表。
+//!
+//! 远端密文由 age 的 X25519 身份解封，身份私钥用当前 Windows 用户的 DPAPI 上下文保护。
+//! 不向 SSH/MySQL 发送任何明文记录或附件。
 
 use std::{
-    collections::BTreeMap,
     io::{Read, Write},
     path::{Path, PathBuf},
     process::{Command, Stdio},
     str::FromStr,
     sync::{
         Arc, Mutex,
-        atomic::{AtomicBool, AtomicU64, Ordering},
+        atomic::{AtomicBool, Ordering},
     },
     time::{Duration, Instant},
 };
@@ -20,15 +23,15 @@ use std::{
 use age::{secrecy::ExposeSecret, x25519::Identity};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use mysql::prelude::Queryable;
-use rusqlite::{Connection, MAIN_DB, OptionalExtension, params_from_iter, types::Value};
-use zeroize::{Zeroize, Zeroizing};
+use rusqlite::{Connection, MAIN_DB};
+use zeroize::Zeroizing;
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 use crate::{
     crypto,
     error::{DeskError, Result},
     vault_config::VaultMysqlConfig,
-    writing_images,
+    vault_migration,
 };
 
 const REMOTE_HOST: &str = "49.234.49.192";
@@ -40,6 +43,12 @@ const OBJECT_PRIVATE: &str = "private";
 const OBJECT_ASSETS: &str = "assets";
 const IDENTITY_FILE: &str = "PersonalDesk\\private-writing-identity.dpapi";
 const REMOTE_MYSQL_COMMAND: &str = "sudo -n docker exec -i ap-mysql sh -lc 'mysql --protocol=socket -uroot -p\"$MYSQL_ROOT_PASSWORD\" --batch --skip-column-names --raw'";
+
+/// 仍保存在私网库的标签/收藏作用域。
+const PRIVATE_SCOPES: &[&str] = &["credentials"];
+
+/// 账号资料用到的 `temp` 表：写这些表的改动才触发远端同步。
+const ACCOUNT_TEMP_TABLES: &[&str] = &["credentials", "legacy_credential_imports"];
 
 enum VaultTransport {
     Direct(VaultMysqlConfig),
@@ -55,45 +64,9 @@ impl VaultTransport {
     }
 }
 
-const PRIVATE_TABLES: &[&str] = &[
-    "credentials",
-    "books",
-    "book_pages",
-    "blog_post_links",
-    "book_documents",
-    "book_page_drafts",
-    "book_page_versions",
-    "daily_essays",
-    "documents",
-    "favorites",
-    "legacy_credential_imports",
-    "tags",
-    "writing_imports",
-    "writing_logs",
-];
-
-const PRIVATE_SCOPES: &[&str] = &["books", "book_pages", "credentials", "documents"];
-
-const PRIVATE_TEMP_TABLES: &[&str] = &[
-    "credentials",
-    "books",
-    "book_pages",
-    "blog_post_links",
-    "book_documents",
-    "book_page_drafts",
-    "book_page_versions",
-    "daily_essays",
-    "writing_imports",
-    "writing_logs",
-    "legacy_credential_imports",
-];
-
 pub struct RemoteVault {
     identity: Identity,
-    data_dir: PathBuf,
     private_revision: u64,
-    assets_revision: Arc<AtomicU64>,
-    assets_ready: Arc<AtomicBool>,
     dirty: Arc<AtomicBool>,
     last_change: Arc<Mutex<Instant>>,
     retry_after: Instant,
@@ -104,68 +77,102 @@ impl RemoteVault {
         let transport = VaultTransport::load()?;
         ensure_remote_schema(&transport)?;
         let remote_private = fetch_remote_payload(&transport, OBJECT_PRIVATE)?;
+        // 旧版可能只留下 assets 对象；此时也必须先找到本机私钥，绝不生成新钥匙覆盖旧密文。
         let remote_assets_revision = fetch_remote_revision(&transport, OBJECT_ASSETS)?;
         let identity =
             load_or_create_identity(remote_private.is_some() || remote_assets_revision.is_some())?;
 
-        let local_private = Zeroizing::new(serialize_private_state(desk)?);
-        let local_has_private_rows = private_rows_exist(desk)?;
-        let (private_plain, private_revision) = if let Some((revision, ciphertext)) = remote_private
-        {
-            let plaintext = decrypt(&identity, &ciphertext)?;
-            if local_has_private_rows && plaintext.as_slice() != local_private.as_slice() {
-                return Err(DeskError::InvalidPath(
-                    "服务器和本机的账号或写作资料不一致；已保留两边数据，没有覆盖。".into(),
-                ));
-            }
-            (plaintext, revision)
-        } else {
-            let ciphertext = encrypt(&identity, &local_private)?;
-            store_remote_payload(&transport, OBJECT_PRIVATE, None, &ciphertext)?;
-            let (revision, verified) = fetch_remote_payload(&transport, OBJECT_PRIVATE)?
-                .ok_or_else(|| remote_error("服务器没有返回已保存的账号和文档资料"))?;
-            let verified = decrypt(&identity, &verified)?;
-            if verified.as_slice() != local_private.as_slice() {
-                return Err(remote_error("账号和文档资料上传后核对不一致"));
-            }
-            (verified, revision)
-        };
+        let local_private = Zeroizing::new(vault_migration::serialize_private_state(desk)?);
+        let local_has_private_rows = vault_migration::private_rows_exist(desk)?;
+        let mut remote_ciphertext: Option<Vec<u8>> = None;
+        let (private_plain, mut private_revision) =
+            if let Some((revision, ciphertext)) = remote_private {
+                let plaintext = decrypt(&identity, &ciphertext)?;
+                if local_has_private_rows {
+                    let remote_state = vault_migration::deserialize_private_state(&plaintext)?;
+                    if !vault_migration::account_state_matches(desk, &remote_state)? {
+                        return Err(DeskError::InvalidPath(
+                            "服务器和本机的账号资料不一致；已保留两边数据，没有覆盖。".into(),
+                        ));
+                    }
+                }
+                remote_ciphertext = Some(ciphertext);
+                (plaintext, revision)
+            } else {
+                let ciphertext = encrypt(&identity, &local_private)?;
+                store_remote_payload(&transport, OBJECT_PRIVATE, None, &ciphertext)?;
+                let (revision, verified) = fetch_remote_payload(&transport, OBJECT_PRIVATE)?
+                    .ok_or_else(|| remote_error("服务器没有返回已保存的账号资料"))?;
+                let verified = decrypt(&identity, &verified)?;
+                if verified.as_slice() != local_private.as_slice() {
+                    return Err(remote_error("账号资料上传后核对不一致"));
+                }
+                (verified, revision)
+            };
 
-        let private_db = deserialize_private_state(&private_plain)?;
-        attach_private_tables(desk, &private_db)?;
-        let managed_files = managed_writing_files(desk, data_dir)?;
+        let private_db = vault_migration::deserialize_private_state(&private_plain)?;
+        if vault_migration::writing_rows_present(&private_db)? {
+            // 旧版远端私密载荷仍含写作资料：先只读解出远端写作图片。
+            let assets = match fetch_remote_payload(&transport, OBJECT_ASSETS)? {
+                Some((_, ciphertext)) => {
+                    let plaintext = decrypt(&identity, &ciphertext)?;
+                    Some(vault_migration::decode_assets(&plaintext)?)
+                }
+                None => None,
+            };
+            // 快照 → 逐表合并核对 → 图片落盘校验 → 写迁移标记；任何失败都不会改动远端。
+            let report = vault_migration::migrate_writing_to_local(
+                desk,
+                private_plain.as_slice(),
+                data_dir,
+                assets.as_ref(),
+                remote_ciphertext.as_deref(),
+            )?;
+            eprintln!("个人服务器写作资料已迁移到本机：{}", report.summary());
+
+            // 写作数据已在事务内核对、图片已回读校验，才把远端载荷裁成只剩账号表。
+            let account_db = vault_migration::account_snapshot(&private_db)?;
+            let account_bytes = account_db.serialize(MAIN_DB)?;
+            let ciphertext = encrypt(&identity, &account_bytes)?;
+            private_revision = store_remote_payload(
+                &transport,
+                OBJECT_PRIVATE,
+                Some(private_revision),
+                &ciphertext,
+            )?;
+            // 旧版 assets 对象里的图片已经在本机落盘并验证，这里只是清理远端副本。
+            if let Err(error) = delete_remote_payload(&transport, OBJECT_ASSETS) {
+                eprintln!(
+                    "个人服务器旧版写作图片清理失败（本机数据已完整，下次启动会重试）：{error}"
+                );
+            }
+            vault_migration::attach_account_tables(desk, &account_db)?;
+        } else {
+            if remote_assets_revision.is_some() {
+                // 私密载荷已裁剪、只剩旧版 assets：只有确认本机迁移标记存在才允许删除。
+                if !vault_migration::migration_completed(desk)? {
+                    return Err(remote_error(
+                        "服务器仍有旧版写作图片，但本机没有完成迁移标记；已保留服务器图片，没有删除。",
+                    ));
+                }
+                if let Err(error) = delete_remote_payload(&transport, OBJECT_ASSETS) {
+                    eprintln!(
+                        "个人服务器旧版写作图片清理失败（本机数据已完整，下次启动会重试）：{error}"
+                    );
+                }
+            }
+            vault_migration::attach_account_tables(desk, &private_db)?;
+        }
+
         sanitize_local_backups(data_dir)?;
         desk.execute(
             "INSERT INTO main.settings(key,value) VALUES('remote-vault.legacy-import-done','1') ON CONFLICT(key) DO UPDATE SET value='1'",
             [],
         )?;
-        if private_rows_exist(desk)? {
-            clear_local_private_rows(desk, &managed_files, true)?;
+        // 账号行改为从私网库读取后，本机 main 里只清账号行；写作行全部保留在本机。
+        if vault_migration::private_rows_exist(desk)? {
+            vault_migration::clear_local_private_rows(desk, true)?;
         }
-
-        let assets_revision = Arc::new(AtomicU64::new(remote_assets_revision.unwrap_or(0)));
-        let assets_ready = Arc::new(AtomicBool::new(false));
-        let thread_identity = identity.clone();
-        let thread_data = data_dir.to_path_buf();
-        let thread_managed = managed_files;
-        let thread_revision = Arc::clone(&assets_revision);
-        let thread_ready = Arc::clone(&assets_ready);
-        std::thread::spawn(move || {
-            let result = (|| -> Result<u64> {
-                let transport = VaultTransport::load()?;
-                let revision =
-                    Self::load_remote_assets(&transport, &thread_identity, &thread_data)?;
-                clear_local_writing_files(&thread_data, &thread_managed)?;
-                Ok(revision)
-            })();
-            match result {
-                Ok(revision) => {
-                    thread_revision.store(revision, Ordering::Release);
-                    thread_ready.store(true, Ordering::Release);
-                }
-                Err(error) => eprintln!("远程写作图片加载失败：{error}"),
-            }
-        });
 
         let dirty = Arc::new(AtomicBool::new(false));
         let last_change = Arc::new(Mutex::new(Instant::now()));
@@ -174,10 +181,9 @@ impl RemoteVault {
         desk.update_hook(Some(
             move |_action: rusqlite::hooks::Action, database: &str, table: &str, _rowid: i64| {
                 if database == "temp"
-                    && (PRIVATE_TEMP_TABLES.contains(&table)
+                    && (ACCOUNT_TEMP_TABLES.contains(&table)
                         || table == "private_tags"
-                        || table == "private_favorites"
-                        || table == "private_documents")
+                        || table == "private_favorites")
                 {
                     hook_dirty.store(true, Ordering::Release);
                     if let Ok(mut last_change) = hook_last_change.lock() {
@@ -189,56 +195,16 @@ impl RemoteVault {
 
         Ok(Self {
             identity,
-            data_dir: data_dir.to_path_buf(),
             private_revision,
-            assets_revision,
-            assets_ready,
             dirty,
             last_change,
             retry_after: Instant::now(),
         })
     }
 
-    fn load_remote_assets(
-        transport: &VaultTransport,
-        identity: &Identity,
-        data_dir: &Path,
-    ) -> Result<u64> {
-        let remote_assets = fetch_remote_payload(transport, OBJECT_ASSETS)?;
-        let mut local_assets = assets_from_disk(data_dir)?;
-        let local_assets_plain = Zeroizing::new(encode_assets(&local_assets)?);
-        let (assets_plain, revision) = if let Some((revision, ciphertext)) = remote_assets {
-            let plaintext = decrypt(identity, &ciphertext)?;
-            if !local_assets.is_empty() && plaintext.as_slice() != local_assets_plain.as_slice() {
-                return Err(DeskError::InvalidPath(
-                    "服务器和本机的写作图片不一致；已保留两边资料，没有覆盖。".into(),
-                ));
-            }
-            (plaintext, revision)
-        } else {
-            let ciphertext = encrypt(identity, &local_assets_plain)?;
-            store_remote_payload(transport, OBJECT_ASSETS, None, &ciphertext)?;
-            let (revision, verified) = fetch_remote_payload(transport, OBJECT_ASSETS)?
-                .ok_or_else(|| remote_error("服务器没有返回已保存的写作图片"))?;
-            let verified = decrypt(identity, &verified)?;
-            if verified.as_slice() != local_assets_plain.as_slice() {
-                return Err(remote_error("写作图片上传后核对不一致"));
-            }
-            (verified, revision)
-        };
-
-        for bytes in local_assets.values_mut() {
-            bytes.zeroize();
-        }
-        writing_images::enable_remote_cache(data_dir, decode_assets(&assets_plain)?)?;
-        Ok(revision)
-    }
-
     pub fn sync_if_due(&mut self, desk: &mut Connection, force: bool) -> Result<bool> {
         let private_dirty = self.dirty.load(Ordering::Acquire);
-        let assets_dirty = self.assets_ready.load(Ordering::Acquire)
-            && writing_images::remote_assets_dirty(&self.data_dir);
-        if !private_dirty && !assets_dirty {
+        if !private_dirty {
             return Ok(false);
         }
         let now = Instant::now();
@@ -246,7 +212,6 @@ impl RemoteVault {
             return Ok(false);
         }
         if !force
-            && private_dirty
             && self
                 .last_change
                 .lock()
@@ -256,7 +221,7 @@ impl RemoteVault {
             return Ok(false);
         }
 
-        let result = self.sync_pending(desk, private_dirty, assets_dirty);
+        let result = self.sync_pending(desk, private_dirty);
         match result {
             Ok(changed) => {
                 self.retry_after = Instant::now();
@@ -271,19 +236,13 @@ impl RemoteVault {
 
     pub fn has_pending_changes(&self) -> bool {
         self.dirty.load(Ordering::Acquire)
-            || (self.assets_ready.load(Ordering::Acquire)
-                && writing_images::remote_assets_dirty(&self.data_dir))
     }
 
-    fn sync_pending(
-        &mut self,
-        desk: &mut Connection,
-        private_dirty: bool,
-        assets_dirty: bool,
-    ) -> Result<bool> {
+    /// 只上传账号资料快照；写作资料永远只在本机，不参与远端同步。
+    fn sync_pending(&mut self, desk: &mut Connection, private_dirty: bool) -> Result<bool> {
         let transport = VaultTransport::load()?;
         if private_dirty {
-            let plaintext = Zeroizing::new(serialize_private_state(desk)?);
+            let plaintext = Zeroizing::new(vault_migration::serialize_private_state(desk)?);
             let ciphertext = encrypt(&self.identity, &plaintext)?;
             self.private_revision = store_remote_payload(
                 &transport,
@@ -293,26 +252,7 @@ impl RemoteVault {
             )?;
             self.dirty.store(false, Ordering::Release);
         }
-        if assets_dirty {
-            let Some(mut assets) = writing_images::remote_assets_snapshot(&self.data_dir) else {
-                return Err(remote_error("写作图片缓存暂时不可用"));
-            };
-            let plaintext = Zeroizing::new(encode_assets(&assets)?);
-            let ciphertext = encrypt(&self.identity, &plaintext)?;
-            for bytes in assets.values_mut() {
-                bytes.zeroize();
-            }
-            let current_revision = self.assets_revision.load(Ordering::Acquire);
-            let next_revision = store_remote_payload(
-                &transport,
-                OBJECT_ASSETS,
-                Some(current_revision),
-                &ciphertext,
-            )?;
-            self.assets_revision.store(next_revision, Ordering::Release);
-            writing_images::mark_remote_assets_synced(&self.data_dir);
-        }
-        Ok(private_dirty || assets_dirty)
+        Ok(private_dirty)
     }
 }
 
@@ -530,6 +470,32 @@ fn store_remote_payload(
     Ok(expected_revision.unwrap_or(0) + 1)
 }
 
+fn delete_remote_payload(transport: &VaultTransport, object_id: &str) -> Result<()> {
+    if object_id != OBJECT_PRIVATE && object_id != OBJECT_ASSETS {
+        return Err(remote_error("资料类型无效"));
+    }
+    match transport {
+        VaultTransport::Direct(config) => {
+            let mut connection = config.connect()?;
+            connection
+                .exec_drop(
+                    format!(
+                        "DELETE FROM `{}`.`{MYSQL_TABLE}` WHERE object_id=?",
+                        config.database()
+                    ),
+                    (object_id,),
+                )
+                .map_err(mysql_error)?;
+        }
+        VaultTransport::Ssh => {
+            run_mysql_ssh(&format!(
+                "DELETE FROM `{MYSQL_DATABASE}`.`{MYSQL_TABLE}` WHERE object_id='{object_id}';\nSELECT ROW_COUNT();\n"
+            ))?;
+        }
+    }
+    Ok(())
+}
+
 fn mysql_error(error: mysql::Error) -> DeskError {
     remote_error(&format!("直连 MySQL 请求失败：{error}"))
 }
@@ -626,410 +592,6 @@ fn ssh_executable() -> Result<PathBuf> {
     Err(remote_error("没有找到 Windows OpenSSH 客户端"))
 }
 
-fn serialize_private_state(source: &Connection) -> Result<Vec<u8>> {
-    let private = Connection::open_in_memory()?;
-    private.pragma_update(None, "foreign_keys", "OFF")?;
-    for table in PRIVATE_TABLES {
-        let source_table = match *table {
-            "tags" => "private_tags",
-            "favorites" => "private_favorites",
-            "documents" => "private_documents",
-            _ => table,
-        };
-        let schema = if exists_in_schema(source, "temp", source_table)? {
-            "temp"
-        } else {
-            "main"
-        };
-        let filter = match *table {
-            "tags" => Some("scope IN ('books','book_pages','credentials','documents')"),
-            "favorites" => Some("scope IN ('books','book_pages','credentials','documents')"),
-            "documents" => Some("path IN (SELECT document_path FROM book_documents)"),
-            _ => None,
-        };
-        copy_table(
-            source,
-            schema,
-            source_table,
-            &private,
-            "main",
-            table,
-            filter,
-        )?;
-    }
-    let data = private.serialize(MAIN_DB)?;
-    Ok(data.to_vec())
-}
-
-fn deserialize_private_state(bytes: &[u8]) -> Result<Connection> {
-    let mut connection = Connection::open_in_memory()?;
-    connection.deserialize_read_exact(MAIN_DB, bytes, bytes.len(), false)?;
-    connection.pragma_update(None, "foreign_keys", "OFF")?;
-    Ok(connection)
-}
-
-fn exists_in_schema(connection: &Connection, schema: &str, table: &str) -> Result<bool> {
-    let sql = format!(
-        "SELECT EXISTS(SELECT 1 FROM {schema}.sqlite_master WHERE type='table' AND name=?1)"
-    );
-    Ok(connection.query_row(&sql, [table], |row| row.get(0))?)
-}
-
-fn copy_table(
-    source: &Connection,
-    source_schema: &str,
-    source_table: &str,
-    destination: &Connection,
-    destination_schema: &str,
-    destination_table: &str,
-    filter: Option<&str>,
-) -> Result<()> {
-    let source_sql =
-        format!("SELECT sql FROM {source_schema}.sqlite_master WHERE type='table' AND name=?1");
-    let schema_sql: Option<String> = source
-        .query_row(&source_sql, [source_table], |row| row.get(0))
-        .optional()?;
-    let Some(schema_sql) = schema_sql else {
-        return Ok(());
-    };
-    if !exists_in_schema(destination, destination_schema, destination_table)? {
-        let create_sql = rename_create_table(&schema_sql, source_table, destination_table)?;
-        destination.execute_batch(&create_sql)?;
-    }
-    let pragma = format!("PRAGMA {source_schema}.table_info(\"{source_table}\")");
-    let columns = source
-        .prepare(&pragma)?
-        .query_map([], |row| row.get::<_, String>(1))?
-        .collect::<std::result::Result<Vec<_>, _>>()?;
-    if columns.is_empty() {
-        return Ok(());
-    }
-    let quoted_columns = columns
-        .iter()
-        .map(|column| format!("\"{}\"", column.replace('"', "\"\"")))
-        .collect::<Vec<_>>()
-        .join(",");
-    let where_sql = filter
-        .map(|value| format!(" WHERE {value}"))
-        .unwrap_or_default();
-    let select_sql = format!(
-        "SELECT {quoted_columns} FROM {source_schema}.\"{source_table}\"{where_sql} ORDER BY rowid"
-    );
-    let placeholders = (1..=columns.len())
-        .map(|index| format!("?{index}"))
-        .collect::<Vec<_>>()
-        .join(",");
-    let insert_sql = format!(
-        "INSERT INTO {destination_schema}.\"{destination_table}\" ({quoted_columns}) VALUES ({placeholders})"
-    );
-    let mut statement = source.prepare(&select_sql)?;
-    let column_count = columns.len();
-    let rows = statement.query_map([], |row| {
-        (0..column_count)
-            .map(|index| row.get::<_, Value>(index))
-            .collect::<std::result::Result<Vec<_>, _>>()
-    })?;
-    for row in rows {
-        let values = row?;
-        destination.execute(&insert_sql, params_from_iter(values.iter()))?;
-    }
-    Ok(())
-}
-
-fn rename_create_table(sql: &str, source_table: &str, destination_table: &str) -> Result<String> {
-    for prefix in ["CREATE TABLE IF NOT EXISTS ", "CREATE TABLE "] {
-        let expected = format!("{prefix}{source_table}");
-        if sql.starts_with(&expected) {
-            return Ok(format!(
-                "{}{}{}",
-                prefix,
-                destination_table,
-                &sql[expected.len()..]
-            ));
-        }
-    }
-    Err(remote_error("本地资料表结构无法安全复制"))
-}
-
-fn private_rows_exist(connection: &Connection) -> Result<bool> {
-    for table in [
-        "credentials",
-        "books",
-        "book_pages",
-        "blog_post_links",
-        "book_documents",
-        "book_page_drafts",
-        "book_page_versions",
-        "writing_imports",
-        "writing_logs",
-        "legacy_credential_imports",
-        "daily_essays",
-    ] {
-        if !exists_in_schema(connection, "main", table)? {
-            continue;
-        }
-        let exists = connection.query_row(
-            &format!("SELECT EXISTS(SELECT 1 FROM main.\"{table}\" LIMIT 1)"),
-            [],
-            |row| row.get::<_, bool>(0),
-        )?;
-        if exists {
-            return Ok(true);
-        }
-    }
-    if exists_in_schema(connection, "main", "documents")?
-        && exists_in_schema(connection, "main", "book_documents")?
-        && connection.query_row(
-            "SELECT EXISTS(SELECT 1 FROM main.documents WHERE path IN (SELECT document_path FROM main.book_documents))",
-            [],
-            |row| row.get::<_, bool>(0),
-        )?
-    {
-        return Ok(true);
-    }
-    for table in ["favorites", "tags"] {
-        if exists_in_schema(connection, "main", table)?
-            && connection.query_row(
-                &format!(
-                    "SELECT EXISTS(SELECT 1 FROM main.\"{table}\" WHERE scope IN ('books','book_pages','credentials','documents'))"
-                ),
-                [],
-                |row| row.get::<_, bool>(0),
-            )?
-        {
-            return Ok(true);
-        }
-    }
-    Ok(false)
-}
-
-fn attach_private_tables(desk: &mut Connection, private: &Connection) -> Result<()> {
-    for table in PRIVATE_TEMP_TABLES {
-        create_temp_copy(desk, private, table, table)?;
-    }
-    create_temp_copy(desk, private, "tags", "private_tags")?;
-    create_temp_copy(desk, private, "favorites", "private_favorites")?;
-    create_temp_copy(desk, private, "documents", "private_documents")?;
-    desk.execute_batch(
-        "CREATE TEMP VIEW IF NOT EXISTS live_books AS
-         WITH RECURSIVE visible(id) AS (
-             SELECT id FROM books WHERE parent_id IS NULL AND deleted=0
-             UNION SELECT b.id FROM books b JOIN visible v ON b.parent_id=v.id WHERE b.deleted=0
-         ) SELECT b.rowid AS rowid,b.* FROM books b JOIN visible v ON b.id=v.id;",
-    )?;
-    Ok(())
-}
-
-fn create_temp_copy(
-    destination: &Connection,
-    source: &Connection,
-    source_table: &str,
-    destination_table: &str,
-) -> Result<()> {
-    let schema_sql: Option<String> = source
-        .query_row(
-            "SELECT sql FROM main.sqlite_master WHERE type='table' AND name=?1",
-            [source_table],
-            |row| row.get(0),
-        )
-        .optional()?;
-    let Some(mut schema_sql) = schema_sql else {
-        return Ok(());
-    };
-    schema_sql = rename_create_table(&schema_sql, source_table, destination_table)?
-        .replacen(
-            "CREATE TABLE IF NOT EXISTS",
-            "CREATE TEMP TABLE IF NOT EXISTS",
-            1,
-        )
-        .replacen("CREATE TABLE", "CREATE TEMP TABLE", 1);
-    if matches!(
-        destination_table,
-        "book_pages" | "book_documents" | "daily_essays"
-    ) {
-        schema_sql = schema_sql
-            .replace(" REFERENCES books(id)", "")
-            .replace(" REFERENCES book_pages(id)", "");
-    }
-    destination.execute_batch(&schema_sql)?;
-    copy_table(
-        source,
-        "main",
-        source_table,
-        destination,
-        "temp",
-        destination_table,
-        None,
-    )?;
-    Ok(())
-}
-
-fn clear_local_private_rows(
-    desk: &mut Connection,
-    managed_files: &[PathBuf],
-    vacuum_file: bool,
-) -> Result<()> {
-    desk.pragma_update(Some("main"), "secure_delete", "ON")?;
-    let tx = desk.transaction()?;
-    let has_book_documents = exists_in_schema(&tx, "main", "book_documents")?;
-    let has_file_index = exists_in_schema(&tx, "main", "file_index")?;
-    if has_book_documents && has_file_index {
-        tx.execute(
-            "DELETE FROM main.file_index WHERE path_display IN (SELECT document_path FROM main.book_documents)",
-            [],
-        )?;
-    }
-    if has_book_documents && exists_in_schema(&tx, "main", "documents")? {
-        tx.execute(
-            "DELETE FROM main.documents WHERE path IN (SELECT document_path FROM main.book_documents)",
-            [],
-        )?;
-    }
-    if has_book_documents && exists_in_schema(&tx, "main", "index_undo")? {
-        tx.execute(
-            "DELETE FROM main.index_undo WHERE scope='documents' AND record_key IN (SELECT document_path FROM main.book_documents)",
-            [],
-        )?;
-    }
-    for file in managed_files {
-        let path = file.to_string_lossy().into_owned();
-        let display = crate::files::shell_path(file)
-            .to_string_lossy()
-            .into_owned();
-        if has_file_index {
-            tx.execute(
-                "DELETE FROM main.file_index WHERE path_display IN (?1,?2)",
-                rusqlite::params![path, display],
-            )?;
-        }
-        if exists_in_schema(&tx, "main", "documents")? {
-            tx.execute(
-                "DELETE FROM main.documents WHERE path IN (?1,?2)",
-                rusqlite::params![path, display],
-            )?;
-        }
-        if exists_in_schema(&tx, "main", "index_undo")? {
-            tx.execute(
-                "DELETE FROM main.index_undo WHERE scope='documents' AND record_key IN (?1,?2)",
-                rusqlite::params![path, display],
-            )?;
-        }
-    }
-    for table in [
-        "daily_essays",
-        "book_page_drafts",
-        "book_page_versions",
-        "blog_post_links",
-        "book_documents",
-        "writing_imports",
-        "writing_logs",
-        "book_pages",
-        "books",
-        "credentials",
-        "legacy_credential_imports",
-    ] {
-        if exists_in_schema(&tx, "main", table)? {
-            tx.execute(&format!("DELETE FROM main.\"{table}\""), [])?;
-        }
-    }
-    if exists_in_schema(&tx, "main", "favorites")? {
-        tx.execute(
-            "DELETE FROM main.favorites WHERE scope IN ('books','book_pages','credentials','documents')",
-            [],
-        )?;
-    }
-    if exists_in_schema(&tx, "main", "tags")? {
-        tx.execute(
-            "DELETE FROM main.tags WHERE scope IN ('books','book_pages','credentials','documents')",
-            [],
-        )?;
-    }
-    if has_file_index && exists_in_schema(&tx, "main", "file_index_fts")? {
-        tx.execute_batch("INSERT INTO main.file_index_fts(file_index_fts) VALUES('rebuild');")?;
-    }
-    tx.commit()?;
-    if vacuum_file {
-        desk.execute_batch(
-            "PRAGMA main.wal_checkpoint(TRUNCATE); VACUUM main; PRAGMA main.wal_checkpoint(TRUNCATE);",
-        )?;
-    }
-    Ok(())
-}
-
-fn managed_writing_files(desk: &Connection, data_dir: &Path) -> Result<Vec<PathBuf>> {
-    if !exists_in_schema(desk, "main", "writing_imports")? {
-        return Ok(Vec::new());
-    }
-    let root = data_dir.join("documents");
-    if !root.is_dir() {
-        return Ok(Vec::new());
-    }
-    let root = root.canonicalize()?;
-    let mut statement = desk.prepare(
-        "SELECT source FROM writing_imports WHERE source LIKE 'managed:%' ORDER BY source",
-    )?;
-    let sources = statement
-        .query_map([], |row| row.get::<_, String>(0))?
-        .collect::<std::result::Result<Vec<_>, _>>()?;
-    let mut files = Vec::new();
-    for source in sources {
-        let Some(relative) = source.strip_prefix("managed:") else {
-            continue;
-        };
-        let path = Path::new(relative);
-        if path.is_absolute()
-            || path
-                .components()
-                .any(|component| !matches!(component, std::path::Component::Normal(_)))
-        {
-            continue;
-        }
-        let candidate = root.join(path);
-        let Some(file_name) = candidate.file_name() else {
-            continue;
-        };
-        let Some(parent) = candidate.parent() else {
-            continue;
-        };
-        let Ok(parent) = parent.canonicalize() else {
-            continue;
-        };
-        if !parent.starts_with(&root) {
-            continue;
-        }
-        let candidate = parent.join(file_name);
-        if candidate.is_file() {
-            let Ok(canonical) = candidate.canonicalize() else {
-                continue;
-            };
-            if canonical.starts_with(&root) {
-                files.push(canonical);
-            }
-        } else {
-            files.push(candidate);
-        }
-    }
-    Ok(files)
-}
-
-fn clear_local_writing_files(data_dir: &Path, managed_files: &[PathBuf]) -> Result<()> {
-    for directory in [
-        data_dir.join("writing-assets"),
-        data_dir.join("data").join("picture"),
-        data_dir.join("recovery"),
-    ] {
-        if directory.exists() {
-            std::fs::remove_dir_all(directory)?;
-        }
-    }
-    for file in managed_files {
-        if file.is_file() {
-            std::fs::remove_file(file)?;
-        }
-    }
-    Ok(())
-}
-
 fn sanitize_local_backups(data_dir: &Path) -> Result<()> {
     let backups = data_dir.join("backups");
     if !backups.is_dir() {
@@ -1064,45 +626,39 @@ fn sanitize_local_backups(data_dir: &Path) -> Result<()> {
     }
     let changed = !databases.is_empty() || !archives.is_empty();
     for database in &databases {
-        sanitize_backup_database(database, data_dir)
+        sanitize_backup_database(database)
             .map_err(|error| remote_error(&format!("本机备份 {}：{error}", database.display())))?;
     }
     for archive in &archives {
-        sanitize_backup_archive(archive, data_dir).map_err(|error| {
+        sanitize_backup_archive(archive).map_err(|error| {
             remote_error(&format!("本机 ZIP 备份 {}：{error}", archive.display()))
         })?;
     }
     if !marker.is_file() || changed {
         std::fs::write(
             &marker,
-            b"PersonalDesk private account and writing backups were removed.\n",
+            "PersonalDesk backups were sanitized: only private account rows are removed; writing data is kept.\n",
         )?;
     }
     Ok(())
 }
 
 fn has_private_schema(connection: &Connection) -> Result<bool> {
-    for table in [
-        "credentials",
-        "book_page_versions",
-        "daily_essays",
-        "writing_imports",
-        "legacy_credential_imports",
-    ] {
-        if exists_in_schema(connection, "main", table)? {
+    for table in ["credentials", "legacy_credential_imports"] {
+        if vault_migration::exists_in_schema(connection, "main", table)? {
             return Ok(true);
         }
     }
     Ok(false)
 }
 
-fn sanitize_backup_database(path: &Path, data_dir: &Path) -> Result<()> {
+fn sanitize_backup_database(path: &Path) -> Result<()> {
     let mut connection = Connection::open(path)?;
-    if !has_private_schema(&connection)? || !private_rows_exist(&connection)? {
+    // 写作资料已经属于本机数据，备份里必须保留；只清仍有保密要求的账号行。
+    if !has_private_schema(&connection)? || !vault_migration::private_rows_exist(&connection)? {
         return Ok(());
     }
-    let managed_files = managed_writing_files(&connection, data_dir)?;
-    clear_local_private_rows(&mut connection, &managed_files, true)?;
+    vault_migration::clear_local_private_rows(&mut connection, true)?;
     connection
         .execute_batch("PRAGMA main.wal_checkpoint(TRUNCATE); PRAGMA main.journal_mode=DELETE;")?;
     drop(connection);
@@ -1115,12 +671,11 @@ fn sanitize_backup_database(path: &Path, data_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-fn sanitize_backup_archive(path: &Path, data_dir: &Path) -> Result<()> {
+fn sanitize_backup_archive(path: &Path) -> Result<()> {
     let parent = path
         .parent()
         .ok_or_else(|| remote_error("本机备份目录无效"))?;
     let temporary = tempfile::NamedTempFile::new_in(parent)?;
-    let private_paths = private_paths_from_archive(path, data_dir)?;
     let mut source = ZipArchive::new(std::fs::File::open(path)?)?;
     let mut destination = ZipWriter::new(temporary.reopen()?);
     for index in 0..source.len() {
@@ -1132,15 +687,10 @@ fn sanitize_backup_archive(path: &Path, data_dir: &Path) -> Result<()> {
         let mut bytes = Vec::with_capacity(entry.size().min(16 * 1024 * 1024) as usize);
         entry.read_to_end(&mut bytes)?;
         if name == "data/desk.db" {
-            bytes = sanitize_sqlite_bytes(&bytes, data_dir)
+            bytes = sanitize_sqlite_bytes(&bytes)
                 .map_err(|error| remote_error(&format!("ZIP 内数据库清理失败：{error}")))?;
         } else if name == "自定义标签.json" || name == "条目标签.json" {
             let Some(filtered) = filter_private_scope_json(&bytes)? else {
-                continue;
-            };
-            bytes = filtered;
-        } else if name == "文档清单.json" {
-            let Some(filtered) = filter_private_document_list(&bytes, &private_paths)? else {
                 continue;
             };
             bytes = filtered;
@@ -1161,124 +711,18 @@ fn sanitize_backup_archive(path: &Path, data_dir: &Path) -> Result<()> {
     Ok(())
 }
 
+/// 导出包中必须整份丢弃的“账号私密”文件；写作/文档/图片全部保留。
 fn private_export_member(name: &str) -> bool {
     matches!(
         name,
         "账号密码.json"
-            | "图书文档.json"
-            | "图书.json"
-            | "图书页面.json"
-            | "写作文档.json"
-            | "导出说明.txt"
             | "legacy/vault.db"
             | "legacy/vault.db-wal"
             | "legacy/vault.db-shm"
-    ) || name.starts_with("books/")
-        || name.starts_with("writing/")
-        || name.starts_with("writing-assets/")
-        || name.starts_with("data/picture/")
-        || name.starts_with("data/recovery/")
-        || (name.starts_with("data/documents/") && is_managed_text_path(name))
-        || matches!(
-            name,
-            "data/desk.db-wal" | "data/desk.db-shm" | "data/desk.db-journal"
-        )
-}
-
-fn is_managed_text_path(path: &str) -> bool {
-    matches!(
-        Path::new(path)
-            .extension()
-            .and_then(|extension| extension.to_str())
-            .map(str::to_ascii_lowercase)
-            .as_deref(),
-        Some("md" | "markdown" | "txt")
+            | "data/desk.db-wal"
+            | "data/desk.db-shm"
+            | "data/desk.db-journal"
     )
-}
-
-fn private_paths_from_archive(
-    path: &Path,
-    data_dir: &Path,
-) -> Result<std::collections::HashSet<String>> {
-    let mut archive = ZipArchive::new(std::fs::File::open(path)?)?;
-    let mut database_bytes = None;
-    for index in 0..archive.len() {
-        let mut entry = archive.by_index(index)?;
-        if entry.name() == "data/desk.db" {
-            let mut bytes = Vec::with_capacity(entry.size().min(32 * 1024 * 1024) as usize);
-            entry.read_to_end(&mut bytes)?;
-            database_bytes = Some(bytes);
-            break;
-        }
-    }
-    let Some(database_bytes) = database_bytes else {
-        return Ok(std::collections::HashSet::new());
-    };
-    let directory = tempfile::tempdir()?;
-    let database_path = directory.path().join("desk.db");
-    std::fs::write(&database_path, &database_bytes)?;
-    let connection = Connection::open(&database_path)?;
-    let mut paths = std::collections::HashSet::new();
-    if exists_in_schema(&connection, "main", "book_documents")? {
-        let mut statement = connection.prepare("SELECT document_path FROM main.book_documents")?;
-        for path in statement.query_map([], |row| row.get::<_, String>(0))? {
-            let path = path?;
-            paths.insert(path_key(Path::new(&path)));
-        }
-    }
-    if exists_in_schema(&connection, "main", "writing_imports")? {
-        let root = data_dir.join("documents");
-        let mut statement = connection
-            .prepare("SELECT source FROM main.writing_imports WHERE source LIKE 'managed:%'")?;
-        for source in statement.query_map([], |row| row.get::<_, String>(0))? {
-            let source = source?;
-            let Some(relative) = source.strip_prefix("managed:") else {
-                continue;
-            };
-            let relative = Path::new(relative);
-            if relative.is_absolute()
-                || relative
-                    .components()
-                    .any(|component| !matches!(component, std::path::Component::Normal(_)))
-            {
-                continue;
-            }
-            paths.insert(path_key(&root.join(relative)));
-        }
-    }
-    Ok(paths)
-}
-
-fn path_key(path: &Path) -> String {
-    path.canonicalize()
-        .unwrap_or_else(|_| path.to_path_buf())
-        .to_string_lossy()
-        .replace('/', "\\")
-        .to_ascii_lowercase()
-}
-
-fn filter_private_document_list(
-    bytes: &[u8],
-    private_paths: &std::collections::HashSet<String>,
-) -> Result<Option<Vec<u8>>> {
-    let Ok(mut value) = serde_json::from_slice::<serde_json::Value>(bytes) else {
-        return Ok(None);
-    };
-    let Some(records) = value.as_array_mut() else {
-        return Ok(None);
-    };
-    records.retain(|record| {
-        let path = record
-            .get("path")
-            .and_then(serde_json::Value::as_str)
-            .is_some_and(|path| private_paths.contains(&path_key(Path::new(path))));
-        let archived_text = record
-            .get("archive_path")
-            .and_then(serde_json::Value::as_str)
-            .is_some_and(is_managed_text_path);
-        !path && !archived_text
-    });
-    Ok(Some(serde_json::to_vec(&value)?))
 }
 
 fn filter_private_scope_json(bytes: &[u8]) -> Result<Option<Vec<u8>>> {
@@ -1297,94 +741,17 @@ fn filter_private_scope_json(bytes: &[u8]) -> Result<Option<Vec<u8>>> {
     Ok(Some(serde_json::to_vec(&value)?))
 }
 
-fn sanitize_sqlite_bytes(bytes: &[u8], data_dir: &Path) -> Result<Vec<u8>> {
+fn sanitize_sqlite_bytes(bytes: &[u8]) -> Result<Vec<u8>> {
     let directory = tempfile::tempdir()?;
     let database_path = directory.path().join("desk.db");
     std::fs::write(&database_path, bytes)?;
     let mut connection = Connection::open(&database_path)?;
-    if !has_private_schema(&connection)? || !private_rows_exist(&connection)? {
+    if !has_private_schema(&connection)? || !vault_migration::private_rows_exist(&connection)? {
         return Ok(bytes.to_vec());
     }
-    let managed_files = managed_writing_files(&connection, data_dir)?;
-    clear_local_private_rows(&mut connection, &managed_files, true)?;
+    vault_migration::clear_local_private_rows(&mut connection, true)?;
     connection
         .execute_batch("PRAGMA main.wal_checkpoint(TRUNCATE); PRAGMA main.journal_mode=DELETE;")?;
     drop(connection);
     Ok(std::fs::read(database_path)?)
-}
-
-fn assets_from_disk(data_dir: &Path) -> Result<BTreeMap<String, Vec<u8>>> {
-    let mut result = BTreeMap::new();
-    for directory in [
-        data_dir.join("writing-assets"),
-        data_dir.join("data").join("picture"),
-    ] {
-        if !directory.is_dir() {
-            continue;
-        }
-        for entry in walkdir::WalkDir::new(&directory).follow_links(false) {
-            let entry = entry.map_err(|error| remote_error(&error.to_string()))?;
-            if !entry.file_type().is_file() {
-                continue;
-            }
-            let relative = entry
-                .path()
-                .strip_prefix(data_dir)
-                .map_err(|_| remote_error("写作附件超出本机资料目录"))?
-                .to_string_lossy()
-                .replace('\\', "/");
-            validate_asset_path(&relative)?;
-            result.insert(relative, std::fs::read(entry.path())?);
-        }
-    }
-    prefixless_asset_guard(&result)?;
-    Ok(result)
-}
-
-fn prefixless_asset_guard(assets: &BTreeMap<String, Vec<u8>>) -> Result<()> {
-    if assets
-        .keys()
-        .all(|path| path.starts_with("writing-assets/") || path.starts_with("data/picture/"))
-    {
-        Ok(())
-    } else {
-        Err(remote_error("发现不属于写作库的本机附件"))
-    }
-}
-
-fn encode_assets(assets: &BTreeMap<String, Vec<u8>>) -> Result<Vec<u8>> {
-    let mut encoded = BTreeMap::new();
-    for (path, bytes) in assets {
-        validate_asset_path(path)?;
-        encoded.insert(path, BASE64.encode(bytes));
-    }
-    Ok(serde_json::to_vec(&encoded)?)
-}
-
-fn decode_assets(bytes: &[u8]) -> Result<BTreeMap<String, Vec<u8>>> {
-    let encoded: BTreeMap<String, String> = serde_json::from_slice(bytes)?;
-    let mut assets = BTreeMap::new();
-    for (path, data) in encoded {
-        validate_asset_path(&path)?;
-        assets.insert(
-            path,
-            BASE64
-                .decode(data)
-                .map_err(|_| remote_error("服务器写作附件密文损坏"))?,
-        );
-    }
-    Ok(assets)
-}
-
-fn validate_asset_path(path: &str) -> Result<()> {
-    if !(path.starts_with("writing-assets/") || path.starts_with("data/picture/"))
-        || path.contains(':')
-        || path.starts_with('/')
-        || path
-            .split('/')
-            .any(|part| part.is_empty() || part == "." || part == "..")
-    {
-        return Err(remote_error("写作附件路径无效"));
-    }
-    Ok(())
 }
