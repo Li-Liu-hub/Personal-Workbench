@@ -1,4 +1,3 @@
-import ExportButton from './ExportButton'
 import EditableRecordTable from './EditableRecordTable'
 import useUnsavedChanges from './useUnsavedChanges'
 import { useEffect, useMemo, useState } from 'react'
@@ -105,7 +104,7 @@ export default function CredentialsPage({ setWorkspaceDirty, onCountChange }: { 
     <div className="content">
       <header className="page-header">
         <div><div className="eyebrow">PERSONAL VAULT</div><h1>账号密码管理</h1><p>妥善整理你的账号、密码与备注</p></div>
-        <div className="toolbar-controls"><ExportButton scope="credentials" dirty={credentialDirty}/><Button type="primary" size="large" disabled={rowDirty} icon={<PlusOutlined/>} onClick={() => edit(blank())}>新增账号</Button></div>
+        <div className="toolbar-controls"><Button type="primary" size="large" disabled={rowDirty} icon={<PlusOutlined/>} onClick={() => edit(blank())}>新增账号</Button></div>
       </header>
       {error && <div className="error" role="alert">{error}<button onClick={() => setError('')} aria-label="关闭提示">×</button></div>}
       <section className="toolbar">

@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "PersonalDesk"
-version = "0.15.76"
+version = "0.15.78"
 dependencies = [
  "arboard",
  "base64 0.22.1",
@@ -3960,7 +3960,7 @@ checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
 name = "personal-desk"
-version = "0.15.76"
+version = "0.15.78"
 dependencies = [
  "aes-gcm",
  "age",

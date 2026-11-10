@@ -6,8 +6,8 @@ mod commands;
 pub mod state;
 
 use commands::{
-    contacts, credentials, essays, export, inventory, mongo, settings, shortcuts, theme, tools,
-    websites, writing,
+    contacts, credentials, essays, inventory, mongo, settings, shortcuts, theme, tools, websites,
+    writing,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -140,7 +140,6 @@ pub fn run() {
             settings::vault_mysql_test_saved,
             settings::vault_mysql_clear,
             settings::vault_sync_now,
-            export::export_test_data,
             theme::theme_get,
             theme::theme_save,
             theme::theme_set_zoom,

@@ -1,7 +1,7 @@
 {
   "name": "personal-desk-desktop",
   "private": true,
-  "version": "0.15.76",
+  "version": "0.15.78",
   "type": "module",
   "scripts": {
     "dev": "vite",

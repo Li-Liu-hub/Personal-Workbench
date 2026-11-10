@@ -355,12 +355,19 @@ pub(crate) fn serialize_private_state(source: &Connection) -> Result<Vec<u8>> {
     let private = Connection::open_in_memory()?;
     private.pragma_update(None, "foreign_keys", "OFF")?;
     for table in ACCOUNT_TABLES {
-        // 挂载后账号标签/收藏在 temp.private_tags / temp.private_favorites；
-        // 挂载前（首次启动、旧数据）它们就是 main.tags / main.favorites。
+        // 挂载后账号表在 temp：credentials / legacy_credential_imports 由 attach_account_tables
+        // 复制成同名 temp 表，未限定 schema 的 SQL 也会先命中 temp；标签/收藏则是
+        // temp.private_tags / temp.private_favorites。挂载前（首次启动、旧数据）都在 main。
+        // 这里必须按真实位置读取：读 main.credentials 会得到空表，上传后覆盖服务器账号。
         let (schema, source_table) = match *table {
             "tags" if exists_in_schema(source, "temp", "private_tags")? => ("temp", "private_tags"),
             "favorites" if exists_in_schema(source, "temp", "private_favorites")? => {
                 ("temp", "private_favorites")
+            }
+            "credentials" | "legacy_credential_imports"
+                if exists_in_schema(source, "temp", table)? =>
+            {
+                ("temp", *table)
             }
             _ => ("main", *table),
         };
@@ -1312,6 +1319,34 @@ mod tests {
         let account = account_snapshot(&private).unwrap();
         assert_eq!(local_count(&account, "credentials"), 1);
         assert_eq!(local_count(&account, "tags"), 1);
+    }
+
+    #[test]
+    fn serialize_reads_attached_account_tables_instead_of_empty_local_copy() {
+        let mut fixture = Fixture::new();
+        // 远端载荷里有 2 条账号；挂载后写入走 temp，本机 main.credentials 会被清空。
+        for (id, title) in [("a", "远端账号一"), ("b", "远端账号二")] {
+            fixture
+                .remote
+                .execute(
+                    "INSERT INTO main.credentials(id,title,username,password,website,notes) VALUES(?1,?2,'u','p','w','n')",
+                    [id, title],
+                )
+                .unwrap();
+        }
+        let remote = deserialize_private_state(&fixture.payload()).unwrap();
+        attach_account_tables(&mut fixture.desk, &remote).unwrap();
+        clear_local_private_rows(&mut fixture.desk, false).unwrap();
+        assert_eq!(local_count(&fixture.desk, "credentials"), 0);
+
+        // 同步上传的快照必须来自已挂载的 temp 账号表，否则会把服务器账号清空。
+        let payload = serialize_private_state(&fixture.desk).unwrap();
+        let snapshot = deserialize_private_state(&payload).unwrap();
+        assert_eq!(
+            local_count(&snapshot, "credentials"),
+            2,
+            "同步序列化必须读取 temp 账号表，而不是空的 main.credentials"
+        );
     }
 
     #[test]

@@ -3,13 +3,13 @@
 
 //! 个人办公台可执行文件入口。
 //!
-//! 无参数启动图形界面；带参数时先处理无窗口命令行模式（更新、导入、导出）。
+//! 无参数启动图形界面；带参数时先处理无窗口命令行模式（更新、导入）。
 //! 命令行模式不创建窗口、不抢占单实例锁，供发布脚本与 CI 在无 GUI 环境执行。
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-use personal_desk::{db::Database, export, import, library::WritingImportBook, updater};
+use personal_desk::{db::Database, import, library::WritingImportBook, updater};
 
 fn main() {
     let mut arguments = std::env::args_os().skip(1);
@@ -24,9 +24,7 @@ fn main() {
         Some("--import-data") => {
             import_data(arguments.next()).map_err(|error| format!("处理失败：{error}"))
         }
-        Some("--export-all") => {
-            export_all(arguments.next()).map_err(|error| format!("处理失败：{error}"))
-        }
+
         Some("--import-writing-bundle") => {
             import_writing_bundle(arguments.next(), arguments.next())
                 .map_err(|error| format!("导入失败：{error}"))
@@ -58,15 +56,6 @@ fn import_data(path: Option<OsString>) -> Result<(), String> {
     let (accounts, websites) =
         import::file(&directory, Path::new(&path)).map_err(|error| error.to_string())?;
     println!("已导入 {accounts} 条账号和 {websites} 个网站，重复记录已跳过。");
-    Ok(())
-}
-
-fn export_all(path: Option<OsString>) -> Result<(), String> {
-    let path = path.ok_or_else(|| "请提供数据文件路径".to_owned())?;
-    let directory = data_directory()?;
-    let report = export::write(&directory, Path::new(&path), export::Scope::All)
-        .map_err(|error| error.to_string())?;
-    println!("已导出全部数据，{} 项说明。", report.warnings);
     Ok(())
 }
 

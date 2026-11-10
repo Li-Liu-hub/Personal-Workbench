@@ -1,8 +1,8 @@
 use super::*;
-use crate::{db::Database, export};
+use crate::db::Database;
 use std::{
     fs,
-    io::{Cursor, Read, Write},
+    io::{Cursor, Write},
 };
 
 pub(crate) fn workbook_fixture() -> Vec<u8> {
@@ -195,70 +195,4 @@ fn contact_chat_save_is_transactional_and_size_failures_preserve_pending_records
             .unwrap(),
         0
     );
-}
-
-#[test]
-fn module_and_full_exports_keep_contact_chat_originals_and_archive_links() {
-    let temp = tempfile::tempdir().unwrap();
-    let path = temp.path().join("聊天.xlsx");
-    let bytes = workbook_fixture();
-    fs::write(&path, &bytes).unwrap();
-    let mut contact = sample_contact();
-    contact.chats.push(import_chat(&path).unwrap());
-    Database::open(temp.path())
-        .unwrap()
-        .save_contact(&contact)
-        .unwrap();
-    for scope in [
-        export::Scope::Contacts,
-        export::Scope::All,
-        export::Scope::Websites,
-    ] {
-        let archive_path = temp.path().join(format!("{scope:?}.zip"));
-        export::write(temp.path(), &archive_path, scope).unwrap();
-        let mut zip = zip::ZipArchive::new(File::open(archive_path).unwrap()).unwrap();
-        if scope == export::Scope::Websites {
-            assert!(zip.by_name("联系人.json").is_err());
-            assert!(
-                !zip.file_names()
-                    .any(|name| name.starts_with("contact_chats/"))
-            );
-            continue;
-        }
-        let data: serde_json::Value =
-            serde_json::from_reader(zip.by_name("联系人.json").unwrap()).unwrap();
-        assert_eq!(data[0]["phone"], contact.phone);
-        assert_eq!(data[0]["national_id"], contact.national_id);
-        assert!(data[0]["chats"][0].get("original").is_none());
-        let member = data[0]["chats"][0]["archive_path"].as_str().unwrap();
-        let mut exported = vec![];
-        zip.by_name(member)
-            .unwrap()
-            .read_to_end(&mut exported)
-            .unwrap();
-        assert_eq!(exported, bytes);
-        if scope == export::Scope::All {
-            let snapshot = temp.path().join("snapshot.db");
-            let mut data = vec![];
-            zip.by_name("data/desk.db")
-                .unwrap()
-                .read_to_end(&mut data)
-                .unwrap();
-            fs::write(&snapshot, data).unwrap();
-            let c = rusqlite::Connection::open(snapshot).unwrap();
-            assert_eq!(
-                c.query_row("PRAGMA integrity_check", [], |r| r.get::<_, String>(0))
-                    .unwrap(),
-                "ok"
-            );
-            assert_eq!(
-                c.query_row("SELECT original FROM contact_chats", [], |r| r
-                    .get::<_, Vec<u8>>(0))
-                    .unwrap(),
-                bytes
-            );
-        } else {
-            assert!(zip.by_name("账号密码.json").is_err());
-        }
-    }
 }

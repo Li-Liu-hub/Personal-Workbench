@@ -1,6 +1,5 @@
 import useAutoSave from './useAutoSave'
 import WritingZoom from './WritingZoom'
-import ExportButton from './ExportButton'
 import MarkdownEditor from './MarkdownEditor'
 import {useWritingDraft} from './useWritingDraft'
 import {useEffect,useRef,useState} from 'react'
@@ -50,7 +49,7 @@ export default function WritingPage({dirty,setDirty}:{dirty:boolean;setDirty:(v:
  return <div className={`content writing-page ${directoryOpen?'':'directory-collapsed'}`}>
   <header className="writing-header">
    <div className="writing-header-title"><Tooltip title={directoryOpen?'收起目录':'展开目录'}><Button type="text" aria-label="切换文档目录" icon={<MenuFoldOutlined/>} onClick={()=>setDirectoryOpen(v=>!v)}/></Tooltip><h1>文档写作</h1><span className="writing-total">{pages.length} 篇</span></div>
-   <Space><Dropdown trigger={['click']} menu={{items:[{key:'log',label:'生成今日日志'},{key:'recover',label:'恢复草稿'}],onClick:({key})=>key==='log'?void createLog():setRecoverOpen(true)}}><Button type="text" disabled={busy} aria-label="写作工作区操作" icon={<MoreOutlined/>}/></Dropdown><ExportButton scope="documents" dirty={dirty}/><Button type="primary" aria-label="新建文档" icon={<PlusOutlined/>} disabled={busy} onClick={()=>void createPage()}>新建文档</Button></Space>
+   <Space><Dropdown trigger={['click']} menu={{items:[{key:'log',label:'生成今日日志'},{key:'recover',label:'恢复草稿'}],onClick:({key})=>key==='log'?void createLog():setRecoverOpen(true)}}><Button type="text" disabled={busy} aria-label="写作工作区操作" icon={<MoreOutlined/>}/></Dropdown><Button type="primary" aria-label="新建文档" icon={<PlusOutlined/>} disabled={busy} onClick={()=>void createPage()}>新建文档</Button></Space>
   </header>
   <div className="writing-layout">
    {directoryOpen&&<aside className="document-directory">

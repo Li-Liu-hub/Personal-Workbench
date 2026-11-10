@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Mandatory=$true)][string]$Executable,
     [string]$OutputDirectory = (Join-Path $PSScriptRoot '../dist/release'),
     [string]$Compiler,
@@ -45,7 +45,7 @@ $dataPathLine
 默认数据目录：%LOCALAPPDATA%\PersonalDesk。
 小游戏、刷题王、每日单词和百科全书由 D:\MyProject 下的独立程序提供，继续沿用原数据目录。设置中可开启/关闭开机自启动。
 本地模型和模型运行时不随客户端打包，客户端本身可独立使用。
-导出全部数据可备份个人办公台记录及文档；小工具和快捷路径只保存 EXE 或文件地址。
+小工具和快捷路径只保存 EXE 或文件地址。
 更新只替换程序；安装包不会包含个人账号、文档或模型文件。
 
 源码与发布：https://github.com/Li-Liu-hub/Personal-Workbench

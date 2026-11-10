@@ -62,9 +62,6 @@ jobs:
             if ($p.ExitCode -ne 0) { throw "Installer failed: $($p.ExitCode)" }
             if ((Get-FileHash (Join-Path $app '个人办公台.exe')).Hash -ne (Get-FileHash (Join-Path $out 'PersonalDesk.exe')).Hash) { throw 'Installed payload differs' }
             if ([IO.File]::ReadAllText((Join-Path $app 'personal-desk-data-path.txt')) -ne $data) { throw 'Data directory pointer changed' }
-            $archive = Join-Path $env:RUNNER_TEMP "installed-export-$pass.zip"
-            $p = Start-Process -FilePath (Join-Path $app '个人办公台.exe') -ArgumentList '--export-all',$archive -WindowStyle Hidden -Wait -PassThru
-            if ($p.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $archive)) { throw 'Installed app export failed' }
           }
           $p = Start-Process -FilePath (Join-Path $app unins000.exe) -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -WindowStyle Hidden -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw 'Uninstall failed' }

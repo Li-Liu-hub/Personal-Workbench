@@ -1,9 +1,4 @@
-use personal_desk::{
-    db::Database,
-    export::{self, Scope},
-    writing_images,
-};
-use std::io::Read;
+use personal_desk::{db::Database, writing_images};
 #[test]
 fn images_are_copied_validated_and_exported_with_usable_relative_links() {
     let temp = tempfile::tempdir().unwrap();
@@ -24,16 +19,29 @@ fn images_are_copied_validated_and_exported_with_usable_relative_links() {
     page.body = format!("![示例]({reference})");
     db.finish_writing_save("test", &mut page).unwrap();
     drop(db);
-    let zip_path = temp.path().join("export.zip");
-    export::write(&data, &zip_path, Scope::Documents).unwrap();
-    let mut zip = zip::ZipArchive::new(std::fs::File::open(zip_path).unwrap()).unwrap();
-    assert!(zip.by_name(&reference).is_ok());
-    let mut markdown = String::new();
-    zip.by_name(&format!("writing/{}.md", page.id))
+    let markdown_path = temp.path().join("导出.md");
+    writing_images::export_markdown(&data, &page, &markdown_path).unwrap();
+    let markdown = std::fs::read_to_string(&markdown_path).unwrap();
+    assert!(
+        markdown.contains("personal-desk-images-"),
+        "导出的 Markdown 应指向图片文件夹：{markdown}"
+    );
+    assert!(
+        !markdown.contains(&reference),
+        "导出的绝对写作文档路径不能被保留"
+    );
+    let copied = std::fs::read_dir(temp.path())
         .unwrap()
-        .read_to_string(&mut markdown)
-        .unwrap();
-    assert!(markdown.contains(&format!("../{reference}")));
+        .filter_map(|entry| entry.ok())
+        .map(|entry| entry.path())
+        .find(|path| {
+            path.is_dir()
+                && path
+                    .file_name()
+                    .is_some_and(|name| name.to_string_lossy().starts_with("personal-desk-images-"))
+        })
+        .expect("导出目录缺少图片文件夹");
+    assert_eq!(std::fs::read_dir(copied).unwrap().count(), 1);
 }
 #[test]
 fn clipboard_image_bytes_are_validated_before_storage() {

@@ -1,5 +1,4 @@
 import useUnsavedChanges from './useUnsavedChanges'
-import ExportButton from './ExportButton'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { Alert, Button, Empty, Input, Modal, Popconfirm, Select, Segmented, Space, Tag, Tooltip } from 'antd'
@@ -27,7 +26,7 @@ export default function ToolsPage({setWorkspaceDirty}:{setWorkspaceDirty?:(dirty
  async function renameTag(original:string){const name=window.prompt('修改分类名称',original);if(!name||name===original)return;try{await invoke('tool_tag_rename',{original,name});if(filter===original)setFilter(name);await reload()}catch(e){setError(`修改分类失败：${String(e)}`)}}
  async function deleteTag(name:string){if(!window.confirm(`确定删除分类“${name}”？程序入口不会被删除。`))return;try{await invoke('tool_tag_delete',{name});if(filter===name)setFilter('all');await reload()}catch(e){setError(`删除分类失败：${String(e)}`)}}
  async function changeView(view:'grid'|'list'){try{await invoke('tool_view',{mode:view});setData({...data,view})}catch(e){setError(`保存视图失败：${String(e)}`)}}
- return <div className="content"><header className="page-header"><div><div className="eyebrow">QUICK LAUNCH</div><h1>小工具</h1><p>单击启动程序；移除入口不会删除原程序</p></div><Space><ExportButton scope="tools" dirty={dirty}/><Button type="primary" size="large" icon={<PlusOutlined/>} onClick={()=>void pick()}>添加程序</Button></Space></header>
+ return <div className="content"><header className="page-header"><div><div className="eyebrow">QUICK LAUNCH</div><h1>小工具</h1><p>单击启动程序；移除入口不会删除原程序</p></div><Space><Button type="primary" size="large" icon={<PlusOutlined/>} onClick={()=>void pick()}>添加程序</Button></Space></header>
  {error&&<Alert type="error" showIcon closable onClose={()=>setError('')} message={error} style={{marginBottom:16}}/>}
  <section className="toolbar"><Input className="search-antd" prefix={<SearchOutlined/>} allowClear aria-label="搜索小工具" placeholder="搜索名称、路径或备注" value={query} onChange={e=>setQuery(e.target.value)}/><div className="toolbar-controls"><Select aria-label="按分类筛选" style={{width:140}} value={filter} onChange={setFilter} options={[{value:'all',label:'全部分类'},{value:'untagged',label:'未分类'},...data.tags.map(t=>({value:t,label:t}))]}/><Button type="text" onClick={()=>setManageTags(true)}>管理分类</Button><Segmented value={data.view} onChange={value=>void changeView(value as 'grid'|'list')} options={[{value:'grid',label:<AppstoreOutlined/>},{value:'list',label:<UnorderedListOutlined/>}]}/></div></section>
  <div className="section-heading"><div><h2>程序入口</h2><span>共 {visible.length} 条</span></div></div>

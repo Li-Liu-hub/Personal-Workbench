@@ -3,7 +3,6 @@
 pub mod contacts;
 pub mod credentials;
 pub mod essays;
-pub mod export;
 pub mod inventory;
 pub mod mongo;
 pub mod settings;

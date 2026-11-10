@@ -81,34 +81,3 @@ fn essay_creation_rolls_back_on_failure_and_deleted_page_is_not_replaced() {
     assert!(db.essay_summaries("").unwrap().is_empty());
     assert!(db.essay_records().unwrap()[0].page.is_none());
 }
-
-#[test]
-fn essay_module_and_full_export_include_topic_snapshot_and_body() {
-    let dir = tempfile::tempdir().unwrap();
-    let data = dir.path().join("data");
-    let mut db = Database::open(&data).unwrap();
-    let a = db.ensure_essay_day(day(22)).unwrap();
-    let mut p = db.start_essay(&a.day).unwrap();
-    p.body = "An essay worth keeping".into();
-    db.finish_writing_save("writer", &mut p).unwrap();
-    for scope in [crate::export::Scope::Essays, crate::export::Scope::All] {
-        let output = dir.path().join(format!("{}.zip", scope.label()));
-        crate::export::write(&data, &output, scope).unwrap();
-        let mut zip = zip::ZipArchive::new(std::fs::File::open(output).unwrap()).unwrap();
-        let records: serde_json::Value =
-            serde_json::from_reader(zip.by_name("每日随笔.json").unwrap()).unwrap();
-        assert_eq!(records[0]["assignment"]["topic"]["title"], a.topic.title);
-        assert_eq!(records[0]["page"]["body"], p.body);
-        use std::io::Read;
-        let mut text = String::new();
-        zip.by_name("essays/2026-10-22.md")
-            .unwrap()
-            .read_to_string(&mut text)
-            .unwrap();
-        assert!(text.contains(&p.body) && text.contains(&a.topic.prompt));
-        assert_eq!(
-            zip.by_name("每日随笔.json").unwrap().name(),
-            "每日随笔.json"
-        );
-    }
-}

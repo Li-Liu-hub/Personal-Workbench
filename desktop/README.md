@@ -1,12 +1,12 @@
 # 个人办公台桌面客户端
 
-`desktop/` 是个人办公台唯一的桌面客户端：前端使用 TypeScript、React 19、Ant Design 6 与 Vite，窗口与系统能力由 Tauri 2 提供；Rust 侧复用根目录核心库 `personal-desk` 的数据访问、领域规则、导入导出、更新器、图片、私网账号库与 MongoDB 文档发布等 API，并用 rfd、arboard 等库处理系统文件对话框与剪贴板。
+`desktop/` 是个人办公台唯一的桌面客户端：前端使用 TypeScript、React 19、Ant Design 6 与 Vite，窗口与系统能力由 Tauri 2 提供；Rust 侧复用根目录核心库 `personal-desk` 的数据访问、领域规则、数据导入、更新器、图片、私网账号库与 MongoDB 文档发布等 API，并用 rfd、arboard 等库处理系统文件对话框与剪贴板。
 
 ## 目录职责与分层
 
 - `src/`：前端页面（`*Page.tsx`）、组件、hooks 与 vitest 回归测试。页面通过 `@tauri-apps/api` 的 `invoke` 调用命令，不直接访问数据库或文件系统。
 - `src-tauri/src/state.rs`：数据目录解析、数据库初始化与访问、单实例、主窗口（含 WebView2 用户数据目录）与后台私网同步。
-- `src-tauri/src/lib.rs`：只保留应用生命周期与命令注册；`src-tauri/src/main.rs`：图形入口与 `--apply-update`、`--import-data`、`--export-all`、`--import-writing-bundle` 命令行模式。
+- `src-tauri/src/lib.rs`：只保留应用生命周期与命令注册；`src-tauri/src/main.rs`：图形入口与 `--apply-update`、`--import-data`、`--import-writing-bundle` 命令行模式；整库数据导出已在 0.15.78 移除，`writing_export_markdown` 与 `contact_export_chat` 仍提供单篇 / 单条导出。
 - `src-tauri/src/commands/*.rs`：按领域拆分的 Tauri 命令，只做参数转换与调用核心库 API；业务校验统一放在核心库，不在命令里重复写规则。
 - `src-tauri/capabilities/default.json`：窗口权限；`src-tauri/tauri.conf.json`：产品名、版本与前端构建入口。
 
