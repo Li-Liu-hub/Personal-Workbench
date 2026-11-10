@@ -22,6 +22,22 @@ fn data_key(data: &Path) -> PathBuf {
     data.canonicalize().unwrap_or_else(|_| data.to_path_buf())
 }
 
+pub fn remote_assets_ready(data: &Path) -> bool {
+    #[cfg(debug_assertions)]
+    {
+        let _ = data;
+        true
+    }
+    #[cfg(not(debug_assertions))]
+    {
+        remote_assets()
+            .lock()
+            .ok()
+            .and_then(|cache| cache.get(&data_key(data)).map(|_| ()))
+            .is_some()
+    }
+}
+
 #[cfg(not(debug_assertions))]
 pub(crate) fn enable_remote_cache(data: &Path, assets: BTreeMap<String, Vec<u8>>) -> Result<()> {
     for path in assets.keys() {

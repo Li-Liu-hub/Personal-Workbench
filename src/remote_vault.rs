@@ -12,7 +12,7 @@ use std::{
     str::FromStr,
     sync::{
         Arc, Mutex,
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
     },
     time::{Duration, Instant},
 };
@@ -92,7 +92,8 @@ pub struct RemoteVault {
     identity: Identity,
     data_dir: PathBuf,
     private_revision: u64,
-    assets_revision: u64,
+    assets_revision: Arc<AtomicU64>,
+    assets_ready: Arc<AtomicBool>,
     dirty: Arc<AtomicBool>,
     last_change: Arc<Mutex<Instant>>,
     retry_after: Instant,
@@ -103,9 +104,9 @@ impl RemoteVault {
         let transport = VaultTransport::load()?;
         ensure_remote_schema(&transport)?;
         let remote_private = fetch_remote_payload(&transport, OBJECT_PRIVATE)?;
-        let remote_assets = fetch_remote_payload(&transport, OBJECT_ASSETS)?;
+        let remote_assets_revision = fetch_remote_revision(&transport, OBJECT_ASSETS)?;
         let identity =
-            load_or_create_identity(remote_private.is_some() || remote_assets.is_some())?;
+            load_or_create_identity(remote_private.is_some() || remote_assets_revision.is_some())?;
 
         let local_private = Zeroizing::new(serialize_private_state(desk)?);
         let local_has_private_rows = private_rows_exist(desk)?;
@@ -130,35 +131,8 @@ impl RemoteVault {
             (verified, revision)
         };
 
-        let mut local_assets = assets_from_disk(data_dir)?;
-        let local_assets_plain = Zeroizing::new(encode_assets(&local_assets)?);
-        let (assets_plain, assets_revision) = if let Some((revision, ciphertext)) = remote_assets {
-            let plaintext = decrypt(&identity, &ciphertext)?;
-            if !local_assets.is_empty() && plaintext.as_slice() != local_assets_plain.as_slice() {
-                return Err(DeskError::InvalidPath(
-                    "服务器和本机的写作图片不一致；已保留两边资料，没有覆盖。".into(),
-                ));
-            }
-            (plaintext, revision)
-        } else {
-            let ciphertext = encrypt(&identity, &local_assets_plain)?;
-            store_remote_payload(&transport, OBJECT_ASSETS, None, &ciphertext)?;
-            let (revision, verified) = fetch_remote_payload(&transport, OBJECT_ASSETS)?
-                .ok_or_else(|| remote_error("服务器没有返回已保存的写作图片"))?;
-            let verified = decrypt(&identity, &verified)?;
-            if verified.as_slice() != local_assets_plain.as_slice() {
-                return Err(remote_error("写作图片上传后核对不一致"));
-            }
-            (verified, revision)
-        };
-
-        for bytes in local_assets.values_mut() {
-            bytes.zeroize();
-        }
-
         let private_db = deserialize_private_state(&private_plain)?;
         attach_private_tables(desk, &private_db)?;
-        writing_images::enable_remote_cache(data_dir, decode_assets(&assets_plain)?)?;
         let managed_files = managed_writing_files(desk, data_dir)?;
         sanitize_local_backups(data_dir)?;
         desk.execute(
@@ -168,7 +142,30 @@ impl RemoteVault {
         if private_rows_exist(desk)? {
             clear_local_private_rows(desk, &managed_files, true)?;
         }
-        clear_local_writing_files(data_dir, &managed_files)?;
+
+        let assets_revision = Arc::new(AtomicU64::new(remote_assets_revision.unwrap_or(0)));
+        let assets_ready = Arc::new(AtomicBool::new(false));
+        let thread_identity = identity.clone();
+        let thread_data = data_dir.to_path_buf();
+        let thread_managed = managed_files;
+        let thread_revision = Arc::clone(&assets_revision);
+        let thread_ready = Arc::clone(&assets_ready);
+        std::thread::spawn(move || {
+            let result = (|| -> Result<u64> {
+                let transport = VaultTransport::load()?;
+                let revision =
+                    Self::load_remote_assets(&transport, &thread_identity, &thread_data)?;
+                clear_local_writing_files(&thread_data, &thread_managed)?;
+                Ok(revision)
+            })();
+            match result {
+                Ok(revision) => {
+                    thread_revision.store(revision, Ordering::Release);
+                    thread_ready.store(true, Ordering::Release);
+                }
+                Err(error) => eprintln!("远程写作图片加载失败：{error}"),
+            }
+        });
 
         let dirty = Arc::new(AtomicBool::new(false));
         let last_change = Arc::new(Mutex::new(Instant::now()));
@@ -195,15 +192,52 @@ impl RemoteVault {
             data_dir: data_dir.to_path_buf(),
             private_revision,
             assets_revision,
+            assets_ready,
             dirty,
             last_change,
             retry_after: Instant::now(),
         })
     }
 
+    fn load_remote_assets(
+        transport: &VaultTransport,
+        identity: &Identity,
+        data_dir: &Path,
+    ) -> Result<u64> {
+        let remote_assets = fetch_remote_payload(transport, OBJECT_ASSETS)?;
+        let mut local_assets = assets_from_disk(data_dir)?;
+        let local_assets_plain = Zeroizing::new(encode_assets(&local_assets)?);
+        let (assets_plain, revision) = if let Some((revision, ciphertext)) = remote_assets {
+            let plaintext = decrypt(identity, &ciphertext)?;
+            if !local_assets.is_empty() && plaintext.as_slice() != local_assets_plain.as_slice() {
+                return Err(DeskError::InvalidPath(
+                    "服务器和本机的写作图片不一致；已保留两边资料，没有覆盖。".into(),
+                ));
+            }
+            (plaintext, revision)
+        } else {
+            let ciphertext = encrypt(identity, &local_assets_plain)?;
+            store_remote_payload(transport, OBJECT_ASSETS, None, &ciphertext)?;
+            let (revision, verified) = fetch_remote_payload(transport, OBJECT_ASSETS)?
+                .ok_or_else(|| remote_error("服务器没有返回已保存的写作图片"))?;
+            let verified = decrypt(identity, &verified)?;
+            if verified.as_slice() != local_assets_plain.as_slice() {
+                return Err(remote_error("写作图片上传后核对不一致"));
+            }
+            (verified, revision)
+        };
+
+        for bytes in local_assets.values_mut() {
+            bytes.zeroize();
+        }
+        writing_images::enable_remote_cache(data_dir, decode_assets(&assets_plain)?)?;
+        Ok(revision)
+    }
+
     pub fn sync_if_due(&mut self, desk: &mut Connection, force: bool) -> Result<bool> {
         let private_dirty = self.dirty.load(Ordering::Acquire);
-        let assets_dirty = writing_images::remote_assets_dirty(&self.data_dir);
+        let assets_dirty = self.assets_ready.load(Ordering::Acquire)
+            && writing_images::remote_assets_dirty(&self.data_dir);
         if !private_dirty && !assets_dirty {
             return Ok(false);
         }
@@ -236,7 +270,9 @@ impl RemoteVault {
     }
 
     pub fn has_pending_changes(&self) -> bool {
-        self.dirty.load(Ordering::Acquire) || writing_images::remote_assets_dirty(&self.data_dir)
+        self.dirty.load(Ordering::Acquire)
+            || (self.assets_ready.load(Ordering::Acquire)
+                && writing_images::remote_assets_dirty(&self.data_dir))
     }
 
     fn sync_pending(
@@ -266,12 +302,14 @@ impl RemoteVault {
             for bytes in assets.values_mut() {
                 bytes.zeroize();
             }
-            self.assets_revision = store_remote_payload(
+            let current_revision = self.assets_revision.load(Ordering::Acquire);
+            let next_revision = store_remote_payload(
                 &transport,
                 OBJECT_ASSETS,
-                Some(self.assets_revision),
+                Some(current_revision),
                 &ciphertext,
             )?;
+            self.assets_revision.store(next_revision, Ordering::Release);
             writing_images::mark_remote_assets_synced(&self.data_dir);
         }
         Ok(private_dirty || assets_dirty)
@@ -377,6 +415,38 @@ fn fetch_remote_payload(
                 .map_err(mysql_error)
         }
         VaultTransport::Ssh => fetch_remote_payload_ssh(object_id),
+    }
+}
+
+fn fetch_remote_revision(transport: &VaultTransport, object_id: &str) -> Result<Option<u64>> {
+    if object_id != OBJECT_PRIVATE && object_id != OBJECT_ASSETS {
+        return Err(remote_error("资料类型无效"));
+    }
+    match transport {
+        VaultTransport::Direct(config) => {
+            let mut connection = config.connect()?;
+            connection
+                .exec_first(
+                    format!(
+                        "SELECT revision FROM `{}`.`{MYSQL_TABLE}` WHERE object_id=? LIMIT 1",
+                        config.database()
+                    ),
+                    (object_id,),
+                )
+                .map_err(mysql_error)
+        }
+        VaultTransport::Ssh => {
+            let output = run_mysql_ssh(&format!(
+                "SELECT revision FROM `{MYSQL_DATABASE}`.`{MYSQL_TABLE}` WHERE object_id='{object_id}';\n"
+            ))?;
+            let line = output.trim();
+            if line.is_empty() {
+                return Ok(None);
+            }
+            line.parse::<u64>()
+                .map(Some)
+                .map_err(|_| remote_error("服务器密文版本号无效"))
+        }
     }
 }
 

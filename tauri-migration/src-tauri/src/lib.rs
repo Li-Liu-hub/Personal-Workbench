@@ -51,6 +51,14 @@ fn development_db() -> Result<MutexGuard<'static, Database>, String> {
         .map_err(|_| "数据库锁已损坏".to_string())
 }
 
+fn writing_assets_data_directory() -> Result<PathBuf, String> {
+    let data = data_directory()?;
+    if !personal_desk::writing_images::remote_assets_ready(&data) {
+        return Err("写作图片正在后台加载，请稍候再试".into());
+    }
+    Ok(data)
+}
+
 #[tauri::command]
 fn credentials_list() -> Result<Vec<Credential>, String> {
     development_db()?.credentials().map_err(|e| e.to_string())
@@ -518,20 +526,21 @@ fn writing_move_book(id:String,parent:Option<String>)->Result<(),String>{develop
 fn writing_move_page(id:String,target:Option<String>)->Result<(),String>{development_db()?.move_writing_page(&id,target.as_deref()).map_err(|e|e.to_string())}
 #[tauri::command]
 async fn writing_image_import(document_id:String)->Result<Option<String>,String>{
+ let data=writing_assets_data_directory()?;
  let Some(file)=rfd::AsyncFileDialog::new().set_title("插入图片").add_filter("图片",&["png","jpg","jpeg","webp","bmp"]).pick_file().await else{return Ok(None)};
- let source=file.path().to_owned();let data=data_directory()?;
+ let source=file.path().to_owned();
  tauri::async_runtime::spawn_blocking(move||personal_desk::writing_images::import_document(&data,&document_id,&source).map(Some).map_err(|e|e.to_string())).await.map_err(|e|e.to_string())?
 }
 #[tauri::command]
 async fn writing_image_paste(document_id:String,bytes:Vec<u8>)->Result<String,String>{
  if bytes.len()>personal_desk::contacts::MAX_FILE_BYTES{return Err("图片不能超过 8 MiB".into())}
- let data=data_directory()?;
+ let data=writing_assets_data_directory()?;
  tauri::async_runtime::spawn_blocking(move||personal_desk::writing_images::import_document_bytes(&data,&document_id,&bytes).map_err(|e|e.to_string())).await.map_err(|e|e.to_string())?
 }
 #[tauri::command]
 async fn writing_image_read(reference:String)->Result<String,String>{
  use base64::Engine;
- let data=data_directory()?;
+ let data=writing_assets_data_directory()?;
  tauri::async_runtime::spawn_blocking(move||{let (bytes,mime)=personal_desk::writing_images::read(&data,&reference).map_err(|e|e.to_string())?;Ok(format!("data:{mime};base64,{}",base64::engine::general_purpose::STANDARD.encode(bytes)))}).await.map_err(|e|e.to_string())?
 }
 #[tauri::command]
@@ -553,10 +562,10 @@ fn writing_save_copy(mut page:personal_desk::library::Page)->Result<personal_des
 }
 #[tauri::command]
 async fn writing_export_markdown(page:personal_desk::library::Page)->Result<Option<PathBuf>,String>{
+ let data=writing_assets_data_directory()?;
  let filename=format!("{}.md",page.title.replace(['\\','/',':','*','?','\"','<','>','|'],"_"));
  let Some(file)=rfd::AsyncFileDialog::new().set_title("导出 Markdown 文档").set_file_name(filename).add_filter("Markdown",&["md"]).save_file().await else{return Ok(None)};
  let mut destination=file.path().to_owned();if destination.extension().is_none_or(|e|!e.eq_ignore_ascii_case("md")){destination.set_extension("md");if destination.exists(){return Err("补全扩展名后的文件已存在，请直接选择该文件".into())}}
- let data=data_directory()?;
  tauri::async_runtime::spawn_blocking(move||{personal_desk::writing_images::export_markdown(&data,&page,&destination).map_err(|e|e.to_string())?;Ok(Some(destination))}).await.map_err(|e|e.to_string())?
 }
 #[tauri::command]
@@ -584,6 +593,14 @@ fn theme_set_zoom(zoom:f32)->Result<personal_desk::theme::ThemeSettings,String>{
 }
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let data = data_directory();
+    let _instance = data
+        .as_ref()
+        .ok()
+        .and_then(|path| personal_desk::install::Instance::acquire(path));
+    if data.is_ok() && _instance.is_none() {
+        return;
+    }
     initialize_database();
     std::thread::spawn(|| loop {
         std::thread::sleep(Duration::from_secs(2));
@@ -592,14 +609,6 @@ pub fn run() {
         }
     });
     tauri::Builder::default()
-        .on_window_event(|_window, event| {
-            if let tauri::WindowEvent::CloseRequested { .. } = event
-                && let Some(database) = DATABASE.get()
-                && let Ok(mut database) = database.try_lock()
-            {
-                let _ = database.sync_remote_now();
-            }
-        })
         .invoke_handler(tauri::generate_handler![credentials_list, credentials_save, credentials_delete, inventory_list, inventory_save, inventory_delete, inventory_tags, inventory_favorites, inventory_favorite, inventory_view_get, inventory_view_set, inventory_tag_create, inventory_tag_rename, inventory_tag_delete, websites_list, websites_save, websites_delete, websites_open, website_data, website_view, website_favorite, website_tag_create, website_tag_rename, website_tag_delete, website_save_classified, shortcut_data, shortcut_pick, shortcut_add, shortcut_open, shortcut_remove, shortcut_undo, shortcut_favorite, shortcut_tags, shortcut_view, shortcut_tag_create, shortcut_tag_rename, shortcut_tag_delete, essay_today, essay_reroll, essay_start, essay_history, essay_page, tools_list, tools_save, tools_save_classified, tools_delete, tools_launch, writing_list, writing_create, writing_daily_log, writing_tags, writing_tag_create, writing_tag_rename, writing_tag_delete, writing_save_copy, writing_save, writing_delete, writing_draft, writing_recover_drafts, writing_export_markdown, writing_publish_blog, writing_image_import, writing_image_paste, writing_image_read, writing_move_book, writing_move_page, books_list, books_save, contacts_list, contacts_save, contacts_delete, contact_data, contact_save_classified, contact_view, contact_extra, contact_favorite, contact_tag_create, contact_tag_rename, contact_tag_delete, contact_import_photo, contact_import_chat, contact_import_chats, contact_photo, contact_remove_photo, contact_remove_chat, contact_export_chat, settings_info, settings_check_update, settings_install_update, settings_autostart_get, settings_autostart_set, vault_mysql_info, vault_mysql_save, vault_mysql_test, vault_mysql_test_saved, vault_mysql_clear, vault_sync_now, export_test_data, theme_get, theme_save, theme_set_zoom, theme_pick_image, theme_image, credential_favorites, credential_favorite, credential_tags, credential_tag_create, credential_tag_rename, credential_tag_delete, copy_value, credential_view_get, credential_view_set, password_generate, tool_data, tool_favorite, tool_view, tool_tags_set, tool_pick, tool_tag_create, tool_tag_rename, tool_tag_delete])
         .run(tauri::generate_context!())
         .expect("error while running migration development build");
