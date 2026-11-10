@@ -1,13 +1,16 @@
 [package]
 name = "personal-desk"
-version = "0.15.61"
+version = "0.15.75"
 edition = "2024"
 rust-version = "1.95"
 description = "A private Rust desktop office hub"
 license = "MIT"
+autobins = false
 
 [dependencies]
+age = "0.12.1"
 aes-gcm = "0.10"
+mysql = { version = "25", default-features = false, features = ["minimal-rust"] }
 calamine = { version = "0.26.1", features = ["dates"] }
 image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp", "bmp"] }
 chrono = { version = "0.4", features = ["serde"] }
@@ -15,7 +18,7 @@ directories = "6"
 eframe = { version = "0.37", default-features = false, features = ["default_fonts", "glow", "clipboard"] }
 open = "5"
 rfd = "0.17"
-rusqlite = { version = "0.40", features = ["bundled-full", "backup"] }
+rusqlite = { version = "0.40", features = ["bundled-full", "backup", "hooks", "serialize"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 semver = "1"

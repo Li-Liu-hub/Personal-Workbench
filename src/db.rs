@@ -25,6 +25,8 @@ pub struct Database {
     desk: Connection,
     tag_cache: std::cell::RefCell<tag_cache::Cache>,
     pub migration_notice: String,
+    #[cfg(not(debug_assertions))]
+    remote_vault: Option<crate::remote_vault::RemoteVault>,
 }
 
 impl Database {
@@ -104,21 +106,34 @@ impl Database {
         Ok(restored)
     }
     pub fn favorites(&self) -> Result<Vec<(String, String)>> {
+        let sql = if self.desk.table_exists(Some("temp"), "private_favorites")? {
+            "SELECT scope,id FROM favorites WHERE scope NOT IN ('books','book_pages','credentials','documents')
+             UNION ALL SELECT scope,id FROM temp.private_favorites ORDER BY scope,id"
+        } else {
+            "SELECT scope,id FROM favorites ORDER BY scope,id"
+        };
         Ok(self
             .desk
-            .prepare("SELECT scope,id FROM favorites ORDER BY scope,id")?
+            .prepare(sql)?
             .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
             .collect::<std::result::Result<Vec<_>, _>>()?)
     }
     pub fn set_favorite(&mut self, scope: &str, id: &str, value: bool) -> Result<()> {
+        let table = if matches!(scope, "books" | "book_pages" | "credentials" | "documents")
+            && self.desk.table_exists(Some("temp"), "private_favorites")?
+        {
+            "temp.private_favorites"
+        } else {
+            "favorites"
+        };
         if value {
             self.desk.execute(
-                "INSERT OR IGNORE INTO favorites(scope,id) VALUES(?1,?2)",
+                &format!("INSERT OR IGNORE INTO {table}(scope,id) VALUES(?1,?2)"),
                 params![scope, id],
             )?;
         } else {
             self.desk.execute(
-                "DELETE FROM favorites WHERE scope=?1 AND id=?2",
+                &format!("DELETE FROM {table} WHERE scope=?1 AND id=?2"),
                 params![scope, id],
             )?;
         }
@@ -280,18 +295,63 @@ impl Database {
         )?;
         migrate_inventory_categories(&mut desk)?;
         migrate_website_categories(&mut desk)?;
-        let migration_notice = match legacy_credentials::import(&mut desk, data_dir) {
-            Ok(report) => report.notice(),
-            Err(_) => "旧版账号暂时无法读取，原文件已保留；可以继续添加和使用新账号。".into(),
+        let legacy_import_done: Option<String> = desk
+            .query_row(
+                "SELECT value FROM settings WHERE key='remote-vault.legacy-import-done'",
+                [],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let migration_notice = if legacy_import_done.as_deref() == Some("1") {
+            String::new()
+        } else {
+            match legacy_credentials::import(&mut desk, data_dir) {
+                Ok(report) => report.notice(),
+                Err(_) => "旧版账号暂时无法读取，原文件已保留；可以继续添加和使用新账号。".into(),
+            }
         };
         let mut database = Self {
             desk,
             tag_cache: Default::default(),
             migration_notice,
+            #[cfg(not(debug_assertions))]
+            remote_vault: None,
         };
         database.prepare_writing(data_dir)?;
         database.prepare_essays()?;
+        #[cfg(not(debug_assertions))]
+        {
+            database.desk.pragma_update(None, "temp_store", "MEMORY")?;
+            database.remote_vault = Some(crate::remote_vault::RemoteVault::open_and_attach(
+                &mut database.desk,
+                data_dir,
+            )?);
+        }
         Ok(database)
+    }
+
+    pub fn sync_remote_if_due(&mut self) -> Result<bool> {
+        #[cfg(not(debug_assertions))]
+        if let Some(remote) = &mut self.remote_vault {
+            return remote.sync_if_due(&mut self.desk, false);
+        }
+        Ok(false)
+    }
+
+    pub fn sync_remote_now(&mut self) -> Result<bool> {
+        #[cfg(not(debug_assertions))]
+        if let Some(remote) = &mut self.remote_vault {
+            return remote.sync_if_due(&mut self.desk, true);
+        }
+        Ok(false)
+    }
+
+    pub fn remote_sync_pending(&self) -> bool {
+        #[cfg(not(debug_assertions))]
+        if let Some(remote) = &self.remote_vault {
+            return remote.has_pending_changes();
+        }
+        false
     }
 
     pub fn save_shortcut(&mut self, name: &str, path: &Path, is_dir: bool) -> Result<()> {
@@ -401,9 +461,12 @@ impl Database {
     }
 
     pub fn tags(&self, scope: TagScope) -> Result<Vec<String>> {
+        let table = tag_table(scope, self.desk.table_exists(Some("temp"), "private_tags")?);
         Ok(self
             .desk
-            .prepare("SELECT name FROM tags WHERE scope=?1 ORDER BY name COLLATE NOCASE")?
+            .prepare(&format!(
+                "SELECT name FROM {table} WHERE scope=?1 ORDER BY name COLLATE NOCASE"
+            ))?
             .query_map([scope.key()], |row| row.get(0))?
             .collect::<std::result::Result<Vec<_>, _>>()?)
     }
@@ -425,8 +488,9 @@ impl Database {
         if self.tags(scope)?.contains(&name) {
             return Err(DeskError::AlreadyExists);
         }
+        let table = tag_table(scope, self.desk.table_exists(Some("temp"), "private_tags")?);
         self.desk.execute(
-            "INSERT INTO tags(scope,name) VALUES(?1,?2)",
+            &format!("INSERT INTO {table}(scope,name) VALUES(?1,?2)"),
             params![scope.key(), name],
         )?;
         Ok(())
@@ -438,8 +502,9 @@ impl Database {
             return Ok(());
         }
         let tx = self.desk.transaction()?;
+        let table = tag_table(scope, tx.table_exists(Some("temp"), "private_tags")?);
         let changed = tx.execute(
-            "UPDATE tags SET name=?1 WHERE scope=?2 AND name=?3",
+            &format!("UPDATE {table} SET name=?1 WHERE scope=?2 AND name=?3"),
             params![name, scope.key(), original],
         )?;
         if changed == 0 {
@@ -458,8 +523,9 @@ impl Database {
 
     pub fn delete_tag(&mut self, scope: TagScope, name: &str) -> Result<()> {
         let tx = self.desk.transaction()?;
+        let table = tag_table(scope, tx.table_exists(Some("temp"), "private_tags")?);
         tx.execute(
-            "DELETE FROM tags WHERE scope=?1 AND name=?2",
+            &format!("DELETE FROM {table} WHERE scope=?1 AND name=?2"),
             params![scope.key(), name],
         )?;
         let revision = page_tag_revision(scope);
@@ -643,7 +709,11 @@ impl Database {
     }
 
     /// Save an application shortcut and its classifications in one transaction.
-    pub fn save_app_tool_classified(&mut self, item: &crate::launcher::AppTool, tags: &[String]) -> Result<()> {
+    pub fn save_app_tool_classified(
+        &mut self,
+        item: &crate::launcher::AppTool,
+        tags: &[String],
+    ) -> Result<()> {
         if item.name.trim().is_empty() {
             return Err(DeskError::InvalidPath("请填写程序名称".into()));
         }
@@ -811,11 +881,31 @@ impl Database {
     }
 
     pub fn touch_document(&mut self, path: &Path) -> Result<()> {
-        let path = path
-            .canonicalize()
-            .unwrap_or_else(|_| path.to_path_buf())
+        let original = path.to_string_lossy().into_owned();
+        let normalized = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+        let normalized = normalized.to_string_lossy().into_owned();
+        let display = crate::files::shell_path(Path::new(&normalized))
             .to_string_lossy()
             .into_owned();
+        if self
+            .desk
+            .table_exists(Some("temp"), "private_documents")?
+            && let Some(private_key) = self
+                .desk
+                .query_row(
+                    "SELECT path FROM temp.private_documents WHERE path IN (?1,?2,?3) ORDER BY path=?1 DESC LIMIT 1",
+                    params![original, normalized, display],
+                    |row| row.get::<_, String>(0),
+                )
+                .optional()?
+        {
+            self.desk.execute(
+                "UPDATE temp.private_documents SET last_opened=CURRENT_TIMESTAMP,hidden=0 WHERE path=?1",
+                [&private_key],
+            )?;
+            return Ok(());
+        }
+        let path = normalized;
         let format = Path::new(&path)
             .extension()
             .and_then(|s| s.to_str())
@@ -828,6 +918,24 @@ impl Database {
     pub fn document_record_key(&mut self, path: &Path) -> Result<String> {
         let normalized = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
         let display = crate::files::shell_path(&normalized);
+        if self
+            .desk
+            .table_exists(Some("temp"), "private_documents")?
+            && let Some(existing) = self
+                .desk
+                .query_row(
+                    "SELECT path FROM temp.private_documents WHERE path IN (?1,?2,?3) ORDER BY path=?1 DESC LIMIT 1",
+                    params![
+                        path.to_string_lossy().as_ref(),
+                        normalized.to_string_lossy().as_ref(),
+                        display.to_string_lossy().as_ref()
+                    ],
+                    |row| row.get::<_, String>(0),
+                )
+                .optional()?
+        {
+            return Ok(existing);
+        }
         let existing: Option<String> = self
             .desk
             .query_row(
@@ -1138,13 +1246,27 @@ fn read_tags(row: &rusqlite::Row<'_>, index: usize) -> rusqlite::Result<Vec<Stri
 }
 
 fn ensure_tags(tx: &rusqlite::Transaction<'_>, scope: TagScope, values: &[String]) -> Result<()> {
+    let table = tag_table(scope, tx.table_exists(Some("temp"), "private_tags")?);
     for value in values {
         tx.execute(
-            "INSERT OR IGNORE INTO tags(scope,name) VALUES(?1,?2)",
+            &format!("INSERT OR IGNORE INTO {table}(scope,name) VALUES(?1,?2)"),
             params![scope.key(), value],
         )?;
     }
     Ok(())
+}
+
+fn tag_table(scope: TagScope, has_remote_tags: bool) -> &'static str {
+    if has_remote_tags
+        && matches!(
+            scope,
+            TagScope::Books | TagScope::BookPages | TagScope::Credentials | TagScope::Documents
+        )
+    {
+        "temp.private_tags"
+    } else {
+        "tags"
+    }
 }
 
 fn encode_path(path: &Path) -> Vec<u8> {

@@ -1,45 +1,5 @@
 use super::*;
 
-fn secure_random_index(upper_bound: usize) -> Result<usize, getrandom::Error> {
-    let bound = upper_bound as u64;
-    let limit = (u32::MAX as u64 + 1) / bound * bound;
-    loop {
-        let mut bytes = [0u8; 4];
-        getrandom::fill(&mut bytes)?;
-        let value = u32::from_le_bytes(bytes) as u64;
-        if value < limit {
-            return Ok((value % bound) as usize);
-        }
-    }
-}
-
-fn generate_password() -> Result<String, getrandom::Error> {
-    const UPPERCASE: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ";
-    const LOWERCASE: &[u8] = b"abcdefghijkmnopqrstuvwxyz";
-    const DIGITS: &[u8] = b"23456789";
-    const SYMBOLS: &[u8] = b"!@#$%^&*()-_=+[]{}?";
-    const LENGTH: usize = 20;
-
-    let groups = [UPPERCASE, LOWERCASE, DIGITS, SYMBOLS];
-    let mut password = Vec::with_capacity(LENGTH);
-    for group in groups {
-        password.push(group[secure_random_index(group.len())?]);
-    }
-
-    let mut alphabet = Vec::new();
-    for group in groups {
-        alphabet.extend_from_slice(group);
-    }
-    while password.len() < LENGTH {
-        password.push(alphabet[secure_random_index(alphabet.len())?]);
-    }
-    for index in (1..password.len()).rev() {
-        password.swap(index, secure_random_index(index + 1)?);
-    }
-
-    Ok(password.into_iter().map(char::from).collect())
-}
-
 impl PersonalDeskApp {
     pub(super) fn render_detail_windows(&mut self, ctx: &egui::Context) {
         if self.website_dialog_open {
@@ -193,7 +153,7 @@ impl PersonalDeskApp {
                                 .add_sized([button_width, 32.0], primary_button("一键生成"))
                                 .clicked()
                             {
-                                match generate_password() {
+                                match crate::passwords::generate() {
                                     Ok(password) => {
                                         self.credential_draft.password = password;
                                     }

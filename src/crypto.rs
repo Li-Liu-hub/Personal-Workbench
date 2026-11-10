@@ -15,9 +15,34 @@ pub fn random_bytes<const N: usize>() -> Result<[u8; N]> {
 
 /// Protect a local vault key with the current Windows user's DPAPI context.
 /// This is automatic and does not introduce an application login prompt.
+#[cfg(windows)]
+pub fn protect_local_secret(secret: &[u8]) -> Result<Vec<u8>> {
+    dpapi(secret, true)
+}
+
 #[cfg(all(windows, test))]
 pub fn protect_local_key(key: &[u8; 32]) -> Result<Vec<u8>> {
-    dpapi(key, true)
+    protect_local_secret(key)
+}
+
+#[cfg(not(windows))]
+pub fn protect_local_secret(_secret: &[u8]) -> Result<Vec<u8>> {
+    Err(DeskError::Crypto)
+}
+
+#[cfg(not(windows))]
+pub fn unprotect_local_secret(_protected: &[u8]) -> Result<Zeroizing<Vec<u8>>> {
+    Err(DeskError::Crypto)
+}
+
+#[cfg(all(not(windows), test))]
+pub fn protect_local_key(_key: &[u8; 32]) -> Result<Vec<u8>> {
+    Err(DeskError::Crypto)
+}
+
+#[cfg(windows)]
+pub fn unprotect_local_secret(protected: &[u8]) -> Result<Zeroizing<Vec<u8>>> {
+    Ok(Zeroizing::new(dpapi(protected, false)?))
 }
 
 /// Open a local vault key using the current Windows user's DPAPI context.
@@ -92,11 +117,6 @@ fn dpapi(data: &[u8], protect: bool) -> Result<Vec<u8>> {
         LocalFree(output.pbData.cast());
     }
     Ok(bytes)
-}
-
-#[cfg(all(not(windows), test))]
-pub fn protect_local_key(_key: &[u8; 32]) -> Result<Vec<u8>> {
-    Err(DeskError::Crypto)
 }
 
 #[cfg(not(windows))]

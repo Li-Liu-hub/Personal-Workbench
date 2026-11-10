@@ -33,7 +33,10 @@ pub fn records(data_dir: &Path, mut bundle: Bundle) -> Result<(usize, usize)> {
             websites::prepare(item)
         })
         .collect::<Result<Vec<_>>>()?;
-    Database::open(data_dir)?.import_records(&bundle.accounts, &websites)
+    let mut database = Database::open(data_dir)?;
+    let counts = database.import_records(&bundle.accounts, &websites)?;
+    database.sync_remote_now()?;
+    Ok(counts)
 }
 
 pub fn file(data_dir: &Path, path: &Path) -> Result<(usize, usize)> {

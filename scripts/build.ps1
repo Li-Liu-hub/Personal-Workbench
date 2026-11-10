@@ -1,5 +1,4 @@
 param(
-    [string]$TargetDir,
     [string]$OutputName = '个人办公台.exe'
 )
 
@@ -9,49 +8,67 @@ if ([System.IO.Path]::GetFileName($OutputName) -ne $OutputName -or $OutputName -
     throw 'OutputName must be an executable file name without directory components.'
 }
 
-if (-not (Get-Command gcc.exe -ErrorAction SilentlyContinue)) {
-    $mingwCandidates = @(
-        $env:MSYS2_UCRT64_BIN,
-        'D:\msys64\ucrt64\bin',
-        'C:\msys64\ucrt64\bin'
-    ) | Where-Object { $_ -and (Test-Path (Join-Path $_ 'gcc.exe')) }
-    if ($mingwCandidates.Count -gt 0) {
-        $env:Path = "$($mingwCandidates[0]);$env:Path"
+$root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$client = Join-Path $root 'tauri-migration'
+
+if (-not (Test-Path -LiteralPath (Join-Path $client 'node_modules'))) {
+    Push-Location $client
+    try {
+        & npm.cmd ci
+        if ($LASTEXITCODE -ne 0) { throw 'Installing the Tauri frontend dependencies failed.' }
+    } finally {
+        Pop-Location
     }
 }
 
-if (-not (Get-Command gcc.exe -ErrorAction SilentlyContinue)) {
-    throw 'MinGW gcc.exe was not found. Install the MSYS2 UCRT64 toolchain and add its bin directory to PATH or MSYS2_UCRT64_BIN.'
+Push-Location $root
+try {
+    & cargo.exe fmt --all -- --check
+    if ($LASTEXITCODE -ne 0) { throw 'cargo fmt check failed.' }
+} finally {
+    Pop-Location
 }
 
-if ([string]::IsNullOrWhiteSpace($TargetDir)) {
-    $projectRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-    $projectParent = Split-Path -Parent $projectRoot
-    $TargetDir = Join-Path $projectParent 'personal-desk-target'
+& (Join-Path $PSScriptRoot 'build-tauri-windows.ps1')
+
+$executable = Join-Path $root 'tauri-migration/src-tauri/target/x86_64-pc-windows-msvc/release/PersonalDesk.exe'
+if (-not (Test-Path -LiteralPath $executable)) {
+    throw "The Tauri release EXE was not produced: $executable"
 }
 
-if ($TargetDir -match '[^\x00-\x7F]') {
-    throw "Cargo target path must use ASCII characters for the Windows GNU linker. Choose an ASCII path and pass it with -TargetDir."
+$webView2Required = $false
+$cargoLock = Get-Content -LiteralPath (Join-Path $root 'Cargo.lock') -Raw
+if ($cargoLock -match '(?ms)^\[\[package\]\]\s*name = "webview2-com-sys"\s*version = "([^"]+)"') {
+    $webView2Required = $true
+    $webView2Version = $Matches[1]
+    $cargoHome = if ($env:CARGO_HOME) { $env:CARGO_HOME } else { Join-Path $env:USERPROFILE '.cargo' }
+    $registrySource = Join-Path $cargoHome 'registry\src'
+    $loaderCandidates = @()
+    if (Test-Path -LiteralPath $registrySource) {
+        foreach ($registry in Get-ChildItem -LiteralPath $registrySource -Directory) {
+            $candidate = Join-Path $registry.FullName "webview2-com-sys-$webView2Version\x64\WebView2Loader.dll"
+            if (Test-Path -LiteralPath $candidate) { $loaderCandidates += $candidate }
+        }
+    }
+    if ($loaderCandidates.Count -eq 0) {
+        throw "WebView2Loader.dll for webview2-com-sys $webView2Version was not found in the Cargo cache."
+    }
+    $loaderHashes = @($loaderCandidates | ForEach-Object {
+        (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash
+    } | Sort-Object -Unique)
+    if ($loaderHashes.Count -ne 1) { throw 'Cargo caches contain conflicting WebView2Loader.dll files.' }
+    $loaderInBuild = Join-Path (Split-Path -Parent $executable) 'WebView2Loader.dll'
+    Copy-Item -LiteralPath $loaderCandidates[0] -Destination $loaderInBuild -Force
 }
 
-$env:CARGO_TARGET_DIR = $TargetDir
-
-cargo fmt --all -- --check
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-cargo clippy --workspace --all-targets -- -D warnings
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-cargo test --workspace
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-cargo build --release --workspace
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-$executable = Join-Path $TargetDir 'release\personal-desk.exe'
-$distDir = Join-Path $PSScriptRoot '..\dist'
+$distDir = Join-Path $root 'dist'
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 $portableExecutable = Join-Path $distDir $OutputName
+$distLoader = Join-Path $distDir 'WebView2Loader.dll'
+if ($webView2Required) {
+    Copy-Item -LiteralPath $loaderInBuild -Destination $distLoader -Force
+}
+
 & (Join-Path $PSScriptRoot 'publish-update.ps1') -Executable $executable
 $portableExecutable = [IO.Path]::GetFullPath($portableExecutable)
 $running = @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.ExecutablePath -eq $portableExecutable }).Count -gt 0

@@ -1,20 +1,54 @@
 use personal_desk::{db::Database, model::Credential};
 use std::path::PathBuf;
+use std::sync::{Mutex, MutexGuard, OnceLock};
+use std::time::Duration;
+
+static DATABASE: OnceLock<Mutex<Database>> = OnceLock::new();
+static DATABASE_ERROR: OnceLock<String> = OnceLock::new();
 
 // The production path is enabled only for an explicitly built release candidate.
 fn data_directory() -> Result<PathBuf, String> {
     if let Some(path) = std::env::var_os("PERSONAL_DESK_MIGRATION_TEST_DATA") {
         let path = PathBuf::from(path);
-        return if path.is_absolute() { Ok(path) } else { Err("测试数据目录必须是绝对路径".into()) };
+        return if path.is_absolute() {
+            Ok(path)
+        } else {
+            Err("测试数据目录必须是绝对路径".into())
+        };
     }
     #[cfg(not(debug_assertions))]
-    { return personal_desk::data_directory::resolve(); }
+    {
+        personal_desk::data_directory::resolve()
+    }
     #[cfg(debug_assertions)]
-    { Err("开发版仅允许使用显式指定的测试数据目录".into()) }
+    {
+        Err("开发版仅允许使用显式指定的测试数据目录".into())
+    }
 }
 
-fn development_db() -> Result<Database, String> {
-    Database::open(&data_directory()?).map_err(|e| e.to_string())
+fn initialize_database() {
+    let result = data_directory().and_then(|directory| {
+        Database::open(&directory).map_err(|error| error.to_string())
+    });
+    match result {
+        Ok(database) => {
+            let _ = DATABASE.set(Mutex::new(database));
+        }
+        Err(error) => {
+            let _ = DATABASE_ERROR.set(error);
+        }
+    }
+}
+
+fn development_db() -> Result<MutexGuard<'static, Database>, String> {
+    if let Some(error) = DATABASE_ERROR.get() {
+        return Err(error.clone());
+    }
+    DATABASE
+        .get()
+        .ok_or_else(|| "数据库尚未初始化".to_string())?
+        .lock()
+        .map_err(|_| "数据库锁已损坏".to_string())
 }
 
 #[tauri::command]
@@ -158,6 +192,10 @@ fn credential_tag_delete(name: String) -> Result<(), String> {
 fn copy_value(value: String) -> Result<(), String> {
     let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
     clipboard.set_text(value).map_err(|e| e.to_string())
+}
+#[tauri::command]
+fn password_generate() -> Result<String, String> {
+    personal_desk::passwords::generate().map_err(|e| e.to_string())
 }
 #[tauri::command]
 fn credential_view_get() -> Result<String, String> {
@@ -350,6 +388,35 @@ fn settings_autostart_set(enabled:bool) -> Result<(),String> {
  let executable=std::env::current_exe().map_err(|e|e.to_string())?;
  personal_desk::autostart::set(enabled,&executable)
 }
+#[tauri::command]
+fn vault_mysql_info() -> Result<personal_desk::vault_config::VaultMysqlSummary,String> {
+ personal_desk::vault_config::VaultMysqlConfig::summary().map_err(|e|e.to_string())
+}
+#[tauri::command]
+fn vault_mysql_save(host:String,port:u16,user:String,password:String,database:String) -> Result<(),String> {
+ personal_desk::vault_config::VaultMysqlConfig::new(host,port,user,password,database)
+  .and_then(|config|config.save()).map_err(|e|e.to_string())
+}
+#[tauri::command]
+fn vault_mysql_test(host:String,port:u16,user:String,password:String,database:String) -> Result<(),String> {
+ personal_desk::vault_config::VaultMysqlConfig::new(host,port,user,password,database)
+  .and_then(|config|config.test_connection()).map_err(|e|e.to_string())
+}
+#[tauri::command]
+fn vault_mysql_test_saved() -> Result<(),String> {
+ let config = personal_desk::vault_config::VaultMysqlConfig::load()
+  .map_err(|e|e.to_string())?
+  .ok_or_else(||"尚未保存直连配置".to_string())?;
+ config.test_connection().map_err(|e|e.to_string())
+}
+#[tauri::command]
+fn vault_mysql_clear() -> Result<(),String> {
+ personal_desk::vault_config::VaultMysqlConfig::clear().map_err(|e|e.to_string())
+}
+#[tauri::command]
+fn vault_sync_now() -> Result<bool,String> {
+ development_db()?.sync_remote_now().map_err(|e|e.to_string())
+}
 #[derive(serde::Serialize)]
 struct ExportResult { path:PathBuf, warnings:usize }
 #[tauri::command]
@@ -493,13 +560,47 @@ async fn writing_export_markdown(page:personal_desk::library::Page)->Result<Opti
  tauri::async_runtime::spawn_blocking(move||{personal_desk::writing_images::export_markdown(&data,&page,&destination).map_err(|e|e.to_string())?;Ok(Some(destination))}).await.map_err(|e|e.to_string())?
 }
 #[tauri::command]
+fn writing_publish_blog(page:personal_desk::library::Page)->Result<String,String>{
+ if page.title.trim().is_empty()||page.title.chars().count()>200{return Err("博客标题不能为空，且不能超过 200 个字符".into())}
+ if page.body.len()>200_000{return Err("博客正文超过 200 KB，请拆分文档后再发布".into())}
+ if page.tags.len()>personal_desk::blog_publish::MAX_TAGS||page.tags.iter().any(|tag|tag.trim().chars().count()>50){return Err("博客标签最多 8 个，每个标签不能超过 50 个字符".into())}
+ let mut db=development_db()?;
+ let key_path=db.settings().map_err(|e|e.to_string())?.get("blog.ssh_key_path").map(PathBuf::from).filter(|path|path.is_file())
+  .or_else(personal_desk::blog_publish::default_ssh_key)
+  .ok_or_else(||"没有找到博客 SSH 私钥".to_string())?;
+ db.set_setting("blog.ssh_key_path",&key_path.to_string_lossy()).map_err(|e|e.to_string())?;
+ let post_id=match db.blog_post_id(&page.id).map_err(|e|e.to_string())?{
+  Some(id)=>id,
+  None=>{let id=uuid::Uuid::new_v4().simple().to_string()[..16].to_owned();db.link_blog_post(&page.id,&id).map_err(|e|e.to_string())?;id}
+ };
+ drop(db);
+ let now=chrono::Local::now();
+ let payload=personal_desk::blog_publish::BlogPostPayload{page_id:page.id,post_id,title:page.title,content:page.body,tags:page.tags,tenant_id:"0000000000000000".into(),published_at:now.timestamp_millis(),published_date:now.format("%Y-%m-%d").to_string()};
+ personal_desk::blog_publish::publish_over_ssh(&key_path,&payload)
+}
+#[tauri::command]
 fn theme_set_zoom(zoom:f32)->Result<personal_desk::theme::ThemeSettings,String>{
  let mut db=development_db()?;let mut theme=personal_desk::theme::ThemeSettings::load(&db.settings().map_err(|e|e.to_string())?);theme.zoom=zoom;theme.validate().map_err(|e|e.to_string())?;db.set_setting("appearance.theme",&serde_json::to_string(&theme).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;Ok(theme)
 }
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    initialize_database();
+    std::thread::spawn(|| loop {
+        std::thread::sleep(Duration::from_secs(2));
+        if let Ok(mut database) = development_db() {
+            let _ = database.sync_remote_if_due();
+        }
+    });
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![credentials_list, credentials_save, credentials_delete, inventory_list, inventory_save, inventory_delete, inventory_tags, inventory_favorites, inventory_favorite, inventory_view_get, inventory_view_set, inventory_tag_create, inventory_tag_rename, inventory_tag_delete, websites_list, websites_save, websites_delete, websites_open, website_data, website_view, website_favorite, website_tag_create, website_tag_rename, website_tag_delete, website_save_classified, shortcut_data, shortcut_pick, shortcut_add, shortcut_open, shortcut_remove, shortcut_undo, shortcut_favorite, shortcut_tags, shortcut_view, shortcut_tag_create, shortcut_tag_rename, shortcut_tag_delete, essay_today, essay_reroll, essay_start, essay_history, essay_page, tools_list, tools_save, tools_save_classified, tools_delete, tools_launch, writing_list, writing_create, writing_daily_log, writing_tags, writing_tag_create, writing_tag_rename, writing_tag_delete, writing_save_copy, writing_save, writing_delete, writing_draft, writing_recover_drafts, writing_export_markdown, writing_image_import, writing_image_paste, writing_image_read, writing_move_book, writing_move_page, books_list, books_save, contacts_list, contacts_save, contacts_delete, contact_data, contact_save_classified, contact_view, contact_extra, contact_favorite, contact_tag_create, contact_tag_rename, contact_tag_delete, contact_import_photo, contact_import_chat, contact_import_chats, contact_photo, contact_remove_photo, contact_remove_chat, contact_export_chat, settings_info, settings_check_update, settings_install_update, settings_autostart_get, settings_autostart_set, export_test_data, theme_get, theme_save, theme_set_zoom, theme_pick_image, theme_image, credential_favorites, credential_favorite, credential_tags, credential_tag_create, credential_tag_rename, credential_tag_delete, copy_value, credential_view_get, credential_view_set, tool_data, tool_favorite, tool_view, tool_tags_set, tool_pick, tool_tag_create, tool_tag_rename, tool_tag_delete])
+        .on_window_event(|_window, event| {
+            if let tauri::WindowEvent::CloseRequested { .. } = event
+                && let Some(database) = DATABASE.get()
+                && let Ok(mut database) = database.try_lock()
+            {
+                let _ = database.sync_remote_now();
+            }
+        })
+        .invoke_handler(tauri::generate_handler![credentials_list, credentials_save, credentials_delete, inventory_list, inventory_save, inventory_delete, inventory_tags, inventory_favorites, inventory_favorite, inventory_view_get, inventory_view_set, inventory_tag_create, inventory_tag_rename, inventory_tag_delete, websites_list, websites_save, websites_delete, websites_open, website_data, website_view, website_favorite, website_tag_create, website_tag_rename, website_tag_delete, website_save_classified, shortcut_data, shortcut_pick, shortcut_add, shortcut_open, shortcut_remove, shortcut_undo, shortcut_favorite, shortcut_tags, shortcut_view, shortcut_tag_create, shortcut_tag_rename, shortcut_tag_delete, essay_today, essay_reroll, essay_start, essay_history, essay_page, tools_list, tools_save, tools_save_classified, tools_delete, tools_launch, writing_list, writing_create, writing_daily_log, writing_tags, writing_tag_create, writing_tag_rename, writing_tag_delete, writing_save_copy, writing_save, writing_delete, writing_draft, writing_recover_drafts, writing_export_markdown, writing_publish_blog, writing_image_import, writing_image_paste, writing_image_read, writing_move_book, writing_move_page, books_list, books_save, contacts_list, contacts_save, contacts_delete, contact_data, contact_save_classified, contact_view, contact_extra, contact_favorite, contact_tag_create, contact_tag_rename, contact_tag_delete, contact_import_photo, contact_import_chat, contact_import_chats, contact_photo, contact_remove_photo, contact_remove_chat, contact_export_chat, settings_info, settings_check_update, settings_install_update, settings_autostart_get, settings_autostart_set, vault_mysql_info, vault_mysql_save, vault_mysql_test, vault_mysql_test_saved, vault_mysql_clear, vault_sync_now, export_test_data, theme_get, theme_save, theme_set_zoom, theme_pick_image, theme_image, credential_favorites, credential_favorite, credential_tags, credential_tag_create, credential_tag_rename, credential_tag_delete, copy_value, credential_view_get, credential_view_set, password_generate, tool_data, tool_favorite, tool_view, tool_tags_set, tool_pick, tool_tag_create, tool_tag_rename, tool_tag_delete])
         .run(tauri::generate_context!())
         .expect("error while running migration development build");
 }

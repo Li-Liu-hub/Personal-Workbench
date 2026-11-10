@@ -40,6 +40,12 @@ impl Book {
         }
     }
 }
+
+impl Default for Book {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Page {
     pub id: String,

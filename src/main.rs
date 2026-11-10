@@ -25,6 +25,10 @@ mod undo;
 mod updater;
 mod views;
 mod websites;
+mod writing_images;
+
+#[cfg(not(debug_assertions))]
+mod remote_vault;
 
 #[cfg(test)]
 mod tests;
@@ -75,7 +79,10 @@ fn main() -> eframe::Result {
                 .unwrap_or_else(app::data_directory);
             let books: Vec<library::WritingImportBook> =
                 serde_json::from_slice(&std::fs::read(path)?)?;
-            db::Database::open(&directory)?.import_writing_books(&books)
+            let mut database = db::Database::open(&directory)?;
+            let counts = database.import_writing_books(&books)?;
+            database.sync_remote_now()?;
+            Ok(counts)
         })();
         match result {
             Ok((imported, skipped)) => {

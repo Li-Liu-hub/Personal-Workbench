@@ -1,47 +1,74 @@
 param([string]$TargetDir)
 
 $ErrorActionPreference = 'Stop'
-$previousPath = $env:Path
-$previousTarget = $env:CARGO_TARGET_DIR
-Push-Location (Join-Path $PSScriptRoot '..')
+$root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$programFilesX86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
+$vswhere = Join-Path $programFilesX86 'Microsoft Visual Studio/Installer/vswhere.exe'
+$installation = $null
+if (Test-Path -LiteralPath $vswhere) {
+    $installation = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+}
+if (-not $installation) {
+    $candidates = @(
+        (Join-Path $programFilesX86 'Microsoft Visual Studio/2022/BuildTools'),
+        (Join-Path $env:ProgramFiles 'Microsoft Visual Studio/2022/BuildTools'),
+        (Join-Path $env:ProgramFiles 'Microsoft Visual Studio/2022/Community'),
+        (Join-Path $programFilesX86 'Microsoft Visual Studio/2022/Community')
+    ) | Where-Object { Test-Path -LiteralPath (Join-Path $_ 'VC/Auxiliary/Build/vcvars64.bat') }
+    if (@($candidates).Count -gt 0) { $installation = @($candidates)[0] }
+}
+if (-not $installation) { throw 'Visual Studio C++ x64 Build Tools were not found.' }
+$vcvars = Join-Path $installation 'VC/Auxiliary/Build/vcvars64.bat'
+$lines = & cmd.exe /c ('call "' + $vcvars + '" >nul && set')
+if ($LASTEXITCODE -ne 0) { throw 'Could not initialize the Visual Studio x64 build environment.' }
+foreach ($line in $lines) {
+    $separator = $line.IndexOf('=')
+    if ($separator -gt 0) {
+        [Environment]::SetEnvironmentVariable($line.Substring(0, $separator), $line.Substring($separator + 1), 'Process')
+    }
+}
+$env:RUSTUP_TOOLCHAIN = 'stable-x86_64-pc-windows-msvc'
+if ([string]::IsNullOrWhiteSpace($TargetDir)) {
+    $TargetDir = Join-Path (Split-Path -Parent $root) 'personal-desk-target'
+}
+$env:CARGO_TARGET_DIR = $TargetDir
+
+Push-Location $root
 try {
-    if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
-        $cargoBin = Join-Path $env:USERPROFILE '.cargo/bin'
-        if (Test-Path -LiteralPath (Join-Path $cargoBin 'cargo.exe')) {
-            $env:Path = "$cargoBin;$env:Path"
-        }
-    }
-    if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
-        throw 'Rust cargo is required.'
-    }
-    if (-not (Get-Command gcc.exe -ErrorAction SilentlyContinue)) {
-        foreach ($candidate in @($env:MSYS2_UCRT64_BIN, 'D:/msys64/ucrt64/bin', 'C:/msys64/ucrt64/bin')) {
-            if ($candidate -and (Test-Path -LiteralPath (Join-Path $candidate 'gcc.exe'))) {
-                $env:Path = "$candidate;$env:Path"
-                break
-            }
-        }
-    }
-    if ([string]::IsNullOrWhiteSpace($TargetDir)) {
-        $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-        $projectParent = Split-Path -Parent $projectRoot
-        $TargetDir = Join-Path $projectParent 'personal-desk-target'
-    }
-    if ($TargetDir -match '[^\x00-\x7F]') {
-        throw 'Use an ASCII target directory for the Windows GNU linker.'
-    }
-    $env:CARGO_TARGET_DIR = $TargetDir
-    cargo fmt --all -- --check
+    & cargo.exe fmt --all -- --check
     if ($LASTEXITCODE -ne 0) { throw 'Rust formatting check failed.' }
-    cargo clippy --locked --workspace --all-targets -- -D warnings
+    & cargo.exe clippy --locked --workspace --all-targets -- -D warnings
     if ($LASTEXITCODE -ne 0) { throw 'Rust lint check failed.' }
-    cargo test --locked --workspace --all-targets --no-fail-fast
+    & cargo.exe test --locked --workspace --all-targets --no-fail-fast
     if ($LASTEXITCODE -ne 0) { throw 'Rust regression tests failed.' }
-    python -m unittest discover -s scripts/tests -v
+    & cargo.exe clippy --locked --release --lib -- -D warnings
+    if ($LASTEXITCODE -ne 0) { throw 'Release-only Rust lint check failed.' }
+
+    $client = Join-Path $root 'tauri-migration'
+    if (-not (Test-Path -LiteralPath (Join-Path $client 'node_modules'))) {
+        Push-Location $client
+        try {
+            & npm.cmd ci
+            if ($LASTEXITCODE -ne 0) { throw 'Frontend dependency installation failed.' }
+        } finally {
+            Pop-Location
+        }
+    }
+    Push-Location $client
+    try {
+        & npm.cmd run build
+        if ($LASTEXITCODE -ne 0) { throw 'Frontend build failed.' }
+        & npm.cmd run lint
+        if ($LASTEXITCODE -ne 0) { throw 'Frontend lint failed.' }
+    } finally {
+        Pop-Location
+    }
+    & cargo.exe clippy --locked --release --manifest-path (Join-Path $client 'src-tauri/Cargo.toml') --all-targets -- -D warnings
+    if ($LASTEXITCODE -ne 0) { throw 'Tauri backend lint check failed.' }
+
+    & python -m unittest discover -s scripts/tests -v
     if ($LASTEXITCODE -ne 0) { throw 'Python regression tests failed.' }
-    Write-Output 'All standard checks passed. Environment-dependent ignored tests are reported separately.'
+    Write-Output 'All standard checks passed.'
 } finally {
-    $env:Path = $previousPath
-    $env:CARGO_TARGET_DIR = $previousTarget
     Pop-Location
 }

@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)][string]$Executable,
     [string]$OutputDirectory = (Join-Path $PSScriptRoot '../dist/release'),
     [string]$Compiler,
@@ -19,13 +19,27 @@ $OutputDirectory = [IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 $portable = Join-Path $OutputDirectory 'PersonalDesk.exe'
 if ($Executable -ne $portable) { Copy-Item -LiteralPath $Executable -Destination $portable -Force }
+$binaryText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($Executable))
+$requiresWebView2Loader = $binaryText.Contains('WebView2Loader.dll')
+$loaderSource = Join-Path (Split-Path -Parent $Executable) 'WebView2Loader.dll'
+$loaderPayload = Join-Path $OutputDirectory 'WebView2Loader.dll'
+if ($requiresWebView2Loader) {
+    if (-not (Test-Path -LiteralPath $loaderSource)) {
+        throw 'The executable imports WebView2Loader.dll, but the matching DLL is missing beside it.'
+    }
+    if ([IO.Path]::GetFullPath($loaderSource) -ne [IO.Path]::GetFullPath($loaderPayload)) {
+        Copy-Item -LiteralPath $loaderSource -Destination $loaderPayload -Force
+    }
+}
 $readme = Join-Path $OutputDirectory '使用说明.txt'
+$loaderInstruction = if ($requiresWebView2Loader) { '免安装 ZIP 中的 WebView2Loader.dll 必须与 PersonalDesk.exe 放在同一目录。' } else { '' }
 $installerLine = if ($Compiler) { "安装版：打开 PersonalDesk-$version-Setup-x64.exe，按向导选择程序和数据目录。" } else { '当前发布包含免安装程序和 ZIP 压缩包；本次未生成安装向导。' }
 $dataPathLine = if ($Compiler) { '已有数据：保留原 personal-desk-data-path.txt，或在安装向导选择原数据目录。' } else { '已有数据：将原 personal-desk-data-path.txt 放在程序旁边，继续使用原数据目录。' }
 $text = @"
 个人办公台 $version · Windows x64
 
 免安装：直接打开 PersonalDesk.exe。
+$loaderInstruction
 $installerLine
 $dataPathLine
 默认数据目录：%LOCALAPPDATA%\PersonalDesk。
@@ -39,13 +53,16 @@ $dataPathLine
 [IO.File]::WriteAllText($readme,$text,[Text.UTF8Encoding]::new($false))
 $portableZip = Join-Path $OutputDirectory "PersonalDesk-$version-Windows-x64.zip"
 $portableFiles = @($portable, $readme)
+if ($requiresWebView2Loader) { $portableFiles += $loaderPayload }
 Compress-Archive -LiteralPath $portableFiles -DestinationPath $portableZip -Force
 if ($Compiler) {
     $compilerArgs = @("/DAppVersion=$version", "/DAppExe=$portable", "/DOutputDir=$OutputDirectory")
+    if ($requiresWebView2Loader) { $compilerArgs += "/DAppWebView2Loader=$loaderPayload" }
     & $Compiler @compilerArgs (Join-Path $root 'packaging/windows/setup.iss')
     if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed' }
 }
 $assets = @($portable,$portableZip)
+if ($requiresWebView2Loader) { $assets += $loaderPayload }
 $setup = Join-Path $OutputDirectory "PersonalDesk-$version-Setup-x64.exe"
 if (Test-Path -LiteralPath $setup) { $assets += $setup }
 $checksums = $assets | ForEach-Object { "{0}  {1}" -f (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant(),[IO.Path]::GetFileName($_) }

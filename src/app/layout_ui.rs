@@ -34,7 +34,9 @@ impl PersonalDeskApp {
                     }
             };
             let actions_width = content_actions_width + 126.0;
-            let width = (ui.available_width() - actions_width).clamp(120.0, 320.0);
+            // The title response also covers the otherwise empty space between the
+            // page title and window controls, making the whole free header area draggable.
+            let width = (ui.available_width() - actions_width).max(120.0);
             crate::ui_components::toolbar_title(ui, &title, width, 24.0);
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 self.render_window_controls(ui);

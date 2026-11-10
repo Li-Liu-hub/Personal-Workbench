@@ -10,10 +10,10 @@ use serde::Serialize;
 const TENANT_ID: &str = "0000000000000000";
 const MAX_TITLE_CHARS: usize = 200;
 const MAX_CONTENT_BYTES: usize = 200_000;
-pub(crate) const MAX_TAGS: usize = 8;
+pub const MAX_TAGS: usize = 8;
 
 #[derive(Clone, Debug, Serialize)]
-pub(crate) struct BlogPostPayload {
+pub struct BlogPostPayload {
     pub page_id: String,
     pub post_id: String,
     pub title: String,
@@ -24,7 +24,7 @@ pub(crate) struct BlogPostPayload {
     pub published_date: String,
 }
 
-pub(crate) fn default_ssh_key() -> Option<PathBuf> {
+pub fn default_ssh_key() -> Option<PathBuf> {
     let path = std::env::var_os("USERPROFILE")
         .map(PathBuf::from)?
         .join(".ssh")
@@ -32,10 +32,7 @@ pub(crate) fn default_ssh_key() -> Option<PathBuf> {
     path.is_file().then_some(path)
 }
 
-pub(crate) fn publish_over_ssh(
-    key_path: &Path,
-    payload: &BlogPostPayload,
-) -> Result<String, String> {
+pub fn publish_over_ssh(key_path: &Path, payload: &BlogPostPayload) -> Result<String, String> {
     if payload.title.trim().is_empty() || payload.title.chars().count() > MAX_TITLE_CHARS {
         return Err("博客标题不能为空，且不能超过 200 个字符。".into());
     }
@@ -56,7 +53,7 @@ pub(crate) fn publish_over_ssh(
         return Err("所选 SSH 私钥文件不存在。".into());
     }
     let payload = serde_json::to_vec(payload).map_err(|error| error.to_string())?;
-    let script = STANDARD.encode(include_str!("../../assets/blog/ssh_publish.py"));
+    let script = STANDARD.encode(include_str!("../assets/blog/ssh_publish.py"));
     let remote_command = format!("python3 -c \"import base64;exec(base64.b64decode('{script}'))\"");
     let ssh = std::env::var_os("WINDIR")
         .map(|root| PathBuf::from(root).join("System32/OpenSSH/ssh.exe"))

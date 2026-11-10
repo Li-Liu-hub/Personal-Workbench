@@ -15,7 +15,12 @@ impl Database {
     pub fn update_contact_details(&mut self, contact: &Contact, tags: &[String]) -> Result<()> {
         self.update_contact_fields_inner(contact, tags, true)
     }
-    fn update_contact_fields_inner(&mut self, contact: &Contact, tags: &[String], include_notes: bool) -> Result<()> {
+    fn update_contact_fields_inner(
+        &mut self,
+        contact: &Contact,
+        tags: &[String],
+        include_notes: bool,
+    ) -> Result<()> {
         if contact.name.trim().is_empty() {
             return Err(crate::error::DeskError::InvalidPath("请填写姓名".into()));
         }
@@ -31,7 +36,10 @@ impl Database {
             ));
         }
         if include_notes {
-            tx.execute("UPDATE contacts SET chat_notes=?1 WHERE id=?2", params![contact.chat_notes,contact.id])?;
+            tx.execute(
+                "UPDATE contacts SET chat_notes=?1 WHERE id=?2",
+                params![contact.chat_notes, contact.id],
+            )?;
         }
         tx.commit()?;
         Ok(())
@@ -53,7 +61,11 @@ impl Database {
         Self::read_contacts_from(&self.desk, id, originals)
     }
 
-    fn read_contacts_from(connection: &rusqlite::Connection, id: Option<&str>, originals: bool) -> Result<Vec<Contact>> {
+    fn read_contacts_from(
+        connection: &rusqlite::Connection,
+        id: Option<&str>,
+        originals: bool,
+    ) -> Result<Vec<Contact>> {
         let mut statement = connection.prepare(
             "SELECT id,name,school,work,phone,national_id,address,gender,hobbies,chat_notes,birthday,major,photo
              FROM contacts WHERE (?1 IS NULL OR id=?1) ORDER BY updated_at DESC,rowid DESC",
@@ -137,20 +149,35 @@ impl Database {
 
     /// Update only the photo; leave chats and other contact fields untouched.
     pub fn set_contact_photo(&mut self, id: &str, photo: &[u8]) -> Result<()> {
-        if photo.len() > contacts::MAX_FILE_BYTES { return Err(crate::error::DeskError::InvalidPath("照片不能超过 8 MiB".into())); }
-        let changed = self.desk.execute("UPDATE contacts SET photo=?1,updated_at=CURRENT_TIMESTAMP WHERE id=?2", params![photo,id])?;
-        if changed != 1 { return Err(crate::error::DeskError::InvalidPath("联系人已不存在".into())); }
+        if photo.len() > contacts::MAX_FILE_BYTES {
+            return Err(crate::error::DeskError::InvalidPath(
+                "照片不能超过 8 MiB".into(),
+            ));
+        }
+        let changed = self.desk.execute(
+            "UPDATE contacts SET photo=?1,updated_at=CURRENT_TIMESTAMP WHERE id=?2",
+            params![photo, id],
+        )?;
+        if changed != 1 {
+            return Err(crate::error::DeskError::InvalidPath(
+                "联系人已不存在".into(),
+            ));
+        }
         Ok(())
     }
     /// Append an imported chat while retaining the stored originals and contact details.
     pub fn append_contact_chat(&mut self, id: &str, chat: ChatRecord) -> Result<bool> {
-        self.append_contact_chats(id, vec![chat]).map(|added| added > 0)
+        self.append_contact_chats(id, vec![chat])
+            .map(|added| added > 0)
     }
     /// Validate and append the entire selection atomically; existing records remain untouched.
     pub fn append_contact_chats(&mut self, id: &str, chats: Vec<ChatRecord>) -> Result<usize> {
-        let tx = self.desk.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
-        let mut contact = Self::read_contacts_from(&tx, Some(id), true)?.pop()
-            .ok_or_else(||crate::error::DeskError::InvalidPath("联系人已不存在".into()))?;
+        let tx = self
+            .desk
+            .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+        let mut contact = Self::read_contacts_from(&tx, Some(id), true)?
+            .pop()
+            .ok_or_else(|| crate::error::DeskError::InvalidPath("联系人已不存在".into()))?;
         let before = contact.chats.len();
         let added = contacts::append_chats(&mut contact, chats)?;
         for chat in &contact.chats[before..] {
@@ -160,8 +187,15 @@ impl Database {
         Ok(added)
     }
     pub fn remove_contact_chat(&mut self, id: &str, chat_id: &str) -> Result<()> {
-        let changed=self.desk.execute("DELETE FROM contact_chats WHERE contact_id=?1 AND id=?2",params![id,chat_id])?;
-        if changed!=1 { return Err(crate::error::DeskError::InvalidPath("聊天记录已不存在".into())); }
+        let changed = self.desk.execute(
+            "DELETE FROM contact_chats WHERE contact_id=?1 AND id=?2",
+            params![id, chat_id],
+        )?;
+        if changed != 1 {
+            return Err(crate::error::DeskError::InvalidPath(
+                "聊天记录已不存在".into(),
+            ));
+        }
         Ok(())
     }
     pub fn delete_contact(&mut self, id: &str) -> Result<()> {

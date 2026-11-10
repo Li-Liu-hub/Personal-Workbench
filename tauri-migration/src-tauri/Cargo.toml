@@ -1,6 +1,6 @@
 [package]
 name = "PersonalDesk"
-version = "0.15.55"
+version = "0.15.75"
 description = "A Tauri App"
 authors = ["you"]
 license = ""

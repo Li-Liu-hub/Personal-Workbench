@@ -43,6 +43,9 @@ Name: "autostart"; Description: "登录 Windows 后自动启动"; Flags: uncheck
 
 [Files]
 Source: "{#AppExe}"; DestDir: "{app}"; DestName: "个人办公台.exe"; Flags: ignoreversion
+#ifdef AppWebView2Loader
+Source: "{#AppWebView2Loader}"; DestDir: "{app}"; DestName: "WebView2Loader.dll"; Flags: ignoreversion
+#endif
 
 [Icons]
 Name: "{group}\个人办公台"; Filename: "{app}\个人办公台.exe"

@@ -4,7 +4,15 @@ use personal_desk::{db::Database, model::Credential};
 fn credential_notes_survive_create_edit_and_reload() {
     let dir = tempfile::tempdir().unwrap();
     let mut db = Database::open(dir.path()).unwrap();
-    let mut entry = Credential { id: "test-id".into(), title: "测试".into(), username: "用户".into(), password: "密码".into(), notes: "备注\n第二行".into(), website: "https://example.test".into(), tags: vec!["分类".into()] };
+    let mut entry = Credential {
+        id: "test-id".into(),
+        title: "测试".into(),
+        username: "用户".into(),
+        password: "密码".into(),
+        notes: "备注\n第二行".into(),
+        website: "https://example.test".into(),
+        tags: vec!["分类".into()],
+    };
     db.save_credential(&entry).unwrap();
     entry.notes = "更新后的备注".into();
     db.save_credential(&entry).unwrap();
@@ -27,7 +35,10 @@ fn writing_revision_conflicts_preserve_existing_content() {
     db.finish_writing_save("test-first", &mut first).unwrap();
     stale.body = "旧版本内容".into();
     assert!(db.finish_writing_save("test-stale", &mut stale).is_err());
-    assert_eq!(db.writing_page(&first.id).unwrap().unwrap().body, "已保存内容");
+    assert_eq!(
+        db.writing_page(&first.id).unwrap().unwrap().body,
+        "已保存内容"
+    );
 }
 
 #[test]
@@ -35,14 +46,24 @@ fn credential_classification_and_favorites_survive_reload() {
     use personal_desk::tags::Scope;
     let dir = tempfile::tempdir().unwrap();
     let mut db = Database::open(dir.path()).unwrap();
-    let entry = Credential { id:"c1".into(), title:"分类验证".into(), tags:vec!["旧分类".into()], ..Credential::default() };
+    let entry = Credential {
+        id: "c1".into(),
+        title: "分类验证".into(),
+        tags: vec!["旧分类".into()],
+        ..Credential::default()
+    };
     db.save_credential(&entry).unwrap();
     db.set_favorite("credentials", &entry.id, true).unwrap();
-    db.rename_tag(Scope::Credentials, "旧分类", "新分类").unwrap();
+    db.rename_tag(Scope::Credentials, "旧分类", "新分类")
+        .unwrap();
     drop(db);
     let db = Database::open(dir.path()).unwrap();
     assert_eq!(db.credential("c1").unwrap().unwrap().tags, vec!["新分类"]);
-    assert!(db.favorites().unwrap().contains(&("credentials".into(), "c1".into())));
+    assert!(
+        db.favorites()
+            .unwrap()
+            .contains(&("credentials".into(), "c1".into()))
+    );
 }
 
 #[test]
@@ -54,6 +75,12 @@ fn credential_view_preference_and_other_settings_survive_reload() {
     drop(db);
     let db = Database::open(dir.path()).unwrap();
     let settings = db.settings().unwrap();
-    assert_eq!(settings.get("view.credentials").map(String::as_str), Some("list"));
-    assert_eq!(settings.get("unrelated.preference").map(String::as_str), Some("keep"));
+    assert_eq!(
+        settings.get("view.credentials").map(String::as_str),
+        Some("list")
+    );
+    assert_eq!(
+        settings.get("unrelated.preference").map(String::as_str),
+        Some("keep")
+    );
 }

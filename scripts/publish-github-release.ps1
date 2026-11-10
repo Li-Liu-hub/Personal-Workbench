@@ -38,11 +38,18 @@ if (-not $Title) {
     $Title = if ($entry.Count -eq 1 -and $entry[0].title) { "v$version · $($entry[0].title)" } else { "v$version" }
 }
 $AssetsDirectory = [IO.Path]::GetFullPath($AssetsDirectory)
+$binaryText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($Executable))
+$requiresWebView2Loader = $binaryText.Contains('WebView2Loader.dll')
+$webView2Loader = Join-Path $AssetsDirectory 'WebView2Loader.dll'
+if ($requiresWebView2Loader -and -not (Test-Path -LiteralPath $webView2Loader)) {
+    throw 'The executable imports WebView2Loader.dll, but the release assets are missing it.'
+}
 $assets = @($Executable)
 foreach ($name in @("PersonalDesk-$version-Windows-x64.zip", "PersonalDesk-$version-Setup-x64.exe", 'SHA256SUMS.txt')) {
     $path = Join-Path $AssetsDirectory $name
     if (Test-Path -LiteralPath $path) { $assets += $path }
 }
+if (Test-Path -LiteralPath $webView2Loader) { $assets += $webView2Loader }
 $staging = Join-Path ([IO.Path]::GetTempPath()) ("personal-desk-release-" + [guid]::NewGuid())
 New-Item -ItemType Directory -Path $staging -Force | Out-Null
 $manifest = [ordered]@{

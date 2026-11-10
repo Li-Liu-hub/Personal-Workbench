@@ -9,7 +9,6 @@ use std::{
 use eframe::egui::{self, Color32, RichText};
 
 mod appearance;
-mod blog_publish;
 mod essay_ui;
 #[cfg(debug_assertions)]
 pub mod visual_preview;
@@ -811,6 +810,13 @@ impl PersonalDeskApp {
                 failure.get_or_insert_with(|| self.notice.clone());
             }
         }
+        if records_saved
+            && let Some(db) = &mut self.db
+            && let Err(error) = db.sync_remote_now()
+        {
+            records_saved = false;
+            failure.get_or_insert_with(|| format!("账号和写作资料尚未同步到服务器：{error}"));
+        }
         if records_saved {
             Ok(())
         } else {
@@ -825,6 +831,15 @@ impl eframe::App for PersonalDeskApp {
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
         self.poll_background_at(ui.input(|input| input.time));
+        let remote_sync_error = self
+            .db
+            .as_mut()
+            .and_then(|db| db.sync_remote_if_due().err())
+            .map(|error| format!("账号和写作资料尚未同步到服务器：{error}"));
+        if let Some(error) = remote_sync_error {
+            self.notice = error;
+        }
+        let remote_sync_pending = self.db.as_ref().is_some_and(Database::remote_sync_pending);
         if ctx.input(|input| input.viewport().close_requested()) && !self.update_shutdown {
             if let Err(error) = self.persist_before_close() {
                 self.notice = error;
@@ -833,6 +848,8 @@ impl eframe::App for PersonalDeskApp {
         }
         ctx.request_repaint_after(if self.contact_import_busy || self.export_busy {
             Duration::from_millis(100)
+        } else if remote_sync_pending {
+            Duration::from_millis(250)
         } else {
             Duration::from_secs(5)
         });

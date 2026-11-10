@@ -220,7 +220,13 @@ impl PersonalDeskApp {
         }
     }
 
-    fn apply_markdown_editor_update(&mut self, page_id: String, markdown: String, save: bool, now: f64) {
+    fn apply_markdown_editor_update(
+        &mut self,
+        page_id: String,
+        markdown: String,
+        save: bool,
+        now: f64,
+    ) {
         if !self
             .writing
             .page
@@ -293,7 +299,7 @@ impl PersonalDeskApp {
             self.notice = "博客正文超过 200 KB，请拆分文档后再发布。".into();
             return;
         }
-        if page.tags.len() > super::blog_publish::MAX_TAGS
+        if page.tags.len() > crate::blog_publish::MAX_TAGS
             || page.tags.iter().any(|tag| tag.trim().chars().count() > 50)
         {
             self.notice = "博客标签最多 8 个，每个标签不能超过 50 个字符。".into();
@@ -305,7 +311,7 @@ impl PersonalDeskApp {
             .ssh_key_path
             .clone()
             .filter(|path| path.is_file())
-            .or_else(super::blog_publish::default_ssh_key);
+            .or_else(crate::blog_publish::default_ssh_key);
         let key_path = stored_key.or_else(|| {
             rfd::FileDialog::new()
                 .set_title("选择用于连接博客服务器的 SSH 私钥")
@@ -355,7 +361,7 @@ impl PersonalDeskApp {
         };
 
         let local_now = chrono::Local::now();
-        let payload = super::blog_publish::BlogPostPayload {
+        let payload = crate::blog_publish::BlogPostPayload {
             page_id: page.id.clone(),
             post_id,
             title: page.title,
@@ -371,7 +377,7 @@ impl PersonalDeskApp {
         self.writing.publishing_page_id = Some(page_id.clone());
         self.notice = "正在通过 SSH 将文章写入个人博客数据库…".into();
         std::thread::spawn(move || {
-            let result = super::blog_publish::publish_over_ssh(&key_path, &payload);
+            let result = crate::blog_publish::publish_over_ssh(&key_path, &payload);
             let _ = sender.send(super::BackgroundMessage::BlogPublished { page_id, result });
         });
     }
@@ -383,7 +389,11 @@ impl PersonalDeskApp {
     }
 
     #[cfg(target_os = "windows")]
-    pub(super) fn sync_markdown_editor_webview(&mut self, ctx: &egui::Context, frame: &eframe::Frame) {
+    pub(super) fn sync_markdown_editor_webview(
+        &mut self,
+        ctx: &egui::Context,
+        frame: &eframe::Frame,
+    ) {
         use std::{borrow::Cow, io::Read};
         use wry::{
             NewWindowResponse, Rect, WebViewBuilder,
@@ -391,7 +401,11 @@ impl PersonalDeskApp {
             http::Response,
         };
 
-        let Some(rect) = self.writing.markdown_editor_rect.filter(|rect| rect.is_positive()) else {
+        let Some(rect) = self
+            .writing
+            .markdown_editor_rect
+            .filter(|rect| rect.is_positive())
+        else {
             if let Some(view) = self.writing.markdown_editor_webview.as_ref() {
                 let _ = view.set_visible(false);
             }
@@ -405,7 +419,9 @@ impl PersonalDeskApp {
             size: LogicalSize::new(rect.width() as f64, rect.height() as f64).into(),
         };
 
-        if self.writing.markdown_editor_webview.is_none() && self.writing.markdown_editor_error.is_none() {
+        if self.writing.markdown_editor_webview.is_none()
+            && self.writing.markdown_editor_error.is_none()
+        {
             let sender = self.sender.clone();
             let ipc_ctx = ctx.clone();
             let builder = WebViewBuilder::new()
