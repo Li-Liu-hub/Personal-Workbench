@@ -9,7 +9,7 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-use personal_desk::{db::Database, import, library::WritingImportBook, updater};
+use personal_desk_lib::{db::Database, import, library::WritingImportBook, updater};
 
 fn main() {
     let mut arguments = std::env::args_os().skip(1);

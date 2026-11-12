@@ -4,22 +4,40 @@ version = 4
 
 [[package]]
 name = "PersonalDesk"
-version = "0.15.78"
+version = "0.16.2"
 dependencies = [
+ "aes-gcm",
+ "age",
  "arboard",
  "base64 0.22.1",
+ "calamine",
  "chrono",
+ "directories",
+ "getrandom 0.3.4",
  "image",
  "log",
+ "mongodb",
+ "mysql",
  "open",
- "personal-desk",
  "rfd",
+ "rusqlite",
+ "semver",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tauri",
  "tauri-build",
  "tauri-plugin-log",
+ "tempfile",
+ "thiserror 2.0.21",
+ "unicode-normalization",
+ "ureq",
+ "url",
  "uuid",
+ "walkdir",
+ "windows-sys 0.61.2",
+ "zeroize",
+ "zip 6.0.0",
 ]
 
 [[package]]
@@ -3957,37 +3975,6 @@ name = "percent-encoding"
 version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
-
-[[package]]
-name = "personal-desk"
-version = "0.15.78"
-dependencies = [
- "aes-gcm",
- "age",
- "base64 0.22.1",
- "calamine",
- "chrono",
- "directories",
- "getrandom 0.3.4",
- "image",
- "mongodb",
- "mysql",
- "open",
- "rusqlite",
- "semver",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "tempfile",
- "thiserror 2.0.21",
- "ureq",
- "url",
- "uuid",
- "walkdir",
- "windows-sys 0.61.2",
- "zeroize",
- "zip 6.0.0",
-]
 
 [[package]]
 name = "phf"

@@ -1,13 +1,13 @@
 //! 外观主题相关命令。
 
-use std::io::Read;
 use std::path::{Path, PathBuf};
 
+use crate::theme::{self, ThemeSettings};
 use base64::Engine;
-use personal_desk::theme::{self, ThemeSettings};
 
 use crate::state::{data_directory, development_db};
 
+/// 读取当前主题配置。
 #[tauri::command]
 pub fn theme_get() -> Result<ThemeSettings, String> {
     let database = development_db()?;
@@ -16,6 +16,7 @@ pub fn theme_get() -> Result<ThemeSettings, String> {
     ))
 }
 
+/// 保存主题配置，返回生效后的配置。
 #[tauri::command]
 pub fn theme_save(mut theme: ThemeSettings) -> Result<ThemeSettings, String> {
     theme.validate().map_err(|error| error.to_string())?;
@@ -35,6 +36,7 @@ pub fn theme_save(mut theme: ThemeSettings) -> Result<ThemeSettings, String> {
     Ok(theme)
 }
 
+/// 设置界面缩放比例，返回更新后的主题。
 #[tauri::command]
 pub fn theme_set_zoom(zoom: f32) -> Result<ThemeSettings, String> {
     let mut database = development_db()?;
@@ -48,6 +50,7 @@ pub fn theme_set_zoom(zoom: f32) -> Result<ThemeSettings, String> {
     Ok(theme)
 }
 
+/// 选择主题背景图片，返回文件路径；取消时返回 null。
 #[tauri::command]
 pub async fn theme_pick_image() -> Option<PathBuf> {
     rfd::AsyncFileDialog::new()
@@ -58,20 +61,18 @@ pub async fn theme_pick_image() -> Option<PathBuf> {
         .map(|file| file.path().to_owned())
 }
 
+/// 读取主题背景图片，返回 data URL。
 #[tauri::command]
-pub fn theme_image(value: String) -> Result<String, String> {
+pub async fn theme_image(value: String) -> Result<String, String> {
     let data = data_directory()?;
-    let path = theme::background_path(&data, &value).map_err(|error| error.to_string())?;
-    theme::load_image(&path).map_err(|error| error.to_string())?;
-    let mut bytes = Vec::new();
-    std::fs::File::open(path)
+    tauri::async_runtime::spawn_blocking(move || read_theme_image(&data, &value))
+        .await
         .map_err(|error| error.to_string())?
-        .take(20 * 1024 * 1024 + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|error| error.to_string())?;
-    if bytes.len() > 20 * 1024 * 1024 {
-        return Err("图片超过 20 MiB".into());
-    }
+}
+
+fn read_theme_image(data: &Path, value: &str) -> Result<String, String> {
+    let path = theme::background_path(data, value).map_err(|error| error.to_string())?;
+    let bytes = theme::validated_image_bytes(&path).map_err(|error| error.to_string())?;
     let mime = match image::guess_format(&bytes).map_err(|error| error.to_string())? {
         image::ImageFormat::Png => "image/png",
         image::ImageFormat::Jpeg => "image/jpeg",

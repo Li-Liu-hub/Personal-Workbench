@@ -20,7 +20,7 @@ try {
 } finally {
     Pop-Location
 }
-$versionLine = Get-Content (Join-Path $root 'Cargo.toml') | Where-Object { $_ -match '^version\s*=\s*"([^" ]+)"' } | Select-Object -First 1
+$versionLine = Get-Content (Join-Path $root 'desktop/src-tauri/Cargo.toml') | Where-Object { $_ -match '^version\s*=\s*"([^" ]+)"' } | Select-Object -First 1
 if ($versionLine -notmatch '^version\s*=\s*"([^" ]+)"') { throw 'The application version is missing.' }
 $version = $Matches[1]
 if (-not (Test-Path -LiteralPath $executable)) { throw "The release EXE was not produced: $executable" }

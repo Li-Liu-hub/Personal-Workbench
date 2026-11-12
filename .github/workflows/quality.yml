@@ -8,7 +8,7 @@ permissions:
 jobs:
   verify:
     runs-on: windows-2025
-    # 统一入口包含 Rust 格式/Clippy/回归、前端构建/检查/回归与 Tauri 后端 Clippy，冷缓存需要较长时间。
+    # 统一入口包含 Rust 格式/Clippy/回归、前端构建/检查/回归与 Python 回归，冷缓存需要较长时间。
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4

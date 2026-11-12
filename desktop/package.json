@@ -1,13 +1,15 @@
 {
   "name": "personal-desk-desktop",
   "private": true,
-  "version": "0.15.78",
+  "version": "0.16.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "vitest run",
+    "docs:api": "node ../scripts/export-openapi.mjs",
+    "docs:api:check": "node ../scripts/export-openapi.mjs --check",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -20,9 +22,7 @@
     "@tauri-apps/api": "^2.12.4",
     "antd": "^6.7.0",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1"
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.12.4",

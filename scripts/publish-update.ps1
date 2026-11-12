@@ -6,7 +6,7 @@
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $metadataRoot = if ($MetadataDirectory) { (Resolve-Path -LiteralPath $MetadataDirectory).Path } else { $projectRoot }
-$versionLine = Get-Content (Join-Path $metadataRoot 'Cargo.toml') | Where-Object { $_ -match '^version\s*=\s*"([^" ]+)"' } | Select-Object -First 1
+$versionLine = Get-Content (Join-Path $metadataRoot 'desktop/src-tauri/Cargo.toml') | Where-Object { $_ -match '^version\s*=\s*"([^" ]+)"' } | Select-Object -First 1
 if ($versionLine -notmatch '^version\s*=\s*"([^" ]+)"') { throw 'Package version not found' }
 $releaseVersion = $Matches[1]
 $binaryVersion = (Get-Item -LiteralPath $Executable).VersionInfo.ProductVersion

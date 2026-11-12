@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard, OnceLock};
 use std::time::Duration;
 
-use personal_desk::db::Database;
+use crate::db::Database;
 use tauri::{App, Manager, WebviewUrl, WebviewWindowBuilder};
 
 /// 开发/测试数据目录覆盖变量。
@@ -40,7 +40,7 @@ pub fn data_directory() -> Result<PathBuf, String> {
     }
     #[cfg(not(debug_assertions))]
     {
-        personal_desk::data_directory::resolve()
+        crate::data_directory::resolve()
     }
     #[cfg(debug_assertions)]
     {

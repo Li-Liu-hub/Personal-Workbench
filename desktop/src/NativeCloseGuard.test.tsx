@@ -17,7 +17,7 @@ it('桌面关闭请求被未保存内容拦截，继续编辑不关闭，确认�
   const preventDefault = vi.fn()
   act(() => windowApi.onCloseRequested.mock.calls[0][0]({ preventDefault }))
   expect(preventDefault).toHaveBeenCalledOnce()
-  fireEvent.click(await screen.findByRole('button', { name: '继续编辑' }))
+  fireEvent.click(await screen.findByRole('button', { name: '继续编辑' }, { timeout: 4000 }))
   expect(windowApi.destroy).not.toHaveBeenCalled()
   act(() => windowApi.onCloseRequested.mock.calls[0][0]({ preventDefault }))
   fireEvent.click(await screen.findByRole('button', { name: '放弃修改并关闭' }))

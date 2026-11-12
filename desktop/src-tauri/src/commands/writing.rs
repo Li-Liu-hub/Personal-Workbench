@@ -2,14 +2,15 @@
 
 use std::path::PathBuf;
 
-use base64::Engine;
-use chrono::Local;
-use personal_desk::{
+use crate::{
     blog_publish::{self, BlogPostPayload},
+    db::writing_reads::{self, WritingDirectory, WritingRecent, WritingResults, WritingScope},
     library::{Book, Page},
     tags::Scope,
     writing_images,
 };
+use base64::Engine;
+use chrono::Local;
 
 use crate::state::{data_directory, development_db};
 
@@ -19,6 +20,7 @@ use crate::state::{data_directory, development_db};
 /// 旧草稿仍按该值关联与恢复，必须保持原样，不能随目录改名（tauri-migration → desktop）。
 const DRAFT_OWNER: &str = "tauri-migration";
 
+/// 读取全部文档页面。
 #[tauri::command]
 pub fn writing_list() -> Result<Vec<Page>, String> {
     development_db()?
@@ -26,6 +28,54 @@ pub fn writing_list() -> Result<Vec<Page>, String> {
         .map_err(|error| error.to_string())
 }
 
+/// 读取目录条目和图书分组，正文在打开文档时读取。
+#[tauri::command]
+pub fn writing_directory() -> Result<WritingDirectory, String> {
+    development_db()?
+        .writing_directory()
+        .map_err(|error| error.to_string())
+}
+
+/// 读取最近编辑的文档与随笔，每类最多四篇。
+#[tauri::command]
+pub fn writing_recent() -> Result<Vec<WritingRecent>, String> {
+    development_db()?
+        .writing_recent(4)
+        .map_err(|error| error.to_string())
+}
+
+/// 按文档 ID 读取一篇文档。已删除或隐藏的页面返回 null。
+#[tauri::command]
+pub fn writing_page(id: String) -> Result<Option<Page>, String> {
+    development_db()?
+        .writing_page(&id)
+        .map_err(|error| error.to_string())
+}
+
+/// 搜索目录中的标题、标签与正文，返回匹配页面的 ID。
+#[tauri::command]
+pub async fn writing_matches(query: String) -> Result<Vec<String>, String> {
+    let data = data_directory()?;
+    tauri::async_runtime::spawn_blocking(move || writing_reads::matching_ids(&data, &query))
+        .await
+        .map_err(|error| error.to_string())?
+        .map_err(|error| error.to_string())
+}
+
+/// 全局写作搜索，返回相关度最高的 24 条摘要和匹配总数。
+#[tauri::command]
+pub async fn writing_search(
+    query: String,
+    scope: Option<WritingScope>,
+) -> Result<WritingResults, String> {
+    let data = data_directory()?;
+    tauri::async_runtime::spawn_blocking(move || writing_reads::search(&data, &query, scope))
+        .await
+        .map_err(|error| error.to_string())?
+        .map_err(|error| error.to_string())
+}
+
+/// 新建文档页面，可指定所属图书。
 #[tauri::command]
 pub fn writing_create(title: String, book_id: Option<String>) -> Result<Page, String> {
     development_db()?
@@ -33,6 +83,7 @@ pub fn writing_create(title: String, book_id: Option<String>) -> Result<Page, St
         .map_err(|error| error.to_string())
 }
 
+/// 保存文档内容，返回更新后的页面。
 #[tauri::command]
 pub fn writing_save(mut page: Page) -> Result<Page, String> {
     let mut database = development_db()?;
@@ -45,6 +96,7 @@ pub fn writing_save(mut page: Page) -> Result<Page, String> {
     Ok(page)
 }
 
+/// 软删除指定文档或图书（page=true 删除文档，false 删除整本图书）。
 #[tauri::command]
 pub fn writing_delete(id: String, page: bool) -> Result<(), String> {
     development_db()?
@@ -52,6 +104,7 @@ pub fn writing_delete(id: String, page: bool) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 保存编辑中的临时草稿。
 #[tauri::command]
 pub fn writing_draft(page: Page) -> Result<(), String> {
     development_db()?
@@ -59,6 +112,7 @@ pub fn writing_draft(page: Page) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 恢复上次未保存的草稿。
 #[tauri::command]
 pub fn writing_recover_drafts() -> Result<(), String> {
     development_db()?
@@ -66,11 +120,13 @@ pub fn writing_recover_drafts() -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 读取全部图书。
 #[tauri::command]
 pub fn books_list() -> Result<Vec<Book>, String> {
     development_db()?.books().map_err(|error| error.to_string())
 }
 
+/// 新增或更新图书。
 #[tauri::command]
 pub fn books_save(book: Book) -> Result<(), String> {
     development_db()?
@@ -78,6 +134,7 @@ pub fn books_save(book: Book) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 获取或创建今天的日志页，可指定所属图书。
 #[tauri::command]
 pub fn writing_daily_log(book_id: Option<String>) -> Result<Page, String> {
     let day = Local::now().format("%Y-%m-%d").to_string();
@@ -86,6 +143,7 @@ pub fn writing_daily_log(book_id: Option<String>) -> Result<Page, String> {
         .map_err(|error| error.to_string())
 }
 
+/// 读取文档的全部分类标签。
 #[tauri::command]
 pub fn writing_tags() -> Result<Vec<String>, String> {
     development_db()?
@@ -93,6 +151,7 @@ pub fn writing_tags() -> Result<Vec<String>, String> {
         .map_err(|error| error.to_string())
 }
 
+/// 新建文档分类标签。
 #[tauri::command]
 pub fn writing_tag_create(name: String) -> Result<(), String> {
     development_db()?
@@ -100,6 +159,7 @@ pub fn writing_tag_create(name: String) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 重命名文档分类标签。
 #[tauri::command]
 pub fn writing_tag_rename(original: String, name: String) -> Result<(), String> {
     development_db()?
@@ -107,6 +167,7 @@ pub fn writing_tag_rename(original: String, name: String) -> Result<(), String> 
         .map_err(|error| error.to_string())
 }
 
+/// 删除文档分类标签。
 #[tauri::command]
 pub fn writing_tag_delete(name: String) -> Result<(), String> {
     development_db()?
@@ -114,6 +175,7 @@ pub fn writing_tag_delete(name: String) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 将文档另存为一个副本，返回新页面。
 #[tauri::command]
 pub fn writing_save_copy(mut page: Page) -> Result<Page, String> {
     page.id = uuid::Uuid::new_v4().to_string();
@@ -125,6 +187,7 @@ pub fn writing_save_copy(mut page: Page) -> Result<Page, String> {
     Ok(page)
 }
 
+/// 将文档及其受管图片导出为 Markdown 文件；取消时返回 null。
 #[tauri::command]
 pub async fn writing_export_markdown(page: Page) -> Result<Option<PathBuf>, String> {
     let data = data_directory()?;
@@ -161,6 +224,7 @@ pub async fn writing_export_markdown(page: Page) -> Result<Option<PathBuf>, Stri
     .map_err(|error| error.to_string())?
 }
 
+/// 通过 SSH 将文档发布或更新到博客，返回博客文章 ID。
 #[tauri::command]
 pub fn writing_publish_blog(page: Page) -> Result<String, String> {
     blog_publish::validate_post(&page.title, &page.body, &page.tags)
@@ -205,6 +269,7 @@ pub fn writing_publish_blog(page: Page) -> Result<String, String> {
     blog_publish::publish_over_ssh(&key_path, &payload)
 }
 
+/// 选择图片并导入到指定文档，返回图片引用；取消时返回 null。
 #[tauri::command]
 pub async fn writing_image_import(document_id: String) -> Result<Option<String>, String> {
     let data = data_directory()?;
@@ -226,6 +291,7 @@ pub async fn writing_image_import(document_id: String) -> Result<Option<String>,
     .map_err(|error| error.to_string())?
 }
 
+/// 将剪贴板图片字节导入到指定文档，返回图片引用。
 #[tauri::command]
 pub async fn writing_image_paste(document_id: String, bytes: Vec<u8>) -> Result<String, String> {
     let data = data_directory()?;
@@ -237,6 +303,7 @@ pub async fn writing_image_paste(document_id: String, bytes: Vec<u8>) -> Result<
     .map_err(|error| error.to_string())?
 }
 
+/// 读取文档图片引用，返回 data URL。
 #[tauri::command]
 pub async fn writing_image_read(reference: String) -> Result<String, String> {
     let data = data_directory()?;
@@ -252,6 +319,7 @@ pub async fn writing_image_read(reference: String) -> Result<String, String> {
     .map_err(|error| error.to_string())?
 }
 
+/// 将图书移动到另一个父图书；parent 为 null 时移到根级。
 #[tauri::command]
 pub fn writing_move_book(id: String, parent: Option<String>) -> Result<(), String> {
     development_db()?
@@ -259,6 +327,7 @@ pub fn writing_move_book(id: String, parent: Option<String>) -> Result<(), Strin
         .map_err(|error| error.to_string())
 }
 
+/// 将文档移动到另一本图书；target 为 null 时移到文档根目录。
 #[tauri::command]
 pub fn writing_move_page(id: String, target: Option<String>) -> Result<(), String> {
     development_db()?

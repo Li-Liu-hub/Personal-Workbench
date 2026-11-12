@@ -1,9 +1,9 @@
 //! MongoDB 文档库配置与发布命令。
 //!
-//! 数据层实现在核心库 `personal_desk::mongo_config` / `personal_desk::mongo_docs`，
+//! 数据层实现在核心库 `crate::mongo_config` / `crate::mongo_docs`，
 //! 命令层只做参数转发，并在读取数据库时避免把 `MutexGuard` 带过 `await`。
 
-use personal_desk::{
+use crate::{
     library::Page,
     mongo_config::{MongoConfig, MongoSettings, MongoSummary},
     mongo_docs,
@@ -12,11 +12,13 @@ use tauri::async_runtime::spawn_blocking;
 
 use crate::state::{data_directory, development_db};
 
+/// 读取 MongoDB 文档库连接摘要（不含密码）。
 #[tauri::command]
 pub fn mongo_info() -> Result<MongoSummary, String> {
     MongoConfig::summary().map_err(|error| error.to_string())
 }
 
+/// 保存 MongoDB 文档库连接配置。
 #[tauri::command]
 pub fn mongo_save(
     host: String,
@@ -40,6 +42,7 @@ pub fn mongo_save(
     .map_err(|error| error.to_string())
 }
 
+/// 测试一组 MongoDB 连接参数。
 #[tauri::command]
 pub async fn mongo_test(
     host: String,
@@ -66,6 +69,7 @@ pub async fn mongo_test(
         .map_err(|error| error.to_string())
 }
 
+/// 测试已保存的 MongoDB 连接。
 #[tauri::command]
 pub async fn mongo_test_saved() -> Result<(), String> {
     let config = MongoConfig::load()
@@ -77,6 +81,7 @@ pub async fn mongo_test_saved() -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 清除已保存的 MongoDB 连接配置。
 #[tauri::command]
 pub fn mongo_clear() -> Result<(), String> {
     MongoConfig::clear().map_err(|error| error.to_string())

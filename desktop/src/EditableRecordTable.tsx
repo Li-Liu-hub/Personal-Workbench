@@ -56,9 +56,9 @@ export default function EditableRecordTable<T extends RecordEntry>({ items, fiel
       ...fields.map(({ key, title, multiline }) => ({ key, title, render: (_: unknown, item: T) => {
         const editor = { 'aria-label': `${label(item)}${title}`, value: String((drafts[item.id] ?? item)[key] ?? ''), disabled: busy,
           onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => update(item, { [key]: e.target.value } as Partial<T>) }
-        return multiline ? <Input.TextArea {...editor} autoSize={{ minRows: 1, maxRows: 4 }} style={{ minWidth: 180 }} /> : <Input {...editor} style={{ minWidth: 120 }} />
+        return multiline ? <Input.TextArea {...editor} autoSize={{ minRows: 1, maxRows: 4 }} style={{ minWidth: 160 }} /> : <Input {...editor} style={{ minWidth: 96 }} />
       } })),
-      { key: 'tags', title: '分类', render: (_: unknown, item: T) => <Select mode="multiple" aria-label={`${label(item)}分类`} style={{ minWidth: 160 }} disabled={busy} value={(drafts[item.id] ?? item).tags} onChange={value => update(item, { tags: value } as Partial<T>)} options={tags.map(tag => ({ label: tag, value: tag }))} /> },
+      { key: 'tags', title: '分类', render: (_: unknown, item: T) => <Select mode="multiple" aria-label={`${label(item)}分类`} style={{ minWidth: 120 }} disabled={busy} value={(drafts[item.id] ?? item).tags} onChange={value => update(item, { tags: value } as Partial<T>)} options={tags.map(tag => ({ label: tag, value: tag }))} /> },
       { key: 'actions', title: '操作', render: (_: unknown, item: T) => <Space wrap>{drafts[item.id] ? <><Tag color="orange">未保存</Tag><Button loading={busy} onClick={() => void save([drafts[item.id]])}>保存行</Button><Button disabled={busy} onClick={() => discard(item.id)}>取消修改</Button></> : actions(item, busy || count > 0)}</Space> },
     ]} />
   </>

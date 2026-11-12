@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $metadataRoot = if ($MetadataDirectory) { (Resolve-Path -LiteralPath $MetadataDirectory).Path } else { $root }
-$line = Get-Content (Join-Path $metadataRoot 'Cargo.toml') | Where-Object { $_ -match '^version\s*=\s*"([^" ]+)"' } | Select-Object -First 1
+$line = Get-Content (Join-Path $metadataRoot 'desktop/src-tauri/Cargo.toml') | Where-Object { $_ -match '^version\s*=\s*"([^" ]+)"' } | Select-Object -First 1
 if ($line -notmatch '^version\s*=\s*"([^" ]+)"') { throw 'Missing package version' }
 $version = $Matches[1]
 $Executable = (Resolve-Path -LiteralPath $Executable).Path

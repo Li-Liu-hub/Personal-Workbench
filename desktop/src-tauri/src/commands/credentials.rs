@@ -1,6 +1,10 @@
 //! 账号密码与口令工具相关命令。
 
-use personal_desk::{model::Credential, passwords, tags::Scope};
+use crate::{
+    model::{Credential, CredentialSearchItem},
+    passwords,
+    tags::Scope,
+};
 
 use crate::state::development_db;
 
@@ -8,6 +12,14 @@ use crate::state::development_db;
 pub fn credentials_list() -> Result<Vec<Credential>, String> {
     development_db()?
         .credentials()
+        .map_err(|error| error.to_string())
+}
+
+/// 全局搜索使用的账号字段，不读取口令或备注。
+#[tauri::command]
+pub fn credential_search_items() -> Result<Vec<CredentialSearchItem>, String> {
+    development_db()?
+        .credential_search_items()
         .map_err(|error| error.to_string())
 }
 

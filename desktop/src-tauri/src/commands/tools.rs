@@ -2,13 +2,14 @@
 
 use std::path::PathBuf;
 
-use personal_desk::{
+use crate::{
     launcher::{self, AppTool},
     tags::{RecordTags, Scope},
 };
 
 use crate::state::development_db;
 
+/// 小工具页的聚合数据；包含记录、置顶 ID、标签、分类分配和视图模式。
 #[derive(serde::Serialize)]
 pub struct ToolData {
     items: Vec<AppTool>,
@@ -18,6 +19,7 @@ pub struct ToolData {
     view: String,
 }
 
+/// 读取全部小工具记录（旧版接口；前端当前使用 tool_data）。
 #[tauri::command]
 pub fn tools_list() -> Result<Vec<AppTool>, String> {
     development_db()?
@@ -25,6 +27,7 @@ pub fn tools_list() -> Result<Vec<AppTool>, String> {
         .map_err(|error| error.to_string())
 }
 
+/// 新增或更新小工具，并保存其分类标签。
 #[tauri::command]
 pub fn tools_save_classified(entry: AppTool, tags: Vec<String>) -> Result<(), String> {
     development_db()?
@@ -32,6 +35,7 @@ pub fn tools_save_classified(entry: AppTool, tags: Vec<String>) -> Result<(), St
         .map_err(|error| error.to_string())
 }
 
+/// 删除小工具记录；不会删除原程序文件。
 #[tauri::command]
 pub fn tools_delete(id: String) -> Result<(), String> {
     development_db()?
@@ -39,11 +43,13 @@ pub fn tools_delete(id: String) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 启动指定的 EXE 或文件。
 #[tauri::command]
 pub fn tools_launch(path: PathBuf) -> Result<(), String> {
     launcher::launch(&path).map_err(|error| error.to_string())
 }
 
+/// 读取小工具页完整数据（记录、置顶、标签、视图）。
 #[tauri::command]
 pub fn tool_data() -> Result<ToolData, String> {
     let database = development_db()?;
@@ -73,6 +79,7 @@ pub fn tool_data() -> Result<ToolData, String> {
     })
 }
 
+/// 设置或取消一条小工具的置顶。
 #[tauri::command]
 pub fn tool_favorite(id: String, value: bool) -> Result<(), String> {
     development_db()?
@@ -80,6 +87,7 @@ pub fn tool_favorite(id: String, value: bool) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 保存小工具页的视图模式（grid/list）。
 #[tauri::command]
 pub fn tool_view(mode: String) -> Result<(), String> {
     if mode != "grid" && mode != "list" {
@@ -90,6 +98,7 @@ pub fn tool_view(mode: String) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 设置某个小工具的分类标签（旧版接口；前端当前通过保存接口一并提交）。
 #[tauri::command]
 pub fn tool_tags_set(id: String, tags: Vec<String>) -> Result<(), String> {
     development_db()?
@@ -97,6 +106,7 @@ pub fn tool_tags_set(id: String, tags: Vec<String>) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 打开程序选择框，返回所选 EXE 路径；取消时返回 null。
 #[tauri::command]
 pub async fn tool_pick() -> Option<PathBuf> {
     rfd::AsyncFileDialog::new()
@@ -107,6 +117,7 @@ pub async fn tool_pick() -> Option<PathBuf> {
         .map(|file| file.path().to_owned())
 }
 
+/// 新建小工具分类标签。
 #[tauri::command]
 pub fn tool_tag_create(name: String) -> Result<(), String> {
     development_db()?
@@ -114,6 +125,7 @@ pub fn tool_tag_create(name: String) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 重命名小工具分类标签。
 #[tauri::command]
 pub fn tool_tag_rename(original: String, name: String) -> Result<(), String> {
     development_db()?
@@ -121,6 +133,7 @@ pub fn tool_tag_rename(original: String, name: String) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 删除小工具分类标签。
 #[tauri::command]
 pub fn tool_tag_delete(name: String) -> Result<(), String> {
     development_db()?

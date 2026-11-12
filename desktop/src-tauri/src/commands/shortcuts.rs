@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use personal_desk::{
+use crate::{
     files,
     model::Shortcut,
     tags::{RecordTags, Scope},
@@ -10,6 +10,7 @@ use personal_desk::{
 
 use crate::state::development_db;
 
+/// 快捷路径页的聚合数据；包含路径记录、标签、分类分配、置顶、视图和撤销状态。
 #[derive(serde::Serialize)]
 pub struct ShortcutData {
     items: Vec<Shortcut>,
@@ -20,6 +21,7 @@ pub struct ShortcutData {
     undo: bool,
 }
 
+/// 读取快捷路径页完整数据（路径、标签、置顶、视图、撤销状态）。
 #[tauri::command]
 pub fn shortcut_data() -> Result<ShortcutData, String> {
     let database = development_db()?;
@@ -50,6 +52,7 @@ pub fn shortcut_data() -> Result<ShortcutData, String> {
     })
 }
 
+/// 打开文件/文件夹选择框，返回所选路径；取消时返回 null。
 #[tauri::command]
 pub async fn shortcut_pick(is_dir: bool) -> Option<PathBuf> {
     let dialog = rfd::AsyncFileDialog::new().set_title("选择快捷路径");
@@ -61,6 +64,7 @@ pub async fn shortcut_pick(is_dir: bool) -> Option<PathBuf> {
     .map(|file| file.path().to_owned())
 }
 
+/// 添加快捷路径索引。
 #[tauri::command]
 pub fn shortcut_add(name: String, path: PathBuf, is_dir: bool) -> Result<(), String> {
     development_db()?
@@ -68,11 +72,13 @@ pub fn shortcut_add(name: String, path: PathBuf, is_dir: bool) -> Result<(), Str
         .map_err(|error| error.to_string())
 }
 
+/// 在资源管理器中打开或定位快捷路径；文件会选中，文件夹会打开。
 #[tauri::command]
 pub fn shortcut_open(path: PathBuf) -> Result<(), String> {
     files::open_location(&path).map_err(|error| error.to_string())
 }
 
+/// 移除快捷路径索引；不会删除原文件或文件夹。
 #[tauri::command]
 pub fn shortcut_remove(id: String) -> Result<(), String> {
     development_db()?
@@ -80,6 +86,7 @@ pub fn shortcut_remove(id: String) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 撤销最近一次快捷路径移除。
 #[tauri::command]
 pub fn shortcut_undo() -> Result<bool, String> {
     development_db()?
@@ -87,6 +94,7 @@ pub fn shortcut_undo() -> Result<bool, String> {
         .map_err(|error| error.to_string())
 }
 
+/// 设置或取消一条快捷路径的置顶。
 #[tauri::command]
 pub fn shortcut_favorite(id: String, value: bool) -> Result<(), String> {
     development_db()?
@@ -94,6 +102,7 @@ pub fn shortcut_favorite(id: String, value: bool) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 设置某条快捷路径的分类标签。
 #[tauri::command]
 pub fn shortcut_tags(id: String, tags: Vec<String>) -> Result<(), String> {
     development_db()?
@@ -101,6 +110,7 @@ pub fn shortcut_tags(id: String, tags: Vec<String>) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 保存快捷路径页的视图模式（grid/list）。
 #[tauri::command]
 pub fn shortcut_view(mode: String) -> Result<(), String> {
     if mode != "grid" && mode != "list" {
@@ -111,6 +121,7 @@ pub fn shortcut_view(mode: String) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 新建快捷路径分类标签。
 #[tauri::command]
 pub fn shortcut_tag_create(name: String) -> Result<(), String> {
     development_db()?
@@ -118,6 +129,7 @@ pub fn shortcut_tag_create(name: String) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 重命名快捷路径分类标签。
 #[tauri::command]
 pub fn shortcut_tag_rename(original: String, name: String) -> Result<(), String> {
     development_db()?
@@ -125,6 +137,7 @@ pub fn shortcut_tag_rename(original: String, name: String) -> Result<(), String>
         .map_err(|error| error.to_string())
 }
 
+/// 删除快捷路径分类标签。
 #[tauri::command]
 pub fn shortcut_tag_delete(name: String) -> Result<(), String> {
     development_db()?

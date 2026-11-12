@@ -1,9 +1,10 @@
 //! 物品清单相关命令。
 
-use personal_desk::{model::InventoryItem, tags::Scope};
+use crate::{model::InventoryItem, tags::Scope};
 
 use crate::state::development_db;
 
+/// 读取全部物品记录。
 #[tauri::command]
 pub fn inventory_list() -> Result<Vec<InventoryItem>, String> {
     development_db()?
@@ -11,6 +12,7 @@ pub fn inventory_list() -> Result<Vec<InventoryItem>, String> {
         .map_err(|error| error.to_string())
 }
 
+/// 新增或更新一条物品记录。
 #[tauri::command]
 pub fn inventory_save(entry: InventoryItem) -> Result<(), String> {
     entry.validate().map_err(|error| error.to_string())?;
@@ -19,6 +21,7 @@ pub fn inventory_save(entry: InventoryItem) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 删除指定物品记录。
 #[tauri::command]
 pub fn inventory_delete(id: String) -> Result<(), String> {
     development_db()?
@@ -26,6 +29,7 @@ pub fn inventory_delete(id: String) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 读取物品的全部分类标签。
 #[tauri::command]
 pub fn inventory_tags() -> Result<Vec<String>, String> {
     development_db()?
@@ -33,6 +37,7 @@ pub fn inventory_tags() -> Result<Vec<String>, String> {
         .map_err(|error| error.to_string())
 }
 
+/// 读取物品的置顶记录 ID 列表。
 #[tauri::command]
 pub fn inventory_favorites() -> Result<Vec<String>, String> {
     Ok(development_db()?
@@ -43,6 +48,7 @@ pub fn inventory_favorites() -> Result<Vec<String>, String> {
         .collect())
 }
 
+/// 设置或取消一条物品记录的置顶。
 #[tauri::command]
 pub fn inventory_favorite(id: String, value: bool) -> Result<(), String> {
     development_db()?
@@ -50,6 +56,7 @@ pub fn inventory_favorite(id: String, value: bool) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 读取物品页的视图模式（grid/list）。
 #[tauri::command]
 pub fn inventory_view_get() -> Result<String, String> {
     Ok(development_db()?
@@ -61,6 +68,7 @@ pub fn inventory_view_get() -> Result<String, String> {
         .unwrap_or_else(|| "grid".into()))
 }
 
+/// 保存物品页的视图模式（grid/list）。
 #[tauri::command]
 pub fn inventory_view_set(mode: String) -> Result<(), String> {
     if mode != "grid" && mode != "list" {
@@ -71,6 +79,7 @@ pub fn inventory_view_set(mode: String) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 新建物品分类标签。
 #[tauri::command]
 pub fn inventory_tag_create(name: String) -> Result<(), String> {
     development_db()?
@@ -78,6 +87,7 @@ pub fn inventory_tag_create(name: String) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// 重命名物品分类标签。
 #[tauri::command]
 pub fn inventory_tag_rename(original: String, name: String) -> Result<(), String> {
     development_db()?
@@ -85,6 +95,7 @@ pub fn inventory_tag_rename(original: String, name: String) -> Result<(), String
         .map_err(|error| error.to_string())
 }
 
+/// 删除物品分类标签。
 #[tauri::command]
 pub fn inventory_tag_delete(name: String) -> Result<(), String> {
     development_db()?

@@ -11,18 +11,16 @@ $previousTargetDir = $env:CARGO_TARGET_DIR
 $env:CARGO_TARGET_DIR = $TargetDir
 $client = Join-Path $root 'desktop'
 
-Push-Location $root
+Push-Location (Join-Path $client 'src-tauri')
 try {
     & cargo.exe fmt --all -- --check
     if ($LASTEXITCODE -ne 0) { throw 'Rust formatting check failed.' }
-    & cargo.exe clippy --locked --workspace --all-targets -- -D warnings
+    & cargo.exe clippy --locked --all-targets -- -D warnings
     if ($LASTEXITCODE -ne 0) { throw 'Rust lint check failed.' }
-    & cargo.exe test --locked --workspace --all-targets --no-fail-fast
+    & cargo.exe test --locked --all-targets --no-fail-fast
     if ($LASTEXITCODE -ne 0) { throw 'Rust regression tests failed.' }
     & cargo.exe clippy --locked --release --lib -- -D warnings
     if ($LASTEXITCODE -ne 0) { throw 'Release-only Rust lint check failed.' }
-    & cargo.exe fmt --manifest-path (Join-Path $client 'src-tauri/Cargo.toml') --all -- --check
-    if ($LASTEXITCODE -ne 0) { throw 'Desktop backend formatting check failed.' }
 
     if (-not (Test-Path -LiteralPath (Join-Path $client 'node_modules'))) {
         Push-Location $client
@@ -41,13 +39,13 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Frontend lint failed.' }
         & npm.cmd run test
         if ($LASTEXITCODE -ne 0) { throw 'Frontend regression tests failed.' }
+        & npm.cmd run docs:api:check
+        if ($LASTEXITCODE -ne 0) { throw 'API documentation is stale.' }
     } finally {
         Pop-Location
     }
-    & cargo.exe clippy --locked --release --manifest-path (Join-Path $client 'src-tauri/Cargo.toml') --all-targets -- -D warnings
-    if ($LASTEXITCODE -ne 0) { throw 'Desktop backend lint check failed.' }
-
-    & python -m unittest discover -s scripts/tests -v
+    $pythonTests = Join-Path $root 'scripts/tests'
+    & python -m unittest discover -s $pythonTests -v
     if ($LASTEXITCODE -ne 0) { throw 'Python regression tests failed.' }
     Write-Output 'All standard checks passed.'
 } finally {

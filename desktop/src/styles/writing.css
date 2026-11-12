@@ -1,0 +1,438 @@
+/* Writing workspace ----------------------------------------------------- */
+.content.writing-page {
+  container: writing / inline-size;
+  max-width: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--desk-paper);
+}
+
+.writing-header {
+  min-height: 64px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--desk-rule);
+  background: var(--desk-paper);
+}
+
+.writing-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.writing-header h1 {
+  font-size: 20px;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.writing-total {
+  color: var(--desk-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.writing-layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+}
+
+.directory-collapsed .writing-layout,
+.writing-compact .writing-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.writing-compact .document-directory {
+  border-right: 0;
+}
+
+.document-directory {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px 0;
+  border-right: 1px solid var(--desk-rule);
+  background: color-mix(in srgb, var(--desk-input) 30%, var(--desk-paper));
+}
+
+.document-directory > .ant-input-affix-wrapper {
+  background: var(--desk-surface);
+  font-size: 12.5px;
+}
+
+.directory-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 20px 8px 8px;
+  color: var(--desk-muted);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.document-tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.document-tree .ant-tree {
+  background: transparent;
+  font-size: 13px;
+}
+
+.document-tree .ant-tree-treenode {
+  padding: 1.5px 0;
+}
+
+.document-tree .ant-tree-node-content-wrapper {
+  display: flex;
+  min-width: 0;
+  min-height: 30px;
+  align-items: center;
+  border-radius: 6px;
+  transition: background var(--desk-hover) var(--desk-ease);
+}
+
+.document-tree .ant-tree-title {
+  min-width: 0;
+  flex: 1;
+}
+
+.document-tree-name {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.document-tree-folder {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.document-tree-folder > .document-tree-name {
+  flex: 1;
+}
+
+.tree-more {
+  opacity: 0;
+}
+
+.document-tree .ant-tree-treenode:hover .tree-more,
+.tree-more:focus-visible {
+  opacity: 1;
+}
+
+.directory-footer {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 8px;
+  border-top: 1px solid var(--desk-rule);
+  color: var(--desk-muted);
+  font-size: 11px;
+}
+
+.document-workspace {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--desk-paper);
+}
+
+.writing-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.save-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--desk-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.save-state[data-state='error'] {
+  color: var(--desk-seal);
+}
+
+.document-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: clamp(10px, 1.45cqi, 34px);
+  overscroll-behavior: contain;
+  background: color-mix(in srgb, var(--desk-input) 14%, var(--desk-paper));
+}
+
+.document-paper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: clamp(20px, 2.35cqi, 50px) clamp(22px, 4cqi, 86px);
+  border: 1px solid var(--desk-rule);
+  border-radius: var(--desk-radius-md);
+  background: var(--desk-grain-paper), var(--desk-surface);
+}
+
+.document-title.ant-input {
+  padding: 0 0 8px;
+  margin: 0 0 16px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--desk-text);
+  font-family: var(--desk-font-display);
+  font-size: clamp(24px, 2.3cqi, 36px);
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+}
+
+.document-title.ant-input:focus {
+  border-bottom-color: var(--desk-accent-line);
+  box-shadow: none;
+}
+
+.writing-notice {
+  margin: 10px 20px 0;
+}
+
+.writing-loading {
+  padding: 12px;
+  color: var(--desk-muted);
+  font-size: 13px;
+}
+
+.writing-empty {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 30px;
+  text-align: center;
+}
+
+.writing-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 74px;
+  margin-bottom: 8px;
+  border: 1px solid var(--desk-rule);
+  border-radius: 8px;
+  background: var(--desk-surface);
+  color: var(--desk-accent);
+  font-size: 28px;
+  box-shadow: 5px 5px 0 var(--desk-accent-soft);
+}
+
+.writing-empty h2 {
+  font-family: var(--desk-font-display);
+  font-size: 21px;
+  font-weight: 600;
+}
+
+.writing-empty p {
+  max-width: 340px;
+  color: var(--desk-muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.writing-empty > span:last-child {
+  margin-top: 3px;
+  color: var(--desk-muted);
+  font-size: 11.5px;
+}
+
+/* Essays ---------------------------------------------------------------- */
+.essay-today {
+  position: relative;
+  overflow: hidden;
+  max-width: 760px;
+  margin: 8px auto 0;
+  padding: 38px 44px 40px;
+  border: 1px solid var(--desk-rule);
+  border-top: 3px solid var(--desk-accent);
+  border-radius: var(--desk-radius-md);
+  background: var(--desk-grain-paper), var(--desk-surface);
+  box-shadow: var(--desk-shadow-paper);
+}
+
+.essay-today::after {
+  content: "“";
+  position: absolute;
+  top: -20px;
+  right: 16px;
+  color: color-mix(in srgb, var(--desk-accent) 9%, transparent);
+  font-family: var(--desk-font-display);
+  font-size: 140px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.essay-today-date {
+  color: var(--desk-muted);
+  font-family: var(--desk-font-display);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.essay-today-topic {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 2px 10px;
+  border: 1px solid var(--desk-accent-line);
+  border-radius: 999px;
+  background: var(--desk-accent-soft);
+  color: var(--desk-accent);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.essay-today h2 {
+  margin-top: 14px;
+  font-family: var(--desk-font-display);
+  font-size: 26px;
+  line-height: 1.45;
+}
+
+.essay-today-prompt {
+  margin-top: 12px;
+  max-width: 48ch;
+  color: var(--desk-muted);
+  font-size: 13px;
+  line-height: 1.9;
+}
+
+.essay-today-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 26px;
+}
+
+.essay-history {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.essay-history-search {
+  margin-bottom: 14px;
+}
+
+.essay-history-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 15px 8px;
+  border: 0;
+  border-bottom: 1px solid var(--desk-rule-soft);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--desk-text);
+  text-align: left;
+  transition: background var(--desk-hover) var(--desk-ease), color var(--desk-hover) var(--desk-ease);
+}
+
+.essay-history-row:hover {
+  background: color-mix(in srgb, var(--desk-input) 50%, transparent);
+  color: var(--desk-accent);
+}
+
+.essay-history-day {
+  width: 92px;
+  flex-shrink: 0;
+  color: var(--desk-muted);
+  font-family: var(--desk-font-display);
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+}
+
+.essay-history-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.essay-history-copy strong {
+  display: block;
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.essay-history-copy small {
+  display: block;
+  margin-top: 2px;
+  color: var(--desk-muted);
+  font-size: 11.5px;
+}
+
+@container writing (max-width: 930px) {
+  .writing-page:not(.writing-compact, .directory-collapsed) .writing-layout {
+    grid-template-columns: 228px minmax(0, 1fr);
+  }
+}
+
+@container writing (max-width: 790px) {
+  .writing-header {
+    padding: 12px 16px;
+  }
+
+  .tree-more {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 860px) {
+  .essay-today {
+    padding: 28px 26px;
+  }
+}
+
+@container writing (max-width: 490px) {
+  .writing-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .writing-total {
+    display: none;
+  }
+
+  .document-paper {
+    padding-inline: 18px;
+  }
+}
+
+@media (max-width: 620px) {
+  .essay-today h2 {
+    font-size: 21px;
+  }
+}

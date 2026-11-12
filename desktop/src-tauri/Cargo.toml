@@ -1,14 +1,12 @@
 [package]
 name = "PersonalDesk"
-version = "0.15.78"
-description = "A Tauri App"
+version = "0.16.2"
+description = "A private Rust desktop office hub"
 authors = ["you"]
-license = ""
+license = "MIT"
 repository = ""
 edition = "2024"
 rust-version = "1.95"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
 name = "personal_desk_lib"
@@ -22,17 +20,43 @@ path = "src/main.rs"
 tauri-build = { version = "2.7.4", features = [] }
 
 [dependencies]
-serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-log = "0.4"
+# Tauri 宿主与系统集成
 tauri = { version = "2.12.5", features = [] }
 tauri-plugin-log = "2"
-personal-desk = { path = "../.." }
+log = "0.4"
 arboard = "3"
 rfd = "0.17"
 
+# 核心库：数据、业务规则、导入导出、加密、更新与私网库
+age = "0.12.1"
+aes-gcm = "0.10"
+mysql = { version = "25", default-features = false, features = ["minimal-rust"] }
+calamine = { version = "0.26.1", features = ["dates"] }
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp", "bmp"] }
+chrono = { version = "0.4", features = ["serde"] }
+directories = "6"
 open = "5"
-chrono = "0.4"
+rusqlite = { version = "0.40", features = ["bundled-full", "backup", "hooks", "serialize"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+semver = "1"
+sha2 = "0.10"
+thiserror = "2"
+tempfile = "3"
+url = "2"
+uuid = { version = "1", features = ["v4", "serde"] }
+walkdir = "2"
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_NetworkManagement_IpHelper", "Win32_NetworkManagement_WNet", "Win32_Security", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_System_Com_Urlmon", "Win32_System_Console", "Win32_System_Ole", "Win32_System_Registry", "Win32_System_Threading", "Win32_System_Variant", "Win32_UI_Shell", "Win32_UI_Shell_Common", "Win32_UI_WindowsAndMessaging"] }
+zip = { version = "6", default-features = false, features = ["deflate"] }
+zeroize = { version = "1", features = ["derive"] }
+unicode-normalization = "0.1"
+ureq = { version = "3", default-features = false, features = ["charset", "gzip", "json", "rustls"] }
 base64 = "0.22"
-image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp", "bmp"] }
-uuid = { version = "1", features = ["v4"] }
+getrandom = "0.3"
+mongodb = "3"
+
+[profile.release]
+opt-level = 2
+lto = "thin"
+codegen-units = 1
+strip = true

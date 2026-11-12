@@ -40,7 +40,7 @@ if (-not (Test-Path -LiteralPath $executable)) {
 }
 
 # WebView2 加载器：只有构建产物真的导入 WebView2Loader.dll 时才需要随程序分发。
-# 依赖版本从 desktop 工程的锁文件读取（根核心库已不再依赖 webview2-com-sys）。
+# 依赖版本从 desktop 工程的锁文件读取。
 $binaryText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($executable))
 $webView2Required = $binaryText.Contains('WebView2Loader.dll')
 $loaderInBuild = Join-Path (Split-Path -Parent $executable) 'WebView2Loader.dll'

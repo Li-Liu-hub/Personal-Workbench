@@ -3,6 +3,15 @@
 # 只用点源，不要直接执行，否则环境变量只作用于子进程。
 $ErrorActionPreference = 'Stop'
 
+# 如果从 PowerShell 7 继承了 PSModulePath，Windows PowerShell 5.1 会误加载
+# PS7 的 Utility 模块，导致 Get-FileHash 等 cmdlet 不可用。把 5.1 的模块目录
+# 放到最前面，保证构建脚本在两种终端下都能正常执行。
+$windowsPowerShellModules = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\Modules'
+if (Test-Path -LiteralPath $windowsPowerShellModules) {
+    $userWindowsPowerShellModules = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'WindowsPowerShell\Modules'
+    $env:PSModulePath = @($userWindowsPowerShellModules, $windowsPowerShellModules, $env:PSModulePath) -join ';'
+}
+
 $cargoHome = if ($env:CARGO_HOME) { $env:CARGO_HOME } else { Join-Path $env:USERPROFILE '.cargo' }
 $cargoBin = Join-Path $cargoHome 'bin'
 $pathEntries = @($env:PATH -split ';' | Where-Object { $_ })
