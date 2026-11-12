@@ -174,6 +174,7 @@ const COMMAND_DESCRIPTIONS = {
   writing_image_read: '读取文档图片引用，返回 data URL。',
   writing_move_book: '将图书移动到另一个父图书；parent 为 null 时移到根级。',
   writing_move_page: '将文档移动到另一本图书；target 为 null 时移到文档根目录。',
+  writing_group_pages: '将同一目录下的文档归入新图书，保留每篇文档的内容和历史。',
   books_list: '读取全部图书。',
   books_save: '新增或更新图书。',
 

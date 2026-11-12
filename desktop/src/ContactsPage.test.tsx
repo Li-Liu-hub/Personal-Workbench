@@ -32,7 +32,7 @@ it('详情页直接展示完整资料，不再依赖列表附加列开关', asyn
     name === 'contact_data' ? { items: [item], tags: [], assignments: [], favorites: [], view: 'grid', extra: false } : undefined,
   ))
   render(<ContactsPage/>)
-  expect(await screen.findByText('123')).toBeTruthy()
+  expect((await screen.findByRole<HTMLInputElement>('textbox', { name: '证件号码' })).value).toBe('123')
   expect(screen.getByRole('heading', { name: '示例' })).toBeTruthy()
 })
 
@@ -43,10 +43,9 @@ it('详情编辑只保存目标资料并保留聊天备注', async () => {
   ))
   const dirty = vi.fn()
   render(<ContactsPage setWorkspaceDirty={dirty}/>)
-  fireEvent.click(await screen.findByRole('button', { name: '编辑联系人' }))
-  fireEvent.change(screen.getByLabelText('电话'), { target: { value: '新号码' } })
+  fireEvent.change(await screen.findByLabelText('电话'), { target: { value: '新号码' } })
   expect(dirty).toHaveBeenCalledWith(true)
-  fireEvent.click(screen.getByRole('button', { name: /保\s*存/ }))
+  fireEvent.click(screen.getByRole('button', { name: '保存联系人' }))
   await waitFor(() => expect(invoke).toHaveBeenCalledWith('contact_save_classified', { entry: { ...item, phone: '新号码' }, tags: ['朋友'] }))
-  expect(dirty).toHaveBeenLastCalledWith(false)
+  await waitFor(() => expect(dirty).toHaveBeenLastCalledWith(false))
 })

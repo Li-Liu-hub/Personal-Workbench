@@ -6,7 +6,7 @@ type TextKey<T> = { [K in keyof T]: T[K] extends string ? K : never }[keyof T] &
 export type RecordField<T> = { key: TextKey<T>; title: string; multiline?: boolean }
 
 // Keep edits outside the filtered table so searching and pagination never discard input.
-export default function EditableRecordTable<T extends RecordEntry>({ items, fields, tags, label, onSave, onDirty, actions }: {
+export default function EditableRecordTable<T extends RecordEntry>({ items, fields, tags, label, onSave, onDirty, actions, scrollContainer }: {
   items: T[]
   fields: RecordField<T>[]
   tags: string[]
@@ -14,6 +14,7 @@ export default function EditableRecordTable<T extends RecordEntry>({ items, fiel
   onSave: (item: T) => Promise<void>
   onDirty: (dirty: boolean) => void
   actions: (item: T, editing: boolean) => React.ReactNode
+  scrollContainer?: React.RefObject<HTMLDivElement | null>
 }) {
   const [drafts, setDrafts] = useState<Record<string, T>>({})
   const [error, setError] = useState('')
@@ -52,7 +53,8 @@ export default function EditableRecordTable<T extends RecordEntry>({ items, fiel
   return <>
     {error && <Alert type="error" message={error} closable onClose={() => setError('')} />}
     {count > 0 && <Space style={{ marginBottom: 12 }} wrap><span>有 {count} 行待保存（包含筛选外的行）</span><Button type="primary" loading={busy} onClick={() => void save(Object.values(drafts))}>保存全部修改</Button><Button disabled={busy} onClick={() => discard()}>放弃全部修改</Button></Space>}
-    <Table<T> rowKey="id" dataSource={items} pagination={{ pageSize: 30 }} scroll={{ x: 'max-content' }} columns={[
+    <Table<T> rowKey="id" dataSource={items} pagination={{ pageSize: 30 }} scroll={{ x: 'max-content' }}
+      sticky={scrollContainer ? { getContainer: () => scrollContainer.current ?? window } : false} columns={[
       ...fields.map(({ key, title, multiline }) => ({ key, title, render: (_: unknown, item: T) => {
         const editor = { 'aria-label': `${label(item)}${title}`, value: String((drafts[item.id] ?? item)[key] ?? ''), disabled: busy,
           onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => update(item, { [key]: e.target.value } as Partial<T>) }

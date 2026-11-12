@@ -33,6 +33,7 @@ export default function InventoryPage({ setWorkspaceDirty, focus }: {
   const [manage, setManage] = useState(false)
   const [busy, setBusy] = useState(false)
   const handledFocus = useRef<number | null>(null)
+  const scrollContainer = useRef<HTMLDivElement>(null)
 
   const dirty = rowDirty || !!(draft && JSON.stringify([draft, price]) !== snapshot)
   useUnsavedChanges(dirty, setWorkspaceDirty)
@@ -135,7 +136,7 @@ export default function InventoryPage({ setWorkspaceDirty, focus }: {
     return ok
   }
 
-  return <div className="content">
+  return <div className="content inventory-page" ref={scrollContainer}>
     <header className="page-header">
       <div><h1>物品清单</h1><p>记录物品、位置和购买信息</p></div>
       <Space><Button type="primary" icon={<PlusOutlined/>} disabled={rowDirty} onClick={() => edit(blank())}>添加物品</Button></Space>
@@ -150,6 +151,7 @@ export default function InventoryPage({ setWorkspaceDirty, focus }: {
     </section>
     <div className="section-heading"><div><h2>物品账本</h2><span>共 {visible.length} 条</span></div></div>
     {visible.length ? <EditableRecordTable<InventoryRow>
+      scrollContainer={scrollContainer}
       items={visible.map(item => ({ ...item, quantity: String(item.quantity), price: item.purchase_price_cents === null ? '' : (item.purchase_price_cents / 100).toFixed(2) }))}
       fields={[
         { key: 'name', title: '名称' },

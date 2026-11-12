@@ -1,5 +1,5 @@
 import NativeCloseGuard from './NativeCloseGuard'
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type DragEvent } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import {
@@ -72,6 +72,10 @@ const RestoreGlyph = <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden
 const CloseGlyph = <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"><path d="M2 2l7 7M9 2l-7 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
 
 const sidebarPreference = 'personaldesk.sidebar-compact'
+
+function preventFileDropNavigation(event: DragEvent) {
+  if (event.dataTransfer.types.includes('Files')) event.preventDefault()
+}
 
 function App({ dark = false }: { dark?: boolean }) {
   const [section, setSection] = useState<Section>('today')
@@ -176,7 +180,8 @@ function App({ dark = false }: { dark?: boolean }) {
     try { window.localStorage.setItem(sidebarPreference, String(next)) } catch { /* Use the preference for this session. */ }
   }
 
-  return <div className={`window-shell ${compactSidebar ? 'sidebar-compact' : ''}`}>
+  return <div className={`window-shell ${compactSidebar ? 'sidebar-compact' : ''}`}
+    onDragOver={preventFileDropNavigation} onDrop={preventFileDropNavigation}>
     {/* Tauri 的 drag-region 脚本统一处理拖动和双击最大化；deep 让标题栏内非按钮区域都可拖动，
         避免再手动 startDragging 导致一次按下触发两次拖动。 */}
     <header className="window-titlebar" data-tauri-drag-region="deep" inert={paletteOpen}>

@@ -334,3 +334,11 @@ pub fn writing_move_page(id: String, target: Option<String>) -> Result<(), Strin
         .move_writing_page(&id, target.as_deref())
         .map_err(|error| error.to_string())
 }
+
+/// 将同一目录下的文档归入新图书，保留每篇文档的内容和历史。
+#[tauri::command]
+pub fn writing_group_pages(ids: Vec<String>) -> Result<Book, String> {
+    development_db()?
+        .group_writing(&ids, None)
+        .map_err(|error| error.to_string())
+}

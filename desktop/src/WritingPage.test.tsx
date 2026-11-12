@@ -38,6 +38,23 @@ it('搜索正文时保留上级目录并显示匹配文档', async () => {
   expect(invoke).not.toHaveBeenCalledWith('writing_list')
 })
 
+it('将一篇文档拖到同目录的另一篇文档上时创建图书', async () => {
+  const first = { ...document, book_id: root, title: '第一篇' }
+  const second = { ...first, id: 'q', title: '第二篇' }
+  invoke.mockImplementation(async (name: string) => name === 'writing_directory'
+    ? { pages: [first, second], books: [] }
+    : book)
+  render(<WritingPage setDirty={() => {}}/>)
+  const source = await screen.findByText('第二篇')
+  const target = screen.getByText('第一篇')
+  const dataTransfer = { setData: vi.fn() }
+  fireEvent.dragStart(source, { dataTransfer })
+  fireEvent.dragOver(target, { dataTransfer })
+  fireEvent.drop(target, { dataTransfer })
+  await screen.findByText('已将两篇文档归入新图书')
+  expect(invoke).toHaveBeenCalledWith('writing_group_pages', { ids: [first.id, second.id] })
+})
+
 it('保存失败时留在原文档，重试后才打开目标文档', async () => {
   const first = { ...document, book_id: root, title: '第一篇' }
   const second = { ...first, id: 'q', title: '第二篇' }

@@ -1,6 +1,6 @@
 [package]
 name = "PersonalDesk"
-version = "0.16.2"
+version = "0.16.3"
 description = "A private Rust desktop office hub"
 authors = ["you"]
 license = "MIT"

@@ -7,7 +7,7 @@ use crate::{
     vault_config::{VaultMysqlConfig, VaultMysqlSummary},
 };
 
-use crate::state::{data_directory, development_db};
+use crate::state::{data_directory, with_vault};
 
 /// 设置页的版本信息；包含当前版本、数据目录和发布历史。
 #[derive(serde::Serialize)]
@@ -124,8 +124,6 @@ pub fn vault_mysql_clear() -> Result<(), String> {
 
 /// 立即触发一次私网加密库同步，返回是否实际执行。
 #[tauri::command]
-pub fn vault_sync_now() -> Result<bool, String> {
-    development_db()?
-        .sync_remote_now()
-        .map_err(|error| error.to_string())
+pub async fn vault_sync_now() -> Result<bool, String> {
+    with_vault(crate::db::Database::sync_remote_now).await
 }

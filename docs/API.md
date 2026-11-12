@@ -1,6 +1,6 @@
 # 个人办公台 IPC 接口文档
 
-> 由 `scripts/export-openapi.mjs` 从 Rust 源码自动生成，共 **130** 个 Tauri 命令。请勿手工编辑。
+> 由 `scripts/export-openapi.mjs` 从 Rust 源码自动生成，共 **131** 个 Tauri 命令。请勿手工编辑。
 
 > **Tauri IPC 同样是入参和返回值，只是不走 HTTP。** 前端通过 `invoke(command, args)` 调用 Rust；`POST /commands/<name>` 用来描述每个命令的入参和响应，应用没有监听 HTTP 端口。
 
@@ -16,12 +16,12 @@ OpenAPI 文件：[`openapi.json`](./openapi.json) · 可视化：[`api.html`](./
 | `shortcuts` | 快捷路径 | 12 | `desktop/src-tauri/src/commands/shortcuts.rs` |
 | `tools` | 小工具 | 12 | `desktop/src-tauri/src/commands/tools.rs` |
 | `essays` | 每日随笔 | 5 | `desktop/src-tauri/src/commands/essays.rs` |
-| `writing` | 写作与图书 | 26 | `desktop/src-tauri/src/commands/writing.rs` |
+| `writing` | 写作与图书 | 27 | `desktop/src-tauri/src/commands/writing.rs` |
 | `contacts` | 联系人 | 18 | `desktop/src-tauri/src/commands/contacts.rs` |
 | `settings` | 设置与同步 | 11 | `desktop/src-tauri/src/commands/settings.rs` |
 | `theme` | 外观主题 | 5 | `desktop/src-tauri/src/commands/theme.rs` |
 | `mongo` | MongoDB 文档库 | 6 | `desktop/src-tauri/src/commands/mongo.rs` |
-| **合计** | | **130** | |
+| **合计** | | **131** | |
 
 ## 为什么有这么多命令？
 
@@ -46,7 +46,7 @@ OpenAPI 文件：[`openapi.json`](./openapi.json) · 可视化：[`api.html`](./
 **作用**：读取全部账号密码记录。
 
 - 源码：[`desktop/src-tauri/src/commands/credentials.rs:11`](../desktop/src-tauri/src/commands/credentials.rs#L11)
-- Rust：`pub fn credentials_list() -> Result<Vec<Credential>, String>`
+- Rust：`pub async fn credentials_list() -> Result<Vec<Credential>, String>`
 - 参数：无
 
 调用：`invoke("credentials_list")`
@@ -76,8 +76,8 @@ OpenAPI 文件：[`openapi.json`](./openapi.json) · 可视化：[`api.html`](./
 
 > 全局搜索使用的账号字段，不读取口令或备注。
 
-- 源码：[`desktop/src-tauri/src/commands/credentials.rs:19`](../desktop/src-tauri/src/commands/credentials.rs#L19)
-- Rust：`pub fn credential_search_items() -> Result<Vec<CredentialSearchItem>, String>`
+- 源码：[`desktop/src-tauri/src/commands/credentials.rs:17`](../desktop/src-tauri/src/commands/credentials.rs#L17)
+- Rust：`pub async fn credential_search_items() -> Result<Vec<CredentialSearchItem>, String>`
 - 参数：无
 
 调用：`invoke("credential_search_items")`
@@ -103,8 +103,8 @@ OpenAPI 文件：[`openapi.json`](./openapi.json) · 可视化：[`api.html`](./
 
 **作用**：新增或更新一条账号密码记录。
 
-- 源码：[`desktop/src-tauri/src/commands/credentials.rs:26`](../desktop/src-tauri/src/commands/credentials.rs#L26)
-- Rust：`pub fn credentials_save(entry: Credential) -> Result<(), String>`
+- 源码：[`desktop/src-tauri/src/commands/credentials.rs:22`](../desktop/src-tauri/src/commands/credentials.rs#L22)
+- Rust：`pub async fn credentials_save(entry: Credential) -> Result<(), String>`
 
 | JS 参数 | Rust 参数 | 类型 | 必填 | 说明 |
 |---|---|---|---|---|
@@ -138,8 +138,8 @@ null
 
 **作用**：删除指定账号密码记录。
 
-- 源码：[`desktop/src-tauri/src/commands/credentials.rs:34`](../desktop/src-tauri/src/commands/credentials.rs#L34)
-- Rust：`pub fn credentials_delete(id: String) -> Result<(), String>`
+- 源码：[`desktop/src-tauri/src/commands/credentials.rs:28`](../desktop/src-tauri/src/commands/credentials.rs#L28)
+- Rust：`pub async fn credentials_delete(id: String) -> Result<(), String>`
 
 | JS 参数 | Rust 参数 | 类型 | 必填 | 说明 |
 |---|---|---|---|---|
@@ -163,8 +163,8 @@ null
 
 **作用**：读取账号密码的置顶记录 ID 列表。
 
-- 源码：[`desktop/src-tauri/src/commands/credentials.rs:41`](../desktop/src-tauri/src/commands/credentials.rs#L41)
-- Rust：`pub fn credential_favorites() -> Result<Vec<String>, String>`
+- 源码：[`desktop/src-tauri/src/commands/credentials.rs:33`](../desktop/src-tauri/src/commands/credentials.rs#L33)
+- Rust：`pub async fn credential_favorites() -> Result<Vec<String>, String>`
 - 参数：无
 
 调用：`invoke("credential_favorites")`
@@ -182,8 +182,8 @@ null
 
 **作用**：设置或取消一条账号密码记录的置顶。
 
-- 源码：[`desktop/src-tauri/src/commands/credentials.rs:51`](../desktop/src-tauri/src/commands/credentials.rs#L51)
-- Rust：`pub fn credential_favorite(id: String, value: bool) -> Result<(), String>`
+- 源码：[`desktop/src-tauri/src/commands/credentials.rs:45`](../desktop/src-tauri/src/commands/credentials.rs#L45)
+- Rust：`pub async fn credential_favorite(id: String, value: bool) -> Result<(), String>`
 
 | JS 参数 | Rust 参数 | 类型 | 必填 | 说明 |
 |---|---|---|---|---|
@@ -209,8 +209,8 @@ null
 
 **作用**：读取账号密码的全部分类标签。
 
-- 源码：[`desktop/src-tauri/src/commands/credentials.rs:58`](../desktop/src-tauri/src/commands/credentials.rs#L58)
-- Rust：`pub fn credential_tags() -> Result<Vec<String>, String>`
+- 源码：[`desktop/src-tauri/src/commands/credentials.rs:50`](../desktop/src-tauri/src/commands/credentials.rs#L50)
+- Rust：`pub async fn credential_tags() -> Result<Vec<String>, String>`
 - 参数：无
 
 调用：`invoke("credential_tags")`
@@ -228,8 +228,8 @@ null
 
 **作用**：新建账号密码分类标签。
 
-- 源码：[`desktop/src-tauri/src/commands/credentials.rs:65`](../desktop/src-tauri/src/commands/credentials.rs#L65)
-- Rust：`pub fn credential_tag_create(name: String) -> Result<(), String>`
+- 源码：[`desktop/src-tauri/src/commands/credentials.rs:55`](../desktop/src-tauri/src/commands/credentials.rs#L55)
+- Rust：`pub async fn credential_tag_create(name: String) -> Result<(), String>`
 
 | JS 参数 | Rust 参数 | 类型 | 必填 | 说明 |
 |---|---|---|---|---|
@@ -253,8 +253,8 @@ null
 
 **作用**：重命名账号密码分类标签。
 
-- 源码：[`desktop/src-tauri/src/commands/credentials.rs:72`](../desktop/src-tauri/src/commands/credentials.rs#L72)
-- Rust：`pub fn credential_tag_rename(original: String, name: String) -> Result<(), String>`
+- 源码：[`desktop/src-tauri/src/commands/credentials.rs:60`](../desktop/src-tauri/src/commands/credentials.rs#L60)
+- Rust：`pub async fn credential_tag_rename(original: String, name: String) -> Result<(), String>`
 
 | JS 参数 | Rust 参数 | 类型 | 必填 | 说明 |
 |---|---|---|---|---|
@@ -280,8 +280,8 @@ null
 
 **作用**：删除账号密码分类标签。
 
-- 源码：[`desktop/src-tauri/src/commands/credentials.rs:79`](../desktop/src-tauri/src/commands/credentials.rs#L79)
-- Rust：`pub fn credential_tag_delete(name: String) -> Result<(), String>`
+- 源码：[`desktop/src-tauri/src/commands/credentials.rs:65`](../desktop/src-tauri/src/commands/credentials.rs#L65)
+- Rust：`pub async fn credential_tag_delete(name: String) -> Result<(), String>`
 
 | JS 参数 | Rust 参数 | 类型 | 必填 | 说明 |
 |---|---|---|---|---|
@@ -305,7 +305,7 @@ null
 
 **作用**：读取账号密码页的视图模式（grid/list）。
 
-- 源码：[`desktop/src-tauri/src/commands/credentials.rs:97`](../desktop/src-tauri/src/commands/credentials.rs#L97)
+- 源码：[`desktop/src-tauri/src/commands/credentials.rs:81`](../desktop/src-tauri/src/commands/credentials.rs#L81)
 - Rust：`pub fn credential_view_get() -> Result<String, String>`
 - 参数：无
 
@@ -322,7 +322,7 @@ null
 
 **作用**：保存账号密码页的视图模式（grid/list）。
 
-- 源码：[`desktop/src-tauri/src/commands/credentials.rs:112`](../desktop/src-tauri/src/commands/credentials.rs#L112)
+- 源码：[`desktop/src-tauri/src/commands/credentials.rs:96`](../desktop/src-tauri/src/commands/credentials.rs#L96)
 - Rust：`pub fn credential_view_set(mode: String) -> Result<(), String>`
 
 | JS 参数 | Rust 参数 | 类型 | 必填 | 说明 |
@@ -347,7 +347,7 @@ null
 
 **作用**：把指定文本复制到系统剪贴板。
 
-- 源码：[`desktop/src-tauri/src/commands/credentials.rs:86`](../desktop/src-tauri/src/commands/credentials.rs#L86)
+- 源码：[`desktop/src-tauri/src/commands/credentials.rs:70`](../desktop/src-tauri/src/commands/credentials.rs#L70)
 - Rust：`pub fn copy_value(value: String) -> Result<(), String>`
 
 | JS 参数 | Rust 参数 | 类型 | 必填 | 说明 |
@@ -372,7 +372,7 @@ null
 
 **作用**：生成一个随机强密码。
 
-- 源码：[`desktop/src-tauri/src/commands/credentials.rs:92`](../desktop/src-tauri/src/commands/credentials.rs#L92)
+- 源码：[`desktop/src-tauri/src/commands/credentials.rs:76`](../desktop/src-tauri/src/commands/credentials.rs#L76)
 - Rust：`pub fn password_generate() -> Result<String, String>`
 - 参数：无
 
@@ -1863,7 +1863,7 @@ null
 
 返回：`Option<Page>`；失败：`String`（Promise reject 一个字符串）
 
-### 写作与图书（`writing`，26 个）
+### 写作与图书（`writing`，27 个）
 
 #### `writing_list`
 
@@ -2644,6 +2644,42 @@ null
 ```
 
 返回：`()`；失败：`String`（Promise reject 一个字符串）
+
+#### `writing_group_pages`
+
+**作用**：将同一目录下的文档归入新图书，保留每篇文档的内容和历史。
+
+> 将同一目录下的文档归入新图书，保留每篇文档的内容和历史。
+
+- 源码：[`desktop/src-tauri/src/commands/writing.rs:339`](../desktop/src-tauri/src/commands/writing.rs#L339)
+- Rust：`pub fn writing_group_pages(ids: Vec<String>) -> Result<Book, String>`
+
+| JS 参数 | Rust 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|---|
+| `ids` | `ids` | `Vec<String>` | 是 |  |
+
+请求示例：
+```json
+{
+  "ids": [
+    "string"
+  ]
+}
+```
+
+响应示例：
+```json
+{
+  "parent_id": "00000000-0000-0000-0000-000000000000",
+  "id": "00000000-0000-0000-0000-000000000000",
+  "title": "string",
+  "tags": [
+    "string"
+  ]
+}
+```
+
+返回：`Book`；失败：`String`（Promise reject 一个字符串）
 
 #### `books_list`
 
@@ -3563,7 +3599,7 @@ null
 > 立即触发一次私网加密库同步，返回是否实际执行。
 
 - 源码：[`desktop/src-tauri/src/commands/settings.rs:126`](../desktop/src-tauri/src/commands/settings.rs#L126)
-- Rust：`pub fn vault_sync_now() -> Result<bool, String>`
+- Rust：`pub async fn vault_sync_now() -> Result<bool, String>`
 - 参数：无
 
 调用：`invoke("vault_sync_now")`

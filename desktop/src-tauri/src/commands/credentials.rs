@@ -6,81 +6,65 @@ use crate::{
     tags::Scope,
 };
 
-use crate::state::development_db;
+use crate::state::{development_db, with_vault};
 
 #[tauri::command]
-pub fn credentials_list() -> Result<Vec<Credential>, String> {
-    development_db()?
-        .credentials()
-        .map_err(|error| error.to_string())
+pub async fn credentials_list() -> Result<Vec<Credential>, String> {
+    with_vault(|database| database.credentials()).await
 }
 
 /// 全局搜索使用的账号字段，不读取口令或备注。
 #[tauri::command]
-pub fn credential_search_items() -> Result<Vec<CredentialSearchItem>, String> {
-    development_db()?
-        .credential_search_items()
-        .map_err(|error| error.to_string())
+pub async fn credential_search_items() -> Result<Vec<CredentialSearchItem>, String> {
+    with_vault(|database| database.credential_search_items()).await
 }
 
 #[tauri::command]
-pub fn credentials_save(entry: Credential) -> Result<(), String> {
+pub async fn credentials_save(entry: Credential) -> Result<(), String> {
     entry.validate().map_err(|error| error.to_string())?;
-    development_db()?
-        .save_credential(&entry)
-        .map_err(|error| error.to_string())
+    with_vault(move |database| database.save_credential(&entry)).await
 }
 
 #[tauri::command]
-pub fn credentials_delete(id: String) -> Result<(), String> {
-    development_db()?
-        .delete_credential(&id)
-        .map_err(|error| error.to_string())
+pub async fn credentials_delete(id: String) -> Result<(), String> {
+    with_vault(move |database| database.delete_credential(&id)).await
 }
 
 #[tauri::command]
-pub fn credential_favorites() -> Result<Vec<String>, String> {
-    Ok(development_db()?
-        .favorites()
-        .map_err(|error| error.to_string())?
-        .into_iter()
-        .filter_map(|(scope, id)| (scope == "credentials").then_some(id))
-        .collect())
+pub async fn credential_favorites() -> Result<Vec<String>, String> {
+    with_vault(|database| {
+        Ok(database
+            .favorites()?
+            .into_iter()
+            .filter_map(|(scope, id)| (scope == "credentials").then_some(id))
+            .collect())
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn credential_favorite(id: String, value: bool) -> Result<(), String> {
-    development_db()?
-        .set_favorite("credentials", &id, value)
-        .map_err(|error| error.to_string())
+pub async fn credential_favorite(id: String, value: bool) -> Result<(), String> {
+    with_vault(move |database| database.set_favorite("credentials", &id, value)).await
 }
 
 #[tauri::command]
-pub fn credential_tags() -> Result<Vec<String>, String> {
-    development_db()?
-        .tags(Scope::Credentials)
-        .map_err(|error| error.to_string())
+pub async fn credential_tags() -> Result<Vec<String>, String> {
+    with_vault(|database| database.tags(Scope::Credentials)).await
 }
 
 #[tauri::command]
-pub fn credential_tag_create(name: String) -> Result<(), String> {
-    development_db()?
-        .create_tag(Scope::Credentials, &name)
-        .map_err(|error| error.to_string())
+pub async fn credential_tag_create(name: String) -> Result<(), String> {
+    with_vault(move |database| database.create_tag(Scope::Credentials, &name)).await
 }
 
 #[tauri::command]
-pub fn credential_tag_rename(original: String, name: String) -> Result<(), String> {
-    development_db()?
-        .rename_tag(Scope::Credentials, &original, &name)
-        .map_err(|error| error.to_string())
+pub async fn credential_tag_rename(original: String, name: String) -> Result<(), String> {
+    with_vault(move |database| database.rename_tag(Scope::Credentials, &original, &name)).await
 }
 
 #[tauri::command]
-pub fn credential_tag_delete(name: String) -> Result<(), String> {
-    development_db()?
-        .delete_tag(Scope::Credentials, &name)
-        .map_err(|error| error.to_string())
+pub async fn credential_tag_delete(name: String) -> Result<(), String> {
+    with_vault(move |database| database.delete_tag(Scope::Credentials, &name)).await
 }
 
 #[tauri::command]

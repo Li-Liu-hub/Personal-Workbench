@@ -145,10 +145,13 @@ impl Database {
     }
     /// 打开数据目录：先在本机建库/迁移，再连接私网加密库（release 构建）。
     pub fn open(data_dir: &Path) -> Result<Self> {
-        Self::open_with_remote(data_dir, true)
+        let database = Self::open_local(data_dir)?;
+        #[cfg(not(debug_assertions))]
+        let database = database.attach_remote(data_dir)?;
+        Ok(database)
     }
 
-    fn open_with_remote(data_dir: &Path, attach_remote: bool) -> Result<Self> {
+    pub(crate) fn open_local(data_dir: &Path) -> Result<Self> {
         std::fs::create_dir_all(data_dir.join("documents"))?;
         std::fs::create_dir_all(data_dir.join("recovery"))?;
         let mut desk = Connection::open(data_dir.join("desk.db"))?;
@@ -328,17 +331,34 @@ impl Database {
         };
         database.prepare_writing(data_dir)?;
         database.prepare_essays()?;
-        #[cfg(not(debug_assertions))]
-        if attach_remote {
-            database.desk.pragma_update(None, "temp_store", "MEMORY")?;
-            database.remote_vault = Some(crate::remote_vault::RemoteVault::open_and_attach(
-                &mut database.desk,
-                data_dir,
-            )?);
-        }
-        #[cfg(debug_assertions)]
-        let _ = attach_remote;
         Ok(database)
+    }
+
+    /// 复用已初始化的本地库文件，账号表和网络同步使用独立连接。
+    #[cfg(not(debug_assertions))]
+    pub(crate) fn open_vault(data_dir: &Path) -> Result<Self> {
+        let desk = Connection::open_with_flags(
+            data_dir.join("desk.db"),
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE,
+        )?;
+        desk.pragma_update(None, "foreign_keys", "ON")?;
+        Self {
+            desk,
+            tag_cache: Default::default(),
+            migration_notice: String::new(),
+            remote_vault: None,
+        }
+        .attach_remote(data_dir)
+    }
+
+    #[cfg(not(debug_assertions))]
+    fn attach_remote(mut self, data_dir: &Path) -> Result<Self> {
+        self.desk.pragma_update(None, "temp_store", "MEMORY")?;
+        self.remote_vault = Some(crate::remote_vault::RemoteVault::open_and_attach(
+            &mut self.desk,
+            data_dir,
+        )?);
+        Ok(self)
     }
 
     pub fn sync_remote_if_due(&mut self) -> Result<bool> {

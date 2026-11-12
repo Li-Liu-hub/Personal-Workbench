@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { Alert, Button, Dropdown, Input, Modal, Select, Tree, Tooltip, type InputRef, type MenuProps } from 'antd'
 import { FileTextOutlined, FolderOutlined, MenuFoldOutlined, MenuUnfoldOutlined, MoreOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
@@ -16,6 +16,12 @@ type DirectorySearch = { term: string; matches: Set<string> } | { term: string; 
 type Move = { kind: 'book' | 'page'; id: string; title: string }
 const rootBook = '__personal_writing__'
 const documentActionLabels: Record<string, string> = { export: '导出文档', copy: '另存副本', publish: '发布博客', 'publish-mongo': '发布到文档库' }
+
+function directoryRow(target: EventTarget | null) {
+  const row = target instanceof Element ? target.closest('.ant-tree-treenode') : null
+  const key = row?.querySelector<HTMLElement>('[data-writing-key]')?.dataset.writingKey
+  return row && key ? { row, key } : null
+}
 
 export default function WritingPage({ setDirty, registerGuard, focus }: {
   setDirty: (value: boolean) => void; registerGuard?: RegisterWritingGuard; focus?: FocusState | null
@@ -43,6 +49,8 @@ export default function WritingPage({ setDirty, registerGuard, focus }: {
   const layout = useRef<HTMLDivElement>(null)
   const directory = useRef<HTMLElement>(null)
   const treeViewport = useRef<HTMLDivElement>(null)
+  const draggedKey = useRef<string | null>(null)
+  const highlightedRow = useRef<Element | null>(null)
   const returnToDirectory = useRef(false)
   const documentScroll = useRef<HTMLDivElement>(null)
   const titleInput = useRef<InputRef>(null)
@@ -233,6 +241,77 @@ export default function WritingPage({ setDirty, registerGuard, focus }: {
       setNotice('移动完成')
     })
   }
+
+  const parentByKey = useMemo(() => new Map([
+    ...pages.map(page => ['page:' + page.id, page.book_id === rootBook ? 'root' : 'book:' + page.book_id] as const),
+    ...books.map(book => ['book:' + book.id, book.parent_id ? 'book:' + book.parent_id : 'root'] as const),
+  ]), [pages, books])
+
+  function canDrop(source: string, target: string) {
+    const parent = parentByKey.get(source)
+    if (busy || !parent || source === target || parent === target) return false
+    if (target.startsWith('page:')) return source.startsWith('page:') && parent === parentByKey.get(target)
+    for (let ancestor: string | undefined = target; ancestor; ancestor = parentByKey.get(ancestor)) {
+      if (ancestor === source) return false
+    }
+    return target === 'root' || parentByKey.has(target)
+  }
+
+  function highlightDrop(row: Element | null) {
+    if (row === highlightedRow.current) return
+    highlightedRow.current?.removeAttribute('data-writing-drop')
+    row?.setAttribute('data-writing-drop', '')
+    highlightedRow.current = row
+  }
+
+  function endDrag() {
+    draggedKey.current = null
+    highlightDrop(null)
+  }
+
+  function startDrag(event: DragEvent) {
+    const source = directoryRow(event.target)
+    if (busy || !source || source.key === 'root') { event.preventDefault(); return }
+    draggedKey.current = source.key
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('application/x-personaldesk-writing', source.key)
+  }
+
+  function dragOver(event: DragEvent) {
+    const target = directoryRow(event.target)
+    if (!draggedKey.current || !target || !canDrop(draggedKey.current, target.key)) {
+      highlightDrop(null)
+      return
+    }
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    highlightDrop(target.row)
+  }
+
+  function drop(event: DragEvent) {
+    const source = draggedKey.current
+    const target = directoryRow(event.target)?.key
+    endDrag()
+    if (!source || !target || !canDrop(source, target)) return
+    event.preventDefault()
+    const grouping = target.startsWith('page:')
+    void afterSave(grouping ? '合并文档' : '移动', async () => {
+      let expand = target
+      if (grouping) {
+        const book = await invoke<Book>('writing_group_pages', { ids: [target.slice(5), source.slice(5)] })
+        expand = 'book:' + book.id
+      } else {
+        const parent = target === 'root' ? null : target.slice(5)
+        if (source.startsWith('book:')) await invoke('writing_move_book', { id: source.slice(5), parent })
+        else await invoke('writing_move_page', { id: source.slice(5), target: parent })
+      }
+      if (activeId && (source === 'page:' + activeId || target === 'page:' + activeId)) await readPage(activeId)
+      await refresh()
+      setExpandedKeys(keys => keys.includes(expand) ? keys : [...keys, expand])
+      setNotice(grouping ? '已将两篇文档归入新图书' : '移动完成')
+    })
+  }
+
   function remove() {
     if (!removing) return
     void afterSave('删除', async () => {
@@ -291,7 +370,7 @@ export default function WritingPage({ setDirty, registerGuard, focus }: {
       if (matches && !matches.has(page.id)) continue
       const items = documents.get(page.book_id) ?? []
       items.push({ key: 'page:' + page.id, icon: <FileTextOutlined/>, isLeaf: true,
-        title: <span className="document-tree-name" title={page.title}>{page.title || '未命名文档'}</span> })
+        title: <span className="document-tree-name" title={page.title} data-writing-key={'page:' + page.id} draggable>{page.title || '未命名文档'}</span> })
       documents.set(page.book_id, items)
     }
     const groups = new Map<string | null, Book[]>()
@@ -306,7 +385,7 @@ export default function WritingPage({ setDirty, registerGuard, focus }: {
         const children = [...bookNodes(book.id), ...(documents.get(book.id) ?? [])]
         if (matches && !book.title.toLocaleLowerCase().includes(term) && !children.length) return []
         return [{ key: 'book:' + book.id, icon: <FolderOutlined/>, children, title: <div className="document-tree-folder">
-          <span className="document-tree-name" title={book.title}>{book.title}</span>
+          <span className="document-tree-name" title={book.title} data-writing-key={'book:' + book.id} draggable>{book.title}</span>
           <span onClick={event => event.stopPropagation()}>
             <Dropdown trigger={['click']} menu={{
               items: [{ key: 'rename', label: '重命名' }, { key: 'move', label: '移动图书' }, { key: 'delete', label: '删除图书', danger: true }],
@@ -320,7 +399,7 @@ export default function WritingPage({ setDirty, registerGuard, focus }: {
         </div> }]
       })
     }
-    return [{ key: 'root', title: '全部文档', icon: <FolderOutlined/>, children: [...bookNodes(null), ...(documents.get(rootBook) ?? [])] }]
+    return [{ key: 'root', title: <span data-writing-key="root">全部文档</span>, icon: <FolderOutlined/>, children: [...bookNodes(null), ...(documents.get(rootBook) ?? [])] }]
   }, [books, pages, matches, term, createBook, chooseMove])
   function toggleDirectory() {
     if (wide) setDirectoryOpen(value => !value)
@@ -358,7 +437,9 @@ export default function WritingPage({ setDirty, registerGuard, focus }: {
         <div className="directory-caption"><span>我的文档</span><Tooltip title="新建图书">
           <Button type="text" size="small" aria-label="新建图书" icon={<PlusOutlined/>} onClick={() => createBook()}/>
         </Tooltip></div>
-        <div className="document-tree" ref={treeViewport} aria-busy={!loaded || searching}>
+        <div className="document-tree" ref={treeViewport} aria-busy={!loaded || searching}
+          onDragStart={startDrag} onDragOver={dragOver} onDragEnd={endDrag} onDrop={drop}
+          onDragLeave={event => { if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) highlightDrop(null) }}>
           {!loaded || searching ? <p className="writing-loading" role="status">{loaded ? '正在搜索…' : '正在读取文档…'}</p>
           : currentSearch && 'error' in currentSearch ? <div className="collection-list-empty">
             <span role="status">{currentSearch.error}</span>

@@ -20,11 +20,11 @@ pub fn run() {
     if data.is_ok() && _instance.is_none() {
         return;
     }
-    state::initialize_database();
-    state::spawn_remote_sync();
+    state::initialize_database(data.as_deref());
     tauri::Builder::default()
-        .setup(|app| {
-            state::build_main_window(app)?;
+        .setup(move |app| {
+            state::build_main_window(app, data.as_deref())?;
+            state::spawn_remote_sync();
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -116,6 +116,7 @@ pub fn run() {
             commands::writing::writing_image_read,
             commands::writing::writing_move_book,
             commands::writing::writing_move_page,
+            commands::writing::writing_group_pages,
             commands::writing::books_list,
             commands::writing::books_save,
             commands::contacts::contacts_list,

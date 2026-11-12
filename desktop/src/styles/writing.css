@@ -118,6 +118,15 @@
   text-overflow: ellipsis;
 }
 
+.document-tree-name[draggable='true'] {
+  cursor: grab;
+}
+
+.document-tree [data-writing-drop] .ant-tree-node-content-wrapper {
+  background: color-mix(in srgb, var(--desk-accent) 14%, var(--desk-paper));
+  box-shadow: inset 0 0 0 1px var(--desk-accent);
+}
+
 .document-tree-folder {
   display: flex;
   align-items: center;
